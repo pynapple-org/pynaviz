@@ -1,9 +1,11 @@
-import pygfx as gfx
-from wgpu.gui.auto import WgpuCanvas, run
-import numpy as np
 from math import pi, tan
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pygfx as gfx
 import pylinalg as la
 from pygfx.cameras._perspective import fov_distance_factor
+from wgpu.gui.auto import WgpuCanvas, run
 
 
 def fov_distance_factor(fov):
@@ -30,7 +32,6 @@ positions1 = np.column_stack([x, y1, np.zeros_like(x)])
 positions2 = np.column_stack([x, y2, np.zeros_like(x)])
 
 colors = np.linspace(0, 1, x.shape[0]).astype(np.float32)
-import matplotlib.pyplot as plt
 cmap = plt.get_cmap("jet")
 colors = cmap(colors)
 colors = colors.astype(np.float32)
