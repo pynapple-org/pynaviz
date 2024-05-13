@@ -4,6 +4,7 @@ import numpy as np
 from math import pi, tan
 import pylinalg as la
 
+
 def fov_distance_factor(fov):
     # It's important that controller and camera use the same distance calculations
     if fov > 0:
@@ -12,6 +13,7 @@ def fov_distance_factor(fov):
     else:
         factor = 1.0
     return factor
+
 
 # Create a renderer for each canvas
 canvas1 = WgpuCanvas()
