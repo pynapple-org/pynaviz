@@ -29,6 +29,15 @@ y2 = np.sin(x)
 positions1 = np.column_stack([x, y1, np.zeros_like(x)])
 positions2 = np.column_stack([x, y2, np.zeros_like(x)])
 
+colors = np.linspace(0, 1, x.shape[0]).astype(np.float32)
+import matplotlib.pyplot as plt
+cmap = plt.get_cmap("jet")
+colors = cmap(colors)
+colors = colors.astype(np.float32)
+
+# colors = np.random.uniform(0, 1, (x.size, 4)).astype(np.float32)
+# colors[:, 3] = 1
+
 # Shared camera settings
 camera_settings1 = {
     'position': [0, 0, 500],
@@ -52,60 +61,54 @@ scene1 = gfx.Scene()
 scene2 = gfx.Scene()
 
 line1 = gfx.Line(
-    gfx.Geometry(positions=positions1),
-    gfx.LineMaterial(thickness=2.0, color=(0.0, 0.7, 0.3, 1.0)),
+    gfx.Geometry(positions=positions1, colors=colors),
+    gfx.LineMaterial(thickness=5.0, color_mode="face", map=gfx.cm.viridis),
 )
 line2 = gfx.Line(
-    gfx.Geometry(positions=positions2),
-    gfx.LineMaterial(thickness=2.0, color=(0.0, 0.7, 0.3, 1.0)),
+    gfx.Geometry(positions=positions2,colors=colors),
+    gfx.LineMaterial(thickness=3.0, color_mode="face", map=gfx.cm.viridis),
 )
 scene1.add(line1)
 scene2.add(line2)
 
-# Add objects to scenes, etc.
 
+def on_pan(event, plot, *args):
 
-def on_scroll_1(event):
+    print(event)
+
+    plot1 = plot
+    plot2 = args[0]
+
+    camera1 = plot1["camera"]
+    camera2 = plot2["camera"]
 
     # print("event handler 1")
     # Modify camera position based on scroll
-    dx2 = (camera1.local.position[0] - camera_settings1['position'][0]) * camera2.width / camera1.width
+    dx2 = (camera1.local.position[0] - camera2.local.position[0]) * camera2.width / camera1.width
 
     # update the camera setting position
-    camera_settings2['position'][0] = camera2.local.position[0] + dx2
-    camera_settings1['position'][0] = camera1.local.position[0]
+    new_pos = np.copy(camera2.local.position)
+    new_pos[0] = new_pos[0] + dx2
+    # camera_settings2['position'][0] = camera2.local.position[0] + dx2
+    # camera_settings1['position'][0] = camera1.local.position[0]
 
     # Update camera
-    camera2.local.position = camera_settings2['position']
+    camera2.local.position = new_pos
 
     # Re-render both scenes
-    canvas2.request_draw(lambda: renderer2.render(scene2, camera2))
-    canvas1.request_draw(lambda: renderer1.render(scene1, camera1))
+    plot2['canvas'].request_draw(lambda: plot2['renderer'].render(plot2['scene'], camera2))
+    plot1['canvas'].request_draw(lambda: plot1['renderer'].render(plot1['scene'], camera1))
 
     print(camera1.local.position, (camera1.width, camera1.height), (camera2.width, camera2.height))
 
-
-def on_scroll_2(event):
-    # print("event handler 2")
-    # Modify camera position based on scroll
-    dx1 = (camera2.local.position[0] - camera_settings2['position'][0]) * camera1.width / camera2.width
-
-    camera_settings1['position'][0] = camera1.local.position[0] + dx1
-    camera_settings2['position'][0] = camera2.local.position[0]
-
-    # Update camera
-    camera1.local.position = camera_settings2['position']
-    camera_settings2['position'][0] = camera2.local.position[0]
-
-    # Re-render both scenes
-    canvas1.request_draw(lambda: renderer1.render(scene1, camera1))
-    canvas2.request_draw(lambda: renderer2.render(scene2, camera2))
-
-    print(camera_settings2['position'], (camera1.width, camera1.height), (camera2.width, camera2.height))
-
 # Adding event listeners to each canvas
-def on_zoom_1(event):
-    print("zoom 1")
+def on_zoom(event, plot, *args):
+
+    plot1 = plot
+    plot2 = args[0]
+
+    camera1 = plot1["camera"]
+    camera2 = plot2["camera"]
 
     cam_state = camera2.get_state()
     extent = 0.5 * (cam_state["width"] + cam_state["height"])
@@ -120,45 +123,27 @@ def on_zoom_1(event):
     distance = fov_distance_factor(fov) * new_extent
     v2 = la.vec_transform_quat((0, 0, -distance), rot)
 
-    camera_settings2['position'] = camera_settings2['position'] + v1 - v2
-    camera2.local.position = camera_settings2['position']
+    new_pos = np.copy(camera2.local.position)
+    new_pos = new_pos + v1 - v2
+    camera2.local.position = new_pos
     camera2.width = camera1.width
 
-    canvas2.request_draw(lambda: renderer2.render(scene2, camera2))
-    canvas1.request_draw(lambda: renderer1.render(scene1, camera1))
+    plot2['canvas'].request_draw(lambda: plot2['renderer'].render(plot2['scene'], camera2))
+    plot1['canvas'].request_draw(lambda: plot1['renderer'].render(plot1['scene'], camera1))
 
+    on_pan(event, plot1, plot2)
 
-def on_zoom_2(event):
-    print("zoom 2")
+# Create grouped objects
 
-    cam_state = camera1.get_state()
-    extent = 0.5 * (cam_state["width"] + cam_state["height"])
-
-    new_extent = 0.5 * (camera2.width + cam_state["height"])
-
-    rot = cam_state["rotation"]
-    fov = cam_state["fov"]
-    distance = fov_distance_factor(fov) * extent
-    v1 = la.vec_transform_quat((0, 0, -distance), rot)
-
-    distance = fov_distance_factor(fov) * new_extent
-    v2 = la.vec_transform_quat((0, 0, -distance), rot)
-
-    camera_settings1['position'] = camera_settings1['position'] + v1 - v2
-    camera1.local.position = camera_settings1['position']
-    camera1.width = camera2.width
-
-    canvas1.request_draw(lambda: renderer1.render(scene1, camera1))
-    canvas2.request_draw(lambda: renderer2.render(scene2, camera2))
-
-    print(camera_settings1['position'], (camera1.width, camera1.height), (camera2.width, camera2.height))
+plot1 = {"camera":camera1,"renderer":renderer1,"canvas":canvas1, "scene": scene1}
+plot2 = {"camera":camera2,"renderer":renderer2,"canvas":canvas2, "scene": scene2}
 
 
 # Assume canvas1 and canvas2 are your canvas elements
-canvas1.add_event_handler(on_scroll_1, "pointer_move")
-canvas2.add_event_handler(on_scroll_2, "pointer_move")
-canvas1.add_event_handler(on_zoom_1, "wheel")
-canvas2.add_event_handler(on_zoom_2, "wheel")
+canvas1.add_event_handler(lambda e: on_pan(e, plot1, plot2), "pointer_move")
+canvas2.add_event_handler(lambda e: on_pan(e, plot2, plot1), "pointer_move")
+canvas1.add_event_handler(lambda e: on_zoom(e, plot1, plot2), "wheel")
+canvas2.add_event_handler(lambda e: on_zoom(e, plot2, plot1), "wheel")
 
 # Initial render
 renderer1.render(scene1, camera1)
