@@ -3,6 +3,7 @@ from wgpu.gui.auto import WgpuCanvas, run
 import numpy as np
 from math import pi, tan
 import pylinalg as la
+from pygfx.cameras._perspective import fov_distance_factor
 
 
 def fov_distance_factor(fov):
@@ -81,7 +82,7 @@ def on_scroll_1(event):
     canvas2.request_draw(lambda: renderer2.render(scene2, camera2))
     canvas1.request_draw(lambda: renderer1.render(scene1, camera1))
 
-    #print(camera1.local.position, (camera1.width, camera1.height), (camera2.width, camera2.height))
+    print(camera1.local.position, (camera1.width, camera1.height), (camera2.width, camera2.height))
 
 
 def on_scroll_2(event):
@@ -94,12 +95,13 @@ def on_scroll_2(event):
 
     # Update camera
     camera1.local.position = camera_settings2['position']
+    camera_settings2['position'][0] = camera2.local.position[0]
 
     # Re-render both scenes
     canvas1.request_draw(lambda: renderer1.render(scene1, camera1))
     canvas2.request_draw(lambda: renderer2.render(scene2, camera2))
 
-    #print(camera_settings2['position'], (camera1.width, camera1.height), (camera2.width, camera2.height))
+    print(camera_settings2['position'], (camera1.width, camera1.height), (camera2.width, camera2.height))
 
 # Adding event listeners to each canvas
 def on_zoom_1(event):
