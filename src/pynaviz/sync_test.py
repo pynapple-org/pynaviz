@@ -23,7 +23,7 @@ positions2 = np.column_stack([x, y2, np.zeros_like(x)])
 
 colors = np.linspace(0, 1, x.shape[0]).astype(np.float32)
 cmap1 = plt.get_cmap("rainbow")
-cmap2 = plt.get_cmap("hot")
+cmap2 = plt.get_cmap("rainbow")
 colors1 = cmap1(colors)
 colors1 = colors1.astype(np.float32)
 colors2 = cmap2(colors)
