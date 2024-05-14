@@ -22,9 +22,12 @@ positions1 = np.column_stack([x, y1, np.zeros_like(x)])
 positions2 = np.column_stack([x, y2, np.zeros_like(x)])
 
 colors = np.linspace(0, 1, x.shape[0]).astype(np.float32)
-cmap = plt.get_cmap("rainbow")
-colors = cmap(colors)
-colors = colors.astype(np.float32)
+cmap1 = plt.get_cmap("rainbow")
+cmap2 = plt.get_cmap("hot")
+colors1 = cmap1(colors)
+colors1 = colors1.astype(np.float32)
+colors2 = cmap2(colors)
+colors2 = colors2.astype(np.float32)
 
 # colors = np.random.uniform(0, 1, (x.size, 4)).astype(np.float32)
 # colors[:, 3] = 1
@@ -52,11 +55,11 @@ scene1 = gfx.Scene()
 scene2 = gfx.Scene()
 
 line1 = gfx.Line(
-    gfx.Geometry(positions=positions1, colors=colors),
+    gfx.Geometry(positions=positions1, colors=colors1),
     gfx.LineMaterial(thickness=3.0, color_mode="face", map=gfx.cm.viridis),
 )
 line2 = gfx.Line(
-    gfx.Geometry(positions=positions2,colors=colors),
+    gfx.Geometry(positions=positions2,colors=colors2),
     gfx.LineMaterial(thickness=3.0, color_mode="face", map=gfx.cm.viridis),
 )
 scene1.add(line1)
@@ -87,9 +90,9 @@ def on_pan(event, plot, *args):
     # Re-render both scenes
     plot2['canvas'].request_draw(lambda: plot2['renderer'].render(plot2['scene'], camera2))
     plot1['canvas'].request_draw(lambda: plot1['renderer'].render(plot1['scene'], camera1))
-
-    # print("cam1", camera1.local.position, (camera1.width, camera1.height))
-    # print("cam2", camera2.local.position, (camera2.width, camera2.height))
+    print("pan")
+    print("cam1", camera1.local.position, (camera1.width, camera1.height))
+    print("cam2", camera2.local.position, (camera2.width, camera2.height))
 
 # Adding event listeners to each canvas
 def on_zoom(event, plot, *args):
@@ -116,11 +119,16 @@ def on_zoom(event, plot, *args):
 
     new_pos = np.copy(camera2.local.position)
     new_pos = new_pos + v1 - v2
-    camera2.local.position = new_pos
     camera2.width = cam_state1["width"]
+    new_pos[0] = camera1.local.position[0]
+    camera2.local.position = new_pos
 
     plot2['canvas'].request_draw(lambda: plot2['renderer'].render(plot2['scene'], camera2))
     plot1['canvas'].request_draw(lambda: plot1['renderer'].render(plot1['scene'], camera1))
+
+    print("zoom")
+    print("cam1", camera1.local.position, (camera1.width, camera1.height))
+    print("cam2", camera2.local.position, (camera2.width, camera2.height))
 
 # Create grouped objects
 plot1 = {"camera":camera1,"renderer":renderer1,"canvas":canvas1, "scene": scene1}
