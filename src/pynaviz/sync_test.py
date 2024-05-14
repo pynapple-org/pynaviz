@@ -32,7 +32,7 @@ positions1 = np.column_stack([x, y1, np.zeros_like(x)])
 positions2 = np.column_stack([x, y2, np.zeros_like(x)])
 
 colors = np.linspace(0, 1, x.shape[0]).astype(np.float32)
-cmap = plt.get_cmap("jet")
+cmap = plt.get_cmap("Purples")
 colors = cmap(colors)
 colors = colors.astype(np.float32)
 
@@ -52,9 +52,9 @@ camera_settings2 = {
 }
 
 # Define two cameras with shared parameters
-camera1 = gfx.OrthographicCamera(500, 400, maintain_aspect=False)
+camera1 = gfx.OrthographicCamera(500, 500, maintain_aspect=False)
 camera1.local.position = camera_settings1['position']
-camera2 = gfx.OrthographicCamera(500, 400, maintain_aspect=False)
+camera2 = gfx.OrthographicCamera(500, 500, maintain_aspect=False)
 camera2.local.position = camera_settings2['position']
 
 # Define scene for both canvases
@@ -63,7 +63,7 @@ scene2 = gfx.Scene()
 
 line1 = gfx.Line(
     gfx.Geometry(positions=positions1, colors=colors),
-    gfx.LineMaterial(thickness=5.0, color_mode="face", map=gfx.cm.viridis),
+    gfx.LineMaterial(thickness=3.0, color_mode="face", map=gfx.cm.viridis),
 )
 line2 = gfx.Line(
     gfx.Geometry(positions=positions2,colors=colors),
@@ -85,7 +85,7 @@ def on_pan(event, plot, *args):
 
     # print("event handler 1")
     # Modify camera position based on scroll
-    dx2 = (camera1.local.position[0] - camera2.local.position[0]) * camera2.width / camera1.width
+    dx2 = (camera1.local.position[0] / camera1.width - camera2.local.position[0] / camera2.width) * camera2.width #/ camera1.width
 
     # update the camera setting position
     new_pos = np.copy(camera2.local.position)
@@ -100,7 +100,8 @@ def on_pan(event, plot, *args):
     plot2['canvas'].request_draw(lambda: plot2['renderer'].render(plot2['scene'], camera2))
     plot1['canvas'].request_draw(lambda: plot1['renderer'].render(plot1['scene'], camera1))
 
-    print(camera1.local.position, (camera1.width, camera1.height), (camera2.width, camera2.height))
+    print("cam1", camera1.local.position, (camera1.width, camera1.height))
+    print("cam2", camera2.local.position, (camera2.width, camera2.height))
 
 # Adding event listeners to each canvas
 def on_zoom(event, plot, *args):
@@ -111,13 +112,14 @@ def on_zoom(event, plot, *args):
     camera1 = plot1["camera"]
     camera2 = plot2["camera"]
 
-    cam_state = camera2.get_state()
-    extent = 0.5 * (cam_state["width"] + cam_state["height"])
+    cam_state2 = camera2.get_state()
+    cam_state1 = camera1.get_state()
+    extent = 0.5 * (cam_state2["width"] + cam_state2["height"])
 
-    new_extent = 0.5 * (camera1.width + cam_state["height"])
+    new_extent = 0.5 * (cam_state1["width"] + cam_state2["height"])
 
-    rot = cam_state["rotation"]
-    fov = cam_state["fov"]
+    rot = cam_state2["rotation"]
+    fov = cam_state2["fov"]
     distance = fov_distance_factor(fov) * extent
     v1 = la.vec_transform_quat((0, 0, -distance), rot)
 
@@ -127,10 +129,12 @@ def on_zoom(event, plot, *args):
     new_pos = np.copy(camera2.local.position)
     new_pos = new_pos + v1 - v2
     camera2.local.position = new_pos
-    camera2.width = camera1.width
+    camera2.width = cam_state1["width"]
 
     plot2['canvas'].request_draw(lambda: plot2['renderer'].render(plot2['scene'], camera2))
     plot1['canvas'].request_draw(lambda: plot1['renderer'].render(plot1['scene'], camera1))
+    print("cam1", camera1.local.position, (camera1.width, camera1.height))
+    print("cam2", camera2.local.position, (camera2.width, camera2.height))
 
     on_pan(event, plot1, plot2)
 
