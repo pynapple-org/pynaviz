@@ -42,9 +42,9 @@ camera_settings2 = {
 }
 
 # Define two cameras with shared parameters
-camera1 = gfx.OrthographicCamera(500, 500, maintain_aspect=False)
+camera1 = gfx.OrthographicCamera(500, 400, maintain_aspect=False)
 camera1.local.position = camera_settings1['position']
-camera2 = gfx.OrthographicCamera(500, 500, maintain_aspect=False)
+camera2 = gfx.OrthographicCamera(500, 400, maintain_aspect=False)
 camera2.local.position = camera_settings2['position']
 
 # Define scene for both canvases
@@ -75,13 +75,11 @@ def on_pan(event, plot, *args):
 
     # print("event handler 1")
     # Modify camera position based on scroll
-    dx2 = (camera1.local.position[0] / camera1.width - camera2.local.position[0] / camera2.width) * camera2.width #/ camera1.width
+    dx2 = (camera1.local.position[0] / camera1.width - camera2.local.position[0] / camera2.width) * camera2.width
 
     # update the camera setting position
     new_pos = np.copy(camera2.local.position)
     new_pos[0] = new_pos[0] + dx2
-    # camera_settings2['position'][0] = camera2.local.position[0] + dx2
-    # camera_settings1['position'][0] = camera1.local.position[0]
 
     # Update camera
     camera2.local.position = new_pos
@@ -90,8 +88,8 @@ def on_pan(event, plot, *args):
     plot2['canvas'].request_draw(lambda: plot2['renderer'].render(plot2['scene'], camera2))
     plot1['canvas'].request_draw(lambda: plot1['renderer'].render(plot1['scene'], camera1))
 
-    print("cam1", camera1.local.position, (camera1.width, camera1.height))
-    print("cam2", camera2.local.position, (camera2.width, camera2.height))
+    # print("cam1", camera1.local.position, (camera1.width, camera1.height))
+    # print("cam2", camera2.local.position, (camera2.width, camera2.height))
 
 # Adding event listeners to each canvas
 def on_zoom(event, plot, *args):
@@ -123,11 +121,8 @@ def on_zoom(event, plot, *args):
 
     plot2['canvas'].request_draw(lambda: plot2['renderer'].render(plot2['scene'], camera2))
     plot1['canvas'].request_draw(lambda: plot1['renderer'].render(plot1['scene'], camera1))
-    print("cam1", camera1.local.position, (camera1.width, camera1.height))
-    print("cam2", camera2.local.position, (camera2.width, camera2.height))
 
 # Create grouped objects
-
 plot1 = {"camera":camera1,"renderer":renderer1,"canvas":canvas1, "scene": scene1}
 plot2 = {"camera":camera2,"renderer":renderer2,"canvas":canvas2, "scene": scene2}
 
@@ -140,10 +135,7 @@ canvas2.add_event_handler(lambda e: on_zoom(e, plot2, plot1), "wheel")
 
 # Initial render
 renderer1.render(scene1, camera1)
-renderer1.render(scene2, camera2)
-
-# canvas1.add_event_listener('click', lambda e: handle_click(e, 1))
-# canvas2.add_event_listener('click', lambda e: handle_click(e, 2))
+renderer2.render(scene2, camera2)
 
 controller1 = gfx.PanZoomController(camera1, register_events=renderer1)
 controller2 = gfx.PanZoomController(camera2, register_events=renderer2)
