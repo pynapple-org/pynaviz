@@ -8,16 +8,6 @@ from pygfx.cameras._perspective import fov_distance_factor
 from wgpu.gui.auto import WgpuCanvas, run
 
 
-def fov_distance_factor(fov):
-    # It's important that controller and camera use the same distance calculations
-    if fov > 0:
-        fov_rad = fov * pi / 180
-        factor = 0.5 / tan(0.5 * fov_rad)
-    else:
-        factor = 1.0
-    return factor
-
-
 # Create a renderer for each canvas
 canvas1 = WgpuCanvas()
 canvas2 = WgpuCanvas()
@@ -32,7 +22,7 @@ positions1 = np.column_stack([x, y1, np.zeros_like(x)])
 positions2 = np.column_stack([x, y2, np.zeros_like(x)])
 
 colors = np.linspace(0, 1, x.shape[0]).astype(np.float32)
-cmap = plt.get_cmap("Purples")
+cmap = plt.get_cmap("rainbow")
 colors = cmap(colors)
 colors = colors.astype(np.float32)
 
@@ -152,7 +142,7 @@ canvas2.add_event_handler(lambda e: on_zoom(e, plot2, plot1), "wheel")
 
 # Initial render
 renderer1.render(scene1, camera1)
-renderer2.render(scene2, camera2)
+renderer1.render(scene2, camera2)
 
 # canvas1.add_event_listener('click', lambda e: handle_click(e, 1))
 # canvas2.add_event_listener('click', lambda e: handle_click(e, 2))
