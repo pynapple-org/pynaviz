@@ -126,8 +126,6 @@ def on_zoom(event, plot, *args):
     print("cam1", camera1.local.position, (camera1.width, camera1.height))
     print("cam2", camera2.local.position, (camera2.width, camera2.height))
 
-    on_pan(event, plot1, plot2)
-
 # Create grouped objects
 
 plot1 = {"camera":camera1,"renderer":renderer1,"canvas":canvas1, "scene": scene1}
