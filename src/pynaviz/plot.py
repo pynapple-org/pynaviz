@@ -5,8 +5,9 @@
 	>>> import pynaviz as viz
 	>>> viz.plot(tsd)
 """
+from .base import Base
 
 def plot(*args):
 
-	
-	pass
+	return Base(*args)
+		

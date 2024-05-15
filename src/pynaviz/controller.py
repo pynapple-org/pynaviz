@@ -60,7 +60,7 @@ class ControllerGroup:
 		pass
 
 	def update(self, event):
-		print(f"update controller {event.controller_id}")
+		# print(f"update controller {event.controller_id}")
 		update_type = event.data["kwargs"]["update_type"]
 		for id_other, ctrl in self._controller_group.items():
 			if event.controller_id == id_other:
