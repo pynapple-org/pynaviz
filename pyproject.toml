@@ -41,7 +41,8 @@ dev = [
     "pytest-cov",                   # Test coverage plugin for pytest
     'matplotlib>=3.7',              # Plotting library
     "nox",
-    "ruff"
+    "ruff",
+    "ipdb"
 ]
 docs = [
     "mkdocs",                       # Documentation generator
