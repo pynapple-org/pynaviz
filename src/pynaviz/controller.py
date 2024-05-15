@@ -8,44 +8,12 @@ import pylinalg as la
 
 
 class SyncEvent(Event):
-	"""Keyboard button press.
-
-	Parameters
-	----------
-	args :  Any
-		Positional arguments are forwarded to the :class:`base class
-		<pygfx.objects.Event>`.
-	key : str
-		The key that was pressed.
-	modifiers : list
-		The modifiers that were pressed while the key was pressed.
-	kwargs : Any
-		Additional keyword arguments are forward to the :class:`base class
-		<pygfx.objects.Event>`.
-
-	"""
 	def __init__(self, *args, controller_id=None, data=None, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.controller_id = controller_id
 		self.data = data
 
 class SetStateAndDrawEvent(Event):
-	"""Keyboard button press.
-
-	Parameters
-	----------
-	args :  Any
-		Positional arguments are forwarded to the :class:`base class
-		<pygfx.objects.Event>`.
-	key : str
-		The key that was pressed.
-	modifiers : list
-		The modifiers that were pressed while the key was pressed.
-	kwargs : Any
-		Additional keyword arguments are forward to the :class:`base class
-		<pygfx.objects.Event>`.
-
-	"""
 	def __init__(self, *args, controller_id=None, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.controller_id = controller_id
@@ -101,6 +69,7 @@ class ControllerGroup:
 			if event.controller_id == id_other:
 				continue
 			ctrl.set_camera_state_and_draw()
+
 
 class PynaVizController(PanZoomController):
 	def __init__(
@@ -199,7 +168,6 @@ class PynaVizController(PanZoomController):
 
 		# Update camera
 		self._set_camera_state({"position": new_position, "width": cam_state["width"]})
-
 
 	def handle_event(self, event, viewport):
 		super().handle_event(event, viewport)
