@@ -32,8 +32,18 @@ class ControllerGroup:
 
 	def __init__(self, *controllers_and_renderers):
 		self._controller_group = dict()
-		for cntrl_and_rend in controllers_and_renderers:
+		ids = [cntrl._controller_id for cntrl, _ in controllers_and_renderers if cntrl._controller_id is not None]
+		if len(set(ids)) != len(ids):
+			raise ValueError("Controller ids must be all different!")
+		if ids:
+			id0 = max(ids) + 1
+		else:
+			id0 = 0
+
+		for i, cntrl_and_rend in enumerate(controllers_and_renderers):
 			ctrl, rend = cntrl_and_rend
+			if ctrl._controller_id is None:
+				ctrl._controller_id = i + id0
 			self._controller_group[ctrl._controller_id] = ctrl
 			self._add_update_handler(rend)
 
@@ -49,26 +59,38 @@ class ControllerGroup:
 
 	def update(self, event):
 		print(f"update controller {event.controller_id}")
+		update_type = event.data["kwargs"]["update_type"]
+		for id_other, ctrl in self._controller_group.items():
+			if event.controller_id == id_other:
+				continue
+			if update_type == "pan":
+				ctrl.compensate_pan(*event.data["args"], **event.data["kwargs"])
+			elif update_type == "zoom":
+				pass
+			elif update_type == "zoom_to_point":
+				pass
 
 
 class PynaVizController(PanZoomController):
 	def __init__(
 			self,
-			controller_id: int,
 			camera: Optional[Camera] = None,
 			*,
 			enabled=True,
 			damping: int = 4,
 			auto_update: bool = True,
 			register_events: Optional[Union[Viewport, Renderer]] = None,
+			controller_id: Optional[int] = None
 	):
+
 		self._controller_id = controller_id
 
 		super().__init__(camera=camera, enabled=enabled, damping=damping, auto_update=auto_update, register_events=register_events)
 		self.renderer_handle_event = None
-
+		self._draw = lambda: True
 		if register_events:
 			self.renderer_handle_event = self._get_event_handle(register_events)
+			self._draw = lambda: self._request_draw(register_events)
 
 	@staticmethod
 	def _get_event_handle(register_events: Union[Viewport, Renderer]) -> Callable:
@@ -81,6 +103,11 @@ class PynaVizController(PanZoomController):
 		viewport = Viewport.from_viewport_or_renderer(register_events)
 		return viewport.renderer.handle_event
 
+	def _request_draw(self, viewport):
+		if self.auto_update:
+			viewport = Viewport.from_viewport_or_renderer(viewport)
+			viewport.renderer.request_draw()
+
 	def _update_event(self, *args, **kwargs):
 		ev = {
 			"args": args,
@@ -91,7 +118,7 @@ class PynaVizController(PanZoomController):
 
 	def _update_pan(self, delta, *, vecx, vecy):
 		super()._update_pan(delta, vecx=vecx, vecy=vecy)
-		self._update_event(update_type="zoom_to_pan", cam_state=self._get_camera_state(), delta=delta, vecx=vecx, vecy=vecy)
+		self._update_event(update_type="pan", cam_state=self._get_camera_state(), delta=delta, vecx=vecx, vecy=vecy)
 
 	def _update_zoom(self, delta):
 		super()._update_zoom(delta)
@@ -100,3 +127,22 @@ class PynaVizController(PanZoomController):
 	def _update_zoom_to_point(self, delta, *, screen_pos, rect):
 		super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
 		self._update_event(update_type="zoom_to_point", cam_state=self._get_camera_state(), delta=delta, screen_pos=screen_pos, rect=rect)
+
+	def compensate_pan(self, *args, **kwargs):
+		cam_state = kwargs["cam_state"]
+		x_pos = cam_state["position"][0]
+		width = cam_state["width"]
+
+		self_camera_state = self._get_camera_state()
+		self_x_pos = self_camera_state["position"][0]
+		self_width = self_camera_state["width"]
+		# get the dx
+		dx = (x_pos / width - self_x_pos / self_width) * self_width
+
+		new_position = self_camera_state["position"].copy()
+		new_position[0] = new_position[0] + dx
+
+		# Update camera
+		self._set_camera_state({"position": new_position})
+		self._update_cameras()
+		self._draw()
