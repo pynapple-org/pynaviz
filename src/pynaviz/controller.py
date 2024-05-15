@@ -68,7 +68,7 @@ class ControllerGroup:
 			if update_type == "pan":
 				ctrl.compensate_pan(*event.data["args"], **event.data["kwargs"])
 			elif update_type == "zoom":
-				pass
+				ctrl.compensate_zoom(*event.data["args"], **event.data["kwargs"])
 			elif update_type == "zoom_to_point":
 				ctrl.compensate_zoom_to_point(*event.data["args"], **event.data["kwargs"])
 
@@ -129,6 +129,9 @@ class PynaVizController(PanZoomController):
 	def _update_zoom_to_point(self, delta, *, screen_pos, rect):
 		super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
 		self._update_event(update_type="zoom_to_point", cam_state=self._get_camera_state(), delta=delta, screen_pos=screen_pos, rect=rect)
+
+	def compensate_zoom(self, *args, **kwargs):
+		self.compensate_zoom_to_point(*args, **kwargs)
 
 	def compensate_pan(self, *args, **kwargs):
 		cam_state = kwargs["cam_state"]
