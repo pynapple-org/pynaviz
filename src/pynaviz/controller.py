@@ -5,11 +5,18 @@ from pygfx import PanZoomController,Viewport, Renderer, Camera
 from typing import Union, Optional, Callable
 
 
-
 class ControllerGroup:
 
-	def __init__(self):
-		pass
+	def __init__(self, *controllers_and_renderers):
+		self._controller_group = dict()
+		for ctrl_id, cntrl_and_rend in enumerate(controllers_and_renderers):
+			ctrl, rend = cntrl_and_rend
+			self._controller_group[ctrl_id] = ctrl
+			self._add_update_handler(rend)
+
+	def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
+		viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
+		viewport.renderer.add_event_handler(self.update, "update")
 
 	def add(self, controller):
 		pass
@@ -17,7 +24,7 @@ class ControllerGroup:
 	def remove(self, controller_id):
 		pass
 
-	def update(self, event, *args, **kwargs):
+	def update(self, event):
 		print(f"update controller {event['controller_id']}")
 
 
@@ -31,20 +38,17 @@ class PynaVizController(PanZoomController):
 			damping: int = 4,
 			auto_update: bool = True,
 			register_events: Optional[Union[Viewport, Renderer]] = None,
-			update_group: Optional[Callable] = None,
 	):
 		self._controller_id = controller_id
 
 		super().__init__(camera=camera, enabled=enabled, damping=damping, auto_update=auto_update, register_events=register_events)
-
 		self.handle_event = None
-		if register_events is not None and update_group is not None:
-			self.handle_event = self._set_up_update_callback(register_events, update_group)
 
-
+		if register_events:
+			self.handle_event = self._get_event_handle(register_events)
 
 	@staticmethod
-	def _set_up_update_callback(register_events: Union[Viewport, Renderer], update_group: Callable) -> Callable:
+	def _get_event_handle(register_events: Union[Viewport, Renderer]) -> Callable:
 		"""
 		Set up the callback to update.
 
@@ -52,9 +56,7 @@ class PynaVizController(PanZoomController):
 		"""
 		# grab the viewport
 		viewport = Viewport.from_viewport_or_renderer(register_events)
-		# set up the update callback
-		viewport.renderer.add_event_handler(update_group, "update")
-		return viewport.renderer._handle_event_and_flush
+		return viewport.renderer.handle_event
 
 	def _update_event(self, *args, **kwargs):
 		ev = {
