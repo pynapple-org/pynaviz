@@ -3,6 +3,8 @@
 """
 from pygfx import PanZoomController,Viewport, Renderer, Camera, Event
 from typing import Union, Optional, Callable
+from pygfx.cameras._perspective import fov_distance_factor
+import pylinalg as la
 
 
 class UpdateEvent(Event):
@@ -68,7 +70,7 @@ class ControllerGroup:
 			elif update_type == "zoom":
 				pass
 			elif update_type == "zoom_to_point":
-				pass
+				ctrl.compensate_zoom_to_point(*event.data["args"], **event.data["kwargs"])
 
 
 class PynaVizController(PanZoomController):
@@ -144,5 +146,29 @@ class PynaVizController(PanZoomController):
 
 		# Update camera
 		self._set_camera_state({"position": new_position})
+		self._update_cameras()
+		self._draw()
+
+	def compensate_zoom_to_point(self, *args, **kwargs):
+		cam_state = kwargs["cam_state"]
+		self_camera_state = self._get_camera_state()
+
+		#
+		extent = 0.5 * (self_camera_state["width"] + self_camera_state["height"])
+		new_extent = 0.5 * (cam_state["width"] + self_camera_state["height"])
+
+		rot = self_camera_state["rotation"]
+		fov = self_camera_state["fov"]
+		distance = fov_distance_factor(fov) * extent
+		v1 = la.vec_transform_quat((0, 0, -distance), rot)
+
+		distance = fov_distance_factor(fov) * new_extent
+		v2 = la.vec_transform_quat((0, 0, -distance), rot)
+
+		new_position = self_camera_state["position"].copy()
+		new_position = new_position + v1 - v2
+
+		# Update camera
+		self._set_camera_state({"position": new_position, "width": cam_state["width"]})
 		self._update_cameras()
 		self._draw()
