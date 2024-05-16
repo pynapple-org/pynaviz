@@ -13,11 +13,11 @@ class SyncEvent(Event):
 		self.controller_id = controller_id
 		self.data = data
 
+
 class SetStateAndDrawEvent(Event):
 	def __init__(self, *args, controller_id=None, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.controller_id = controller_id
-
 
 
 class ControllerGroup:
@@ -43,7 +43,6 @@ class ControllerGroup:
 		viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
 		viewport.renderer.add_event_handler(self.update, "update")
 		viewport.renderer.add_event_handler(self.update, "set_and_draw")
-
 
 	def add(self, controller):
 		pass
@@ -114,7 +113,9 @@ class PynaVizController(PanZoomController):
 			"kwargs": kwargs
 		}
 		if self.renderer_handle_event:
-			self.renderer_handle_event(SyncEvent("update", controller_id=self._controller_id, data=ev))
+			self.renderer_handle_event(
+				SyncEvent("update", controller_id=self._controller_id, data=ev)
+			)
 
 	def _update_pan(self, delta, *, vecx, vecy):
 		super()._update_pan(delta, vecx=vecx, vecy=vecy)
