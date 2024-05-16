@@ -94,7 +94,6 @@ class PynaVizController(PanZoomController):
 			raise ValueError("Controller id can be set only once!")
 		self._controller_id = value
 
-
 	@staticmethod
 	def _get_event_handle(register_events: Union[Viewport, Renderer]) -> Callable:
 		"""
