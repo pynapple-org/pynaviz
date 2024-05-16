@@ -1,28 +1,12 @@
 """
-	The controller class
+	The controller class.
 """
 
 from typing import Callable, Optional, Union
 
-import pylinalg as la
-from pygfx import Camera, Event, PanZoomController, Renderer, Viewport
-from pygfx.cameras._perspective import fov_distance_factor
-
-
-class SyncEvent(Event):
-	def __init__(
-		self,
-		*args,
-		controller_id: Optional[int] = None,
-		update_type: Optional[str] = "",
-		data,
-		**kwargs,
-	):
-		super().__init__(*args, **kwargs)
-		self.controller_id = controller_id
-		self.update_type = update_type
-		self.args = data["args"]
-		self.kwargs = data["kwargs"]
+from pygfx import Camera, PanZoomController, Renderer, Viewport
+from .events import SyncEvent
+from .sync_controller_callbacks import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
 
 class ControllerGroup:
@@ -60,16 +44,10 @@ class ControllerGroup:
 
 	def update(self, event):
 		# print(f"update controller {event.controller_id}")
-		update_type = event.update_type
 		for id_other, ctrl in self._controller_group.items():
 			if event.controller_id == id_other:
 				continue
-			if update_type == "pan":
-				ctrl.sync_pan(*event.args, **event.kwargs)
-			elif update_type == "zoom":
-				ctrl.sync_zoom(*event.args, **event.kwargs)
-			elif update_type == "zoom_to_point":
-				ctrl.sync_zoom_to_point(*event.args, **event.kwargs)
+			ctrl.sync(event)
 
 
 class PynaVizController(PanZoomController):
@@ -82,6 +60,9 @@ class PynaVizController(PanZoomController):
 		auto_update: bool = True,
 		register_events: Optional[Union[Viewport, Renderer]] = None,
 		controller_id: Optional[int] = None,
+		sync_pan_func: Optional[Callable] = _match_pan_on_x_axis,
+		sync_zoom_func: Optional[Callable] = _match_zoom_on_x_axis,
+		sync_zoom_to_point_func: Optional[Callable] = _match_zoom_on_x_axis,
 	):
 
 		self._controller_id = controller_id
@@ -95,9 +76,14 @@ class PynaVizController(PanZoomController):
 		)
 		self.renderer_handle_event = None
 		self._draw = lambda: True
+
 		if register_events:
 			self.renderer_handle_event = self._get_event_handle(register_events)
 			self._draw = lambda: self._request_draw(register_events)
+
+		self._sync_pan_func = sync_pan_func
+		self._sync_zoom_func = sync_zoom_func
+		self._sync_zoom_to_point_func = sync_zoom_to_point_func
 
 	@staticmethod
 	def _get_event_handle(register_events: Union[Viewport, Renderer]) -> Callable:
@@ -172,29 +158,16 @@ class PynaVizController(PanZoomController):
 		self._update_cameras()
 		self._draw()
 
-	def sync_zoom(self, *args, **kwargs):
-		cam_state = kwargs["cam_state"]
-		self_camera_state = self._get_camera_state()
-
-		#
-		extent = 0.5 * (self_camera_state["width"] + self_camera_state["height"])
-		new_extent = 0.5 * (cam_state["width"] + self_camera_state["height"])
-
-		rot = self_camera_state["rotation"]
-		fov = self_camera_state["fov"]
-		distance = fov_distance_factor(fov) * extent
-		v1 = la.vec_transform_quat((0, 0, -distance), rot)
-
-		distance = fov_distance_factor(fov) * new_extent
-		v2 = la.vec_transform_quat((0, 0, -distance), rot)
-
-		new_position = self_camera_state["position"].copy()
-		new_position = new_position + v1 - v2
-
+	def sync(self, event):
+		if event.update_type == "pan" and self._sync_pan_func:
+			state_update =  self._sync_pan_func(event, self._get_camera_state())
+		elif event.update_type == "zoom" and self._sync_zoom_func:
+			state_update = self._sync_zoom_func(event, self._get_camera_state())
+		elif event.update_type == "zoom_to_point" and self._sync_zoom_func:
+			state_update = self._sync_zoom_to_point_func(event, self._get_camera_state())
+		else:
+			raise NotImplemented(f"Update {event.update_type} not implemented!")
 		# Update camera
-		self._set_camera_state({"position": new_position, "width": cam_state["width"]})
+		self._set_camera_state(state_update)
 		self._update_cameras()
 		self._draw()
-
-	def sync_zoom_to_point(self, *args, **kwargs):
-		self.sync_zoom(*args, **kwargs)
