@@ -11,11 +11,12 @@ class SyncEvent(Event):
         *args,
         controller_id: Optional[int] = None,
         update_type: Optional[str] = "",
-        data,
+        sync_extra_args=None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.controller_id = controller_id
         self.update_type = update_type
-        self.args = data["args"]
-        self.kwargs = data["kwargs"]
+        if sync_extra_args:
+            self.args = sync_extra_args["args"]
+            self.kwargs = sync_extra_args["kwargs"]

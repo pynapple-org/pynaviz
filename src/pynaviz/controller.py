@@ -112,13 +112,12 @@ class PynaVizController(PanZoomController):
 
 	def _update_event(self, update_type: str, *args, **kwargs):
 		if self.renderer_handle_event:
-			data = dict(args=args, kwargs=kwargs)
 			self.renderer_handle_event(
 				SyncEvent(
 					"sync",
 					controller_id=self._controller_id,
 					update_type=update_type,
-					data=data,
+					sync_extra_args=dict(args=args, kwargs=kwargs),
 				)
 			)
 
