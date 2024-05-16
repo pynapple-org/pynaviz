@@ -1,25 +1,39 @@
 """
 	The controller class
 """
-from pygfx import PanZoomController,Viewport, Renderer, Camera, Event
-from typing import Union, Optional, Callable
-from pygfx.cameras._perspective import fov_distance_factor
+
+from typing import Callable, Optional, Union
+
 import pylinalg as la
+from pygfx import Camera, Event, PanZoomController, Renderer, Viewport
+from pygfx.cameras._perspective import fov_distance_factor
 
 
 class SyncEvent(Event):
-	def __init__(self, *args, controller_id: Optional[int] = None, update_type: Optional[str] = "", data, **kwargs):
+	def __init__(
+		self,
+		*args,
+		controller_id: Optional[int] = None,
+		update_type: Optional[str] = "",
+		data,
+		**kwargs,
+	):
 		super().__init__(*args, **kwargs)
 		self.controller_id = controller_id
 		self.update_type = update_type
 		self.args = data["args"]
 		self.kwargs = data["kwargs"]
 
+
 class ControllerGroup:
 
 	def __init__(self, *controllers_and_renderers):
 		self._controller_group = dict()
-		ids = [cntrl._controller_id for cntrl, _ in controllers_and_renderers if cntrl._controller_id is not None]
+		ids = [
+			cntrl._controller_id
+			for cntrl, _ in controllers_and_renderers
+			if cntrl._controller_id is not None
+		]
 		if len(set(ids)) != len(ids):
 			raise ValueError("Controller ids must be all different!")
 		if ids:
@@ -60,19 +74,25 @@ class ControllerGroup:
 
 class PynaVizController(PanZoomController):
 	def __init__(
-			self,
-			camera: Optional[Camera] = None,
-			*,
-			enabled=True,
-			damping: int = 4,
-			auto_update: bool = True,
-			register_events: Optional[Union[Viewport, Renderer]] = None,
-			controller_id: Optional[int] = None
+		self,
+		camera: Optional[Camera] = None,
+		*,
+		enabled=True,
+		damping: int = 4,
+		auto_update: bool = True,
+		register_events: Optional[Union[Viewport, Renderer]] = None,
+		controller_id: Optional[int] = None,
 	):
 
 		self._controller_id = controller_id
 
-		super().__init__(camera=camera, enabled=enabled, damping=damping, auto_update=auto_update, register_events=register_events)
+		super().__init__(
+			camera=camera,
+			enabled=enabled,
+			damping=damping,
+			auto_update=auto_update,
+			register_events=register_events,
+		)
 		self.renderer_handle_event = None
 		self._draw = lambda: True
 		if register_events:
@@ -99,20 +119,39 @@ class PynaVizController(PanZoomController):
 		if self.renderer_handle_event:
 			data = dict(args=args, kwargs=kwargs)
 			self.renderer_handle_event(
-				SyncEvent("update", controller_id=self._controller_id, update_type=update_type, data=data)
+				SyncEvent(
+					"update",
+					controller_id=self._controller_id,
+					update_type=update_type,
+					data=data,
+				)
 			)
 
 	def _update_pan(self, delta, *, vecx, vecy):
 		super()._update_pan(delta, vecx=vecx, vecy=vecy)
-		self._update_event(update_type="pan", cam_state=self._get_camera_state(), delta=delta, vecx=vecx, vecy=vecy)
+		self._update_event(
+			update_type="pan",
+			cam_state=self._get_camera_state(),
+			delta=delta,
+			vecx=vecx,
+			vecy=vecy,
+		)
 
 	def _update_zoom(self, delta):
 		super()._update_zoom(delta)
-		self._update_event(update_type="zoom", cam_state=self._get_camera_state(), delta=delta)
+		self._update_event(
+			update_type="zoom", cam_state=self._get_camera_state(), delta=delta
+		)
 
 	def _update_zoom_to_point(self, delta, *, screen_pos, rect):
 		super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
-		self._update_event(update_type="zoom_to_point", cam_state=self._get_camera_state(), delta=delta, screen_pos=screen_pos, rect=rect)
+		self._update_event(
+			update_type="zoom_to_point",
+			cam_state=self._get_camera_state(),
+			delta=delta,
+			screen_pos=screen_pos,
+			rect=rect,
+		)
 
 	def sync_pan(self, *args, **kwargs):
 		cam_state = kwargs["cam_state"]
