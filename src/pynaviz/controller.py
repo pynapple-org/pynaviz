@@ -34,7 +34,7 @@ class ControllerGroup:
 
 	def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
 		viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
-		viewport.renderer.add_event_handler(self.update, "update")
+		viewport.renderer.add_event_handler(self.sync_controllers, "sync")
 
 	def add(self, controller):
 		pass
@@ -42,7 +42,7 @@ class ControllerGroup:
 	def remove(self, controller_id):
 		pass
 
-	def update(self, event):
+	def sync_controllers(self, event):
 		# print(f"update controller {event.controller_id}")
 		for id_other, ctrl in self._controller_group.items():
 			if event.controller_id == id_other:
@@ -115,7 +115,7 @@ class PynaVizController(PanZoomController):
 			data = dict(args=args, kwargs=kwargs)
 			self.renderer_handle_event(
 				SyncEvent(
-					"update",
+					"sync",
 					controller_id=self._controller_id,
 					update_type=update_type,
 					data=data,
