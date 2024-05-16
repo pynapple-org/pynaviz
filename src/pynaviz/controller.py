@@ -149,7 +149,7 @@ class PynaVizController(PanZoomController):
             func = self._dict_sync_funcs[event.update_type]
             state_update = func(event, self._get_camera_state())
         else:
-            raise NotImplemented(f"Update {event.update_type} not implemented!")
+            raise NotImplementedError(f"Update {event.update_type} not implemented!")
         # Update camera
         self._set_camera_state(state_update)
         self._update_cameras()

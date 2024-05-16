@@ -3,7 +3,7 @@
 import pylinalg as la
 from pygfx.cameras._perspective import fov_distance_factor
 
-from .controller import SyncEvent
+# from .controller import SyncEvent
 from .events import SyncEvent
 
 

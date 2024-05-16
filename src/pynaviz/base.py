@@ -3,7 +3,6 @@ The base class that controls everything.
 """
 
 import fastplotlib as fpl
-import ipdb
 import numpy as np
 import pygfx as gfx
 from fastplotlib.layouts._utils import make_canvas_and_renderer
