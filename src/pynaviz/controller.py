@@ -8,11 +8,12 @@ import pylinalg as la
 
 
 class SyncEvent(Event):
-	def __init__(self, *args, controller_id=None, data=None, **kwargs):
+	def __init__(self, *args, controller_id: Optional[int] = None, update_type: Optional[str] = "", data, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.controller_id = controller_id
-		self.data = data
-
+		self.update_type = update_type
+		self.args = data["args"]
+		self.kwargs = data["kwargs"]
 
 class ControllerGroup:
 
@@ -45,16 +46,16 @@ class ControllerGroup:
 
 	def update(self, event):
 		# print(f"update controller {event.controller_id}")
-		update_type = event.data["kwargs"]["update_type"]
+		update_type = event.update_type
 		for id_other, ctrl in self._controller_group.items():
 			if event.controller_id == id_other:
 				continue
 			if update_type == "pan":
-				ctrl.sync_pan(*event.data["args"], **event.data["kwargs"])
+				ctrl.sync_pan(*event.args, **event.kwargs)
 			elif update_type == "zoom":
-				pass
+				ctrl.sync_zoom(*event.args, **event.kwargs)
 			elif update_type == "zoom_to_point":
-				ctrl.sync_zoom_to_point(*event.data["args"], **event.data["kwargs"])
+				ctrl.sync_zoom_to_point(*event.args, **event.kwargs)
 
 
 class PynaVizController(PanZoomController):
@@ -94,14 +95,11 @@ class PynaVizController(PanZoomController):
 			viewport = Viewport.from_viewport_or_renderer(viewport)
 			viewport.renderer.request_draw()
 
-	def _update_event(self, *args, **kwargs):
-		ev = {
-			"args": args,
-			"kwargs": kwargs
-		}
+	def _update_event(self, update_type: str, *args, **kwargs):
 		if self.renderer_handle_event:
+			data = dict(args=args, kwargs=kwargs)
 			self.renderer_handle_event(
-				SyncEvent("update", controller_id=self._controller_id, data=ev)
+				SyncEvent("update", controller_id=self._controller_id, update_type=update_type, data=data)
 			)
 
 	def _update_pan(self, delta, *, vecx, vecy):
@@ -161,5 +159,3 @@ class PynaVizController(PanZoomController):
 
 	def sync_zoom_to_point(self, *args, **kwargs):
 		self.sync_zoom(*args, **kwargs)
-		self._update_cameras()
-		self._draw()
