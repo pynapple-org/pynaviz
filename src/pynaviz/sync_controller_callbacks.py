@@ -1,8 +1,11 @@
 """Available sync controller options."""
-from .controller import SyncEvent
+
 import pylinalg as la
 from pygfx.cameras._perspective import fov_distance_factor
+
+from .controller import SyncEvent
 from .events import SyncEvent
+
 
 def _match_pan_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
     """
@@ -55,7 +58,9 @@ def _match_zoom_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
     """
 
     if update_event.update_type not in ["zoom", "zoom_to_point"]:
-        raise ValueError(f"Update type for `_match_pan_on_x_axis` must be in  {['zoom', 'zoom_to_point']}.")
+        raise ValueError(
+            f"Update type for `_match_pan_on_x_axis` must be in  {['zoom', 'zoom_to_point']}."
+        )
 
     other_cam_state = update_event.kwargs["cam_state"]
 

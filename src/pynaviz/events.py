@@ -1,16 +1,18 @@
 """Custom pygfx events."""
-from pygfx import Event
+
 from typing import Optional
+
+from pygfx import Event
 
 
 class SyncEvent(Event):
     def __init__(
-            self,
-            *args,
-            controller_id: Optional[int] = None,
-            update_type: Optional[str] = "",
-            data,
-            **kwargs,
+        self,
+        *args,
+        controller_id: Optional[int] = None,
+        update_type: Optional[str] = "",
+        data,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.controller_id = controller_id
