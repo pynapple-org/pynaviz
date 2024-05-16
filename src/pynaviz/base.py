@@ -9,16 +9,22 @@ import pygfx as gfx
 from fastplotlib.layouts._utils import make_canvas_and_renderer
 
 from .controller import ControllerGroup, PynaVizController
-
+from .sync_controller_callbacks import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
 class Base:
 
-    def __init__(self, *args):
+    def __init__(self, *args, dict_sync_funcs=None):
         self._args = args
         self._controllers = {}
         self._views = {}
         self._cameras = {}
         self._renderers = {}
+        if dict_sync_funcs is None:
+            dict_sync_funcs = dict(
+                pan=_match_pan_on_x_axis,
+                zoom=_match_zoom_on_x_axis,
+                zoom_to_point=_match_zoom_on_x_axis
+            )
 
         for i, obj in enumerate(args):
 
@@ -30,7 +36,7 @@ class Base:
 
             # # Instantiate the controler
             ctrl = PynaVizController(
-                camera=camera, register_events=renderer, controller_id=i
+                camera=camera, register_events=renderer, controller_id=i, dict_sync_funcs=dict_sync_funcs
             )
 
             # instantiate fastplotlib

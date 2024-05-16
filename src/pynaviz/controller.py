@@ -60,9 +60,7 @@ class PynaVizController(PanZoomController):
 		auto_update: bool = True,
 		register_events: Optional[Union[Viewport, Renderer]] = None,
 		controller_id: Optional[int] = None,
-		sync_pan_func: Optional[Callable] = _match_pan_on_x_axis,
-		sync_zoom_func: Optional[Callable] = _match_zoom_on_x_axis,
-		sync_zoom_to_point_func: Optional[Callable] = _match_zoom_on_x_axis,
+		dict_sync_funcs: Optional[dict[Callable]] = None,
 	):
 
 		self._controller_id = controller_id
@@ -81,9 +79,10 @@ class PynaVizController(PanZoomController):
 			self.renderer_handle_event = self._get_event_handle(register_events)
 			self._draw = lambda: self._request_draw(register_events)
 
-		self._sync_pan_func = sync_pan_func
-		self._sync_zoom_func = sync_zoom_func
-		self._sync_zoom_to_point_func = sync_zoom_to_point_func
+		if dict_sync_funcs is None:
+			self._dict_sync_funcs = dict()
+		else:
+			self._dict_sync_funcs = dict_sync_funcs
 
 	@property
 	def controller_id(self):
@@ -170,12 +169,9 @@ class PynaVizController(PanZoomController):
 		self._draw()
 
 	def sync(self, event):
-		if event.update_type == "pan" and self._sync_pan_func:
-			state_update =  self._sync_pan_func(event, self._get_camera_state())
-		elif event.update_type == "zoom" and self._sync_zoom_func:
-			state_update = self._sync_zoom_func(event, self._get_camera_state())
-		elif event.update_type == "zoom_to_point" and self._sync_zoom_func:
-			state_update = self._sync_zoom_to_point_func(event, self._get_camera_state())
+		if event.update_type in self._dict_sync_funcs:
+			func = self._dict_sync_funcs[event.update_type]
+			state_update = func(event, self._get_camera_state())
 		else:
 			raise NotImplemented(f"Update {event.update_type} not implemented!")
 		# Update camera
