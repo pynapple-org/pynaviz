@@ -38,7 +38,7 @@ class TestMatchZoomOnXAxis:
             sync_rules._match_zoom_on_x_axis(event_pan_update, camera_state=camera_state)
 
     def test_update_output(self, event_pan_update, camera_state):
-        event_pan_update.update_type = "pan"
-        out = sync_rules._match_pan_on_x_axis(event_pan_update, camera_state=camera_state)
+        event_pan_update.update_type = "zoom"
+        out = sync_rules._match_zoom_on_x_axis(event_pan_update, camera_state=camera_state)
         assert isinstance(out, dict)
         assert tuple(out.keys()) == ("position", "width")
