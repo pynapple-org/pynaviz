@@ -16,7 +16,7 @@ class ControllerGroup:
 		ids = [
 			cntrl._controller_id
 			for cntrl, _ in controllers_and_renderers
-			if cntrl._controller_id is not None
+			if cntrl.controller_id is not None
 		]
 		if len(set(ids)) != len(ids):
 			raise ValueError("Controller ids must be all different!")
@@ -27,9 +27,9 @@ class ControllerGroup:
 
 		for i, cntrl_and_rend in enumerate(controllers_and_renderers):
 			ctrl, rend = cntrl_and_rend
-			if ctrl._controller_id is None:
-				ctrl._controller_id = i + id0
-			self._controller_group[ctrl._controller_id] = ctrl
+			if ctrl.controller_id is None:
+				ctrl.controller_id = i + id0
+			self._controller_group[ctrl.controller_id] = ctrl
 			self._add_update_handler(rend)
 
 	def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
@@ -84,6 +84,17 @@ class PynaVizController(PanZoomController):
 		self._sync_pan_func = sync_pan_func
 		self._sync_zoom_func = sync_zoom_func
 		self._sync_zoom_to_point_func = sync_zoom_to_point_func
+
+	@property
+	def controller_id(self):
+		return self._controller_id
+
+	@controller_id.setter
+	def controller_id(self, value):
+		if self._controller_id is not None:
+			raise ValueError("Controller id can be set only once!")
+		self._controller_id = value
+
 
 	@staticmethod
 	def _get_event_handle(register_events: Union[Viewport, Renderer]) -> Callable:
