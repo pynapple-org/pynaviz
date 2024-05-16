@@ -5,7 +5,7 @@ from pynaviz.events import SyncEvent
 @pytest.fixture
 def camera_state():
     cam_state = {
-         'position': np.array([0., 0., 500.]),
+         'position': np.array([10., -10., 250.]),
          'rotation': np.array([0., 0., 0., 1.]),
          'scale': np.array([1., 1., 1.]),
          'reference_up': np.array([0., 1., 0.]),
@@ -25,6 +25,18 @@ def event_pan_update(camera_state):
         "sync",
         controller_id=0,
         update_type="pan",
-        data=dict(args=None,  kwargs=dict(cam_state=camera_state))
+        sync_extra_args=dict(args=None,  kwargs=dict(cam_state=camera_state))
     )
     return event
+
+
+@pytest.fixture
+def event_zoom_update(camera_state):
+    event = SyncEvent(
+        "sync",
+        controller_id=0,
+        update_type="zoom",
+        sync_extra_args=dict(args=None,  kwargs=dict(cam_state=camera_state))
+    )
+    return event
+
