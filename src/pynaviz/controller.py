@@ -43,7 +43,7 @@ class ControllerGroup:
 		pass
 
 	def sync_controllers(self, event):
-		# print(f"update controller {event.controller_id}")
+		"""Sync controllers according to their rule."""
 		for id_other, ctrl in self._controller_group.items():
 			if event.controller_id == id_other:
 				continue
