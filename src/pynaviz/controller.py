@@ -7,23 +7,7 @@ from pygfx.cameras._perspective import fov_distance_factor
 import pylinalg as la
 
 
-class UpdateEvent(Event):
-	"""Keyboard button press.
-
-	Parameters
-	----------
-	args :  Any
-		Positional arguments are forwarded to the :class:`base class
-		<pygfx.objects.Event>`.
-	key : str
-		The key that was pressed.
-	modifiers : list
-		The modifiers that were pressed while the key was pressed.
-	kwargs : Any
-		Additional keyword arguments are forward to the :class:`base class
-		<pygfx.objects.Event>`.
-
-	"""
+class SyncEvent(Event):
 	def __init__(self, *args, controller_id=None, data=None, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.controller_id = controller_id
@@ -66,11 +50,11 @@ class ControllerGroup:
 			if event.controller_id == id_other:
 				continue
 			if update_type == "pan":
-				ctrl.compensate_pan(*event.data["args"], **event.data["kwargs"])
+				ctrl.sync_pan(*event.data["args"], **event.data["kwargs"])
 			elif update_type == "zoom":
-				ctrl.compensate_zoom(*event.data["args"], **event.data["kwargs"])
+				pass
 			elif update_type == "zoom_to_point":
-				ctrl.compensate_zoom_to_point(*event.data["args"], **event.data["kwargs"])
+				ctrl.sync_zoom_to_point(*event.data["args"], **event.data["kwargs"])
 
 
 class PynaVizController(PanZoomController):
@@ -116,7 +100,9 @@ class PynaVizController(PanZoomController):
 			"kwargs": kwargs
 		}
 		if self.renderer_handle_event:
-			self.renderer_handle_event(UpdateEvent("update", controller_id=self._controller_id, data=ev))
+			self.renderer_handle_event(
+				SyncEvent("update", controller_id=self._controller_id, data=ev)
+			)
 
 	def _update_pan(self, delta, *, vecx, vecy):
 		super()._update_pan(delta, vecx=vecx, vecy=vecy)
@@ -130,10 +116,7 @@ class PynaVizController(PanZoomController):
 		super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
 		self._update_event(update_type="zoom_to_point", cam_state=self._get_camera_state(), delta=delta, screen_pos=screen_pos, rect=rect)
 
-	def compensate_zoom(self, *args, **kwargs):
-		self.compensate_zoom_to_point(*args, **kwargs)
-
-	def compensate_pan(self, *args, **kwargs):
+	def sync_pan(self, *args, **kwargs):
 		cam_state = kwargs["cam_state"]
 		x_pos = cam_state["position"][0]
 		width = cam_state["width"]
@@ -152,7 +135,7 @@ class PynaVizController(PanZoomController):
 		self._update_cameras()
 		self._draw()
 
-	def compensate_zoom_to_point(self, *args, **kwargs):
+	def sync_zoom(self, *args, **kwargs):
 		cam_state = kwargs["cam_state"]
 		self_camera_state = self._get_camera_state()
 
@@ -173,5 +156,10 @@ class PynaVizController(PanZoomController):
 
 		# Update camera
 		self._set_camera_state({"position": new_position, "width": cam_state["width"]})
+		self._update_cameras()
+		self._draw()
+
+	def sync_zoom_to_point(self, *args, **kwargs):
+		self.sync_zoom(*args, **kwargs)
 		self._update_cameras()
 		self._draw()
