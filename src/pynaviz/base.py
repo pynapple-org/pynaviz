@@ -1,5 +1,5 @@
 """
-    The base class that controls everything.
+The base class that controls everything.
 """
 
 import fastplotlib as fpl
@@ -13,7 +13,6 @@ from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
 
 class Base:
-
     def __init__(self, *args, dict_sync_funcs=None):
         self._args = args
         self._controllers = {}
@@ -28,7 +27,6 @@ class Base:
             )
 
         for i, obj in enumerate(args):
-
             # Instantiate canvas and renderer
             canvas, renderer = make_canvas_and_renderer(None, None)
 
@@ -44,9 +42,7 @@ class Base:
             )
 
             # instantiate fastplotlib
-            fig = fpl.Figure(
-                cameras=camera, canvas=canvas, renderer=renderer, controllers=ctrl
-            )
+            fig = fpl.Figure(cameras=camera, canvas=canvas, renderer=renderer, controllers=ctrl)
 
             tmp = np.vstack((obj.index.values, obj.values)).T
             tmp = tmp.astype(np.float32)

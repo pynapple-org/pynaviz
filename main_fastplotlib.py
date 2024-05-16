@@ -8,12 +8,13 @@ import fastplotlib as fpl
 import pynapple as nap
 import numpy as np
 import sys, os
+
 sys.path.append(os.path.expanduser("~/fastplotlib-sfn2023"))
 from _video import LazyVideo
 from pathlib import Path
 from ipywidgets import HBox
 
-behavior_path = Path('/mnt/home/gviejo/fastplotlib-sfn2023/sample_data/M238Slc17a7_Chr2/20170824')
+behavior_path = Path("/mnt/home/gviejo/fastplotlib-sfn2023/sample_data/M238Slc17a7_Chr2/20170824")
 
 paths_side = sorted(behavior_path.glob("*side_v*.avi"))
 paths_front = sorted(behavior_path.glob("*front_v*.avi"))
@@ -43,7 +44,7 @@ class Concat:
 
         return vid_ix, sub_ix
 
-    def __getitem__(self, key)-> np.ndarray:        
+    def __getitem__(self, key) -> np.ndarray:
         if isinstance(key, slice):
             start, stop = key.start, key.stop
             vid_ix, sub_ix0 = self._get_vid_ix_sub_ix(start)
@@ -53,7 +54,6 @@ class Concat:
             vid_ix, sub_ix0 = self._get_vid_ix_sub_ix(key)
             return self.videos[vid_ix][sub_ix0]
 
-        
 
 concat = Concat(paths_side)
 
