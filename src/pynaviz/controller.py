@@ -42,7 +42,7 @@ class ControllerGroup:
 	def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
 		viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
 		viewport.renderer.add_event_handler(self.update, "update")
-		viewport.renderer.add_event_handler(self.update, "set_and_draw")
+		viewport.renderer.add_event_handler(self.set_camera_state_and_draw, "set_and_draw")
 
 	def add(self, controller):
 		pass
@@ -145,8 +145,6 @@ class PynaVizController(PanZoomController):
 
 		# Update camera
 		self._set_camera_state({"position": new_position})
-		self._update_cameras()
-		self._draw()
 
 	def compensate_zoom_to_point(self, *args, **kwargs):
 		cam_state = kwargs["cam_state"]
