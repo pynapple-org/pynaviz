@@ -14,9 +14,9 @@ class ControllerGroup:
 	def __init__(self, *controllers_and_renderers):
 		self._controller_group = dict()
 		ids = [
-			cntrl._controller_id
-			for cntrl, _ in controllers_and_renderers
-			if cntrl.controller_id is not None
+			ctrl.controller_id
+			for ctrl, _ in controllers_and_renderers
+			if ctrl.controller_id is not None
 		]
 		if len(set(ids)) != len(ids):
 			raise ValueError("Controller ids must be all different!")
