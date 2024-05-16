@@ -148,26 +148,8 @@ class PynaVizController(PanZoomController):
 			rect=rect,
 		)
 
-	def sync_pan(self, *args, **kwargs):
-		cam_state = kwargs["cam_state"]
-		x_pos = cam_state["position"][0]
-		width = cam_state["width"]
-
-		self_camera_state = self._get_camera_state()
-		self_x_pos = self_camera_state["position"][0]
-		self_width = self_camera_state["width"]
-		# get the dx
-		dx = (x_pos / width - self_x_pos / self_width) * self_width
-
-		new_position = self_camera_state["position"].copy()
-		new_position[0] = new_position[0] + dx
-
-		# Update camera
-		self._set_camera_state({"position": new_position})
-		self._update_cameras()
-		self._draw()
-
 	def sync(self, event):
+		"""Set a new camera state using the sync rule provided."""
 		if event.update_type in self._dict_sync_funcs:
 			func = self._dict_sync_funcs[event.update_type]
 			state_update = func(event, self._get_camera_state())
