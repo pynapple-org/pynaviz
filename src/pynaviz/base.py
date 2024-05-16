@@ -9,7 +9,7 @@ import pygfx as gfx
 from fastplotlib.layouts._utils import make_canvas_and_renderer
 
 from .controller import ControllerGroup, PynaVizController
-from .sync_controller_callbacks import _match_pan_on_x_axis, _match_zoom_on_x_axis
+from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
 
 class Base:
