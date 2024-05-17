@@ -27,7 +27,7 @@ class TestMatchZoomOnXAxis:
 
     @pytest.mark.parametrize("update_type, expectation",
                              [
-                                 ("pan", pytest.raises(ValueError, match="Update rule/event mismatchr")),
+                                 ("pan", pytest.raises(ValueError, match="Update rule/event mismatch")),
                                  ("zoom", does_not_raise()),
                                  ("zoom_to_point", does_not_raise()),
                                  ("unknown", pytest.raises(ValueError, match="Update rule/event mismatch"))
