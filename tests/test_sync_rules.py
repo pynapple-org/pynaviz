@@ -8,8 +8,8 @@ class TestMatchPanOnXAxis:
     @pytest.mark.parametrize("update_type, expectation",
                              [
                                  ("pan", does_not_raise()),
-                                 ("zoom", pytest.raises(ValueError, match="Update type for")),
-                                 ("unknown", pytest.raises(ValueError, match="Update type for"))
+                                 ("zoom", pytest.raises(ValueError, match="Update rule/event mismatch")),
+                                 ("unknown", pytest.raises(ValueError, match="Update rule/event mismatch"))
                              ])
     def test_update_type(self, update_type, expectation, event_pan_update, camera_state):
         event_pan_update.update_type = update_type
@@ -27,10 +27,10 @@ class TestMatchZoomOnXAxis:
 
     @pytest.mark.parametrize("update_type, expectation",
                              [
-                                 ("pan", pytest.raises(ValueError, match="Update type for")),
+                                 ("pan", pytest.raises(ValueError, match="Update rule/event mismatchr")),
                                  ("zoom", does_not_raise()),
                                  ("zoom_to_point", does_not_raise()),
-                                 ("unknown", pytest.raises(ValueError, match="Update type for"))
+                                 ("unknown", pytest.raises(ValueError, match="Update rule/event mismatch"))
                              ])
     def test_update_type(self, update_type, expectation, event_pan_update, camera_state):
         event_pan_update.update_type = update_type
