@@ -92,7 +92,7 @@ class PynaVizController(PanZoomController):
                     )
             self._dict_sync_funcs = dict_sync_funcs
         else:
-            raise TypeError(f"When provided, `dict_sync_funcs` must be a dictionary of callables.")
+            raise TypeError("When provided, `dict_sync_funcs` must be a dictionary of callables.")
 
     @property
     def controller_id(self):
