@@ -24,7 +24,7 @@ def _match_pan_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
     """
 
     if update_event.update_type != "pan":
-        raise ValueError("Update type for `_match_pan_on_x_axis` must be 'pan'.")
+        raise ValueError("Update rule/event mismatch. Update rule `_match_pan_on_x_axis` requires an event of type 'pan'.")
 
     other_cam_state = update_event.kwargs["cam_state"]
     x_pos = other_cam_state["position"][0]
@@ -59,7 +59,7 @@ def _match_zoom_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
 
     if update_event.update_type not in ["zoom", "zoom_to_point"]:
         raise ValueError(
-            f"Update type for `_match_pan_on_x_axis` must be in  {['zoom', 'zoom_to_point']}."
+            f"Update rule/event mismatch. Update rule `_match_zoom_on_x_axis` requires an event of type {['zoom', 'zoom_to_point']}."
         )
 
     other_cam_state = update_event.kwargs["cam_state"]

@@ -40,3 +40,15 @@ def event_zoom_update(camera_state):
     )
     return event
 
+
+@pytest.fixture
+def event_zoom_to_point_update(camera_state):
+    event = SyncEvent(
+        "sync",
+        controller_id=0,
+        update_type="zoom_to_point",
+        sync_extra_args=dict(args=None,  kwargs=dict(cam_state=camera_state))
+    )
+    return event
+
+
