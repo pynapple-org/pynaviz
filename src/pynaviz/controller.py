@@ -61,8 +61,11 @@ class PynaVizController(PanZoomController):
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
     ):
-        self._controller_id = controller_id
 
+        if controller_id is not None and not isinstance(controller_id, int):
+            raise TypeError(f"If provided, `controller_id` must be of integer type. Type {type(controller_id)} provided instead!")
+
+        self._controller_id = controller_id
         super().__init__(
             camera=camera,
             enabled=enabled,
@@ -79,8 +82,14 @@ class PynaVizController(PanZoomController):
 
         if dict_sync_funcs is None:
             self._dict_sync_funcs = dict()
-        else:
+        elif isinstance(dict_sync_funcs, dict):
+            for key, sync_func in dict_sync_funcs.items():
+                if not isinstance(sync_func, Callable):
+                    raise TypeError(f"`dict_sync_funcs` items must be of `Callable` type. "
+                                     f"Type {type(sync_func)} for key {key} provided instead!")
             self._dict_sync_funcs = dict_sync_funcs
+        else:
+            raise TypeError(f"When provided, `dict_sync_funcs` must be a dictionary of callables.")
 
     @property
     def controller_id(self):

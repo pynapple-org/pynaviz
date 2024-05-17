@@ -1,7 +1,10 @@
 import numpy as np
-from pygfx import controllers, cameras
+import pygfx
+from pygfx import controllers, cameras, renderers
 from pynaviz.controller import PynaVizController
-
+from wgpu.gui.auto import WgpuCanvas
+import pytest
+from contextlib import nullcontext as does_not_raise
 
 def test_controller_state_dict():
     """Test that the pygfx state dictionary API is maintained."""
@@ -32,10 +35,46 @@ def test_controller_state_dict():
 
 
 class TestPynaVizController:
-    def test_compatibility_with_fpl(self):
-        pass
 
-    def test_update_rule(self):
+    @pytest.mark.parametrize(
+        "ctrl_id, expectation",
+        [
+            (0, does_not_raise()),
+            (None, does_not_raise()),
+            ("id", pytest.raises(TypeError, match="f provided, `controller_id` must"))
+        ]
+    )
+    def test_init_controller_id(self, ctrl_id, expectation):
+        camera = pygfx.OrthographicCamera()
+        canvas = WgpuCanvas()
+        renderer = renderers.WgpuRenderer(canvas)
+        try:
+            with expectation:
+                PynaVizController(camera, register_events=renderer, controller_id=ctrl_id)
+        finally:
+            canvas.close()
+
+    @pytest.mark.parametrize(
+        "dict_sync, expectation",
+        [
+            (None, does_not_raise()),
+            (dict(), does_not_raise()),
+            (dict(abc=lambda x:x), does_not_raise()),
+            ("not a dict", pytest.raises(TypeError, match="When provided, `dic")),
+            (dict(abc="not a callable"), pytest.raises(TypeError, match="`dict_sync_funcs` items must be of")),
+        ]
+    )
+    def test_init_sync_func_dict(self, dict_sync, expectation):
+        camera = pygfx.OrthographicCamera()
+        canvas = WgpuCanvas()
+        renderer = renderers.WgpuRenderer(canvas)
+        try:
+            with expectation:
+                PynaVizController(camera, register_events=renderer, dict_sync_funcs=dict_sync)
+        finally:
+            canvas.close()
+
+    def test_compatibility_with_fpl(self):
         pass
 
     def test_update_event(self):
@@ -43,7 +82,4 @@ class TestPynaVizController:
 
     def test_update_rule(self):
         pass
-
-
-
 
