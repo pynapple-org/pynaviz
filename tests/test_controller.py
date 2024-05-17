@@ -5,6 +5,8 @@ from pynaviz.controller import PynaVizController
 from wgpu.gui.auto import WgpuCanvas
 import pytest
 from contextlib import nullcontext as does_not_raise
+from typing import Callable
+
 
 def test_controller_state_dict():
     """Test that the pygfx state dictionary API is maintained."""
@@ -50,7 +52,8 @@ class TestPynaVizController:
         renderer = renderers.WgpuRenderer(canvas)
         try:
             with expectation:
-                PynaVizController(camera, register_events=renderer, controller_id=ctrl_id)
+                ctrl = PynaVizController(camera, register_events=renderer, controller_id=ctrl_id)
+                assert ctrl.controller_id == ctrl_id
         finally:
             canvas.close()
 
@@ -71,6 +74,57 @@ class TestPynaVizController:
         try:
             with expectation:
                 PynaVizController(camera, register_events=renderer, dict_sync_funcs=dict_sync)
+        finally:
+            canvas.close()
+
+    def test_control_id_setter(self):
+        camera = pygfx.OrthographicCamera()
+        canvas = WgpuCanvas()
+        renderer = renderers.WgpuRenderer(canvas)
+        try:
+            ctrl = PynaVizController(camera, register_events=renderer, controller_id=None)
+            ctrl.controller_id = 1
+            with pytest.raises(ValueError, match="Controller id can be set only once"):
+                ctrl.controller_id = 1
+        finally:
+            canvas.close()
+
+    def test_get_event_handle(self):
+        canvas = WgpuCanvas()
+        renderer = renderers.WgpuRenderer(canvas)
+        try:
+            func = PynaVizController._get_event_handle(renderer)
+            assert isinstance(func, Callable)
+        finally:
+            canvas.close()
+
+    @pytest.mark.parametrize("auto_update", [True, False])
+    def test_request_draw(self, auto_update):
+        camera = pygfx.OrthographicCamera()
+        canvas = WgpuCanvas()
+        renderer = renderers.WgpuRenderer(canvas)
+        try:
+            ctrl = PynaVizController(camera, register_events=renderer, controller_id=None, auto_update=auto_update)
+            ctrl._request_draw(renderer)
+        finally:
+            canvas.close()
+
+    @pytest.mark.parametrize(
+        "update_type, kwargs",
+        [
+            ("pan", dict(delta=(0.001, 0.001), vecx=np.zeros((3, )), vecy=np.zeros((3, )))),
+            ("zoom", dict(delta=0.0001, screen_position=(100, 100), rect=(0, 0, 200, 300))),
+            ("zoom_to_point", dict(delta=0.0001, screen_position=(100, 100), rect=(0, 0, 200, 300)))
+        ]
+    )
+    def test_update_event(self, update_type, kwargs):
+        camera = pygfx.OrthographicCamera()
+        canvas = WgpuCanvas()
+        renderer = renderers.WgpuRenderer(canvas)
+        try:
+            ctrl = PynaVizController(camera, register_events=renderer)
+            state = ctrl._get_camera_state()
+            ctrl._update_event(update_type=update_type, cam_state=state, **kwargs)
         finally:
             canvas.close()
 
