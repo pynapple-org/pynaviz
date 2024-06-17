@@ -1,11 +1,12 @@
 from typing import *
 from fastplotlib import ImageGraphic, LinearSelector
 from ipywidgets import IntSlider, FloatSlider
-from pynapple import TsdFrame
+from pynapple import TsdFrame, TsdTensor
 
 from fastplotlib.graphics._features import FeatureEvent
 
-MARGIN: float = 0.15
+MARGIN: float = 1
+
 
 class TimeStoreComponent:
     @property
@@ -31,7 +32,7 @@ class TimeStoreComponent:
 
         # must have data if ImageGraphic
         if isinstance(self.subscriber, ImageGraphic):
-            if not isinstance(data, TsdFrame):
+            if not isinstance(data, (TsdFrame, TsdTensor)):
                 raise ValueError("If passing in `ImageGraphic` must provide associated `TsdFrame` to update data with.")
             self._data = data
 
@@ -67,7 +68,7 @@ class TimeStore:
 
     def subscribe(self,
                   subscriber: ImageGraphic | LinearSelector | IntSlider | FloatSlider,
-                  data: TsdFrame = None,
+                  data: TsdFrame | TsdTensor = None,
                   multiplier: int | float = None) -> None:
         """
         Method for adding a subscriber to the store to be synchronized.
@@ -93,6 +94,19 @@ class TimeStore:
         if isinstance(component.subscriber, LinearSelector):
             component.subscriber.add_event_handler(self._update_store, "selection")
 
+    def unsubscribe(self, subscriber: ImageGraphic | LinearSelector | IntSlider | FloatSlider):
+        """Remove a subscriber from the store."""
+        for component in self.store:
+            if component.subscriber == subscriber:
+                #  remove the component from the store
+                self.store.remove(component)
+                # remove event handler
+                if isinstance(component, (IntSlider, FloatSlider)):
+                    component.unobserve(self._update_store)
+                if isinstance(component, LinearSelector):
+                    component.remove_event_handler(self._update_store, "selection")
+
+
     def _update_store(self, ev):
         """Called when event occurs and store needs to be updated."""
         # parse event to see if it originated from ipywidget or selector
@@ -108,7 +122,7 @@ class TimeStore:
         for component in self.store:
             # update ImageGraphic data no matter what
             if isinstance(component.subscriber, ImageGraphic):
-                ImageGraphic.data = component.data.get(self.time)
+                component.subscriber.data = component.data.get(self.time)
             elif isinstance(component.subscriber, LinearSelector):
                 # only update if different
                 if abs(component.subscriber.selection - (self.time * component.multiplier)) > MARGIN:
