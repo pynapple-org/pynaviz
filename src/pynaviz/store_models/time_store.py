@@ -5,18 +5,19 @@ from pynapple import TsdFrame
 
 from fastplotlib.graphics._features import FeatureEvent
 
+MARGIN: float = 0.15
 
 class TimeStoreComponent:
     @property
-    def subscriber(self) -> Union[ImageGraphic, IntSlider, FloatSlider, LinearSelector]:
+    def subscriber(self) -> ImageGraphic | IntSlider | FloatSlider | LinearSelector:
         return self._subscriber
 
     @property
-    def data(self) -> Union[TsdFrame, None]:
+    def data(self) -> TsdFrame | None:
         return self._data
 
     @property
-    def multiplier(self) -> Union[int, float, None]:
+    def multiplier(self) -> int | float | None:
         return self._multiplier
 
     def __init__(self, subscriber, data=None, multiplier=None):
@@ -65,7 +66,7 @@ class TimeStore:
         self._time = 0
 
     def subscribe(self,
-                  subscriber: Union[ImageGraphic, LinearSelector, IntSlider, FloatSlider],
+                  subscriber: ImageGraphic | LinearSelector | IntSlider | FloatSlider,
                   data: TsdFrame = None,
                   multiplier: int | float = None) -> None:
         """
@@ -110,9 +111,9 @@ class TimeStore:
                 ImageGraphic.data = component.data.get(self.time)
             elif isinstance(component.subscriber, LinearSelector):
                 # only update if different
-                if component.subscriber.selection != self.time * component.multiplier:
+                if abs(component.subscriber.selection - (self.time * component.multiplier)) > MARGIN:
                     component.subscriber.selection = self.time * component.multiplier
             else:
                 # only update if different
-                if component.subscriber.value != self.time:
+                if abs(component.subscriber.value - self.time) > MARGIN:
                     component.subscriber.value = self.time
