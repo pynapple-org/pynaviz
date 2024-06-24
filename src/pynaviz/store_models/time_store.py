@@ -1,5 +1,5 @@
 from typing import *
-from fastplotlib import ImageGraphic, LinearSelector
+from fastplotlib import ImageGraphic, LinearSelector, ScatterGraphic
 from ipywidgets import IntSlider, FloatSlider
 from pynapple import TsdFrame, TsdTensor
 
@@ -8,20 +8,27 @@ from fastplotlib.graphics._features import FeatureEvent
 MARGIN: float = 1
 
 
+# TODO: need to make a method for automatic MARGIN setting based on the data
+
+
 class TimeStoreComponent:
     @property
     def subscriber(self) -> ImageGraphic | IntSlider | FloatSlider | LinearSelector:
         return self._subscriber
 
     @property
-    def data(self) -> TsdFrame | None:
+    def data(self) -> TsdFrame | TsdTensor | None:
         return self._data
 
     @property
     def multiplier(self) -> int | float | None:
         return self._multiplier
 
-    def __init__(self, subscriber, data=None, multiplier=None):
+    @property
+    def data_filter(self) -> callable:
+        return self._data_filter
+
+    def __init__(self, subscriber, data=None, data_filter=None, multiplier=None):
         """A TimeStore component of the time store."""
         if multiplier is None:
             multiplier = 1
@@ -31,10 +38,12 @@ class TimeStoreComponent:
         self._subscriber = subscriber
 
         # must have data if ImageGraphic
-        if isinstance(self.subscriber, ImageGraphic):
+        if isinstance(self.subscriber, (ImageGraphic, ScatterGraphic)):
             if not isinstance(data, (TsdFrame, TsdTensor)):
                 raise ValueError("If passing in `ImageGraphic` must provide associated `TsdFrame` to update data with.")
             self._data = data
+
+        self._data_filter = data_filter
 
 
 class TimeStore:
@@ -67,8 +76,9 @@ class TimeStore:
         self._time = 0
 
     def subscribe(self,
-                  subscriber: ImageGraphic | LinearSelector | IntSlider | FloatSlider,
+                  subscriber: ImageGraphic | LinearSelector | ScatterGraphic | IntSlider | FloatSlider,
                   data: TsdFrame | TsdTensor = None,
+                  data_filter: callable = None,
                   multiplier: int | float = None) -> None:
         """
         Method for adding a subscriber to the store to be synchronized.
@@ -79,11 +89,16 @@ class TimeStore:
             ipywidget or fastplotlib object to be synchronized
         data: pynapple.TsdFrame, optional
             If subscriber is a fastplotlib.ImageGraphic, must have an associating pynapple.TsdFrame to update data with.
+        data_filter: callable, optional
+            Function to apply to data before updating. Must return data in the same shape as input.
         multiplier: int | float, optional
             Scale the current time to reflect differing timescale.
         """
         # create a TimeStoreComponent
-        component = TimeStoreComponent(subscriber, data, multiplier)
+        component = TimeStoreComponent(subscriber=subscriber,
+                                       data=data,
+                                       data_filter=data_filter,
+                                       multiplier=multiplier)
 
         # add component to the store
         self._store.append(component)
@@ -104,8 +119,7 @@ class TimeStore:
                 if isinstance(component, (IntSlider, FloatSlider)):
                     component.unobserve(self._update_store)
                 if isinstance(component, LinearSelector):
-                    component.remove_event_handler(self._update_store, "selection")
-
+                    component.subscriber.remove_event_handler(self._update_store, "selection")
 
     def _update_store(self, ev):
         """Called when event occurs and store needs to be updated."""
@@ -121,8 +135,17 @@ class TimeStore:
 
         for component in self.store:
             # update ImageGraphic data no matter what
-            if isinstance(component.subscriber, ImageGraphic):
+            if isinstance(component.subscriber, ScatterGraphic):
                 component.subscriber.data = component.data.get(self.time)
+            elif isinstance(component.subscriber, ImageGraphic):
+                if component.data_filter is None:
+                    new_data = component.data.get(self.time)
+                else:
+                    new_data = component.data_filter(component.data.get(self.time))
+                if new_data.shape != component.subscriber.data.value.shape:
+                    raise ValueError(f"data filter function: {component.data_filter} must return data in the same shape"
+                                     f"as the current data")
+                component.subscriber.data = new_data
             elif isinstance(component.subscriber, LinearSelector):
                 # only update if different
                 if abs(component.subscriber.selection - (self.time * component.multiplier)) > MARGIN:
