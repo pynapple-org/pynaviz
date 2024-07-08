@@ -2,18 +2,16 @@ from typing import *
 from fastplotlib import ImageGraphic, LinearSelector, ScatterGraphic
 from ipywidgets import IntSlider, FloatSlider
 from pynapple import TsdFrame, TsdTensor
+import numpy as np
 
 from fastplotlib.graphics._features import FeatureEvent
 
 MARGIN: float = 1
 
 
-# TODO: need to make a method for automatic MARGIN setting based on the data
-
-
 class TimeStoreComponent:
     @property
-    def subscriber(self) -> ImageGraphic | IntSlider | FloatSlider | LinearSelector:
+    def subscriber(self) -> ImageGraphic | IntSlider | FloatSlider | LinearSelector | ScatterGraphic:
         return self._subscriber
 
     @property
@@ -29,7 +27,7 @@ class TimeStoreComponent:
         return self._data_filter
 
     def __init__(self, subscriber, data=None, data_filter=None, multiplier=None):
-        """A TimeStore component of the time store."""
+        """Base class for a component of the TimeStore."""
         if multiplier is None:
             multiplier = 1
 
@@ -37,13 +35,91 @@ class TimeStoreComponent:
 
         self._subscriber = subscriber
 
-        # must have data if ImageGraphic
-        if isinstance(self.subscriber, (ImageGraphic, ScatterGraphic)):
-            if not isinstance(data, (TsdFrame, TsdTensor)):
-                raise ValueError("If passing in `ImageGraphic` must provide associated `TsdFrame` to update data with.")
-            self._data = data
+        self._data = data
 
         self._data_filter = data_filter
+
+    def update(self, time: int | float):
+        raise NotImplementedError("Must be implemented in subclass TimeStoreComponent")
+
+
+class TimeStoreImageComponent(TimeStoreComponent):
+    def __init__(self, subscriber, data=None, data_filter=None, multiplier=None):
+        """ImageGraphic TimeStore component."""
+        if not isinstance(data, (TsdFrame, TsdTensor)):
+            raise ValueError("If passing in `ImageGraphic` must provide associated `TsdFrame` to update data with.")
+
+        super().__init__(
+            subscriber=subscriber,
+            data=data,
+            data_filter=data_filter,
+            multiplier=multiplier
+        )
+
+    def update(self, time: float | int):
+        """Update the ImageGraphic data."""
+        if self.data_filter is None:
+            new_data = self.data.get(time)
+        else:
+            new_data = self.data_filter(self.data.get(time))
+        if new_data.shape != self.subscriber.data.value.shape:
+            raise ValueError(f"data filter function: {self.data_filter} must return data in the same shape"
+                             f"as the current data")
+        self.subscriber.data = new_data
+
+
+# TODO: will eventually get replaced with BallSelector and then can just be integrated into TimeStoreSelectorComponent
+class TimeStoreScatterComponent(TimeStoreComponent):
+    def __init__(self, subscriber, data=None, data_filter=None, multiplier=None):
+        """TimeStoreComponent for ScatterGraphic."""
+        if not isinstance(data, TsdTensor):
+            raise ValueError("If passing in `ScatterGraphic` must provide associated `TsdTensor` to update data with.")
+
+        super().__init__(
+            subscriber=subscriber,
+            data=data,
+            data_filter=data_filter,
+            multiplier=multiplier
+        )
+
+    def update(self, time: float | int):
+        """Update the scatter data."""
+        self.subscriber.data = self.data.get(time)
+
+
+class TimeStoreSelectorComponent(TimeStoreComponent):
+    def __init__(self, subscriber, data=None, data_filter=None, multiplier=None):
+        """TimeStoreComponent for LinearSelector."""
+
+        super().__init__(
+            subscriber=subscriber,
+            data=data,
+            data_filter=data_filter,
+            multiplier=multiplier
+        )
+
+    def update(self, time: int | float):
+        """Update the selection."""
+        if self.subscriber.selection == time * self.multiplier:
+            return
+        self.subscriber.selection = time * self.multiplier
+
+
+class TimeStoreWidgetComponent(TimeStoreComponent):
+    def __init__(self, subscriber, data=None, data_filter=None, multiplier=None):
+        """TimeStoreComponent for IntSlider or FloatSlider."""
+        super().__init__(
+            subscriber=subscriber,
+            data=data,
+            data_filter=data_filter,
+            multiplier=multiplier
+        )
+
+    def update(self, time: int | float):
+        """Update slider value."""
+        if self.subscriber.value == time:
+            return
+        self.subscriber.value = time
 
 
 class TimeStore:
@@ -55,7 +131,16 @@ class TimeStore:
     @time.setter
     def time(self, value: int | float):
         """Set the current time."""
+
+        if value == self._time:
+            return
+
         self._time = value
+        self._update_store(
+            ev={
+                "new": value
+            }
+        )
 
     @property
     def store(self) -> List[TimeStoreComponent]:
@@ -94,20 +179,23 @@ class TimeStore:
         multiplier: int | float, optional
             Scale the current time to reflect differing timescale.
         """
-        # create a TimeStoreComponent
-        component = TimeStoreComponent(subscriber=subscriber,
-                                       data=data,
-                                       data_filter=data_filter,
-                                       multiplier=multiplier)
+
+        # parse the type of subscriber passed and instantiate the appropriate TimeStoreComponent subclass
+        if isinstance(subscriber, ImageGraphic):
+            component = TimeStoreImageComponent(subscriber, data, data_filter, multiplier)
+        elif isinstance(subscriber, LinearSelector):
+            component = TimeStoreSelectorComponent(subscriber, data, data_filter, multiplier)
+            # add event handler for updating the store
+            component.subscriber.add_event_handler(self._update_store, "selection")
+        elif isinstance(subscriber, ScatterGraphic):
+            component = TimeStoreScatterComponent(subscriber, data, data_filter, multiplier)
+        else:
+            component = TimeStoreWidgetComponent(subscriber, data, data_filter, multiplier)
+            # add event handler for updating the store
+            component.subscriber.observe(self._update_store, "value")
 
         # add component to the store
         self._store.append(component)
-
-        # add event handler to component.subscriber to call update_store
-        if isinstance(component.subscriber, (IntSlider, FloatSlider)):
-            component.subscriber.observe(self._update_store, "value")
-        if isinstance(component.subscriber, LinearSelector):
-            component.subscriber.add_event_handler(self._update_store, "selection")
 
     def unsubscribe(self, subscriber: ImageGraphic | LinearSelector | IntSlider | FloatSlider):
         """Remove a subscriber from the store."""
@@ -116,9 +204,9 @@ class TimeStore:
                 #  remove the component from the store
                 self.store.remove(component)
                 # remove event handler
-                if isinstance(component, (IntSlider, FloatSlider)):
-                    component.unobserve(self._update_store)
-                if isinstance(component, LinearSelector):
+                if isinstance(component.subscriber, (IntSlider, FloatSlider)):
+                    component.subscriber.unobserve(self._update_store)
+                if isinstance(component.subscriber, LinearSelector):
                     component.subscriber.remove_event_handler(self._update_store, "selection")
 
     def _update_store(self, ev):
@@ -134,23 +222,4 @@ class TimeStore:
             self.time = ev["new"]
 
         for component in self.store:
-            # update ImageGraphic data no matter what
-            if isinstance(component.subscriber, ScatterGraphic):
-                component.subscriber.data = component.data.get(self.time)
-            elif isinstance(component.subscriber, ImageGraphic):
-                if component.data_filter is None:
-                    new_data = component.data.get(self.time)
-                else:
-                    new_data = component.data_filter(component.data.get(self.time))
-                if new_data.shape != component.subscriber.data.value.shape:
-                    raise ValueError(f"data filter function: {component.data_filter} must return data in the same shape"
-                                     f"as the current data")
-                component.subscriber.data = new_data
-            elif isinstance(component.subscriber, LinearSelector):
-                # only update if different
-                if abs(component.subscriber.selection - (self.time * component.multiplier)) > MARGIN:
-                    component.subscriber.selection = self.time * component.multiplier
-            else:
-                # only update if different
-                if abs(component.subscriber.value - self.time) > MARGIN:
-                    component.subscriber.value = self.time
+            component.update(self.time)
