@@ -1,2 +1,3 @@
-from store_items import *
-from store_models import *
+from .visual import Visual
+from .store_models import *
+from .store_items import *

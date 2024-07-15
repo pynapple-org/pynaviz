@@ -1,6 +1,7 @@
 from typing import List
 
 from ..store_items import StoreModelItem
+from ..store_models import TimeStore
 
 
 class StoreModel:
