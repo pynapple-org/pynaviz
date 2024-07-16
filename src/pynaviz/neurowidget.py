@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import numpy as np
 
 import fastplotlib as fpl
@@ -7,12 +7,18 @@ import pynapple as nap
 from .store_models import TimeStore
 from .store_items import StoreModelItem
 
+VIZ_TYPES: List[str] = [
+    "movie",
+    "rois",
+    "heatmap",
+    "line-stack"
+]
 
-class Visual:
+
+class NeuroWidget:
     def __init__(
             self,
             data: List[nap.TsdTensor | nap.TsdTensor | nap.Tsd],
-            zoomed_plot: bool = False
     ):
         """
         Creates an interactive visual from pynapple objects using fastplotlib.
@@ -21,10 +27,8 @@ class Visual:
         ----------
         data: List[nap.TsdTensor | nap.TsdTensor | nap.Tsd]
             List of pynapple objects to create visualizations from.
-        zoomed_plot: bool, default False
-            Will auto-generate a fastplotlib.LinearRegionSelector for 2D line data accompanied by a plot of the
-            data under the selector. Useful when wanting to inspect a subsample of the data.
         """
+
         self._data = data
 
         # generate a visual for each pynapple array passed in
@@ -59,9 +63,16 @@ class Visual:
         """List of visuals in the figure."""
         return self._visuals
 
-    def _make_visual(self, data: nap.TsdTensor | nap.TsdTensor | nap.Tsd) -> StoreModelItem:
+    def _make_visual(self, data: nap.TsdTensor | nap.TsdFrame | nap.Tsd) -> StoreModelItem:
+        # if data is 2D, assume line
+        if data.d.ndim == 2:
+            return LineItem(data=data)
         # requires some kind of parsing
         pass
 
     def show(self):
-        return self.figure.show()
+        """Shows the visualization."""
+        if self._output is None:
+            self._output = self.figure.show()
+
+        return self._output

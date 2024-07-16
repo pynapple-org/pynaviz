@@ -1,7 +1,10 @@
 from ._base_store import StoreModel
+from ..store_items import StoreModelItem
 
 
 class TimeStore(StoreModel):
+    target = "time"
+
     def __init__(
             self,
             time: float | int = 0,
@@ -35,15 +38,13 @@ class TimeStore(StoreModel):
         )
         self._time = time
 
-    def subscribe(self, subscriber):
-        pass
+    def subscribe(self, item: StoreModelItem):
+        # parse item
+        super().subscribe(item=item)
+        # time store relevant subscription stuff?
 
     def unsubscribe(self, subscriber):
         pass
 
     def update_store(self, ev):
         pass
-
-
-
-
