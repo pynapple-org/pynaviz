@@ -85,14 +85,14 @@ class NeuroWidget:
         return self._figure
 
     @property
+    def time_store(self) -> TimeStore:
+        """The associated TimeStore object for the widget."""
+        return self._time_store
+
+    @property
     def visuals(self) -> List[StoreModelItem]:
         """List of visuals in the figure."""
         return self._visuals
-
-    @property
-    def names(self) -> List[str]:
-        """List of visual names in the figure."""
-        return self._names
 
     def _make_visual(self, visual_type: str, data: nap.TsdTensor | nap.TsdFrame | nap.Tsd) -> StoreModelItem:
         """Returns a visual based on the specified type and data."""

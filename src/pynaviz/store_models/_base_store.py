@@ -59,15 +59,15 @@ class StoreModel:
         if not isinstance(item, StoreModelItem):
             raise TypeError(f"All items in the store are of type `StoreModelItem`. Must pass a `StoreModelItem` to "
                             f"remove an item. You have passed an item of type {type(item)}")
-        for i in self.store:
-            if i == item:
-                # remove item from the store
-                self.store.remove(i)
-                # delete item, cleanup
-                del i
+        if item in self:
+            self._store.remove(item)
+        else:
+            raise ValueError(f"The item: {item} is not currently subscribed to the store.")
 
     def update_store(self, ev):
         pass
 
-    def __del__(self):
-        pass
+    def __contains__(self, item: StoreModelItem):
+        if item in self.store:
+            return True
+        return False

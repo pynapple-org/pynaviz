@@ -1,3 +1,6 @@
+from fastplotlib.graphics._features import FeatureEvent
+
+
 from ._base_store import StoreModel
 from ..store_items import *
 
@@ -40,17 +43,31 @@ class TimeStore(StoreModel):
         # update time
         self._time = time
         # update store
-        #self.update_store({"graphic": None, "selection"})
+        self.update_store(
+                ev=FeatureEvent(
+                    type="",
+                    info={
+                        "value": self.time
+                    }
+                )
+
+        )
 
     def subscribe(self, item: StoreModelItem):
+        """Add an item to the time store."""
         # parse item
         super().subscribe(item=item)
         # time store relevant subscription stuff?
         if isinstance(item, LineItem):
             item.selector.add_event_handler(self.update_store, "selection")
 
-    def unsubscribe(self, subscriber):
-        pass
+    def unsubscribe(self, item: StoreModelItem):
+        """Remove an item from the time store."""
+        super().unsubscribe(item)
+
+        # unhook events
+        if isinstance(item, LineItem):
+            item.selector.remove_event_handler(self.update_store, "selection")
 
     def update_store(self, ev):
         self.time = ev.info["value"]
