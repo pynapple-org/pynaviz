@@ -9,10 +9,12 @@ class StoreModel:
 
     Attributes
     ----------
-    subscribers: List[StoreModelItem] = None
+    store: List[StoreModelItem] = None
         List of StoreModelItem, default None
         Items subscribed to the store will notify the store of changes to the item that then be propagated to other
         items in the store.
+    target: str
+        The axis that the store model is targeting (e.g. "time", "component")
     """
     target: str = None
 
@@ -34,12 +36,16 @@ class StoreModel:
         item : StoreModelItem
             Item to be added to the store.
         """
+        # item must be a StoreModelItem
         if not isinstance(item, StoreModelItem):
             raise TypeError(f"Items subscribed to store must be of type `StoreModelItem`. You have passed an item of "
                             f"type: {type(item)}")
-        if not hasattr(item, f"_viz_{self.target}"):
+        # StoreModelItem must have function for updating time
+        if not hasattr(item, f"set_{self.target}"):
             raise TypeError(f"Items subscribed to store must have a {self.target} attribute to be used when the store "
                             f"is updated.")
+        # add item to the store
+        self.store.append(item)
 
     def unsubscribe(self, item: StoreModelItem):
         """
@@ -55,8 +61,13 @@ class StoreModel:
                             f"remove an item. You have passed an item of type {type(item)}")
         for i in self.store:
             if i == item:
-                # TODO: unhook events, delete graphic
+                # remove item from the store
                 self.store.remove(i)
+                # delete item, cleanup
+                del i
 
     def update_store(self, ev):
+        pass
+
+    def __del__(self):
         pass

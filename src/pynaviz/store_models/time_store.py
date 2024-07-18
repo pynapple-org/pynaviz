@@ -1,5 +1,5 @@
 from ._base_store import StoreModel
-from ..store_items import StoreModelItem
+from ..store_items import *
 
 
 class TimeStore(StoreModel):
@@ -12,10 +12,14 @@ class TimeStore(StoreModel):
     ):
         """
         TimeStore for synchronizes components of a visual in the time axis.
-        :param time:
+
+        Parameters
+        ----------
+        time : float | int
+            Time value that items in the store are currently set at.
         """
         super().__init__()
-        self.time = time
+        self._time = time
 
     @property
     def time(self) -> float | int:
@@ -24,27 +28,32 @@ class TimeStore(StoreModel):
 
     @time.setter
     def time(self, time: float | int) -> None:
+        # cast passed time to the type of time being used in the store
+        # float -> int or int -> float
+        if not isinstance(time, type(self.time)):
+            time = type(self.time)(time)
+
         # if new time == current time, don't update
         if time == self.time:
             return
 
-        # should parse whether working with float or int and cast
-
+        # update time
         self._time = time
-        self.update_store(
-            ev={
-                "new": time
-            }
-        )
-        self._time = time
+        # update store
+        #self.update_store({"graphic": None, "selection"})
 
     def subscribe(self, item: StoreModelItem):
         # parse item
         super().subscribe(item=item)
         # time store relevant subscription stuff?
+        if isinstance(item, LineItem):
+            item.selector.add_event_handler(self.update_store, "selection")
 
     def unsubscribe(self, subscriber):
         pass
 
     def update_store(self, ev):
-        pass
+        self.time = ev.info["value"]
+
+        for item in self.store:
+            item.set_time(self.time)
