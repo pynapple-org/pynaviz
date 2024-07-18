@@ -1,4 +1,5 @@
 from typing import List, Tuple, Dict
+from itertools import product
 import numpy as np
 
 import fastplotlib as fpl
@@ -57,13 +58,16 @@ class NeuroWidget:
                 self._visuals.append(visual)
 
         # parse data to create figure shape
-        # without including any metadata, assumes that len(data) = # of subplots
+        # without including any metadata, assumes that len(visuals) = # of subplots
         # will reshape into best square fit
         shape = fpl.utils.calculate_figure_shape(len(self.visuals))
 
         self._figure = fpl.Figure(
             shape=shape
         )
+
+        # sync cameras/controllers in x, width, y, and height
+        self._sync_plots()
 
         # for visual in visual, add graphics to visual, subscribe to stores
         for (viz, subplot) in zip(self.visuals, self.figure):
@@ -100,6 +104,18 @@ class NeuroWidget:
             case "line":
                 visual = LineItem(data=data)
                 return visual
+
+    def _sync_plots(self):
+        """Synchronize the cameras/controllers of each subplot."""
+        # for every subplot, add every other subplot camera to the controller
+        # TODO: fastplotlib only allows one iterable for a figure to exist at one time,
+        #  might want to change that to simplify this code
+        ixs = list(product(range(self.figure.shape[0]), range(self.figure.shape[1])))
+        for ix in ixs:
+            for __ in ixs:
+                if ix == __:
+                    continue
+                self.figure[ix].controller.add_camera(self.figure[__].camera, include_state={"x", "width"})
 
     def show(self):
         """Shows the visualization."""
