@@ -5,14 +5,16 @@ import numpy as np
 import fastplotlib as fpl
 import pynapple as nap
 
-from .store_items import LineItem
+from .store_items import LineItem, HeatmapItem, MovieItem
 from .store_models import TimeStore
 from .store_items import StoreModelItem
 
 
 class NeuroWidget:
     _viz_types: List[str] = [
-        "line"
+        "line",
+        "heatmap",
+        "movie"
     ]
 
     def __init__(
@@ -22,20 +24,21 @@ class NeuroWidget:
         """
         Creates an interactive visual from pynapple objects using fastplotlib.
 
-        Parameters
-        ----------
-        data: List[nap.TsdTensor | nap.TsdFrame | nap.Tsd] | nap.TsdTensor | nap.TsdFrame | nap.Tsd
-            Dictionary that maps the data to the desired visual type. For each type of desired visual, give
-            a pynapple object or list of pynapple objects. See below for details on possible visualizations.
-        names: List[str]
-            List of names for each item in `data`.
-
-
         +-------------+----------------------------------------------------------------------------------------------+
         | Visual Type | Pynapple Object                                                                              |
         +=============+==============================================================================================+
         | "line"      | nap.Tsd or nap.TsdFrame                                                                      |
         +-------------+----------------------------------------------------------------------------------------------+
+        | "heatmap"   | nap.Tsd or nap.TsdFrame                                                                      |
+        +-------------+----------------------------------------------------------------------------------------------+
+        | "movie"     | nap.TsdTensor                                                                                |
+        +-------------+----------------------------------------------------------------------------------------------+
+
+        Parameters
+        ----------
+        data: Dict[str, List[nap.TsdTensor | nap.TsdFrame | nap.Tsd] | nap.TsdTensor | nap.TsdFrame | nap.Tsd]
+            Dictionary that maps the data to the desired visual type. For each type of desired visual, give
+            a pynapple object or list of pynapple objects. See above for details on possible visualizations.
 
         """
         # time store
@@ -67,20 +70,28 @@ class NeuroWidget:
         )
 
         # sync cameras/controllers in x, width, y, and height
-        self._sync_plots()
+        #self._sync_plots()
 
+        # TODO: what happens if there is not an even number of visuals, zip won't work
         # for visual in visual, add graphics to visual, subscribe to stores
         for (viz, subplot) in zip(self.visuals, self.figure):
             subplot.add_graphic(viz.graphic)
             # can't add a selector for a graphic until after it has been added to a plot
+            # TODO: need to decide how to decide whether a line visual should get a LinearSelector vs a
+            #  LinearRegionSelector
             if isinstance(viz, LineItem):
                 ls = viz.graphic.add_linear_selector()
                 viz.selector = ls
-
+            if isinstance(viz, HeatmapItem):
+                time_ls = viz.graphic.add_linear_selector()
+                viz.time_selector = time_ls
+                component_ls = viz.graphic.add_linear_selector(axis="y")
+                viz.component_selector = component_ls
             # register visuals to stores
             if hasattr(viz, "set_time"):
                 self._time_store.subscribe(viz)
 
+        # initial figure output is None
         self._output = None
 
     @property
@@ -98,11 +109,18 @@ class NeuroWidget:
         """List of visuals in the figure."""
         return self._visuals
 
-    def _make_visual(self, visual_type: str, data: nap.TsdTensor | nap.TsdFrame | nap.Tsd) -> StoreModelItem:
+    @staticmethod
+    def _make_visual(visual_type: str, data: nap.TsdTensor | nap.TsdFrame | nap.Tsd) -> StoreModelItem:
         """Returns a visual based on the specified type and data."""
         match visual_type:
             case "line":
                 visual = LineItem(data=data)
+                return visual
+            case "heatmap":
+                visual = HeatmapItem(data=data)
+                return visual
+            case "movie":
+                visual = MovieItem(data=data)
                 return visual
 
     def _sync_plots(self):
@@ -110,6 +128,7 @@ class NeuroWidget:
         # for every subplot, add every other subplot camera to the controller
         # TODO: fastplotlib only allows one iterable for a figure to exist at one time,
         #  might want to change that to simplify this code
+        # TODO: need to be more selective about which subplots get synced, should depend on the type of graphic I think
         ixs = list(product(range(self.figure.shape[0]), range(self.figure.shape[1])))
         for ix in ixs:
             for __ in ixs:
@@ -120,6 +139,6 @@ class NeuroWidget:
     def show(self):
         """Shows the visualization."""
         if self._output is None:
-            self._output = self.figure.show()
+            self._output = self.figure.show(maintain_aspect=False)
 
         return self._output

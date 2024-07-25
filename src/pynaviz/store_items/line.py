@@ -8,13 +8,24 @@ from ._base_item import StoreModelItem
 class LineItem(StoreModelItem):
     def __init__(
             self,
-            data: nap.TsdTensor,
-
+            data: nap.Tsd | nap.TsdFrame,
+            name: str = None
     ):
-        super().__init__(data=data)
+        """
+        A visual for single line data.
+
+        Parameters
+        ----------
+        data : nap.Tsd | nap.TsdFrame
+            Data can be a pynapple Tsd object or TsdFrame object. The data component of the object
+            should be 1D, 2D, or 3D.
+        name : str, optional
+            Name of the item. Default None.
+        """
+        super().__init__(data=data, name=name)
 
         # try to make a line graphic from the data
-        if isinstance(data, nap.Tsd):
+        if isinstance(data, nap.Tsd) or (isinstance(data, nap.TsdFrame) and data.d.shape[1] == 1):
             data = np.column_stack((data.t, data.d))
         self._graphic = fpl.LineGraphic(data=data)
 
