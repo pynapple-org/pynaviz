@@ -12,6 +12,9 @@ extras_require = {
     ],
     "docs": [
 
+    ],
+    "tests": [
+        "pytest"
     ]
 }
 

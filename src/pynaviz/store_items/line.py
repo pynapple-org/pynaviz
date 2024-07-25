@@ -12,22 +12,30 @@ class LineItem(StoreModelItem):
             name: str = None
     ):
         """
-        A visual for single line data.
+        A visual for single line or multiple line data.
 
         Parameters
         ----------
         data : nap.Tsd | nap.TsdFrame
-            Data can be a pynapple Tsd object or TsdFrame object. The data component of the object
-            should be 1D, 2D, or 3D.
+            Data can be a pynapple Tsd object or TsdFrame object. If data is of type nap.Tsd, then a single line
+            will be created. If data is of type nap.TsdFrame, then multiple lines will be created with a fixed offset.
         name : str, optional
             Name of the item. Default None.
         """
+        # check data
+        if not isinstance(data, (nap.Tsd, nap.TsdFrame)):
+            raise ValueError(f"The data passed to create a line visual must be a pynapple Tsd object or pynapple "
+                             f"TsdFrame object. You have passed an object of type {type(data.__class__.__name__)}.")
+
         super().__init__(data=data, name=name)
 
         # try to make a line graphic from the data
-        if isinstance(data, nap.Tsd) or (isinstance(data, nap.TsdFrame) and data.d.shape[1] == 1):
+        if isinstance(data, nap.Tsd):
             data = np.column_stack((data.t, data.d))
-        self._graphic = fpl.LineGraphic(data=data)
+            self._graphic = fpl.LineGraphic(data=data)
+        elif isinstance(data, nap.TsdFrame):
+            data = [np.column_stack((data.t, data.d.T[i])) for i in range(data.shape[1])]
+            self._graphic = fpl.LineStack(data=data)
 
         # create a linear selector
         self._selector = None
