@@ -1,6 +1,5 @@
-from typing import List, Tuple, Dict
+from typing import List, Dict
 from itertools import product
-import numpy as np
 
 import fastplotlib as fpl
 import pynapple as nap
@@ -69,9 +68,6 @@ class NeuroWidget:
             shape=shape
         )
 
-        # sync cameras/controllers in x, width, y, and height
-        #self._sync_plots()
-
         # TODO: what happens if there is not an even number of visuals, zip won't work
         # for visual in visual, add graphics to visual, subscribe to stores
         for (viz, subplot) in zip(self.visuals, self.figure):
@@ -136,9 +132,17 @@ class NeuroWidget:
                     continue
                 self.figure[ix].controller.add_camera(self.figure[__].camera, include_state={"x", "width"})
 
-    def show(self):
+    def show(self, sync_plots: bool = True):
         """Shows the visualization."""
         if self._output is None:
+            # sync cameras/controllers in x, width
             self._output = self.figure.show(maintain_aspect=False)
 
+        if sync_plots:
+            self._sync_plots()
+
         return self._output
+
+    def close(self):
+        """Close the widget."""
+        self.figure.close()

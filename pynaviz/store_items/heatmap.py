@@ -8,7 +8,7 @@ from ._base_item import StoreModelItem
 class HeatmapItem(StoreModelItem):
     def __init__(
             self,
-            data: nap.Tsd | nap.TsdFrame,
+            data: nap.TsdFrame,
             name: str = None
     ):
         """
@@ -16,17 +16,18 @@ class HeatmapItem(StoreModelItem):
 
         Parameters
         ----------
-        data : nap.Tsd | nap.TsdFrame
-            Data can be a pynapple Tsd object or TsdFrame object. The data component of the object
-            should be 1D or 2D.
+        data : nap.TsdFrame
+            The data component of the object.
         name : str, optional
             Name of the item. Default None.
         """
+        # check data
+        if not isinstance(data, nap.TsdFrame):
+            raise ValueError(f"The data passed to create a line visual must be a pynapple TsdFrame object "
+                             f"You have passed an object of type {type(data.__class__.__name__)}.")
         super().__init__(data=data, name=name)
 
         # try to make a heatmap from the data
-        if isinstance(data, nap.Tsd) or (isinstance(data, nap.TsdFrame) and data.d.shape[1] == 1):
-            data = np.column_stack((data.t, data.d))
         self._graphic = fpl.ImageGraphic(data=data.d.T)
 
         # create a linear selector for time and component

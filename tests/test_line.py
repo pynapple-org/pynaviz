@@ -7,6 +7,7 @@ import pynapple as nap
 
 from pynaviz import LineItem
 
+
 def test_single_line_item_instantiation(sine):
     """Test single line LineItem instantiation."""
     a = LineItem(data=sine)
@@ -50,4 +51,3 @@ def test_line_instantiation_error():
     # assert trying to pass an array also throws an error
     with pytest.raises(ValueError):
         LineItem(data=data)
-
