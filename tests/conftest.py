@@ -50,4 +50,10 @@ def heatmap_data():
 @pytest.fixture
 def movie_data():
     """Generate data for testing movie visual creation."""
-    pass
+    data = np.random.rand(1000, 512, 512)
+
+    xs = np.array([i for i in range(data.shape[0])])
+
+    movie = nap.TsdTensor(t=xs, d=data)
+
+    return movie

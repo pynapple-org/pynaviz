@@ -23,7 +23,7 @@ class HeatmapItem(StoreModelItem):
         """
         # check data
         if not isinstance(data, nap.TsdFrame):
-            raise ValueError(f"The data passed to create a line visual must be a pynapple TsdFrame object "
+            raise ValueError(f"The data passed to create a heatmap visual must be a pynapple TsdFrame object "
                              f"You have passed an object of type {type(data.__class__.__name__)}.")
         super().__init__(data=data, name=name)
 
