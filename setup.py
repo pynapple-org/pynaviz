@@ -14,14 +14,15 @@ extras_require = {
 
     ],
     "tests": [
-        "pytest"
+        "pytest",
+        "black"
     ]
 }
 
 with open(Path(__file__).parent.joinpath("README.md")) as f:
     readme = f.read()
 
-with open(Path(__file__).parent.joinpath("src", "pynaviz", "VERSION"), "r") as f:
+with open(Path(__file__).parent.joinpath("pynaviz", "VERSION"), "r") as f:
     ver = f.read().split("\n")[0]
 
 classifiers = [

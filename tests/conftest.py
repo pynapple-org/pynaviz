@@ -12,15 +12,23 @@ import pynapple as nap
 
 
 @pytest.fixture
-def line_data():
-    """Generate line data that can be used for testing visual creation."""
-    xs = np.linspace(0, 10, 1_000)
+def sine():
+    """Generate single line data that can be used for testing visual creation."""
+    xs = np.linspace(0, 100, 1_000)
 
     # sine data
     ys = np.sin(xs)
 
     # associated pynapple array
     sine = nap.Tsd(t=xs, d=ys)
+
+    return sine
+
+
+@pytest.fixture
+def cosine():
+    """Generate multi-line data that can be used for testing visual creation."""
+    xs = np.linspace(0, 100, 1_000)
 
     # cosine data
     ys = np.cos(xs)
@@ -30,7 +38,7 @@ def line_data():
     # pynapple object
     cosine = nap.TsdFrame(t=xs, d=cosine)
 
-    return sine, cosine
+    return cosine
 
 
 @pytest.fixture
