@@ -30,7 +30,7 @@ class MovieItem(StoreModelItem):
         # parse data
 
         # first frame to start
-        self._graphic = fpl.ImageGraphic(data.get(0))
+        self._graphic = fpl.ImageGraphic(data.get(0), cmap="gnuplot2")
 
     def _set_time(self, time: int | float):
         """Update the data of the ImageGraphic in time."""

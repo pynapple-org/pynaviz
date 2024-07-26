@@ -36,6 +36,8 @@ class TimeStore(StoreModel):
         if not isinstance(time, type(self.time)):
             time = type(self.time)(time)
 
+        # TODO: keep track of range of times and check for out of bounds
+
         # if new time == current time, don't update
         if time == self.time:
             return
@@ -61,12 +63,15 @@ class TimeStore(StoreModel):
         if isinstance(item, (HeatmapItem, LineItem)):
             item.time_selector.add_event_handler(self.update_store, "selection")
 
+        # TODO: some way to use the rate of a visual to make sure time being fetched matches the date,
+        #  issue with how we handle pynapple objects that get turned into a heatmap, can no longer use get()
+
     def unsubscribe(self, item: StoreModelItem):
         """Remove an item from the time store."""
         super().unsubscribe(item)
 
         # unhook events
-        if isinstance(item, LineItem):
+        if isinstance(item, (LineItem, HeatmapItem)):
             item.time_selector.remove_event_handler(self.update_store, "selection")
 
     def update_store(self, ev):

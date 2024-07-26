@@ -4,8 +4,8 @@ from itertools import product
 import fastplotlib as fpl
 import pynapple as nap
 
-from .store_items import LineItem, HeatmapItem, MovieItem
-from .store_models import TimeStore
+from .store_items import LineItem, HeatmapItem, MovieItem, ROIsItem
+from .store_models import TimeStore, ComponentStore
 from .store_items import StoreModelItem
 
 
@@ -13,7 +13,8 @@ class NeuroWidget:
     _viz_types: List[str] = [
         "line",
         "heatmap",
-        "movie"
+        "movie",
+        "rois"
     ]
 
     def __init__(
@@ -32,6 +33,8 @@ class NeuroWidget:
         +-------------+----------------------------------------------------------------------------------------------+
         | "movie"     | nap.TsdTensor                                                                                |
         +-------------+----------------------------------------------------------------------------------------------+
+        | "rois"     | nap.TsdFrame                                                                                  |
+        +-------------+----------------------------------------------------------------------------------------------+
 
         Parameters
         ----------
@@ -42,6 +45,7 @@ class NeuroWidget:
         """
         # time store
         self._time_store = TimeStore()
+        self._component_store = ComponentStore()
 
         # generate a visual for each pynapple array passed in
         self._visuals = list()
@@ -72,6 +76,7 @@ class NeuroWidget:
         # for visual in visual, add graphics to visual, subscribe to stores
         for (viz, subplot) in zip(self.visuals, self.figure):
             subplot.add_graphic(viz.graphic)
+            # add any selectors as well
             if hasattr(viz, "_time_selector"):
                 subplot.add_graphic(viz.time_selector)
             if hasattr(viz, "_component_selector"):
@@ -80,6 +85,8 @@ class NeuroWidget:
             # register visuals to stores
             if hasattr(viz, "_set_time"):
                 self.time_store.subscribe(viz)
+            if hasattr(viz, "_set_component"):
+                self.component_store.subscribe(viz)
 
         # initial figure output is None
         self._output = None
@@ -93,6 +100,11 @@ class NeuroWidget:
     def time_store(self) -> TimeStore:
         """The associated TimeStore object for the widget."""
         return self._time_store
+
+    @property
+    def component_store(self):
+        """The associated ComponentStore object for the widget."""
+        return self._component_store
 
     @property
     def visuals(self) -> List[StoreModelItem]:
@@ -112,6 +124,11 @@ class NeuroWidget:
             case "movie":
                 visual = MovieItem(data=data)
                 return visual
+            case "rois":
+                visual = ROIsItem(data=data)
+                return visual
+            case "default":
+                raise ValueError("Could not create visual!")
 
     def _sync_plots(self):
         """Synchronize the cameras/controllers of each subplot."""

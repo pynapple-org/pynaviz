@@ -46,4 +46,9 @@ class StoreModelItem:
         """Abstract method implemented in subclass StoreModelItems that have a time axes that can be set."""
         pass
 
+    @abc.abstractmethod
+    def _set_component(self, index: int):
+        """Abstract method implemented in subclass StoreModelItems that have an index that can be set."""
+        pass
+
 
