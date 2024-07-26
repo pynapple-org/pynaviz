@@ -3,6 +3,7 @@ from itertools import product
 
 import fastplotlib as fpl
 import pynapple as nap
+import numpy as np
 
 from .store_items import LineItem, HeatmapItem, MovieItem, ROIsItem
 from .store_models import TimeStore, ComponentStore
@@ -20,6 +21,7 @@ class NeuroWidget:
     def __init__(
             self,
             data: Dict[str, List[nap.TsdTensor | nap.TsdFrame | nap.Tsd] | nap.TsdTensor | nap.TsdFrame | nap.Tsd],
+            names: List[str] = None,
     ):
         """
         Creates an interactive visual from pynapple objects using fastplotlib.
@@ -41,6 +43,9 @@ class NeuroWidget:
         data: Dict[str, List[nap.TsdTensor | nap.TsdFrame | nap.Tsd] | nap.TsdTensor | nap.TsdFrame | nap.Tsd]
             Dictionary that maps the data to the desired visual type. For each type of desired visual, give
             a pynapple object or list of pynapple objects. See above for details on possible visualizations.
+        names: List[str], optional
+            Flat list that is reshaped based on the number of visuals. The number of names in the list should match
+            how many items are in data.
 
         """
         # time store
@@ -68,8 +73,19 @@ class NeuroWidget:
         # will reshape into best square fit
         shape = fpl.utils.calculate_figure_shape(len(self.visuals))
 
+        self._names = names
+
+        if self.names is not None:
+            if len(self.visuals) != len(names):
+                raise ValueError(f"Each visual requires a unique name. There are {len(self.visuals)} visual and you have "
+                                 f"given {len(names)} names.")
+
+            # hacky way to get names in correct shape until #541 done
+            self._names = list(np.array(names).reshape(shape))
+
         self._figure = fpl.Figure(
-            shape=shape
+            shape=shape,
+            names=self.names
         )
 
         # TODO: what happens if there is not an even number of visuals, zip won't work
@@ -110,6 +126,11 @@ class NeuroWidget:
     def visuals(self) -> List[StoreModelItem]:
         """List of visuals in the figure."""
         return self._visuals
+
+    @property
+    def names(self) -> List[str]:
+        """Names of visuals in the widget."""
+        return self._names
 
     @staticmethod
     def _make_visual(visual_type: str, data: nap.TsdTensor | nap.TsdFrame | nap.Tsd) -> StoreModelItem:
