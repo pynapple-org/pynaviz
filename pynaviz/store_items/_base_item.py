@@ -42,7 +42,7 @@ class StoreModelItem:
         return self._name
 
     @abc.abstractmethod
-    def set_time(self, time: float | int):
+    def _set_time(self, time: float | int):
         """Abstract method implemented in subclass StoreModelItems that have a time axes that can be set."""
         pass
 

@@ -32,6 +32,6 @@ class MovieItem(StoreModelItem):
         # first frame to start
         self._graphic = fpl.ImageGraphic(data.get(0))
 
-    def set_time(self, time: int | float):
+    def _set_time(self, time: int | float):
         """Update the data of the ImageGraphic in time."""
         self.graphic.data = self.data.get(time)

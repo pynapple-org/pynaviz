@@ -30,9 +30,46 @@ class HeatmapItem(StoreModelItem):
         # try to make a heatmap from the data
         self._graphic = fpl.ImageGraphic(data=data.d.T)
 
-        # create a linear selector for time and component
-        self._time_selector = None
-        self._component_selector = None
+        # TODO: need to decide how to decide whether a line visual should get a LinearSelector vs a
+        #  LinearRegionSelector
+        # create a linear selector for time
+        size = self.graphic.data.value.shape[0]
+        center = size / 2
+        limits = (0, self.graphic.data.value.shape[1])
+        # for padding purposes
+        size *= 1.25
+        selection = limits[0]
+
+        self._time_selector = fpl.LinearSelector(
+            selection=selection,
+            limits=limits,
+            size=size,
+            center=center,
+            axis="x",
+            parent=self.graphic,
+        )
+
+        # place selector above this graphic
+        self._time_selector.offset = self._time_selector.offset + (0.0, 0.0, self.graphic.offset[-1] + 1)
+
+        # create a linear selector for component
+        size = self.graphic.data.value.shape[1]
+        center = size / 2
+        limits = (0, self.graphic.data.value.shape[0])
+        # for padding purposes
+        size *= 1.25
+        selection = limits[0]
+
+        self._component_selector = fpl.LinearSelector(
+            selection=selection,
+            limits=limits,
+            size=size,
+            center=center,
+            axis="y",
+            parent=self.graphic,
+        )
+
+        self._component_selector.offset = self._component_selector.offset + (0.0, 0.0, self.graphic.offset[-1] + 1)
 
     @property
     def time_selector(self) -> fpl.LinearSelector:
@@ -50,7 +87,7 @@ class HeatmapItem(StoreModelItem):
     def component_selector(self, selector: fpl.LinearSelector):
         self._component_selector = selector
 
-    def set_time(self, time: int | float):
+    def _set_time(self, time: int | float):
         """Update the position of the selector in the time axis."""
         if self.time_selector.selection == time:
             return

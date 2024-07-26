@@ -41,7 +41,7 @@ class StoreModel:
             raise TypeError(f"Items subscribed to store must be of type `StoreModelItem`. You have passed an item of "
                             f"type: {type(item)}")
         # StoreModelItem must have function for updating time
-        if not hasattr(item, f"set_{self.target}"):
+        if not hasattr(item, f"_set_{self.target}"):
             raise TypeError(f"Items subscribed to store must have a {self.target} attribute to be used when the store "
                             f"is updated.")
         # add item to the store

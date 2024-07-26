@@ -37,19 +37,33 @@ class LineItem(StoreModelItem):
             data = [np.column_stack((data.t, data.d.T[i])) for i in range(data.shape[1])]
             self._graphic = fpl.LineStack(data=data)
 
+        # TODO: need to decide how to decide whether a line visual should get a LinearSelector vs a
+        #  LinearRegionSelector
         # create a linear selector
-        self._selector = None
+        bounds_init, limits, size, center = self.graphic._get_linear_selector_init_args(
+            "x", 0.0
+        )
+        selection = bounds_init[0]
+
+        self._time_selector = fpl.LinearSelector(
+            selection=selection,
+            limits=limits,
+            size=size,
+            center=center,
+            axis="x",
+            parent=self.graphic,
+        )
 
     @property
-    def selector(self) -> fpl.LinearSelector:
-        return self._selector
+    def time_selector(self) -> fpl.LinearSelector:
+        return self._time_selector
 
-    @selector.setter
-    def selector(self, selector: fpl.LinearSelector):
-        self._selector = selector
+    @time_selector.setter
+    def time_selector(self, selector: fpl.LinearSelector):
+        self._time_selector = selector
 
-    def set_time(self, time: int | float):
+    def _set_time(self, time: int | float):
         """Update the position of the selector in the time axis."""
-        if self.selector.selection == time:
+        if self.time_selector.selection == time:
             return
-        self.selector.selection = time
+        self.time_selector.selection = time

@@ -72,20 +72,14 @@ class NeuroWidget:
         # for visual in visual, add graphics to visual, subscribe to stores
         for (viz, subplot) in zip(self.visuals, self.figure):
             subplot.add_graphic(viz.graphic)
-            # can't add a selector for a graphic until after it has been added to a plot
-            # TODO: need to decide how to decide whether a line visual should get a LinearSelector vs a
-            #  LinearRegionSelector
-            if isinstance(viz, LineItem):
-                ls = viz.graphic.add_linear_selector()
-                viz.selector = ls
-            if isinstance(viz, HeatmapItem):
-                time_ls = viz.graphic.add_linear_selector()
-                viz.time_selector = time_ls
-                component_ls = viz.graphic.add_linear_selector(axis="y")
-                viz.component_selector = component_ls
+            if hasattr(viz, "_time_selector"):
+                subplot.add_graphic(viz.time_selector)
+            if hasattr(viz, "_component_selector"):
+                subplot.add_graphic(viz.component_selector)
+
             # register visuals to stores
-            if hasattr(viz, "set_time"):
-                self._time_store.subscribe(viz)
+            if hasattr(viz, "_set_time"):
+                self.time_store.subscribe(viz)
 
         # initial figure output is None
         self._output = None

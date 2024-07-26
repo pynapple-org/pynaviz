@@ -57,10 +57,8 @@ class TimeStore(StoreModel):
         """Add an item to the time store."""
         # parse item
         super().subscribe(item=item)
-        # time store relevant subscription stuff?
-        if isinstance(item, LineItem):
-            item.selector.add_event_handler(self.update_store, "selection")
-        if isinstance(item, HeatmapItem):
+        # time store relevant subscription stuff
+        if isinstance(item, (HeatmapItem, LineItem)):
             item.time_selector.add_event_handler(self.update_store, "selection")
 
     def unsubscribe(self, item: StoreModelItem):
@@ -69,7 +67,7 @@ class TimeStore(StoreModel):
 
         # unhook events
         if isinstance(item, LineItem):
-            item.selector.remove_event_handler(self.update_store, "selection")
+            item.time_selector.remove_event_handler(self.update_store, "selection")
 
     def update_store(self, ev):
         self.time = ev.info["value"]
@@ -82,9 +80,9 @@ class TimeStore(StoreModel):
             for item in self.store:
                 if item == source:
                     continue
-                item.set_time(self.time)
+                item._set_time(self.time)
 
             return
 
         for item in self.store:
-            item.set_time(self.time)
+            item._set_time(self.time)
