@@ -1,6 +1,7 @@
 from ._base_store import StoreModel
 from ..store_items import *
 
+# TODO: click events, would need to add to subplot renderer based on whether subplot has ROI visual or not
 
 class ComponentStore(StoreModel):
     target = "component"
@@ -46,9 +47,6 @@ class ComponentStore(StoreModel):
         # component store relevant subscription stuff
         if isinstance(item, HeatmapItem):
             item.component_selector.add_event_handler(self.update_store, "selection")
-
-
-    # if isinstance(item, ):
 
     def unsubscribe(self, item: StoreModelItem):
         """Remove an item from the component store."""

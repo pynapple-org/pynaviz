@@ -15,12 +15,17 @@ class NeuroWidget:
         "line",
         "heatmap",
         "movie",
-        "rois"
+        "rois",
+        "raster"
     ]
 
     def __init__(
             self,
-            data: Dict[str, List[nap.TsdTensor | nap.TsdFrame | nap.Tsd] | nap.TsdTensor | nap.TsdFrame | nap.Tsd],
+            line: List[nap.Tsd | nap.TsdFrame] | nap.Tsd | nap.TsdFrame = None,
+            heatmap: List[nap.Tsd | nap.TsdFrame] | nap.TsdFrame | nap.Tsd = None,
+            movie: List[nap.Tsd | nap.TsdTensor] | nap.Tsd | nap.TsdTensor = None,
+            rois: List[nap.TsdTensor] | nap.TsdTensor = None,
+            raster: List[nap.TsGroup] | nap.TsGroup = None,
             names: List[str] = None,
     ):
         """
@@ -35,14 +40,23 @@ class NeuroWidget:
         +-------------+----------------------------------------------------------------------------------------------+
         | "movie"     | nap.TsdTensor                                                                                |
         +-------------+----------------------------------------------------------------------------------------------+
-        | "rois"     | nap.TsdFrame                                                                                  |
+        | "rois"      | nap.TsdTensor                                                                                |
+        +-------------+----------------------------------------------------------------------------------------------+
+        | "raster"    | nap.TsdGroup                                                                                 |
         +-------------+----------------------------------------------------------------------------------------------+
 
         Parameters
         ----------
-        data: Dict[str, List[nap.TsdTensor | nap.TsdFrame | nap.Tsd] | nap.TsdTensor | nap.TsdFrame | nap.Tsd]
-            Dictionary that maps the data to the desired visual type. For each type of desired visual, give
-            a pynapple object or list of pynapple objects. See above for details on possible visualizations.
+        line: List[nap.Tsd | nap.TsdFrame] | nap.Tsd | nap.TsdFrame
+            Optional list of pynapple objects to be made into a line visual.
+        heatmap: List[nap.Tsd | nap.TsdFrame] | nap.TsdFrame | nap.Tsd
+            Optional list of pynapple objects to be made into a heatmap visual.
+        movie: List[nap.Tsd | nap.TsdTensor] | nap.Tsd | nap.TsdTensor
+            Optional list of pynapple objects to be made into a movie visual.
+        rois: List[nap.TsdTensor] | nap.TsdTensor
+            Optional list of pynapple objects to be made into a rois visual.
+        raster: List[nap.TsGroup] | nap.TsGroup
+            Optional list of pynapple objects to be made into a raster visual.
         names: List[str], optional
             Flat list that is reshaped based on the number of visuals. The number of names in the list should match
             how many items are in data.
@@ -54,19 +68,17 @@ class NeuroWidget:
 
         # generate a visual for each pynapple array passed in
         self._visuals = list()
-        for key, item in data.items():
-            if key not in self._viz_types:
-                raise KeyError(f"The list of available visuals are: {self._viz_types} You have passed {key}.")
-            # can have more than one item per type of visual
-            if isinstance(item, list):
-                for obj in item:
+        for viz_type in self._viz_types:
+            if eval(viz_type) is not None:
+                if isinstance(eval(viz_type), list):
+                    for obj in eval(viz_type):
+                        # generate visual based on key, item pairing
+                        visual = self._make_visual(visual_type=viz_type, data=obj)
+                        self._visuals.append(visual)
+                else:
                     # generate visual based on key, item pairing
-                    visual = self._make_visual(visual_type=key, data=obj)
+                    visual = self._make_visual(visual_type=viz_type, data=eval(viz_type))
                     self._visuals.append(visual)
-            else:
-                # generate visual based on key, item pairing
-                visual = self._make_visual(visual_type=key, data=item)
-                self._visuals.append(visual)
 
         # parse data to create figure shape
         # without including any metadata, assumes that len(visuals) = # of subplots
@@ -80,8 +92,13 @@ class NeuroWidget:
                 raise ValueError(f"Each visual requires a unique name. There are {len(self.visuals)} visual and you have "
                                  f"given {len(names)} names.")
 
+            # if odd # of visuals
+            while len(self.names) < len(list(product(range(shape[0]), range(shape[1])))):
+                self.names.append(None)
             # hacky way to get names in correct shape until #541 done
             self._names = list(np.array(names).reshape(shape))
+
+
 
         self._figure = fpl.Figure(
             shape=shape,
