@@ -9,7 +9,6 @@ class HeatmapItem(StoreModelItem):
     def __init__(
             self,
             data: nap.TsdFrame,
-            name: str = None
     ):
         """
         A visual for heatmap data.
@@ -18,14 +17,12 @@ class HeatmapItem(StoreModelItem):
         ----------
         data : nap.TsdFrame
             The data component of the object.
-        name : str, optional
-            Name of the item. Default None.
         """
         # check data
         if not isinstance(data, nap.TsdFrame):
             raise ValueError(f"The data passed to create a heatmap visual must be a pynapple TsdFrame object "
                              f"You have passed an object of type {type(data.__class__.__name__)}.")
-        super().__init__(data=data, name=name)
+        super().__init__(data=data)
 
         # try to make a heatmap from the data
         self._graphic = fpl.ImageGraphic(data=data.d.T)

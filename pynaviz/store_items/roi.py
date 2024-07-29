@@ -9,7 +9,6 @@ class ROIsItem(StoreModelItem):
     def __init__(
             self,
             data: nap.TsdTensor,
-            name: str = None
     ):
         """
         A visual for ROI data.
@@ -18,14 +17,12 @@ class ROIsItem(StoreModelItem):
         ----------
         data: nap.TsdFrame
             Data of the object.
-        name: str, optional
-            Name of the item. Default None.
         """
         # check data
         if not isinstance(data, nap.TsdTensor):
             raise ValueError(f"The data passed to create an ROI visual must be a pynapple TsdTensor object "
                              f"You have passed an object of type {type(data.__class__.__name__)}.")
-        super().__init__(data=data, name=name)
+        super().__init__(data=data)
 
         # try to make line collection of ROI
         data = list(data.d)

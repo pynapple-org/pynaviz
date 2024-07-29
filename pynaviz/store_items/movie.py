@@ -9,7 +9,6 @@ class MovieItem(StoreModelItem):
     def __init__(
             self,
             data: nap.TsdTensor,
-            name: str = None
     ):
         """
         A visual for movie data.
@@ -18,14 +17,12 @@ class MovieItem(StoreModelItem):
         ----------
         data : nap.TsdTensor
             Pynapple object for movie data.
-        name : str, optional
-            Name of the item. Default None.
         """
         # check data
         if not isinstance(data, nap.TsdTensor):
             raise ValueError(f"The data passed to create a movie visual must be a pynapple TsdTensor object "
                              f"You have passed an object of type {type(data.__class__.__name__)}.")
-        super().__init__(data=data, name=name)
+        super().__init__(data=data)
 
         # parse data
 

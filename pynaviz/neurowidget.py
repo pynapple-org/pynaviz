@@ -5,7 +5,7 @@ import fastplotlib as fpl
 import pynapple as nap
 import numpy as np
 
-from .store_items import LineItem, HeatmapItem, MovieItem, ROIsItem
+from .store_items import LineItem, HeatmapItem, MovieItem, ROIsItem, RasterItem
 from .store_models import TimeStore, ComponentStore
 from .store_items import StoreModelItem
 
@@ -27,6 +27,8 @@ class NeuroWidget:
             rois: List[nap.TsdTensor] | nap.TsdTensor = None,
             raster: List[nap.TsGroup] | nap.TsGroup = None,
             names: List[str] = None,
+            vertical: bool = False,
+            time_interval: nap.IntervalSet = None
     ):
         """
         Creates an interactive visual from pynapple objects using fastplotlib.
@@ -60,10 +62,20 @@ class NeuroWidget:
         names: List[str], optional
             Flat list that is reshaped based on the number of visuals. The number of names in the list should match
             how many items are in data.
+        vertical: bool, default False
+            Boolean flag that determine plot shape orientation. If True, shape of plot will be (# visuals, 1). If
+            False, shape of plot will be best square based on number of visuals.
+        time_interval: nap.IntervalSet, default None
+            Optional interval set that specifies the range of time to be displayed.
 
         """
+        if time_interval is not None and not isinstance(time_interval, nap.IntervalSet):
+            raise ValueError(f"The time interval must be a pynapple IntervalSet, you have passed an object of"
+                             f" type {type(time_interval)}")
+        self._time_interval = time_interval
+
         # time store
-        self._time_store = TimeStore()
+        self._time_store = TimeStore(time_interval=time_interval)
         self._component_store = ComponentStore()
 
         # generate a visual for each pynapple array passed in
@@ -73,11 +85,12 @@ class NeuroWidget:
                 if isinstance(eval(viz_type), list):
                     for obj in eval(viz_type):
                         # generate visual based on key, item pairing
-                        visual = self._make_visual(visual_type=viz_type, data=obj)
+                        visual = self._make_visual(visual_type=viz_type, data=obj, time_interval=self._time_interval)
                         self._visuals.append(visual)
                 else:
                     # generate visual based on key, item pairing
-                    visual = self._make_visual(visual_type=viz_type, data=eval(viz_type))
+                    visual = self._make_visual(visual_type=viz_type, data=eval(viz_type),
+                                               time_interval=self._time_interval)
                     self._visuals.append(visual)
 
         # parse data to create figure shape
@@ -85,20 +98,23 @@ class NeuroWidget:
         # will reshape into best square fit
         shape = fpl.utils.calculate_figure_shape(len(self.visuals))
 
+        # if vertical, stack subplots on top of one another
+        if vertical:
+            shape = (len(self.visuals), 1)
+
         self._names = names
 
         if self.names is not None:
             if len(self.visuals) != len(names):
-                raise ValueError(f"Each visual requires a unique name. There are {len(self.visuals)} visual and you have "
-                                 f"given {len(names)} names.")
+                raise ValueError(
+                    f"Each visual requires a unique name. There are {len(self.visuals)} visual and you have "
+                    f"given {len(names)} names.")
 
             # if odd # of visuals
             while len(self.names) < len(list(product(range(shape[0]), range(shape[1])))):
                 self.names.append(None)
             # hacky way to get names in correct shape until #541 done
             self._names = list(np.array(names).reshape(shape))
-
-
 
         self._figure = fpl.Figure(
             shape=shape,
@@ -108,7 +124,11 @@ class NeuroWidget:
         # TODO: what happens if there is not an even number of visuals, zip won't work
         # for visual in visual, add graphics to visual, subscribe to stores
         for (viz, subplot) in zip(self.visuals, self.figure):
-            subplot.add_graphic(viz.graphic)
+            if isinstance(viz, RasterItem):
+                for scatter in viz.graphic:
+                    subplot.add_graphic(scatter)
+            else:
+                subplot.add_graphic(viz.graphic)
             # add any selectors as well
             if hasattr(viz, "_time_selector"):
                 subplot.add_graphic(viz.time_selector)
@@ -150,11 +170,11 @@ class NeuroWidget:
         return self._names
 
     @staticmethod
-    def _make_visual(visual_type: str, data: nap.TsdTensor | nap.TsdFrame | nap.Tsd) -> StoreModelItem:
+    def _make_visual(visual_type: str, data: nap.TsdTensor | nap.TsdFrame | nap.Tsd, time_interval: nap.IntervalSet = None) -> StoreModelItem:
         """Returns a visual based on the specified type and data."""
         match visual_type:
             case "line":
-                visual = LineItem(data=data)
+                visual = LineItem(data=data, time_interval=time_interval)
                 return visual
             case "heatmap":
                 visual = HeatmapItem(data=data)
@@ -165,7 +185,10 @@ class NeuroWidget:
             case "rois":
                 visual = ROIsItem(data=data)
                 return visual
-            case "default":
+            case "raster":
+                visual = RasterItem(data=data, time_interval=time_interval)
+                return visual
+            case _:
                 raise ValueError("Could not create visual!")
 
     def _sync_plots(self):
