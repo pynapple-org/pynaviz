@@ -24,6 +24,9 @@ class StoreModelItem:
         self._data = data
         self._time_interval = time_interval
 
+        if time_interval is not None:
+            self._data = data.restrict(time_interval)
+
         # initialize in subclass
         self._graphic = None
 

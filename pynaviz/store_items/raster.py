@@ -37,7 +37,7 @@ class RasterItem(StoreModelItem):
             min_time, max_time = data.t[0], data.t[-1]
 
         # format raster data and make scatter graphics
-        for i in range(data.index.shape[0]):
+        for i in data.index:
             xs = data[i].get(min_time, max_time).t
             # dummy data if there is no spiking in the time interval in order to keep index ordering
             if len(xs) == 0:
@@ -48,8 +48,8 @@ class RasterItem(StoreModelItem):
             scatter_data = np.column_stack((xs, ys))
 
             # set offset by order
-            if hasattr(data, "order"):
-                scatter = fpl.ScatterGraphic(data=scatter_data, offset=(0, data["order"][i], 0), sizes=5)
+            if hasattr(data, "peak"):
+                scatter = fpl.ScatterGraphic(data=scatter_data, offset=(0, data["peak"][i], 0), sizes=5)
             # otherwise go in order
             else:
                 scatter = fpl.ScatterGraphic(data=scatter_data, offset=(0, i, 0), sizes=5)
@@ -59,16 +59,16 @@ class RasterItem(StoreModelItem):
         # set graphics for visual
         self._graphic = scatter_graphics
 
-        # color by group if possible
-        if hasattr(data, "group"):
-            num_groups = data["group"].max()
-            for i in range(num_groups + 1):
-                ixs = data["group"].index[data["group"] == i].tolist()
-
-                subset = np.array(self.graphic)[ixs]
-
-                for s in subset:
-                    s.colors = COLORS[i]
+        # # color by group if possible
+        # if hasattr(data, "group"):
+        #     num_groups = data["group"].max()
+        #     for i in range(num_groups + 1):
+        #         ixs = data["group"].index[data["group"] == i].tolist()
+        #
+        #         subset = np.array(self.graphic)[ixs]
+        #
+        #         for s in subset:
+        #             s.colors = COLORS[i]
 
         #add linear selector for time
         self._time_selector = fpl.LinearSelector(

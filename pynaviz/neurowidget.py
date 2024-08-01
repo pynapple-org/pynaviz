@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List
 from itertools import product
 
 import fastplotlib as fpl
@@ -27,7 +27,7 @@ class NeuroWidget:
             rois: List[nap.TsdTensor] | nap.TsdTensor = None,
             raster: List[nap.TsGroup] | nap.TsGroup = None,
             names: List[str] = None,
-            vertical: bool = False,
+            vertical_plots: bool = False,
             time_interval: nap.IntervalSet = None
     ):
         """
@@ -44,7 +44,7 @@ class NeuroWidget:
         +-------------+----------------------------------------------------------------------------------------------+
         | "rois"      | nap.TsdTensor                                                                                |
         +-------------+----------------------------------------------------------------------------------------------+
-        | "raster"    | nap.TsdGroup                                                                                 |
+        | "raster"    | nap.TsGroup                                                                                  |
         +-------------+----------------------------------------------------------------------------------------------+
 
         Parameters
@@ -61,12 +61,13 @@ class NeuroWidget:
             Optional list of pynapple objects to be made into a raster visual.
         names: List[str], optional
             Flat list that is reshaped based on the number of visuals. The number of names in the list should match
-            how many items are in data.
-        vertical: bool, default False
-            Boolean flag that determine plot shape orientation. If True, shape of plot will be (# visuals, 1). If
+            how many pynapple objects are being passed.
+        vertical_plots: bool, default False
+            Boolean flag that determines plot shape orientation. If True, shape of plot will be (# visuals, 1). If
             False, shape of plot will be best square based on number of visuals.
         time_interval: nap.IntervalSet, default None
-            Optional interval set that specifies the range of time to be displayed.
+            Optional interval set that specifies the range of time to be displayed. If dataset is very large, useful
+            to restrict the amount of data being seen.
 
         """
         if time_interval is not None and not isinstance(time_interval, nap.IntervalSet):
@@ -75,40 +76,48 @@ class NeuroWidget:
         self._time_interval = time_interval
 
         # time store
-        self._time_store = TimeStore(time_interval=time_interval)
+        self._time_store = TimeStore()
         self._component_store = ComponentStore()
 
         # generate a visual for each pynapple array passed in
         self._visuals = list()
         for viz_type in self._viz_types:
+            # check if anything was passed in for each type of viz
             if eval(viz_type) is not None:
+                # check for multiple visuals of a given type
                 if isinstance(eval(viz_type), list):
                     for obj in eval(viz_type):
-                        # generate visual based on key, item pairing
+                        # generate visual based on viz type, pynapple object pairing
                         visual = self._make_visual(visual_type=viz_type, data=obj, time_interval=self._time_interval)
                         self._visuals.append(visual)
                 else:
-                    # generate visual based on key, item pairing
+                    # generate visual based on viz type, pynapple object pairing
                     visual = self._make_visual(visual_type=viz_type, data=eval(viz_type),
                                                time_interval=self._time_interval)
                     self._visuals.append(visual)
 
-        # parse data to create figure shape
-        # without including any metadata, assumes that len(visuals) = # of subplots
-        # will reshape into best square fit
-        shape = fpl.utils.calculate_figure_shape(len(self.visuals))
-
         # if vertical, stack subplots on top of one another
-        if vertical:
+        if vertical_plots:
             shape = (len(self.visuals), 1)
+        else:
+            # parse data to create figure shape
+            # without including any metadata, assumes that len(visuals) = # of subplots
+            # will reshape into best square fit
+            shape = fpl.utils.calculate_figure_shape(len(self.visuals))
 
         self._names = names
 
         if self.names is not None:
+            # check for correct # of names
             if len(self.visuals) != len(names):
                 raise ValueError(
                     f"Each visual requires a unique name. There are {len(self.visuals)} visual and you have "
                     f"given {len(names)} names.")
+            # check for unique names
+            if len(set(self.names)) != len(self.names):
+                raise ValueError(
+                    f"Each visual requires a unique name."
+                )
 
             # if odd # of visuals
             while len(self.names) < len(list(product(range(shape[0]), range(shape[1])))):
@@ -121,7 +130,6 @@ class NeuroWidget:
             names=self.names
         )
 
-        # TODO: what happens if there is not an even number of visuals, zip won't work
         # for visual in visual, add graphics to visual, subscribe to stores
         for (viz, subplot) in zip(self.visuals, self.figure):
             if isinstance(viz, RasterItem):
@@ -177,10 +185,10 @@ class NeuroWidget:
                 visual = LineItem(data=data, time_interval=time_interval)
                 return visual
             case "heatmap":
-                visual = HeatmapItem(data=data)
+                visual = HeatmapItem(data=data, time_interval=time_interval)
                 return visual
             case "movie":
-                visual = MovieItem(data=data)
+                visual = MovieItem(data=data, time_interval=time_interval)
                 return visual
             case "rois":
                 visual = ROIsItem(data=data)

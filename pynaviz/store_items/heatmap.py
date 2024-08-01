@@ -9,6 +9,7 @@ class HeatmapItem(StoreModelItem):
     def __init__(
             self,
             data: nap.TsdFrame,
+            time_interval: nap.IntervalSet
     ):
         """
         A visual for heatmap data.
@@ -22,10 +23,10 @@ class HeatmapItem(StoreModelItem):
         if not isinstance(data, nap.TsdFrame):
             raise ValueError(f"The data passed to create a heatmap visual must be a pynapple TsdFrame object "
                              f"You have passed an object of type {type(data.__class__.__name__)}.")
-        super().__init__(data=data)
+        super().__init__(data=data, time_interval=time_interval)
 
         # try to make a heatmap from the data
-        self._graphic = fpl.ImageGraphic(data=data.d.T)
+        self._graphic = fpl.ImageGraphic(data=self.data.d.T)
 
         # TODO: need to decide how to decide whether a line visual should get a LinearSelector vs a
         #  LinearRegionSelector

@@ -27,17 +27,20 @@ class LineItem(StoreModelItem):
 
         super().__init__(data=data, time_interval=time_interval)
 
-        if self.time_interval is not None:
-            data = data.get(self.time_interval.start[0], self.time_interval.end[0])
-
         # try to make a line graphic from the data
         if isinstance(data, nap.Tsd):
-            data = np.column_stack((data.t, data.d))
+            data = np.column_stack((self.data.t, self.data.d))
             self._graphic = fpl.LineGraphic(data=data)
         elif isinstance(data, nap.TsdFrame):
-            data = [np.column_stack((data.t, data.d.T[i])) for i in range(data.shape[1])]
+            data = [np.column_stack((self.data.t, self.data.d.T[i])) for i in range(self.data.shape[1])]
 
-            self._graphic = fpl.LineStack(data=data, thickness=0.5)
+            self._graphic = fpl.LineCollection(data=data, thickness=0.5)
+
+            for i, g in enumerate(self._graphic):
+                offset = g.offset.copy()
+                offset[1] = i * 1800
+                g.offset = offset
+
 
             # if has attr set colors based on group
             if hasattr(data, "group"):
