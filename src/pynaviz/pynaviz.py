@@ -1,5 +1,6 @@
 import sys
 import pynapple as nap
+import numpy as np
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QDockWidget, QTextEdit, QPushButton, QWidget, QVBoxLayout,
@@ -8,10 +9,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from collections import defaultdict
 
-import wgpu
-import pygfx
-from pygfx.renderers import WgpuRenderer
-
+from wgpu.gui.qt import WgpuCanvas
+import pygfx as gfx
+from pylinalg import vec_transform, vec_unproject
 
 DOCK_TITLE_STYLESHEET = '''
     * {
@@ -83,15 +83,94 @@ class TsdView(QDockWidget):
 
         self.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
 
-        # Add a QTextEdit inside the dock
-        dock_content = QTextEdit()
-        self.setWidget(dock_content)
+        positions = np.stack((tsd.t, tsd.d, np.zeros_like(tsd))).T
+        positions = positions.astype('float32')
 
-        # # Add the dock to the right side of the main window
-        # self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+        # Create canvas, renderer and a scene object
+        self._canvas = WgpuCanvas(parent=self)
+        self._renderer = gfx.WgpuRenderer(self._canvas)
+        self._scene = gfx.Scene()
 
+        background = gfx.Background.from_color("#000")
 
+        self._grid = gfx.Grid(
+            None,
+            gfx.GridMaterial(
+                major_step=1,
+                minor_step=0,
+                thickness_space="screen",
+                major_thickness=2,
+                minor_thickness=0.5,
+                infinite=True,
+            ),
+            orientation="xy",
+        )
+        self._grid.local.z = -1001
 
+        self.rulerx = gfx.Ruler(tick_side="right")
+        self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
+
+        line = gfx.Line(
+            gfx.Geometry(positions=positions),
+            # gfx.LineMaterial(thickness=4.0, color="#aaf"),
+        )
+
+        self._scene.add(background, self._grid, self.rulerx, self.rulery, line)
+
+        self._camera = gfx.OrthographicCamera(maintain_aspect=False)
+        self._camera.show_rect(-100, 1100, -5, 5)
+
+        self._controller = gfx.PanZoomController(self._camera, register_events=self._renderer)
+
+        # # Hook up the animate callback
+        self._canvas.request_draw(self.animate)
+        #
+        # line = gfx.Line(
+        #     gfx.Geometry(positions=positions), gfx.LineMaterial(thickness=3)
+        # )
+        # self._scene.add(line)
+        # self._canvas.update()
+
+    def map_screen_to_world(self, pos, viewport_size):
+        # first convert position to NDC
+        x = pos[0] / viewport_size[0] * 2 - 1
+        y = -(pos[1] / viewport_size[1] * 2 - 1)
+        pos_ndc = (x, y, 0)
+
+        pos_ndc += vec_transform(self._camera.world.position, self._camera.camera_matrix)
+        # unproject to world space
+        pos_world = vec_unproject(pos_ndc[:2], self._camera.camera_matrix)
+
+        return pos_world
+
+    def animate(self):
+        # get range of screen space
+        xmin, ymin = 0, self._renderer.logical_size[1]
+        xmax, ymax = self._renderer.logical_size[0], 0
+
+        world_xmin, world_ymin, _ = self.map_screen_to_world((xmin, ymin), self._renderer.logical_size)
+        world_xmax, world_ymax, _ = self.map_screen_to_world((xmax, ymax), self._renderer.logical_size)
+
+        # set start and end positions of rulers
+        self.rulerx.start_pos = world_xmin, 0, -1000
+        self.rulerx.end_pos = world_xmax, 0, -1000
+
+        self.rulerx.start_value = self.rulerx.start_pos[0]
+
+        statsx = self.rulerx.update(self._camera, self._canvas.get_logical_size())
+
+        self.rulery.start_pos = 0, world_ymin, -1000
+        self.rulery.end_pos = 0, world_ymax, -1000
+
+        self.rulery.start_value = self.rulery.start_pos[1]
+        statsy = self.rulery.update(self._camera, self._canvas.get_logical_size())
+
+        major_step_x, major_step_y = statsx["tick_step"], statsy["tick_step"]
+        self._grid.material.major_step = major_step_x, major_step_y
+        self._grid.material.minor_step = 0.2 * major_step_x, 0.2 * major_step_y
+
+        # print(statsx)
+        self._renderer.render(self._scene, self._camera)
 
 
 class LeftDock(QDockWidget):
@@ -115,7 +194,7 @@ class LeftDock(QDockWidget):
         self.listWidget.itemDoubleClicked.connect(self.select_view)
         self.listWidget.setStyleSheet(DOCK_LIST_STYLESHEET)
         self.setWidget(self.listWidget)
-        self.setFixedWidth(self.listWidget.sizeHintForColumn(0) + 40)
+        self.setFixedWidth(self.listWidget.sizeHintForColumn(0) + 50)
 
         self.gui.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self, Qt.Orientation.Horizontal)
 
@@ -151,6 +230,7 @@ class LeftDock(QDockWidget):
         print("Adding tsd")
         view = TsdView(tsd)
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, view)
+        view.show()
         # view.plot()
         # view.attach(self.gui)
         self.views[name] = view
@@ -246,10 +326,10 @@ def scope(variables):
 
     # print(pynavar)
 
-    global QT_APP
-    QT_APP = QApplication.instance()
-    if QT_APP is None:
-        QT_APP = QApplication(sys.argv)
+    global app
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
 
     gui = GUI()
 
@@ -257,11 +337,11 @@ def scope(variables):
 
     gui.show()
 
-    QT_APP.exit(QT_APP.exec())
-    # sys.exit(QT_APP.exec())
+    app.exit(app.exec())
+    # sys.exit(app.exec())
 
     gui.close()
-    # QT_APP.quit()
+    # app.quit()
 
     # print("yo")
 
