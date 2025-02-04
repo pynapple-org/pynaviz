@@ -1,6 +1,7 @@
 import sys
 import pynapple as nap
 import numpy as np
+import random
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QDockWidget, QTextEdit, QPushButton, QWidget, QVBoxLayout,
@@ -76,6 +77,46 @@ DOCK_LIST_STYLESHEET = '''
     }
 '''
 
+
+class TsdCanvas(QDockWidget):
+    def __init__(self):
+        super().__init__(None)
+        self.resize(640, 480)
+
+        # Creat button and hook it up
+        self._button = QPushButton("Add a line", self)
+        self._button.clicked.connect(self._on_button_click)
+
+        # Create canvas, renderer and a scene object
+        self._canvas = WgpuCanvas(parent=self)
+        self._renderer = gfx.WgpuRenderer(self._canvas)
+        self._scene = gfx.Scene()
+        self._camera = gfx.OrthographicCamera(110, 110)
+
+        # Hook up the animate callback
+        self._canvas.request_draw(self.animate)
+
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(self._button)
+        layout.addWidget(self._canvas)
+
+    def _on_button_click(self):
+        positions = [
+            [random.uniform(-50, 50), random.uniform(-50, 50), 0] for i in range(8)
+        ]
+        line = gfx.Line(
+            gfx.Geometry(positions=positions), gfx.LineMaterial(thickness=3)
+        )
+        self._scene.add(line)
+        self._canvas.update()
+
+    def animate(self):
+        self._renderer.render(self._scene, self._camera)
+
+
+
+
 class TsdView(QDockWidget):
 
     def __init__(self, tsd):
@@ -86,7 +127,7 @@ class TsdView(QDockWidget):
         positions = np.stack((tsd.t, tsd.d, np.zeros_like(tsd))).T
         positions = positions.astype('float32')
 
-        # Create canvas, renderer and a scene object
+        # # Create canvas, renderer and a scene object
         self._canvas = WgpuCanvas(parent=self)
         self._renderer = gfx.WgpuRenderer(self._canvas)
         self._scene = gfx.Scene()
@@ -122,14 +163,13 @@ class TsdView(QDockWidget):
 
         self._controller = gfx.PanZoomController(self._camera, register_events=self._renderer)
 
+        self.setWidget(self._canvas)
+
         # # Hook up the animate callback
         self._canvas.request_draw(self.animate)
-        #
-        # line = gfx.Line(
-        #     gfx.Geometry(positions=positions), gfx.LineMaterial(thickness=3)
-        # )
-        # self._scene.add(line)
-        # self._canvas.update()
+
+
+
 
     def map_screen_to_world(self, pos, viewport_size):
         # first convert position to NDC
@@ -171,6 +211,49 @@ class TsdView(QDockWidget):
 
         # print(statsx)
         self._renderer.render(self._scene, self._camera)
+
+    def _create_title_bar(self):
+        """Create the title bar."""
+        self._title_bar = QWidget(self)
+
+        self._layout = QHBoxLayout(self._title_bar)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+
+        self._title_bar.setStyleSheet(DOCK_TITLE_STYLESHEET)
+
+        # Left part of the bar.
+        # ---------------------
+
+        # Widget name.
+        label = QLabel(self.windowTitle())
+        self._layout.addWidget(label)
+
+        # Space.
+        # ------
+        self._layout.addStretch(1)
+
+        # Layout margin.
+        self._title_bar.setLayout(self._layout)
+        self.setTitleBarWidget(self._title_bar)
+
+    def _create_status_bar(self):
+        # Dock has requested widget and status bar.
+        widget_container = QWidget(self)
+        widget_layout = QVBoxLayout(widget_container)
+        widget_layout.setContentsMargins(0, 0, 0, 0)
+        widget_layout.setSpacing(0)
+
+        widget_layout.addWidget(self.listWidget, 100)
+
+        # Widget status text.
+        self._status = QLabel('')
+        self._status.setMaximumHeight(30)
+        self._status.setStyleSheet(DOCK_STATUS_STYLESHEET)
+        widget_layout.addWidget(self._status, 1)
+
+        widget_container.setLayout(widget_layout)
+        self.setWidget(widget_container)
 
 
 class LeftDock(QDockWidget):
@@ -229,10 +312,11 @@ class LeftDock(QDockWidget):
     def add_tsd_view(self, tsd, name):
         print("Adding tsd")
         view = TsdView(tsd)
+        # view = TsdCanvas()
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, view)
         # view.show()
         # view.plot()
-        # view.attach(self.gui)
+
         self.views[name] = view
         return
 
@@ -248,7 +332,7 @@ class LeftDock(QDockWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
-        # self._title_bar.setStyleSheet(DOCK_TITLE_STYLESHEET)
+        self._title_bar.setStyleSheet(DOCK_TITLE_STYLESHEET)
 
         # Left part of the bar.
         # ---------------------
@@ -277,7 +361,7 @@ class LeftDock(QDockWidget):
         # Widget status text.
         self._status = QLabel('')
         self._status.setMaximumHeight(30)
-        # self._status.setStyleSheet(DOCK_STATUS_STYLESHEET)
+        self._status.setStyleSheet(DOCK_STATUS_STYLESHEET)
         widget_layout.addWidget(self._status, 1)
 
         widget_container.setLayout(widget_layout)
