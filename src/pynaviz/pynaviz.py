@@ -79,7 +79,7 @@ DOCK_LIST_STYLESHEET = '''
 class TsdView(QDockWidget):
 
     def __init__(self, tsd):
-        super().__init__()
+        super().__init__("Tsd")
 
         self.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
 
@@ -230,7 +230,7 @@ class LeftDock(QDockWidget):
         print("Adding tsd")
         view = TsdView(tsd)
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, view)
-        view.show()
+        # view.show()
         # view.plot()
         # view.attach(self.gui)
         self.views[name] = view
@@ -248,7 +248,7 @@ class LeftDock(QDockWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
 
-        self._title_bar.setStyleSheet(DOCK_TITLE_STYLESHEET)
+        # self._title_bar.setStyleSheet(DOCK_TITLE_STYLESHEET)
 
         # Left part of the bar.
         # ---------------------
@@ -277,7 +277,7 @@ class LeftDock(QDockWidget):
         # Widget status text.
         self._status = QLabel('')
         self._status.setMaximumHeight(30)
-        self._status.setStyleSheet(DOCK_STATUS_STYLESHEET)
+        # self._status.setStyleSheet(DOCK_STATUS_STYLESHEET)
         widget_layout.addWidget(self._status, 1)
 
         widget_container.setLayout(widget_layout)
@@ -299,6 +299,9 @@ class GUI(QMainWindow):
 
         self.move(200, 200)
         self.resize(QSize(1200, 800))
+
+        # Enable nested docking (so docks can be stacked)
+        self.setDockNestingEnabled(True)
 
         self.actions = []
         self._menus = {}
