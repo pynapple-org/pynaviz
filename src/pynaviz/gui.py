@@ -14,6 +14,9 @@ from wgpu.gui.qt import WgpuCanvas
 import pygfx as gfx
 from pylinalg import vec_transform, vec_unproject
 
+from .controller import ControllerGroup, PynaVizController
+from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
+
 DOCK_TITLE_STYLESHEET = '''
     * {
         padding: 0;
@@ -78,7 +81,7 @@ DOCK_LIST_STYLESHEET = '''
 '''
 
 
-class TsGroupView(QDockWidget):
+class TsGroupQDockWidget(QDockWidget):
 
     def __init__(self, tsgroup):
         super().__init__("TsGroup")
@@ -145,7 +148,6 @@ class TsGroupView(QDockWidget):
         return pos_world
 
     def animate(self):
-        print(self._renderer.logical_size)
         # get range of screen space
         xmin, ymin = 0, self._renderer.logical_size[1]
         xmax, ymax = self._renderer.logical_size[0], 0
@@ -218,12 +220,13 @@ class TsGroupView(QDockWidget):
         self.setWidget(widget_container)
 
 
-class TsdView(QDockWidget):
+class TsdQDockWidget(QDockWidget):
 
     def __init__(self, tsd):
         super().__init__("Tsd")
 
         self.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
+        # self.setMinimumSize(QSize(200))
 
         positions = np.stack((tsd.t, tsd.d, np.zeros_like(tsd))).T
         positions = positions.astype('float32')
@@ -268,7 +271,6 @@ class TsdView(QDockWidget):
 
         # # Hook up the animate callback
         self._canvas.request_draw(self.animate)
-
 
     def map_screen_to_world(self, pos, viewport_size):
         # first convert position to NDC
@@ -362,7 +364,6 @@ class LeftDock(QDockWidget):
         super(LeftDock, self).__init__(*args, **kwargs)
         self.pynavar = pynavar
         self.gui = gui
-        self.views = {}
 
         self.setObjectName('Variables')
         self.setWindowTitle('Variables')
@@ -384,34 +385,77 @@ class LeftDock(QDockWidget):
         self._create_title_bar()
         self._create_status_bar()
 
+        # Adding controller group
+        self._ctrl_group = ControllerGroup()
+        self._controllers = {}
+        self._renderers = {}
+        self.views = {}
+        self._n_dock_open = 0
+
+
     def select_view(self, item):
         var = self.pynavar[item.text()]
 
         if isinstance(var, nap.TsGroup):
-            self.add_tsgroup_view(var, item.text())
+            self.add_tsgroup_view(var, item.text(), self._n_dock_open)
         elif isinstance(var, nap.Tsd):
-            self.add_tsd_view(var, item.text())
+            self.add_tsd_view(var, item.text(), self._n_dock_open)
         elif isinstance(var, nap.TsdFrame):
-            self.add_tsdframe_view(var, item.text())
+            self.add_tsdframe_view(var, item.text(), self._n_dock_open)
 
+        self._n_dock_open += 1
         return
 
-    def add_tsgroup_view(self, tsgroup, name):
+    def add_tsgroup_view(self, tsgroup, name, index):
         print("Adding tsgroup")
-        view = TsGroupView(tsgroup)
+        view = TsGroupQDockWidget(tsgroup)
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, view)
 
+        dict_sync_funcs = {"pan":_match_pan_on_x_axis,
+            "zoom":_match_zoom_on_x_axis,
+            "zoom_to_point":_match_zoom_on_x_axis}
+
+        # # Instantiate the controler
+        ctrl = PynaVizController(
+            camera=view._camera,
+            register_events=view._renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs
+        )
+
+        self._controllers[index] = ctrl
+        self._renderers[index] = view._renderer
+        self._ctrl_group.add(ctrl, view._renderer, index)
+
         self.views[name] = view
+
+
         return
 
-    def add_tsd_view(self, tsd, name):
+    def add_tsd_view(self, tsd, name, index):
         print("Adding tsd")
-        view = TsdView(tsd)
+        view = TsdQDockWidget(tsd)
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, view)
-        # view.show()
-        # view.plot()
+
+        dict_sync_funcs = {"pan":_match_pan_on_x_axis,
+            "zoom":_match_zoom_on_x_axis,
+            "zoom_to_point":_match_zoom_on_x_axis}
+
+        # # Instantiate the controler
+        ctrl = PynaVizController(
+            camera=view._camera,
+            register_events=view._renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs
+        )
+
+        self._controllers[index] = ctrl
+        self._renderers[index] = view._renderer
+        self._ctrl_group.add(ctrl, view._renderer, index)
 
         self.views[name] = view
+
+
         return
 
     # def add_tsdframe_view(self, tsdframe, name):

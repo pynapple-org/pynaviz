@@ -35,8 +35,9 @@ class ControllerGroup:
         viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
         viewport.renderer.add_event_handler(self.sync_controllers, "sync")
 
-    def add(self, controller):
-        pass
+    def add(self, controller, renderer, controller_id):
+        self._controller_group[controller_id] = controller
+        self._add_update_handler(renderer)
 
     def remove(self, controller_id):
         pass
@@ -50,6 +51,7 @@ class ControllerGroup:
 
 
 class PynaVizController(PanZoomController):
+
     def __init__(
         self,
         camera: Optional[Camera] = None,
