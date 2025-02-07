@@ -87,6 +87,7 @@ class TsGroupQDockWidget(QDockWidget):
         super().__init__("TsGroup")
 
         self.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
+        self.setMinimumSize(200, 200)
 
         tsd = tsgroup.to_tsd()
 
@@ -98,21 +99,21 @@ class TsGroupQDockWidget(QDockWidget):
         self._renderer = gfx.WgpuRenderer(self._canvas)
         self._scene = gfx.Scene()
 
-        background = gfx.Background.from_color("#ddd")
+        # background = gfx.Background.from_color("#ddd")
 
-        self._grid = gfx.Grid(
-            None,
-            gfx.GridMaterial(
-                major_step=10,
-                minor_step=1,
-                thickness_space="screen",
-                major_thickness=2,
-                minor_thickness=0.5,
-                infinite=True,
-            ),
-            orientation="xy",
-        )
-        self._grid.local.z = -1001
+        # self._grid = gfx.Grid(
+        #     None,
+        #     gfx.GridMaterial(
+        #         major_step=10,
+        #         minor_step=1,
+        #         thickness_space="screen",
+        #         major_thickness=0,
+        #         minor_thickness=0,
+        #         infinite=True,
+        #     ),
+        #     orientation="xy",
+        # )
+        # self._grid.local.z = -1001
 
         self.rulerx = gfx.Ruler(tick_side="right")
         self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
@@ -122,7 +123,7 @@ class TsGroupQDockWidget(QDockWidget):
             gfx.PointsMaterial(size=5, color="#066", opacity=0.5),
         )
 
-        self._scene.add(background, self._grid, self.rulerx, self.rulery, points)
+        self._scene.add(self.rulerx, self.rulery, points)
 
         self._camera = gfx.OrthographicCamera(maintain_aspect=False)
         self._camera.show_rect(-100, 1100, -5, 5)
@@ -169,9 +170,9 @@ class TsGroupQDockWidget(QDockWidget):
         self.rulery.start_value = self.rulery.start_pos[1]
         statsy = self.rulery.update(self._camera, self._canvas.get_logical_size())
 
-        major_step_x, major_step_y = statsx["tick_step"], statsy["tick_step"]
-        self._grid.material.major_step = major_step_x, major_step_y
-        self._grid.material.minor_step = 0.2 * major_step_x, 0.2 * major_step_y
+        # major_step_x, major_step_y = statsx["tick_step"], statsy["tick_step"]
+        # self._grid.material.major_step = major_step_x, major_step_y
+        # self._grid.material.minor_step = 0.2 * major_step_x, 0.2 * major_step_y
 
         # print(statsx)
         self._renderer.render(self._scene, self._camera)
@@ -226,7 +227,7 @@ class TsdQDockWidget(QDockWidget):
         super().__init__("Tsd")
 
         self.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
-        # self.setMinimumSize(QSize(200))
+        self.setMinimumSize(200, 200)
 
         positions = np.stack((tsd.t, tsd.d, np.zeros_like(tsd))).T
         positions = positions.astype('float32')
@@ -236,21 +237,21 @@ class TsdQDockWidget(QDockWidget):
         self._renderer = gfx.WgpuRenderer(self._canvas)
         self._scene = gfx.Scene()
 
-        background = gfx.Background.from_color("#ddd")
+        # background = gfx.Background.from_color("#ddd")
 
-        self._grid = gfx.Grid(
-            None,
-            gfx.GridMaterial(
-                major_step=1,
-                minor_step=0,
-                thickness_space="screen",
-                major_thickness=2,
-                minor_thickness=0.5,
-                infinite=True,
-            ),
-            orientation="xy",
-        )
-        self._grid.local.z = -1001
+        # self._grid = gfx.Grid(
+        #     None,
+        #     gfx.GridMaterial(
+        #         major_step=1,
+        #         minor_step=0,
+        #         thickness_space="screen",
+        #         major_thickness=2,
+        #         minor_thickness=0.5,
+        #         infinite=True,
+        #     ),
+        #     orientation="xy",
+        # )
+        # self._grid.local.z = -1001
 
         self.rulerx = gfx.Ruler(tick_side="right")
         self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
@@ -260,7 +261,7 @@ class TsdQDockWidget(QDockWidget):
             gfx.LineMaterial(thickness=4.0, color="#aaf"),
         )
 
-        self._scene.add(background, self._grid, self.rulerx, self.rulery, line)
+        self._scene.add(self.rulerx, self.rulery, line)
 
         self._camera = gfx.OrthographicCamera(maintain_aspect=False)
         self._camera.show_rect(-100, 1100, -5, 5)
@@ -307,9 +308,9 @@ class TsdQDockWidget(QDockWidget):
         self.rulery.start_value = self.rulery.start_pos[1]
         statsy = self.rulery.update(self._camera, self._canvas.get_logical_size())
 
-        major_step_x, major_step_y = statsx["tick_step"], statsy["tick_step"]
-        self._grid.material.major_step = major_step_x, major_step_y
-        self._grid.material.minor_step = 0.2 * major_step_x, 0.2 * major_step_y
+        # major_step_x, major_step_y = statsx["tick_step"], statsy["tick_step"]
+        # self._grid.material.major_step = major_step_x, major_step_y
+        # self._grid.material.minor_step = 0.2 * major_step_x, 0.2 * major_step_y
 
         # print(statsx)
         self._renderer.render(self._scene, self._camera)
