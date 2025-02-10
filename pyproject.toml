@@ -1,0 +1,115 @@
+[build-system]
+requires      = ["setuptools>=61.0.0", "setuptools-scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "pynaviz"
+version = "0.0.1"
+authors = [{name = "pynaviz authors"}]
+description = "Life made easier."
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["neuroscience", "visualization", "pynapple"]
+license = { file = "LICENSE" }
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10"
+]
+
+# Define dependencies for the project
+dependencies = [    
+    'fastplotlib',
+    'pynapple',
+]
+
+
+# Configure package discovery for setuptools
+[tool.setuptools.packages.find]
+where = ["src"]             # The directory where package modules are located
+include = ["pynaviz"]       # The specific package(s) to include in the distribution
+
+
+# Define optional dependencies for the project
+[project.optional-dependencies]
+dev = [
+    "pip-tools",                    # Dependency management
+    "pytest",                       # Testing framework
+    "coverage",                     # Test coverage measurement
+    "pytest-cov",                   # Test coverage plugin for pytest
+    'matplotlib>=3.7',              # Plotting library
+    "nox",
+    "ruff",
+    "isort"
+]
+docs = [
+    "mkdocs",                       # Documentation generator
+    "mkdocstrings[python]",         # Python-specific plugin for mkdocs
+    "mkdocs-section-index",         # Plugin for generating a section index in mkdocs
+    "mkdocs-gen-files",             # Plugin for generating additional files in mkdocs
+    "mkdocs-literate-nav>=0.6.1",   # Plugin for literate-style navigation in mkdocs
+    "mkdocs-gallery",               # Plugin for adding image galleries to mkdocs
+    "mkdocs-material",              # Material theme for mkdocs
+    "mkdocs-autorefs>=0.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=pynaviz"
+
+
+[tool.ruff]
+line-length = 99
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".github",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "tests",
+    "examples",
+    "docs"
+]
+
+
+[tool.ruff.lint]
+# Add the `line-too-long` rule to the enforced rule set. By default, Ruff omits rules that
+# overlap with the use of a formatter, like Black, but we can override this behavior by
+# explicitly adding the rule.
+extend-select = ["F", "W", "B", "I"]
+ignore = ["E731"]
+ignore-init-module-imports = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.coverage.report] # Numba compiled functions
+exclude_also = [
+  
+]
