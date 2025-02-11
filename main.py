@@ -22,4 +22,6 @@ tsdframe = nap.TsdFrame(
     t=np.arange(1000),
     d=np.random.randn(1000, 10))
 
-scope(globals())
+viz.PlotTsd(tsd1)
+
+# scope(globals())
