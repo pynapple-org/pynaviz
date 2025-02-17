@@ -10,8 +10,8 @@ class TimeStore(StoreModel):
     target = "time"
 
     def __init__(
-            self,
-            time: float | int = 0,
+        self,
+        time: float | int = 0,
     ):
         """
         TimeStore for synchronizes components of a visual in the time axis.
@@ -47,15 +47,7 @@ class TimeStore(StoreModel):
         # update time
         self._time = time
         # update store
-        self.update_store(
-                ev=FeatureEvent(
-                    type="",
-                    info={
-                        "value": self.time
-                    }
-                )
-
-        )
+        self.update_store(ev=FeatureEvent(type="", info={"value": self.time}))
 
     def subscribe(self, item: StoreModelItem):
         """Add an item to the time store."""

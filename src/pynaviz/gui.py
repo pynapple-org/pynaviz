@@ -1,23 +1,30 @@
 import sys
 import pynapple as nap
-import numpy as np
-import random
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QDockWidget, QTextEdit, QPushButton, QWidget, QVBoxLayout,
-    QListWidget, QHBoxLayout, QLabel
+    QApplication,
+    QMainWindow,
+    QDockWidget,
+    QWidget,
+    QVBoxLayout,
+    QListWidget,
+    QHBoxLayout,
+    QLabel,
 )
 from PyQt6.QtCore import Qt, QSize
 from collections import defaultdict
 
-from wgpu.gui.qt import WgpuCanvas
-import pygfx as gfx
-from pylinalg import vec_transform, vec_unproject
+from .widget_plot import (
+    TsdWidget,
+    TsdFrameWidget,
+    TsdTensorWidget,
+    TsGroupWidget,
+    TsWidget,
+)
+from .controller import ControllerGroup
 
-from .controller import ControllerGroup, PynaVizController
-from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
-DOCK_TITLE_STYLESHEET = '''
+DOCK_TITLE_STYLESHEET = """
     * {
         padding: 0;
         margin: 0;
@@ -51,21 +58,8 @@ DOCK_TITLE_STYLESHEET = '''
     QPushButton:checked {
         background: #6c717a;
     }
-'''
-DOCK_STATUS_STYLESHEET = '''
-    * {
-        padding: 0;
-        margin: 0;
-        border: 0;
-        background: #272822;
-        color: white;
-    }
-
-    QLabel {
-        padding: 3px;
-    }
-'''
-DOCK_LIST_STYLESHEET = '''
+"""
+DOCK_LIST_STYLESHEET = """
     * {
         border : 2px solid black;
         background : #272822;
@@ -78,435 +72,86 @@ DOCK_LIST_STYLESHEET = '''
         background-color : #272822;
 
     }
-'''
+"""
 
 
-class TsGroupQDockWidget(QDockWidget):
+class ListDock(QDockWidget):
 
-    def __init__(self, tsgroup):
-        super().__init__("TsGroup")
-
-        self.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
-        self.setMinimumSize(200, 200)
-
-        tsd = tsgroup.to_tsd()
-
-        positions = np.stack((tsd.t, tsd.d, np.zeros_like(tsd))).T
-        positions = positions.astype('float32')
-
-        # # Create canvas, renderer and a scene object
-        self._canvas = WgpuCanvas(parent=self)
-        self._renderer = gfx.WgpuRenderer(self._canvas)
-        self._scene = gfx.Scene()
-
-        # background = gfx.Background.from_color("#ddd")
-
-        # self._grid = gfx.Grid(
-        #     None,
-        #     gfx.GridMaterial(
-        #         major_step=10,
-        #         minor_step=1,
-        #         thickness_space="screen",
-        #         major_thickness=0,
-        #         minor_thickness=0,
-        #         infinite=True,
-        #     ),
-        #     orientation="xy",
-        # )
-        # self._grid.local.z = -1001
-
-        self.rulerx = gfx.Ruler(tick_side="right")
-        self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
-
-        points = gfx.Points(
-            gfx.Geometry(positions=positions),
-            gfx.PointsMaterial(size=5, color="#066", opacity=0.5),
-        )
-
-        self._scene.add(self.rulerx, self.rulery, points)
-
-        self._camera = gfx.OrthographicCamera(maintain_aspect=False)
-        self._camera.show_rect(-100, 1100, -5, 5)
-
-        self._controller = gfx.PanZoomController(self._camera, register_events=self._renderer)
-
-        self.setWidget(self._canvas)
-
-        # # Hook up the animate callback
-        self._canvas.request_draw(self.animate)
-
-
-    def map_screen_to_world(self, pos, viewport_size):
-        # first convert position to NDC
-        x = pos[0] / viewport_size[0] * 2 - 1
-        y = -(pos[1] / viewport_size[1] * 2 - 1)
-        pos_ndc = (x, y, 0)
-
-        pos_ndc += vec_transform(self._camera.world.position, self._camera.camera_matrix)
-        # unproject to world space
-        pos_world = vec_unproject(pos_ndc[:2], self._camera.camera_matrix)
-
-        return pos_world
-
-    def animate(self):
-        # get range of screen space
-        xmin, ymin = 0, self._renderer.logical_size[1]
-        xmax, ymax = self._renderer.logical_size[0], 0
-
-        world_xmin, world_ymin, _ = self.map_screen_to_world((xmin, ymin), self._renderer.logical_size)
-        world_xmax, world_ymax, _ = self.map_screen_to_world((xmax, ymax), self._renderer.logical_size)
-
-        # set start and end positions of rulers
-        self.rulerx.start_pos = world_xmin, 0, -1000
-        self.rulerx.end_pos = world_xmax, 0, -1000
-
-        self.rulerx.start_value = self.rulerx.start_pos[0]
-
-        statsx = self.rulerx.update(self._camera, self._canvas.get_logical_size())
-
-        self.rulery.start_pos = 0, world_ymin, -1000
-        self.rulery.end_pos = 0, world_ymax, -1000
-
-        self.rulery.start_value = self.rulery.start_pos[1]
-        statsy = self.rulery.update(self._camera, self._canvas.get_logical_size())
-
-        # major_step_x, major_step_y = statsx["tick_step"], statsy["tick_step"]
-        # self._grid.material.major_step = major_step_x, major_step_y
-        # self._grid.material.minor_step = 0.2 * major_step_x, 0.2 * major_step_y
-
-        # print(statsx)
-        self._renderer.render(self._scene, self._camera)
-
-    def _create_title_bar(self):
-        """Create the title bar."""
-        self._title_bar = QWidget(self)
-
-        self._layout = QHBoxLayout(self._title_bar)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(0)
-
-        self._title_bar.setStyleSheet(DOCK_TITLE_STYLESHEET)
-
-        # Left part of the bar.
-        # ---------------------
-
-        # Widget name.
-        label = QLabel(self.windowTitle())
-        self._layout.addWidget(label)
-
-        # Space.
-        # ------
-        self._layout.addStretch(1)
-
-        # Layout margin.
-        self._title_bar.setLayout(self._layout)
-        self.setTitleBarWidget(self._title_bar)
-
-    def _create_status_bar(self):
-        # Dock has requested widget and status bar.
-        widget_container = QWidget(self)
-        widget_layout = QVBoxLayout(widget_container)
-        widget_layout.setContentsMargins(0, 0, 0, 0)
-        widget_layout.setSpacing(0)
-
-        widget_layout.addWidget(self.listWidget, 100)
-
-        # Widget status text.
-        self._status = QLabel('')
-        self._status.setMaximumHeight(30)
-        self._status.setStyleSheet(DOCK_STATUS_STYLESHEET)
-        widget_layout.addWidget(self._status, 1)
-
-        widget_container.setLayout(widget_layout)
-        self.setWidget(widget_container)
-
-
-class TsdQDockWidget(QDockWidget):
-
-    def __init__(self, tsd):
-        super().__init__("Tsd")
-
-        self.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
-        self.setMinimumSize(200, 200)
-
-        positions = np.stack((tsd.t, tsd.d, np.zeros_like(tsd))).T
-        positions = positions.astype('float32')
-
-        # # Create canvas, renderer and a scene object
-        self._canvas = WgpuCanvas(parent=self)
-        self._renderer = gfx.WgpuRenderer(self._canvas)
-        self._scene = gfx.Scene()
-
-        # background = gfx.Background.from_color("#ddd")
-
-        # self._grid = gfx.Grid(
-        #     None,
-        #     gfx.GridMaterial(
-        #         major_step=1,
-        #         minor_step=0,
-        #         thickness_space="screen",
-        #         major_thickness=2,
-        #         minor_thickness=0.5,
-        #         infinite=True,
-        #     ),
-        #     orientation="xy",
-        # )
-        # self._grid.local.z = -1001
-
-        self.rulerx = gfx.Ruler(tick_side="right")
-        self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
-
-        line = gfx.Line(
-            gfx.Geometry(positions=positions),
-            gfx.LineMaterial(thickness=4.0, color="#aaf"),
-        )
-
-        self._scene.add(self.rulerx, self.rulery, line)
-
-        self._camera = gfx.OrthographicCamera(maintain_aspect=False)
-        self._camera.show_rect(-100, 1100, -5, 5)
-
-        self._controller = gfx.PanZoomController(self._camera, register_events=self._renderer)
-
-        self.setWidget(self._canvas)
-
-        # # Hook up the animate callback
-        self._canvas.request_draw(self.animate)
-
-    def map_screen_to_world(self, pos, viewport_size):
-        # first convert position to NDC
-        x = pos[0] / viewport_size[0] * 2 - 1
-        y = -(pos[1] / viewport_size[1] * 2 - 1)
-        pos_ndc = (x, y, 0)
-
-        pos_ndc += vec_transform(self._camera.world.position, self._camera.camera_matrix)
-        # unproject to world space
-        pos_world = vec_unproject(pos_ndc[:2], self._camera.camera_matrix)
-
-        return pos_world
-
-    def animate(self):
-        print(self._renderer.logical_size)
-        # get range of screen space
-        xmin, ymin = 0, self._renderer.logical_size[1]
-        xmax, ymax = self._renderer.logical_size[0], 0
-
-        world_xmin, world_ymin, _ = self.map_screen_to_world((xmin, ymin), self._renderer.logical_size)
-        world_xmax, world_ymax, _ = self.map_screen_to_world((xmax, ymax), self._renderer.logical_size)
-
-        # set start and end positions of rulers
-        self.rulerx.start_pos = world_xmin, 0, -1000
-        self.rulerx.end_pos = world_xmax, 0, -1000
-
-        self.rulerx.start_value = self.rulerx.start_pos[0]
-
-        statsx = self.rulerx.update(self._camera, self._canvas.get_logical_size())
-
-        self.rulery.start_pos = 0, world_ymin, -1000
-        self.rulery.end_pos = 0, world_ymax, -1000
-
-        self.rulery.start_value = self.rulery.start_pos[1]
-        statsy = self.rulery.update(self._camera, self._canvas.get_logical_size())
-
-        # major_step_x, major_step_y = statsx["tick_step"], statsy["tick_step"]
-        # self._grid.material.major_step = major_step_x, major_step_y
-        # self._grid.material.minor_step = 0.2 * major_step_x, 0.2 * major_step_y
-
-        # print(statsx)
-        self._renderer.render(self._scene, self._camera)
-
-    def _create_title_bar(self):
-        """Create the title bar."""
-        self._title_bar = QWidget(self)
-
-        self._layout = QHBoxLayout(self._title_bar)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(0)
-
-        self._title_bar.setStyleSheet(DOCK_TITLE_STYLESHEET)
-
-        # Left part of the bar.
-        # ---------------------
-
-        # Widget name.
-        label = QLabel(self.windowTitle())
-        self._layout.addWidget(label)
-
-        # Space.
-        # ------
-        self._layout.addStretch(1)
-
-        # Layout margin.
-        self._title_bar.setLayout(self._layout)
-        self.setTitleBarWidget(self._title_bar)
-
-    def _create_status_bar(self):
-        # Dock has requested widget and status bar.
-        widget_container = QWidget(self)
-        widget_layout = QVBoxLayout(widget_container)
-        widget_layout.setContentsMargins(0, 0, 0, 0)
-        widget_layout.setSpacing(0)
-
-        widget_layout.addWidget(self.listWidget, 100)
-
-        # Widget status text.
-        self._status = QLabel('')
-        self._status.setMaximumHeight(30)
-        self._status.setStyleSheet(DOCK_STATUS_STYLESHEET)
-        widget_layout.addWidget(self._status, 1)
-
-        widget_container.setLayout(widget_layout)
-        self.setWidget(widget_container)
-
-
-class LeftDock(QDockWidget):
-
-    def __init__(self, pynavar, gui, *args, **kwargs):
-        super(LeftDock, self).__init__(*args, **kwargs)
+    def __init__(self, pynavar, gui):
+        super(ListDock, self).__init__()
         self.pynavar = pynavar
         self.gui = gui
 
-        self.setObjectName('Variables')
-        self.setWindowTitle('Variables')
-        #self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
+        self.setObjectName("Variables")
+        self.setWindowTitle("Variables")
         self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
 
         self.listWidget = QListWidget()
         for k in pynavar.keys():
-            if k != 'data':
+            if k != "data":
                 self.listWidget.addItem(k)
 
-        self.listWidget.itemDoubleClicked.connect(self.select_view)
+        self.listWidget.itemDoubleClicked.connect(self.add_dock_widget)
         self.listWidget.setStyleSheet(DOCK_LIST_STYLESHEET)
         self.setWidget(self.listWidget)
         self.setFixedWidth(self.listWidget.sizeHintForColumn(0) + 50)
 
-        self.gui.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self, Qt.Orientation.Horizontal)
+        self.gui.addDockWidget(
+            Qt.DockWidgetArea.LeftDockWidgetArea, self, Qt.Orientation.Horizontal
+        )
 
         self._create_title_bar()
-        self._create_status_bar()
 
         # Adding controller group
-        self._ctrl_group = ControllerGroup()
-        self._controllers = {}
-        self._renderers = {}
+        self.ctrl_group = ControllerGroup()
+        self.controllers = {}
+        self.renderers = {}
         self.views = {}
         self._n_dock_open = 0
 
-
-    def select_view(self, item):
+    def add_dock_widget(self, item):
         var = self.pynavar[item.text()]
 
-        if isinstance(var, nap.TsGroup):
-            self.add_tsgroup_view(var, item.text(), self._n_dock_open)
-        elif isinstance(var, nap.Tsd):
-            self.add_tsd_view(var, item.text(), self._n_dock_open)
-        elif isinstance(var, nap.TsdFrame):
-            self.add_tsdframe_view(var, item.text(), self._n_dock_open)
+        index = self._n_dock_open
 
+        # Getting the pynaviz widget class
+        if isinstance(var, nap.TsGroup):
+            widget = TsGroupWidget(var, index=index)
+        elif isinstance(var, nap.Tsd):
+            widget = TsdWidget(var, index=index)
+        elif isinstance(var, nap.TsdFrame):
+            widget = TsdFrameWidget(var, index=index)
+        elif isinstance(var, nap.TsdTensor):
+            widget = TsdTensorWidget(var, index=index)
+        elif isinstance(var, nap.Ts):
+            widget = TsWidget(var, index=index)
+
+        # Instantiating the dock widget
+        dock = QDockWidget()
+        dock.setWidget(widget.plot.canvas)
+
+        # Adding the dock widget to the GUI window.
+        self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+
+        # Adding controller and render
+        self.controllers[index] = widget.plot.controller
+        self.renderers[index] = widget.plot.renderer
+        self.ctrl_group.add(widget.plot.controller, widget.plot.renderer, index)
         self._n_dock_open += 1
         return
-
-    def add_tsgroup_view(self, tsgroup, name, index):
-        print("Adding tsgroup")
-        view = TsGroupQDockWidget(tsgroup)
-        self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, view)
-
-        dict_sync_funcs = {"pan":_match_pan_on_x_axis,
-            "zoom":_match_zoom_on_x_axis,
-            "zoom_to_point":_match_zoom_on_x_axis}
-
-        # # Instantiate the controler
-        ctrl = PynaVizController(
-            camera=view._camera,
-            register_events=view._renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs
-        )
-
-        self._controllers[index] = ctrl
-        self._renderers[index] = view._renderer
-        self._ctrl_group.add(ctrl, view._renderer, index)
-
-        self.views[name] = view
-
-
-        return
-
-    def add_tsd_view(self, tsd, name, index):
-        print("Adding tsd")
-        view = TsdQDockWidget(tsd)
-        self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, view)
-
-        dict_sync_funcs = {"pan":_match_pan_on_x_axis,
-            "zoom":_match_zoom_on_x_axis,
-            "zoom_to_point":_match_zoom_on_x_axis}
-
-        # # Instantiate the controler
-        ctrl = PynaVizController(
-            camera=view._camera,
-            register_events=view._renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs
-        )
-
-        self._controllers[index] = ctrl
-        self._renderers[index] = view._renderer
-        self._ctrl_group.add(ctrl, view._renderer, index)
-
-        self.views[name] = view
-
-
-        return
-
-    # def add_tsdframe_view(self, tsdframe, name):
-    #     print("TODO")
-    #     return
 
     def _create_title_bar(self):
         """Create the title bar."""
         self._title_bar = QWidget(self)
-
         self._layout = QHBoxLayout(self._title_bar)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(0)
-
         self._title_bar.setStyleSheet(DOCK_TITLE_STYLESHEET)
-
-        # Left part of the bar.
-        # ---------------------
-
-        # Widget name.
         label = QLabel(self.windowTitle())
         self._layout.addWidget(label)
-
-        # Space.
-        # ------
         self._layout.addStretch(1)
-
-        # Layout margin.
         self._title_bar.setLayout(self._layout)
         self.setTitleBarWidget(self._title_bar)
-
-    def _create_status_bar(self):
-        # Dock has requested widget and status bar.
-        widget_container = QWidget(self)
-        widget_layout = QVBoxLayout(widget_container)
-        widget_layout.setContentsMargins(0, 0, 0, 0)
-        widget_layout.setSpacing(0)
-
-        widget_layout.addWidget(self.listWidget, 100)
-
-        # Widget status text.
-        self._status = QLabel('')
-        self._status.setMaximumHeight(30)
-        self._status.setStyleSheet(DOCK_STATUS_STYLESHEET)
-        widget_layout.addWidget(self._status, 1)
-
-        widget_container.setLayout(widget_layout)
-        self.setWidget(widget_container)
-
-
 
 
 class GUI(QMainWindow):
@@ -519,7 +164,7 @@ class GUI(QMainWindow):
 
         # self.setDockOptions(QMainWindow.AllowTabbedDocks | QMainWindow.AllowNestedDocks)
         # self.setAnimated(False)
-        self.name = 'Pynaviz'
+        self.name = "Pynaviz"
         self.setWindowTitle(self.name)
         self.setObjectName(self.name)
 
@@ -534,16 +179,17 @@ class GUI(QMainWindow):
 
         # Views,
         self._views = []
-        self._view_class_indices = defaultdict(int)  # Dictionary {view_name: next_usable_index}
-
+        self._view_class_indices = defaultdict(
+            int
+        )  # Dictionary {view_name: next_usable_index}
 
 
 def get_pynapple_variables(variables=None):
     tmp = variables.copy()
     pynavar = {}
     for k, v in tmp.items():
-        if hasattr(v, '__module__'):
-            if "pynapple" in v.__module__ and k[0] != '_':
+        if hasattr(v, "__module__"):
+            if "pynapple" in v.__module__ and k[0] != "_":
                 pynavar[k] = v
 
     return pynavar
@@ -553,8 +199,6 @@ def scope(variables):
 
     pynavar = get_pynapple_variables(variables)
 
-    # print(pynavar)
-
     global app
     app = QApplication.instance()
     if app is None:
@@ -562,18 +206,12 @@ def scope(variables):
 
     gui = GUI()
 
-    LeftDock(pynavar, gui)
+    ListDock(pynavar, gui)
 
     gui.show()
 
     app.exit(app.exec())
-    # sys.exit(app.exec())
 
     gui.close()
-    # app.quit()
-
-    # print("yo")
-
-    # gc.collect()
 
     return

@@ -1,7 +1,7 @@
 """
 Test script
 """
-import os, requests, tqdm, math
+#import os, requests, tqdm, math
 import pynapple as nap
 import numpy as np
 import pynapple as nap
@@ -17,11 +17,14 @@ tsg = nap.TsGroup({
         t=np.sort(np.random.uniform(0, 1000, 100*(i+1)))
     ) for i in range(10)
 })
-
 tsdframe = nap.TsdFrame(
     t=np.arange(1000),
     d=np.random.randn(1000, 10))
+tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
-viz.PlotTsd(tsd1)
+#viz.PlotTsd(tsd1)
+#viz.PlotTsdFrame(tsdframe)
+#viz.PlotTsGroup(tsg)
+# viz.PlotTsdTensor(tsdtensor)
 
-# scope(globals())
+scope(globals())

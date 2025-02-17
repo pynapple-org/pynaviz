@@ -94,7 +94,9 @@ class PynaVizController(PanZoomController):
                     )
             self._dict_sync_funcs = dict_sync_funcs
         else:
-            raise TypeError("When provided, `dict_sync_funcs` must be a dictionary of callables.")
+            raise TypeError(
+                "When provided, `dict_sync_funcs` must be a dictionary of callables."
+            )
 
     @property
     def controller_id(self):
@@ -145,7 +147,9 @@ class PynaVizController(PanZoomController):
 
     def _update_zoom(self, delta):
         super()._update_zoom(delta)
-        self._update_event(update_type="zoom", cam_state=self._get_camera_state(), delta=delta)
+        self._update_event(
+            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
+        )
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)

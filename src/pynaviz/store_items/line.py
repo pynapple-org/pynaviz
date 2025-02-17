@@ -7,9 +7,9 @@ from ._base_item import StoreModelItem
 
 class LineItem(StoreModelItem):
     def __init__(
-            self,
-            data: nap.Tsd | nap.TsdFrame,
-            time_interval: nap.IntervalSet = None,
+        self,
+        data: nap.Tsd | nap.TsdFrame,
+        time_interval: nap.IntervalSet = None,
     ):
         """
         A visual for single line or multiple line data.
@@ -22,8 +22,10 @@ class LineItem(StoreModelItem):
         """
         # check data
         if not isinstance(data, (nap.Tsd, nap.TsdFrame)):
-            raise ValueError(f"The data passed to create a line visual must be a pynapple Tsd object or pynapple "
-                             f"TsdFrame object. You have passed an object of type {type(data.__class__.__name__)}.")
+            raise ValueError(
+                f"The data passed to create a line visual must be a pynapple Tsd object or pynapple "
+                f"TsdFrame object. You have passed an object of type {type(data.__class__.__name__)}."
+            )
 
         super().__init__(data=data, time_interval=time_interval)
 
@@ -32,7 +34,10 @@ class LineItem(StoreModelItem):
             data = np.column_stack((self.data.t, self.data.d))
             self._graphic = fpl.LineGraphic(data=data)
         elif isinstance(data, nap.TsdFrame):
-            data = [np.column_stack((self.data.t, self.data.d.T[i])) for i in range(self.data.shape[1])]
+            data = [
+                np.column_stack((self.data.t, self.data.d.T[i]))
+                for i in range(self.data.shape[1])
+            ]
 
             self._graphic = fpl.LineCollection(data=data, thickness=0.5)
 
@@ -40,7 +45,6 @@ class LineItem(StoreModelItem):
                 offset = g.offset.copy()
                 offset[1] = i * 1800
                 g.offset = offset
-
 
             # if has attr set colors based on group
             if hasattr(data, "group"):

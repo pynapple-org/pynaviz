@@ -7,8 +7,8 @@ from ._base_item import StoreModelItem
 
 class ROIsItem(StoreModelItem):
     def __init__(
-            self,
-            data: nap.TsdTensor,
+        self,
+        data: nap.TsdTensor,
     ):
         """
         A visual for ROI data.
@@ -20,8 +20,10 @@ class ROIsItem(StoreModelItem):
         """
         # check data
         if not isinstance(data, nap.TsdTensor):
-            raise ValueError(f"The data passed to create an ROI visual must be a pynapple TsdTensor object "
-                             f"You have passed an object of type {type(data.__class__.__name__)}.")
+            raise ValueError(
+                f"The data passed to create an ROI visual must be a pynapple TsdTensor object "
+                f"You have passed an object of type {type(data.__class__.__name__)}."
+            )
         super().__init__(data=data)
 
         # try to make line collection of ROI
@@ -34,4 +36,3 @@ class ROIsItem(StoreModelItem):
         self.graphic.colors = "w"
         # update the selected
         self.graphic[index].colors = "magenta"
-

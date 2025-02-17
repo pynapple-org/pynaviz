@@ -6,11 +6,7 @@ from ._base_item import StoreModelItem
 
 
 class HeatmapItem(StoreModelItem):
-    def __init__(
-            self,
-            data: nap.TsdFrame,
-            time_interval: nap.IntervalSet
-    ):
+    def __init__(self, data: nap.TsdFrame, time_interval: nap.IntervalSet):
         """
         A visual for heatmap data.
 
@@ -21,8 +17,10 @@ class HeatmapItem(StoreModelItem):
         """
         # check data
         if not isinstance(data, nap.TsdFrame):
-            raise ValueError(f"The data passed to create a heatmap visual must be a pynapple TsdFrame object "
-                             f"You have passed an object of type {type(data.__class__.__name__)}.")
+            raise ValueError(
+                f"The data passed to create a heatmap visual must be a pynapple TsdFrame object "
+                f"You have passed an object of type {type(data.__class__.__name__)}."
+            )
         super().__init__(data=data, time_interval=time_interval)
 
         # try to make a heatmap from the data
@@ -48,7 +46,11 @@ class HeatmapItem(StoreModelItem):
         )
 
         # place selector above this graphic
-        self._time_selector.offset = self._time_selector.offset + (0.0, 0.0, self.graphic.offset[-1] + 1)
+        self._time_selector.offset = self._time_selector.offset + (
+            0.0,
+            0.0,
+            self.graphic.offset[-1] + 1,
+        )
 
         # create a linear selector for component
         size = self.graphic.data.value.shape[1]
@@ -67,7 +69,11 @@ class HeatmapItem(StoreModelItem):
             parent=self.graphic,
         )
 
-        self._component_selector.offset = self._component_selector.offset + (0.0, 0.0, self.graphic.offset[-1] + 1)
+        self._component_selector.offset = self._component_selector.offset + (
+            0.0,
+            0.0,
+            self.graphic.offset[-1] + 1,
+        )
 
     @property
     def time_selector(self) -> fpl.LinearSelector:
@@ -90,4 +96,3 @@ class HeatmapItem(StoreModelItem):
         if self.time_selector.selection == time:
             return
         self.time_selector.selection = time
-

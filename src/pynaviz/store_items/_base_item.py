@@ -16,10 +16,11 @@ class StoreModelItem:
     time_interval: nap.IntervalSet, default None
         Restricts the data displayed to the specified time interval.
     """
+
     def __init__(
-            self,
-            data: Any,
-            time_interval: nap.IntervalSet = None,
+        self,
+        data: Any,
+        time_interval: nap.IntervalSet = None,
     ):
         self._data = data
         self._time_interval = time_interval
@@ -53,5 +54,3 @@ class StoreModelItem:
     def _set_component(self, index: int):
         """Abstract method implemented in subclass StoreModelItems that have an index that can be set."""
         pass
-
-

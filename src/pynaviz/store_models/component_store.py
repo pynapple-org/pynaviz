@@ -4,12 +4,11 @@ from ..store_items import *
 
 # TODO: click events, would need to add to subplot renderer based on whether subplot has ROI visual or not
 
+
 class ComponentStore(StoreModel):
     target = "component"
 
-    def __init__(self,
-                 component_index: int = 0
-                 ):
+    def __init__(self, component_index: int = 0):
         """
         ComponentStore for selection of a given component in a visual.
 

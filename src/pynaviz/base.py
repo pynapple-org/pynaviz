@@ -41,7 +41,9 @@ class Base:
             )
 
             # instantiate fastplotlib
-            fig = fpl.Figure(cameras=camera, canvas=canvas, renderer=renderer, controllers=ctrl)
+            fig = fpl.Figure(
+                cameras=camera, canvas=canvas, renderer=renderer, controllers=ctrl
+            )
 
             tmp = np.vstack((obj.index.values, obj.values)).T
             tmp = tmp.astype(np.float32)

@@ -16,6 +16,7 @@ class StoreModel:
     target: str
         The axis that the store model is targeting (e.g. "time", "component")
     """
+
     target: str = None
 
     def __init__(self):
@@ -38,12 +39,16 @@ class StoreModel:
         """
         # item must be a StoreModelItem
         if not isinstance(item, StoreModelItem):
-            raise TypeError(f"Items subscribed to store must be of type `StoreModelItem`. You have passed an item of "
-                            f"type: {type(item)}")
+            raise TypeError(
+                f"Items subscribed to store must be of type `StoreModelItem`. You have passed an item of "
+                f"type: {type(item)}"
+            )
         # StoreModelItem must have function for updating time
         if not hasattr(item, f"_set_{self.target}"):
-            raise TypeError(f"Items subscribed to store must have a {self.target} attribute to be used when the store "
-                            f"is updated.")
+            raise TypeError(
+                f"Items subscribed to store must have a {self.target} attribute to be used when the store "
+                f"is updated."
+            )
         # add item to the store
         self.store.append(item)
 
@@ -57,12 +62,16 @@ class StoreModel:
             Item to be removed from the store.
         """
         if not isinstance(item, StoreModelItem):
-            raise TypeError(f"All items in the store are of type `StoreModelItem`. Must pass a `StoreModelItem` to "
-                            f"remove an item. You have passed an item of type {type(item)}")
+            raise TypeError(
+                f"All items in the store are of type `StoreModelItem`. Must pass a `StoreModelItem` to "
+                f"remove an item. You have passed an item of type {type(item)}"
+            )
         if item in self:
             self._store.remove(item)
         else:
-            raise ValueError(f"The item: {item} is not currently subscribed to the store.")
+            raise ValueError(
+                f"The item: {item} is not currently subscribed to the store."
+            )
 
     def update_store(self, ev):
         pass

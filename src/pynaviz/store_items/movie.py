@@ -6,11 +6,7 @@ from ._base_item import StoreModelItem
 
 
 class MovieItem(StoreModelItem):
-    def __init__(
-            self,
-            data: nap.TsdTensor,
-            time_interval: nap.IntervalSet
-    ):
+    def __init__(self, data: nap.TsdTensor, time_interval: nap.IntervalSet):
         """
         A visual for movie data.
 
@@ -21,8 +17,10 @@ class MovieItem(StoreModelItem):
         """
         # check data
         if not isinstance(data, nap.TsdTensor):
-            raise ValueError(f"The data passed to create a movie visual must be a pynapple TsdTensor object "
-                             f"You have passed an object of type {type(data.__class__.__name__)}.")
+            raise ValueError(
+                f"The data passed to create a movie visual must be a pynapple TsdTensor object "
+                f"You have passed an object of type {type(data.__class__.__name__)}."
+            )
         super().__init__(data=data, time_interval=time_interval)
 
         # parse data

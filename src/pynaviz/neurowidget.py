@@ -11,24 +11,18 @@ from .store_items import StoreModelItem
 
 
 class NeuroWidget:
-    _viz_types: List[str] = [
-        "line",
-        "heatmap",
-        "movie",
-        "rois",
-        "raster"
-    ]
+    _viz_types: List[str] = ["line", "heatmap", "movie", "rois", "raster"]
 
     def __init__(
-            self,
-            line: List[nap.Tsd | nap.TsdFrame] | nap.Tsd | nap.TsdFrame = None,
-            heatmap: List[nap.Tsd | nap.TsdFrame] | nap.TsdFrame | nap.Tsd = None,
-            movie: List[nap.Tsd | nap.TsdTensor] | nap.Tsd | nap.TsdTensor = None,
-            rois: List[nap.TsdTensor] | nap.TsdTensor = None,
-            raster: List[nap.TsGroup] | nap.TsGroup = None,
-            names: List[str] = None,
-            vertical_plots: bool = False,
-            time_interval: nap.IntervalSet = None
+        self,
+        line: List[nap.Tsd | nap.TsdFrame] | nap.Tsd | nap.TsdFrame = None,
+        heatmap: List[nap.Tsd | nap.TsdFrame] | nap.TsdFrame | nap.Tsd = None,
+        movie: List[nap.Tsd | nap.TsdTensor] | nap.Tsd | nap.TsdTensor = None,
+        rois: List[nap.TsdTensor] | nap.TsdTensor = None,
+        raster: List[nap.TsGroup] | nap.TsGroup = None,
+        names: List[str] = None,
+        vertical_plots: bool = False,
+        time_interval: nap.IntervalSet = None,
     ):
         """
         Creates an interactive visual from pynapple objects using fastplotlib.
@@ -71,8 +65,10 @@ class NeuroWidget:
 
         """
         if time_interval is not None and not isinstance(time_interval, nap.IntervalSet):
-            raise ValueError(f"The time interval must be a pynapple IntervalSet, you have passed an object of"
-                             f" type {type(time_interval)}")
+            raise ValueError(
+                f"The time interval must be a pynapple IntervalSet, you have passed an object of"
+                f" type {type(time_interval)}"
+            )
         self._time_interval = time_interval
 
         # time store
@@ -88,12 +84,19 @@ class NeuroWidget:
                 if isinstance(eval(viz_type), list):
                     for obj in eval(viz_type):
                         # generate visual based on viz type, pynapple object pairing
-                        visual = self._make_visual(visual_type=viz_type, data=obj, time_interval=self._time_interval)
+                        visual = self._make_visual(
+                            visual_type=viz_type,
+                            data=obj,
+                            time_interval=self._time_interval,
+                        )
                         self._visuals.append(visual)
                 else:
                     # generate visual based on viz type, pynapple object pairing
-                    visual = self._make_visual(visual_type=viz_type, data=eval(viz_type),
-                                               time_interval=self._time_interval)
+                    visual = self._make_visual(
+                        visual_type=viz_type,
+                        data=eval(viz_type),
+                        time_interval=self._time_interval,
+                    )
                     self._visuals.append(visual)
 
         # if vertical, stack subplots on top of one another
@@ -112,26 +115,24 @@ class NeuroWidget:
             if len(self.visuals) != len(names):
                 raise ValueError(
                     f"Each visual requires a unique name. There are {len(self.visuals)} visual and you have "
-                    f"given {len(names)} names.")
+                    f"given {len(names)} names."
+                )
             # check for unique names
             if len(set(self.names)) != len(self.names):
-                raise ValueError(
-                    f"Each visual requires a unique name."
-                )
+                raise ValueError(f"Each visual requires a unique name.")
 
             # if odd # of visuals
-            while len(self.names) < len(list(product(range(shape[0]), range(shape[1])))):
+            while len(self.names) < len(
+                list(product(range(shape[0]), range(shape[1])))
+            ):
                 self.names.append(None)
             # hacky way to get names in correct shape until #541 done
             self._names = list(np.array(names).reshape(shape))
 
-        self._figure = fpl.Figure(
-            shape=shape,
-            names=self.names
-        )
+        self._figure = fpl.Figure(shape=shape, names=self.names)
 
         # for visual in visual, add graphics to visual, subscribe to stores
-        for (viz, subplot) in zip(self.visuals, self.figure):
+        for viz, subplot in zip(self.visuals, self.figure):
             if isinstance(viz, RasterItem):
                 for scatter in viz.graphic:
                     subplot.add_graphic(scatter)
@@ -178,7 +179,11 @@ class NeuroWidget:
         return self._names
 
     @staticmethod
-    def _make_visual(visual_type: str, data: nap.TsdTensor | nap.TsdFrame | nap.Tsd, time_interval: nap.IntervalSet = None) -> StoreModelItem:
+    def _make_visual(
+        visual_type: str,
+        data: nap.TsdTensor | nap.TsdFrame | nap.Tsd,
+        time_interval: nap.IntervalSet = None,
+    ) -> StoreModelItem:
         """Returns a visual based on the specified type and data."""
         match visual_type:
             case "line":
@@ -210,7 +215,9 @@ class NeuroWidget:
             for __ in ixs:
                 if ix == __:
                     continue
-                self.figure[ix].controller.add_camera(self.figure[__].camera, include_state={"x", "width"})
+                self.figure[ix].controller.add_camera(
+                    self.figure[__].camera, include_state={"x", "width"}
+                )
 
     def show(self, sync_plots: bool = True):
         """Shows the visualization."""
