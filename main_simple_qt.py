@@ -21,5 +21,6 @@ app = QApplication([])
 viz.TsdWidget(tsd1).show()
 
 
+
 if __name__ == "__main__":
     app.exit(app.exec())

@@ -51,8 +51,8 @@ def map_screen_to_world(camera, pos, viewport_size):
 
 
 class _BasePlot(ABC):
-    def __init__(self, parent=None, index=0):
-        self.canvas = WgpuCanvas(parent=parent)
+    def __init__(self, index=0):
+        self.canvas = WgpuCanvas()
         self.renderer = gfx.WgpuRenderer(self.canvas)
         self.scene = gfx.Scene()
         self.rulerx = gfx.Ruler(tick_side="right")
@@ -100,8 +100,8 @@ class _BasePlot(ABC):
 
 
 class PlotTsd(_BasePlot):
-    def __init__(self, data: nap.Tsd, parent=None, index=0):
-        super().__init__(parent=parent, index=index)
+    def __init__(self, data: nap.Tsd, index=0):
+        super().__init__(index=index)
         self.data = data
 
         positions = np.stack((data.t, data.d, np.zeros_like(data))).T
@@ -116,8 +116,8 @@ class PlotTsd(_BasePlot):
 
 
 class PlotTsdFrame(_BasePlot):
-    def __init__(self, data: nap.TsdFrame, parent=None, index=0):
-        super().__init__(parent=parent, index=index)
+    def __init__(self, data: nap.TsdFrame, index=0):
+        super().__init__(index=index)
         self.data = data
         self.lines = []
 
@@ -135,8 +135,8 @@ class PlotTsdFrame(_BasePlot):
 
 
 class PlotTsGroup(_BasePlot):
-    def __init__(self, data: nap.TsGroup, parent=None, index=0):
-        super().__init__(parent=parent, index=index)
+    def __init__(self, data: nap.TsGroup, index=0):
+        super().__init__(index=index)
         self.data = data
         self.raster = []
 
@@ -160,8 +160,8 @@ class PlotTsGroup(_BasePlot):
 
 
 class PlotTsdTensor(_BasePlot):
-    def __init__(self, data: nap.TsdTensor, parent=None, index=0):
-        super().__init__(parent=parent, index=index)
+    def __init__(self, data: nap.TsdTensor, index=0):
+        super().__init__(index=index)
         self.data = data
 
         image = gfx.Image(
@@ -179,6 +179,6 @@ class PlotTsdTensor(_BasePlot):
 
 
 class PlotTs(_BasePlot):
-    def __init__(self, data: nap.Ts, parent=None, index=0):
-        super().__init__(parent=parent, index=index)
+    def __init__(self, data: nap.Ts, index=0):
+        super().__init__(index=index)
         self.data = data

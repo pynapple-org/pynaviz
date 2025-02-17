@@ -12,7 +12,6 @@ from PyQt6.QtWidgets import (
     QLabel,
 )
 from PyQt6.QtCore import Qt, QSize
-from collections import defaultdict
 
 from .widget_plot import (
     TsdWidget,
@@ -106,7 +105,6 @@ class ListDock(QDockWidget):
         self.ctrl_group = ControllerGroup()
         self.controllers = {}
         self.renderers = {}
-        self.views = {}
         self._n_dock_open = 0
 
     def add_dock_widget(self, item):
@@ -129,6 +127,7 @@ class ListDock(QDockWidget):
         # Instantiating the dock widget
         dock = QDockWidget()
         dock.setWidget(widget.plot.canvas)
+        dock.setMinimumSize(200, 150)
 
         # Adding the dock widget to the GUI window.
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
@@ -162,26 +161,13 @@ class GUI(QMainWindow):
             raise RuntimeError("A Qt application must be created.")
         super(GUI, self).__init__()
 
-        # self.setDockOptions(QMainWindow.AllowTabbedDocks | QMainWindow.AllowNestedDocks)
-        # self.setAnimated(False)
         self.name = "Pynaviz"
         self.setWindowTitle(self.name)
         self.setObjectName(self.name)
-
-        self.move(200, 200)
         self.resize(QSize(1200, 800))
 
         # Enable nested docking (so docks can be stacked)
         self.setDockNestingEnabled(True)
-
-        self.actions = []
-        self._menus = {}
-
-        # Views,
-        self._views = []
-        self._view_class_indices = defaultdict(
-            int
-        )  # Dictionary {view_name: next_usable_index}
 
 
 def get_pynapple_variables(variables=None):

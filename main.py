@@ -14,7 +14,7 @@ tsd3 = nap.Tsd(t=np.arange(1000), d=np.arange(1000))
 
 tsg = nap.TsGroup({
     i:nap.Ts(
-        t=np.sort(np.random.uniform(0, 1000, 100*(i+1)))
+        t=np.sort(np.random.uniform(0, 1000, 100*(  i+1)))
     ) for i in range(10)
 })
 tsdframe = nap.TsdFrame(
@@ -22,9 +22,5 @@ tsdframe = nap.TsdFrame(
     d=np.random.randn(1000, 10))
 tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
-#viz.PlotTsd(tsd1)
-#viz.PlotTsdFrame(tsdframe)
-#viz.PlotTsGroup(tsg)
-# viz.PlotTsdTensor(tsdtensor)
 
 scope(globals())
