@@ -59,7 +59,7 @@ class PynaVizController(PanZoomController):
         enabled=True,
         damping: int = 4,
         auto_update: bool = True,
-        register_events: Optional[Union[Viewport, Renderer]] = None,
+        renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
     ):
@@ -74,14 +74,14 @@ class PynaVizController(PanZoomController):
             enabled=enabled,
             damping=damping,
             auto_update=auto_update,
-            register_events=register_events,
+            register_events=renderer,
         )
         self.renderer_handle_event = None
         self._draw = lambda: True
 
-        if register_events:
-            self.renderer_handle_event = self._get_event_handle(register_events)
-            self._draw = lambda: self._request_draw(register_events)
+        if renderer:
+            self.renderer_handle_event = self._get_event_handle(renderer)
+            self._draw = lambda: self._request_draw(renderer)
 
         if dict_sync_funcs is None:
             self._dict_sync_funcs = dict()
@@ -109,22 +109,33 @@ class PynaVizController(PanZoomController):
         self._controller_id = value
 
     @staticmethod
-    def _get_event_handle(register_events: Union[Viewport, Renderer]) -> Callable:
+    def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
         """
         Set up the callback to update.
+
+        When initializing the custom controller, the method register_events
+        is called. It adds to the renderer an event handler by calling
+        viewport.renderer.add_event_handler of EventTarget.
+        This function grabs the function that loops through the callbacks in
+        renderer._event_handlers dictionary.
 
         :return:
         """
         # grab the viewport
-        viewport = Viewport.from_viewport_or_renderer(register_events)
+        viewport = Viewport.from_viewport_or_renderer(renderer)
         return viewport.renderer.handle_event
 
     def _request_draw(self, viewport):
+        print("_request_draw")
         if self.auto_update:
             viewport = Viewport.from_viewport_or_renderer(viewport)
             viewport.renderer.request_draw()
 
     def _update_event(self, update_type: str, *args, **kwargs):
+        """
+        The function called when moving the objects.
+        Passing a pygfx.Event object to the renderer handle_event function
+        """
         if self.renderer_handle_event:
             self.renderer_handle_event(
                 SyncEvent(
@@ -136,6 +147,11 @@ class PynaVizController(PanZoomController):
             )
 
     def _update_pan(self, delta, *, vecx, vecy):
+        print("Delta = ", delta)
+        print("vecx = ", vecx)
+        print("vecy = ", vecy)
+        print("\n")
+
         super()._update_pan(delta, vecx=vecx, vecy=vecy)
         self._update_event(
             update_type="pan",
@@ -148,7 +164,9 @@ class PynaVizController(PanZoomController):
     def _update_zoom(self, delta):
         super()._update_zoom(delta)
         self._update_event(
-            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
+            update_type="zoom",
+            cam_state=self._get_camera_state(),
+            delta=delta
         )
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):

@@ -42,11 +42,9 @@ def map_screen_to_world(camera, pos, viewport_size):
     x = pos[0] / viewport_size[0] * 2 - 1
     y = -(pos[1] / viewport_size[1] * 2 - 1)
     pos_ndc = (x, y, 0)
-
     pos_ndc += vec_transform(camera.world.position, camera.camera_matrix)
     # unproject to world space
     pos_world = vec_unproject(pos_ndc[:2], camera.camera_matrix)
-
     return pos_world
 
 
@@ -58,44 +56,43 @@ class _BasePlot(ABC):
         self.rulerx = gfx.Ruler(tick_side="right")
         self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
         self.camera = gfx.OrthographicCamera(maintain_aspect=False)
-        self.camera.show_rect(-100, 1100, -5, 5)
+        self.camera.show_rect(  # Uses world coordinates
+            left=0, right=100, top=-5, bottom=5
+        )
         self.controller = PynaVizController(
             camera=self.camera,
-            register_events=self.renderer,
+            renderer=self.renderer,
             controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,
+            dict_sync_funcs=dict_sync_funcs
         )
 
     def animate(self):
-        # get range of screen space
+        # get range of screen space in pixels
         xmin, ymin = 0, self.renderer.logical_size[1]
         xmax, ymax = self.renderer.logical_size[0], 0
 
+        # Given the camera position and the range of screen space, convert to world space.
+        # Get the bottom corner and top corner
         world_xmin, world_ymin, _ = map_screen_to_world(
-            self.camera, (xmin, ymin), self.renderer.logical_size
+            self.camera, pos=(xmin, ymin), viewport_size=self.renderer.logical_size
         )
         world_xmax, world_ymax, _ = map_screen_to_world(
-            self.camera, (xmax, ymax), self.renderer.logical_size
+            self.camera, pos=(xmax, ymax), viewport_size=self.renderer.logical_size
         )
 
-        # set start and end positions of rulers
+        # X axis
         self.rulerx.start_pos = world_xmin, 0, -1000
         self.rulerx.end_pos = world_xmax, 0, -1000
-
         self.rulerx.start_value = self.rulerx.start_pos[0]
+        self.rulerx.update(self.camera, self.canvas.get_logical_size())
 
-        statsx = self.rulerx.update(self.camera, self.canvas.get_logical_size())
-
+        # Y axis
         self.rulery.start_pos = 0, world_ymin, -1000
         self.rulery.end_pos = 0, world_ymax, -1000
-
         self.rulery.start_value = self.rulery.start_pos[1]
-        statsy = self.rulery.update(self.camera, self.canvas.get_logical_size())
-        # major_step_x, major_step_y = statsx["tick_step"], statsy["tick_step"]
-        # grid.material.major_step = major_step_x, major_step_y
-        # grid.material.minor_step = 0.2 * major_step_x, 0.2 * major_step_y
-        # print(statsx)
+        self.rulery.update(self.camera, self.canvas.get_logical_size())
 
+        # Ref axis
         self.renderer.render(self.scene, self.camera)
 
 
