@@ -49,15 +49,16 @@ def map_screen_to_world(camera, pos, viewport_size):
 
 
 class _BasePlot(ABC):
-    def __init__(self, index=0):
-        self.canvas = WgpuCanvas()
+    def __init__(self, index=0, start=0, end=100, parent=None):
+        self.canvas = WgpuCanvas(parent=parent)
         self.renderer = gfx.WgpuRenderer(self.canvas)
         self.scene = gfx.Scene()
         self.rulerx = gfx.Ruler(tick_side="right")
         self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
+        self.ruler_ref_time = self._get_ruler_ref_time(start=start, end=end)
         self.camera = gfx.OrthographicCamera(maintain_aspect=False)
         self.camera.show_rect(  # Uses world coordinates
-            left=0, right=100, top=-5, bottom=5
+            left=start, right=end, top=-5, bottom=5
         )
         self.controller = PynaVizController(
             camera=self.camera,
@@ -92,13 +93,27 @@ class _BasePlot(ABC):
         self.rulery.start_value = self.rulery.start_pos[1]
         self.rulery.update(self.camera, self.canvas.get_logical_size())
 
-        # Ref axis
+        # Center time Ref axis
+        self.ruler_ref_time.geometry.positions.data[:,0] = world_xmin+(world_xmax-world_xmin)/2
+        self.ruler_ref_time.geometry.positions.data[:,1] = np.array([world_ymin-10, world_ymax+10])
+        self.ruler_ref_time.geometry.positions.update_full()
+        
         self.renderer.render(self.scene, self.camera)
 
-
+    def _get_ruler_ref_time(self, start, end):
+        """set the center ruler between start and end
+        as a gfx.Line
+        """
+        c = start + (end-start)/2
+        positions = [[c, -5, 0], [c, 5, 0]]
+        return gfx.Line(
+            gfx.Geometry(positions=positions),
+            gfx.LineMaterial(thickness=1.0, color="#aaf"),
+            )
+        
 class PlotTsd(_BasePlot):
-    def __init__(self, data: nap.Tsd, index=0):
-        super().__init__(index=index)
+    def __init__(self, data: nap.Tsd, index=0, parent=None):
+        super().__init__(index=index, parent=parent)
         self.data = data
 
         positions = np.stack((data.t, data.d, np.zeros_like(data))).T
@@ -108,13 +123,13 @@ class PlotTsd(_BasePlot):
             gfx.Geometry(positions=positions),
             gfx.LineMaterial(thickness=4.0, color="#aaf"),
         )
-        self.scene.add(self.rulerx, self.rulery, self.line)
+        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, self.line)
         self.canvas.request_draw(self.animate)
 
 
 class PlotTsdFrame(_BasePlot):
-    def __init__(self, data: nap.TsdFrame, index=0):
-        super().__init__(index=index)
+    def __init__(self, data: nap.TsdFrame, index=0, parent=None):
+        super().__init__(index=index, parent=parent)
         self.data = data
         self.lines = []
 
@@ -132,8 +147,8 @@ class PlotTsdFrame(_BasePlot):
 
 
 class PlotTsGroup(_BasePlot):
-    def __init__(self, data: nap.TsGroup, index=0):
-        super().__init__(index=index)
+    def __init__(self, data: nap.TsGroup, index=0, parent=None):
+        super().__init__(index=index, parent=parent)
         self.data = data
         self.raster = []
 
@@ -157,8 +172,8 @@ class PlotTsGroup(_BasePlot):
 
 
 class PlotTsdTensor(_BasePlot):
-    def __init__(self, data: nap.TsdTensor, index=0):
-        super().__init__(index=index)
+    def __init__(self, data: nap.TsdTensor, index=0, parent=None):
+        super().__init__(index=index, parent=parent)
         self.data = data
 
         image = gfx.Image(
@@ -176,6 +191,6 @@ class PlotTsdTensor(_BasePlot):
 
 
 class PlotTs(_BasePlot):
-    def __init__(self, data: nap.Ts, index=0):
-        super().__init__(index=index)
+    def __init__(self, data: nap.Ts, index=0, parent=None):
+        super().__init__(index=index, parent=parent)
         self.data = data

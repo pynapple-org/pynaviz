@@ -114,15 +114,15 @@ class ListDock(QDockWidget):
 
         # Getting the pynaviz widget class
         if isinstance(var, nap.TsGroup):
-            widget = TsGroupWidget(var, index=index)
+            widget = TsGroupWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.Tsd):
-            widget = TsdWidget(var, index=index)
+            widget = TsdWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.TsdFrame):
-            widget = TsdFrameWidget(var, index=index)
+            widget = TsdFrameWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.TsdTensor):
-            widget = TsdTensorWidget(var, index=index)
+            widget = TsdTensorWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.Ts):
-            widget = TsWidget(var, index=index)
+            widget = TsWidget(var, index=index, set_parent=True)
 
         # Instantiating the dock widget
         dock = QDockWidget()
