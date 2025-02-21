@@ -10,6 +10,13 @@ from .events import SyncEvent
 
 
 class ControllerGroup:
+    """
+
+    Parameters
+    ----------
+    controllers_and_renderers: list of controllers and renderers. Can be empty.
+
+    """
     def __init__(self, *controllers_and_renderers):
         self._controller_group = dict()
         ids = [
@@ -44,6 +51,7 @@ class ControllerGroup:
 
     def sync_controllers(self, event):
         """Sync controllers according to their rule."""
+        print(event)
         for id_other, ctrl in self._controller_group.items():
             if event.controller_id == id_other:
                 continue
@@ -57,7 +65,7 @@ class PynaVizController(PanZoomController):
         camera: Optional[Camera] = None,
         *,
         enabled=True,
-        damping: int = 4,
+        damping: int = 0,
         auto_update: bool = True,
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,

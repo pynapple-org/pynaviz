@@ -108,7 +108,7 @@ class _BasePlot(ABC):
         positions = [[c, -5, 0], [c, 5, 0]]
         return gfx.Line(
             gfx.Geometry(positions=positions),
-            gfx.LineMaterial(thickness=1.0, color="#aaf"),
+            gfx.LineMaterial(thickness=0.5, color="#aaf"),
             )
         
 class PlotTsd(_BasePlot):

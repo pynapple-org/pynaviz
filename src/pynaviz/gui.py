@@ -103,8 +103,6 @@ class ListDock(QDockWidget):
 
         # Adding controller group
         self.ctrl_group = ControllerGroup()
-        self.controllers = {}
-        self.renderers = {}
         self._n_dock_open = 0
 
     def add_dock_widget(self, item):
@@ -132,9 +130,7 @@ class ListDock(QDockWidget):
         # Adding the dock widget to the GUI window.
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
-        # Adding controller and render
-        self.controllers[index] = widget.plot.controller
-        self.renderers[index] = widget.plot.renderer
+        # Adding controller and render to control group
         self.ctrl_group.add(widget.plot.controller, widget.plot.renderer, index)
         self._n_dock_open += 1
         return
