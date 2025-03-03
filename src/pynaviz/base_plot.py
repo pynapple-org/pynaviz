@@ -12,7 +12,7 @@ import pygfx as gfx
 from abc import ABC
 from pylinalg import vec_transform, vec_unproject
 import numpy as np
-from .controller import PynaVizController
+from .controller import SpanController, GetController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
 
@@ -49,22 +49,16 @@ def map_screen_to_world(camera, pos, viewport_size):
 
 
 class _BasePlot(ABC):
-    def __init__(self, index=0, start=0, end=100, parent=None):
+    def __init__(self, index=None, start=0, end=100, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
         self.renderer = gfx.WgpuRenderer(self.canvas)
         self.scene = gfx.Scene()
         self.rulerx = gfx.Ruler(tick_side="right")
         self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
         self.ruler_ref_time = self._get_ruler_ref_time(start=start, end=end)
-        self.camera = gfx.OrthographicCamera(maintain_aspect=False)
+        self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
         self.camera.show_rect(  # Uses world coordinates
             left=start, right=end, top=-5, bottom=5
-        )
-        self.controller = PynaVizController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs
         )
 
     def animate(self):
@@ -94,28 +88,42 @@ class _BasePlot(ABC):
         self.rulery.update(self.camera, self.canvas.get_logical_size())
 
         # Center time Ref axis
-        self.ruler_ref_time.geometry.positions.data[:,0] = world_xmin+(world_xmax-world_xmin)/2
-        self.ruler_ref_time.geometry.positions.data[:,1] = np.array([world_ymin-10, world_ymax+10])
+        self.ruler_ref_time.geometry.positions.data[:, 0] = (
+            world_xmin + (world_xmax - world_xmin) / 2
+        )
+        self.ruler_ref_time.geometry.positions.data[:, 1] = np.array(
+            [world_ymin - 10, world_ymax + 10]
+        )
         self.ruler_ref_time.geometry.positions.update_full()
-        
+
         self.renderer.render(self.scene, self.camera)
 
     def _get_ruler_ref_time(self, start, end):
         """set the center ruler between start and end
         as a gfx.Line
         """
-        c = start + (end-start)/2
+        c = start + (end - start) / 2
         positions = [[c, -5, 0], [c, 5, 0]]
         return gfx.Line(
             gfx.Geometry(positions=positions),
             gfx.LineMaterial(thickness=0.5, color="#aaf"),
-            )
-        
+        )
+
+
 class PlotTsd(_BasePlot):
-    def __init__(self, data: nap.Tsd, index=0, parent=None):
+    def __init__(self, data: nap.Tsd, index=None, parent=None):
         super().__init__(index=index, parent=parent)
         self.data = data
 
+        # Pynaviz specific controller
+        self.controller = SpanController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs,
+        )
+
+        # Passing the data
         positions = np.stack((data.t, data.d, np.zeros_like(data))).T
         positions = positions.astype("float32")
 
@@ -128,11 +136,19 @@ class PlotTsd(_BasePlot):
 
 
 class PlotTsdFrame(_BasePlot):
-    def __init__(self, data: nap.TsdFrame, index=0, parent=None):
+    def __init__(self, data: nap.TsdFrame, index=None, parent=None):
         super().__init__(index=index, parent=parent)
         self.data = data
-        self.lines = []
 
+        # Pynaviz specific controller
+        self.controller = SpanController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs,
+        )
+
+        self.lines = []
         for i in range(self.data.shape[1]):
             positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T
             positions = positions.astype("float32")
@@ -142,16 +158,24 @@ class PlotTsdFrame(_BasePlot):
                     gfx.LineMaterial(thickness=4.0, color=COLORS[i % len(COLORS)]),
                 )
             )
-        self.scene.add(self.rulerx, self.rulery, *self.lines)
+        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, *self.lines)
         self.canvas.request_draw(self.animate)
 
 
 class PlotTsGroup(_BasePlot):
-    def __init__(self, data: nap.TsGroup, index=0, parent=None):
+    def __init__(self, data: nap.TsGroup, index=None, parent=None):
         super().__init__(index=index, parent=parent)
         self.data = data
-        self.raster = []
 
+        # Pynaviz specific controller
+        self.controller = SpanController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs,
+        )
+
+        self.raster = []
         for i, n in enumerate(data.keys()):
             positions = np.stack(
                 (data[n].t, np.ones(len(data[n])) * i, np.zeros(len(data[n])))
@@ -172,25 +196,43 @@ class PlotTsGroup(_BasePlot):
 
 
 class PlotTsdTensor(_BasePlot):
-    def __init__(self, data: nap.TsdTensor, index=0, parent=None):
-        super().__init__(index=index, parent=parent)
+    def __init__(self, data: nap.TsdTensor, index=None, parent=None):
+        super().__init__(index=index, parent=parent, maintain_aspect=True)
         self.data = data
 
-        image = gfx.Image(
+        texture = gfx.Texture(self.data.values[0].astype("float32"), dim=2)
+        self.image = gfx.Image(
             gfx.Geometry(
-                grid=gfx.Texture(self.data.values[0].astype("float32"), dim=2)
+                grid=texture
             ),
             gfx.ImageBasicMaterial(clim=(0, 1)),
         )
-        self.scene.add(image)
-        self.camera = gfx.OrthographicCamera(self.data.shape[0], self.data.shape[1])
-        self.camera.show_object(self.scene, view_dir=(0, 0, -1))
-        self.camera.local.scale_y = -1
+        self.scene.add(self.image)
+        self.camera.show_object(self.scene)#, view_dir=(0, 0, -1))
 
-        self.canvas.request_draw(lambda: self.renderer.render(self.scene, self.camera))
+        # # Pynaviz specific controller
+        self.controller = GetController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            data=data,
+            texture=texture
+        )
+
+        # In the draw event, the draw function is called
+        # This assign the function draw_frame of WgpuCanvasBase
+        self.canvas.request_draw(draw_function=lambda: self.renderer.render(self.scene, self.camera))
 
 
 class PlotTs(_BasePlot):
-    def __init__(self, data: nap.Ts, index=0, parent=None):
+    def __init__(self, data: nap.Ts, index=None, parent=None):
         super().__init__(index=index, parent=parent)
         self.data = data
+
+        # Pynaviz specific controller
+        self.controller = SpanController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs,
+        )

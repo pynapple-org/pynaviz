@@ -1,7 +1,7 @@
 import numpy as np
 import pygfx
 from pygfx import controllers, cameras, renderers
-from pynaviz.controller import PynaVizController
+from pynaviz.controller import SpanController
 from pynaviz.synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from wgpu.gui.auto import WgpuCanvas
 import pytest
@@ -53,7 +53,7 @@ class TestPynaVizController:
         renderer = renderers.WgpuRenderer(canvas)
         try:
             with expectation:
-                ctrl = PynaVizController(camera, renderer=renderer, controller_id=ctrl_id)
+                ctrl = SpanController(camera, renderer=renderer, controller_id=ctrl_id)
                 assert ctrl.controller_id == ctrl_id
         finally:
             canvas.close()
@@ -74,7 +74,7 @@ class TestPynaVizController:
         renderer = renderers.WgpuRenderer(canvas)
         try:
             with expectation:
-                PynaVizController(camera, renderer=renderer, dict_sync_funcs=dict_sync)
+                SpanController(camera, renderer=renderer, dict_sync_funcs=dict_sync)
         finally:
             canvas.close()
 
@@ -83,7 +83,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = PynaVizController(camera, renderer=renderer, controller_id=None)
+            ctrl = SpanController(camera, renderer=renderer, controller_id=None)
             ctrl.controller_id = 1
             with pytest.raises(ValueError, match="Controller id can be set only once"):
                 ctrl.controller_id = 1
@@ -94,7 +94,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            func = PynaVizController._get_event_handle(renderer)
+            func = SpanController._get_event_handle(renderer)
             assert isinstance(func, Callable)
         finally:
             canvas.close()
@@ -105,7 +105,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = PynaVizController(camera, renderer=renderer, controller_id=None, auto_update=auto_update)
+            ctrl = SpanController(camera, renderer=renderer, controller_id=None, auto_update=auto_update)
             ctrl._request_draw(renderer)
         finally:
             canvas.close()
@@ -123,7 +123,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = PynaVizController(camera, renderer=renderer)
+            ctrl = SpanController(camera, renderer=renderer)
             state = ctrl._get_camera_state()
             ctrl._update_event(update_type=update_type, cam_state=state, **kwargs)
         finally:
@@ -134,7 +134,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = PynaVizController(camera, renderer=renderer)
+            ctrl = SpanController(camera, renderer=renderer)
             ctrl._update_zoom(delta=0.001)
         finally:
             canvas.close()
@@ -144,7 +144,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = PynaVizController(camera, renderer=renderer)
+            ctrl = SpanController(camera, renderer=renderer)
             ctrl._update_zoom_to_point(delta=0.001, screen_pos=(100, 200), rect=(1, 2, 300, 400))
         finally:
             canvas.close()
@@ -154,7 +154,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = PynaVizController(camera, renderer=renderer)
+            ctrl = SpanController(camera, renderer=renderer)
             ctrl._update_pan(delta=(0.001, 0.002), vecx=np.zeros((3,)), vecy=np.zeros((3,)))
         finally:
             canvas.close()
@@ -173,7 +173,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = PynaVizController(
+            ctrl = SpanController(
                 camera,
                 renderer=renderer,
                 dict_sync_funcs=update_dict)
@@ -196,7 +196,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = PynaVizController(
+            ctrl = SpanController(
                 camera,
                 renderer=renderer,
                 dict_sync_funcs=update_dict)
@@ -219,7 +219,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = PynaVizController(
+            ctrl = SpanController(
                 camera,
                 renderer=renderer,
                 dict_sync_funcs=update_dict)

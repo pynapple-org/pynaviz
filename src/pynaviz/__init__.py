@@ -1,5 +1,11 @@
 from .base_plot import PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup, PlotTs
-from .widget_plot import TsdWidget
+from .widget_plot import (
+    TsdWidget,
+    TsdFrameWidget,
+    TsdTensorWidget,
+    TsGroupWidget,
+    TsWidget,
+)
 from .gui import scope
 
 __version__ = "0.0.1"
