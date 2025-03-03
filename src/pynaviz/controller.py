@@ -33,11 +33,14 @@ class ControllerGroup:
 
     Parameters
     ----------
-    controllers_and_renderers: list of controllers and renderers. Can be empty.
+    controllers_and_renderers : list
+        controllers and renderers. Can be empty.
+    interval : tuple of float or int
+        The start and end of the epoch to show when initializing.
 
     """
 
-    def __init__(self, *controllers_and_renderers):
+    def __init__(self, *controllers_and_renderers, interval=(0, 10)):
         self._controller_group = dict()
         ids = [
             ctrl.controller_id
@@ -51,12 +54,23 @@ class ControllerGroup:
         else:
             id0 = 0
 
+        if not isinstance(interval, (tuple, list)):
+            raise ValueError("interval should be tuple or list")
+        if not len(interval) == 2 and not all([isinstance(x, (float, int)) for x in interval]):
+            raise ValueError("interval should be a 2-tuple of float/int")
+        if interval[0] > interval[1]:
+            raise RuntimeError("interval start should precede interval end")
+
+        self.interval = interval
+
         for i, cntrl_and_rend in enumerate(controllers_and_renderers):
             ctrl, rend = cntrl_and_rend
             if ctrl.controller_id is None:
                 ctrl.controller_id = i + id0
             self._controller_group[ctrl.controller_id] = ctrl
             self._add_update_handler(rend)
+
+            # Need to
 
     def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
         viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
