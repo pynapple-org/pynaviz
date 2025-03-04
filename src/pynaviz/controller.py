@@ -69,8 +69,13 @@ class ControllerGroup:
                 ctrl.controller_id = i + id0
             self._controller_group[ctrl.controller_id] = ctrl
             self._add_update_handler(rend)
+            # Need to move the controllers to show the given interval.
+            if isinstance(ctrl, SpanController):
+                ctrl.camera.show_rect(  # Uses world coordinates
+                    left=interval[0], right=interval[1]
+                )
 
-            # Need to
+
 
     def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
         viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)

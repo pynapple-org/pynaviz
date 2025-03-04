@@ -49,17 +49,20 @@ def map_screen_to_world(camera, pos, viewport_size):
 
 
 class _BasePlot(ABC):
-    def __init__(self, index=None, start=0, end=100, parent=None, maintain_aspect=False):
+    def __init__(self, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
         self.renderer = gfx.WgpuRenderer(self.canvas)
         self.scene = gfx.Scene()
         self.rulerx = gfx.Ruler(tick_side="right")
         self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
-        self.ruler_ref_time = self._get_ruler_ref_time(start=start, end=end)
-        self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
-        self.camera.show_rect(  # Uses world coordinates
-            left=start, right=end, top=-5, bottom=5
+        self.ruler_ref_time = gfx.Line(
+            gfx.Geometry(positions=[[0, 0, 0], [0, 0, 0]]),
+            gfx.LineMaterial(thickness=0.5, color="#aaf"),
         )
+        self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
+        # self.camera.show_rect(  # Uses world coordinates
+        #     left=start, right=end, top=-5, bottom=5
+        # )
 
     def animate(self):
         # get range of screen space in pixels
@@ -98,21 +101,11 @@ class _BasePlot(ABC):
 
         self.renderer.render(self.scene, self.camera)
 
-    def _get_ruler_ref_time(self, start, end):
-        """set the center ruler between start and end
-        as a gfx.Line
-        """
-        c = start + (end - start) / 2
-        positions = [[c, -5, 0], [c, 5, 0]]
-        return gfx.Line(
-            gfx.Geometry(positions=positions),
-            gfx.LineMaterial(thickness=0.5, color="#aaf"),
-        )
 
 
 class PlotTsd(_BasePlot):
     def __init__(self, data: nap.Tsd, index=None, parent=None):
-        super().__init__(index=index, parent=parent)
+        super().__init__(parent=parent)
         self.data = data
 
         # Pynaviz specific controller
@@ -131,13 +124,16 @@ class PlotTsd(_BasePlot):
             gfx.Geometry(positions=positions),
             gfx.LineMaterial(thickness=4.0, color="#aaf"),
         )
+        self.camera.show_rect(  # Uses world coordinates
+            left=0, right=1, top=-5, bottom=5
+        )
         self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, self.line)
         self.canvas.request_draw(self.animate)
 
 
 class PlotTsdFrame(_BasePlot):
     def __init__(self, data: nap.TsdFrame, index=None, parent=None):
-        super().__init__(index=index, parent=parent)
+        super().__init__(parent=parent)
         self.data = data
 
         # Pynaviz specific controller
@@ -164,7 +160,7 @@ class PlotTsdFrame(_BasePlot):
 
 class PlotTsGroup(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
-        super().__init__(index=index, parent=parent)
+        super().__init__(parent=parent)
         self.data = data
 
         # Pynaviz specific controller
@@ -197,7 +193,7 @@ class PlotTsGroup(_BasePlot):
 
 class PlotTsdTensor(_BasePlot):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
-        super().__init__(index=index, parent=parent, maintain_aspect=True)
+        super().__init__(parent=parent, maintain_aspect=True)
         self.data = data
 
         texture = gfx.Texture(self.data.values[0].astype("float32"), dim=2)
@@ -226,7 +222,7 @@ class PlotTsdTensor(_BasePlot):
 
 class PlotTs(_BasePlot):
     def __init__(self, data: nap.Ts, index=None, parent=None):
-        super().__init__(index=index, parent=parent)
+        super().__init__(parent=parent)
         self.data = data
 
         # Pynaviz specific controller

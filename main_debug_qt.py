@@ -22,7 +22,7 @@ tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 app = QApplication([])
 
 window = QWidget()
-window.setMinimumSize(1200, 800)
+window.setMinimumSize(1500, 800)
 
 layout = QHBoxLayout()
 
@@ -30,9 +30,11 @@ viz1 = viz.TsdWidget(tsd1, set_parent=True)
 # viz2 = viz.TsdWidget(tsd1, set_parent=True)
 viz2 = viz.TsdTensorWidget(tsdtensor, set_parent=True)
 
-ctrl_group = ControllerGroup()
-ctrl_group.add(viz1.plot.controller, viz1.plot.renderer, 0)
-ctrl_group.add(viz2.plot.controller, viz2.plot.renderer, 1)
+arg =  [(viz1.plot.controller, viz1.plot.renderer), (viz2.plot.controller, viz2.plot.renderer)]
+
+ctrl_group = ControllerGroup(arg)
+# ctrl_group.add(viz1.plot.controller, viz1.plot.renderer, 0)
+# ctrl_group.add(viz2.plot.controller, viz2.plot.renderer, 1)
 
 layout.addWidget(viz1)
 layout.addWidget(viz2)
