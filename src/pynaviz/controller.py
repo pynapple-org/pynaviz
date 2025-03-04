@@ -40,7 +40,7 @@ class ControllerGroup:
 
     """
 
-    def __init__(self, *controllers_and_renderers, interval=(0, 10)):
+    def __init__(self, controllers_and_renderers, interval=(0, 10)):
         self._controller_group = dict()
         ids = [
             ctrl.controller_id
@@ -69,7 +69,7 @@ class ControllerGroup:
                 ctrl.controller_id = i + id0
             self._controller_group[ctrl.controller_id] = ctrl
             self._add_update_handler(rend)
-            # Need to move the controllers to show the given interval.
+            # # Need to move the controllers to show the given interval.
             if isinstance(ctrl, SpanController):
                 ctrl.camera.show_rect(  # Uses world coordinates
                     left=interval[0], right=interval[1]
@@ -114,12 +114,6 @@ class CustomController(PanZoomController):
             controller_id: Optional[int] = None,
             dict_sync_funcs: Optional[dict[Callable]] = None,
     ):
-        if controller_id is not None and not isinstance(controller_id, int):
-            raise TypeError(
-                f"If provided, `controller_id` must be of integer type. Type {type(controller_id)} provided instead!"
-            )
-
-        self._controller_id = controller_id
         super().__init__(
             camera=camera,
             enabled=enabled,
@@ -127,6 +121,13 @@ class CustomController(PanZoomController):
             auto_update=auto_update,
             register_events=renderer,
         )
+
+        if controller_id is not None and not isinstance(controller_id, int):
+            raise TypeError(
+                f"If provided, `controller_id` must be of integer type. Type {type(controller_id)} provided instead!"
+            )
+        self._controller_id = controller_id
+        self.camera = camera # Weirdly pygfx controller doesn't have it as direct attributes
         self.renderer_handle_event = None
         self.renderer_request_draw = lambda: True
 
