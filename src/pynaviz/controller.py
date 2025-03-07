@@ -6,6 +6,7 @@ from typing import Callable, Optional, Union
 
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 import pygfx as gfx
+from pylinalg import vec_transform, vec_unproject
 
 from .events import SyncEvent
 import pynapple as nap
@@ -27,6 +28,15 @@ def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
     viewport = Viewport.from_viewport_or_renderer(renderer)
     return viewport.renderer.handle_event
 
+def map_screen_to_world(camera, pos, viewport_size):
+    # first convert position to NDC
+    x = pos[0] / viewport_size[0] * 2 - 1
+    y = -(pos[1] / viewport_size[1] * 2 - 1)
+    pos_ndc = (x, y, 0)
+    pos_ndc += vec_transform(camera.world.position, camera.camera_matrix)
+    # unproject to world space
+    pos_world = vec_unproject(pos_ndc[:2], camera.camera_matrix)
+    return pos_world
 
 class ControllerGroup:
     """
@@ -70,11 +80,7 @@ class ControllerGroup:
             self._controller_group[ctrl.controller_id] = ctrl
             self._add_update_handler(rend)
             # # Need to move the controllers to show the given interval.
-            if isinstance(ctrl, SpanController):
-                ctrl.camera.show_rect(  # Uses world coordinates
-                    left=interval[0], right=interval[1]
-                )
-
+            ctrl.show_interval(*interval)
 
 
     def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
@@ -128,6 +134,7 @@ class CustomController(PanZoomController):
             )
         self._controller_id = controller_id
         self.camera = camera # Weirdly pygfx controller doesn't have it as direct attributes
+        self.renderer = renderer # Nor renderer
         self.renderer_handle_event = None
         self.renderer_request_draw = lambda: True
 
@@ -182,6 +189,9 @@ class CustomController(PanZoomController):
             )
 
     def sync(self, event):
+        pass
+
+    def show_interval(self, start, end):
         pass
 
 class SpanController(CustomController):
@@ -256,6 +266,16 @@ class SpanController(CustomController):
         self._update_cameras()
         self.renderer_request_draw()
 
+    def show_interval(self, start, end):
+        viewport_size = self.renderer.logical_size
+        y_max = map_screen_to_world(self.camera, pos=(0,0), viewport_size=self.renderer.logical_size)[1]
+        y_min = map_screen_to_world(self.camera, pos=(0,viewport_size[1]), viewport_size=self.renderer.logical_size)[1]
+        print(y_max, y_min)
+        # self.camera.show_rect(  # Uses world coordinates
+        #     left=start, right=end, top=-10, bottom=10
+        # )
+        # self.renderer_request_draw()
+
 
 class GetController(CustomController):
     """
@@ -319,3 +339,10 @@ class GetController(CustomController):
         self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
         self.texture.update_full()
         self.renderer_request_draw()
+
+    def show_interval(self, start, end):
+        self.frame_index = self.data.get_slice(start + (end-start)/2).start
+        self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
+        self.texture.update_full()
+        self.renderer_request_draw()
+

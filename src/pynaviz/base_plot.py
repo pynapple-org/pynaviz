@@ -124,9 +124,9 @@ class PlotTsd(_BasePlot):
             gfx.Geometry(positions=positions),
             gfx.LineMaterial(thickness=4.0, color="#aaf"),
         )
-        self.camera.show_rect(  # Uses world coordinates
-            left=0, right=1, top=-5, bottom=5
-        )
+        # self.camera.show_rect(  # Uses world coordinates
+        #     left=0, right=1, top=-5, bottom=5
+        # )
         self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, self.line)
         self.canvas.request_draw(self.animate)
 
