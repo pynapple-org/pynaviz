@@ -105,7 +105,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(camera, renderer=renderer, controller_id=None, auto_update=auto_update)
+            ctrl = SpanController(camera, auto_update=auto_update, renderer=renderer, controller_id=None)
             ctrl._request_draw(renderer)
         finally:
             canvas.close()
@@ -173,10 +173,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(
-                camera,
-                renderer=renderer,
-                dict_sync_funcs=update_dict)
+            ctrl = SpanController(camera, renderer=renderer, dict_sync_funcs=update_dict)
             with expectation:
                 ctrl.sync(event_pan_update)
         finally:
@@ -196,10 +193,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(
-                camera,
-                renderer=renderer,
-                dict_sync_funcs=update_dict)
+            ctrl = SpanController(camera, renderer=renderer, dict_sync_funcs=update_dict)
             with expectation:
                 ctrl.sync(event_zoom_update)
         finally:
@@ -219,10 +213,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(
-                camera,
-                renderer=renderer,
-                dict_sync_funcs=update_dict)
+            ctrl = SpanController(camera, renderer=renderer, dict_sync_funcs=update_dict)
             with expectation:
                 ctrl.sync(event_zoom_to_point_update)
         finally:

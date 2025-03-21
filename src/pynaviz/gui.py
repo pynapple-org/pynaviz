@@ -125,6 +125,7 @@ class ListDock(QDockWidget):
         # Instantiating the dock widget
         dock = QDockWidget()
         dock.setWidget(widget.plot.canvas)
+        # dock.setWidget(dock.container)
         dock.setMinimumSize(200, 150)
 
         # Adding the dock widget to the GUI window.

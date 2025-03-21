@@ -28,6 +28,7 @@ def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
     viewport = Viewport.from_viewport_or_renderer(renderer)
     return viewport.renderer.handle_event
 
+
 def map_screen_to_world(camera, pos, viewport_size):
     # first convert position to NDC
     x = pos[0] / viewport_size[0] * 2 - 1
@@ -37,6 +38,7 @@ def map_screen_to_world(camera, pos, viewport_size):
     # unproject to world space
     pos_world = vec_unproject(pos_ndc[:2], camera.camera_matrix)
     return pos_world
+
 
 class ControllerGroup:
     """
@@ -50,7 +52,7 @@ class ControllerGroup:
 
     """
 
-    def __init__(self, controllers_and_renderers, interval=(0, 10)):
+    def __init__(self, controllers_and_renderers=[], interval=(0, 10)):
         self._controller_group = dict()
         ids = [
             ctrl.controller_id
@@ -66,7 +68,9 @@ class ControllerGroup:
 
         if not isinstance(interval, (tuple, list)):
             raise ValueError("interval should be tuple or list")
-        if not len(interval) == 2 and not all([isinstance(x, (float, int)) for x in interval]):
+        if not len(interval) == 2 and not all(
+            [isinstance(x, (float, int)) for x in interval]
+        ):
             raise ValueError("interval should be a 2-tuple of float/int")
         if interval[0] > interval[1]:
             raise RuntimeError("interval start should precede interval end")
@@ -82,16 +86,17 @@ class ControllerGroup:
             # # Need to move the controllers to show the given interval.
             ctrl.show_interval(*interval)
 
-
     def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
         viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
         viewport.renderer.add_event_handler(self.sync_controllers, "sync")
 
     def add(self, controller, renderer, controller_id):
         if controller_id in self._controller_group.keys():
-            raise RuntimeError(f"controller_id {controller_id} already in controller group.")
+            raise RuntimeError(
+                f"controller_id {controller_id} already in controller group."
+            )
         if controller.controller_id is None:
-            controller.controller_id  = controller_id
+            controller.controller_id = controller_id
         self._controller_group[controller_id] = controller
         self._add_update_handler(renderer)
 
@@ -106,19 +111,20 @@ class ControllerGroup:
                 continue
             ctrl.sync(event)
 
+
 class CustomController(PanZoomController):
     """"""
 
     def __init__(
-            self,
-            camera: Optional[Camera] = None,
-            *,
-            enabled=True,
-            damping: int = 0,
-            auto_update: bool = True,
-            renderer: Optional[Union[Viewport, Renderer]] = None,
-            controller_id: Optional[int] = None,
-            dict_sync_funcs: Optional[dict[Callable]] = None,
+        self,
+        camera: Optional[Camera] = None,
+        *,
+        enabled=True,
+        damping: int = 0,
+        auto_update: bool = True,
+        renderer: Optional[Union[Viewport, Renderer]] = None,
+        controller_id: Optional[int] = None,
+        dict_sync_funcs: Optional[dict[Callable]] = None,
     ):
         super().__init__(
             camera=camera,
@@ -133,14 +139,20 @@ class CustomController(PanZoomController):
                 f"If provided, `controller_id` must be of integer type. Type {type(controller_id)} provided instead!"
             )
         self._controller_id = controller_id
-        self.camera = camera # Weirdly pygfx controller doesn't have it as direct attributes
-        self.renderer = renderer # Nor renderer
+        self.camera = (
+            camera  # Weirdly pygfx controller doesn't have it as direct attributes
+        )
+        self.renderer = renderer  # Nor renderer
         self.renderer_handle_event = None
         self.renderer_request_draw = lambda: True
 
         if renderer:
-            self.renderer_handle_event = _get_event_handle(renderer)  # renderer.handle_event
-            self.renderer_request_draw = lambda: self._request_draw(renderer)  # renderer.request_draw
+            self.renderer_handle_event = _get_event_handle(
+                renderer
+            )  # renderer.handle_event
+            self.renderer_request_draw = lambda: self._request_draw(
+                renderer
+            )  # renderer.request_draw
 
         if dict_sync_funcs is None:
             self._dict_sync_funcs = dict()
@@ -194,6 +206,7 @@ class CustomController(PanZoomController):
     def show_interval(self, start, end):
         pass
 
+
 class SpanController(CustomController):
     """
     The class for horizontal time-panning
@@ -209,6 +222,8 @@ class SpanController(CustomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
+        min=None,
+        max=None,
     ):
         super().__init__(
             camera=camera,
@@ -217,8 +232,12 @@ class SpanController(CustomController):
             auto_update=auto_update,
             renderer=renderer,
             controller_id=controller_id,
-            dict_sync_funcs=dict_sync_funcs
+            dict_sync_funcs=dict_sync_funcs,
         )
+        self._min = min
+        self._max = max
+        self.show_interval(0, 1)
+
 
     def _update_pan(self, delta, *, vecx, vecy):
         super()._update_pan(delta, vecx=vecx, vecy=vecy)
@@ -252,7 +271,7 @@ class SpanController(CustomController):
         if "delta_t" in event.kwargs:
             camera_state = self._get_camera_state()
             camera_pos = camera_state["position"].copy()
-            camera_pos[0] += event.kwargs['delta_t']
+            camera_pos[0] += event.kwargs["delta_t"]
             camera_state["position"] = camera_pos
             event.kwargs["cam_state"] = camera_state
 
@@ -267,14 +286,23 @@ class SpanController(CustomController):
         self.renderer_request_draw()
 
     def show_interval(self, start, end):
-        viewport_size = self.renderer.logical_size
-        y_max = map_screen_to_world(self.camera, pos=(0,0), viewport_size=self.renderer.logical_size)[1]
-        y_min = map_screen_to_world(self.camera, pos=(0,viewport_size[1]), viewport_size=self.renderer.logical_size)[1]
-        print(y_max, y_min)
-        # self.camera.show_rect(  # Uses world coordinates
-        #     left=start, right=end, top=-10, bottom=10
-        # )
-        # self.renderer_request_draw()
+        # # print(start, end, self._min, self._max)
+        # viewport_size = self.renderer.logical_size
+        #
+        # xmin, ymin = 0, self.renderer.logical_size[1]
+        # xmax, ymax = self.renderer.logical_size[0], 0
+        #
+        # world_xmin, world_ymin, _ = map_screen_to_world(self.camera,(xmin, ymin), viewport_size)
+        # world_xmax, world_ymax, _ = map_screen_to_world(self.camera,(xmax, ymax), viewport_size)
+        #
+        # # print(world_xmin, world_xmax, world_ymin, world_ymax)
+        # print(self._get_camera_state())
+
+        self.camera.show_rect(  # Uses world coordinates
+            left=start, right=end, top=self._min, bottom=self._max
+        )
+        self._update_cameras()
+        self.renderer_request_draw()
 
 
 class GetController(CustomController):
@@ -290,7 +318,8 @@ class GetController(CustomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         data: nap.TsdTensor = None,
-        texture: gfx.Texture = None
+        texture: gfx.Texture = None,
+        time_text: gfx.Text = None
     ):
         super().__init__(
             camera=camera,
@@ -302,6 +331,7 @@ class GetController(CustomController):
         self.n_frames = data.shape[0]
         self.frame_index = 0
         self.texture = texture
+        self.time_text = time_text
 
     @property
     def frame_index(self):
@@ -324,13 +354,11 @@ class GetController(CustomController):
         delta_t = self.data.index.values[self.frame_index] - current_t
         self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
         self.texture.update_full()
+        self.time_text.geometry.set_text(str(self.data.t[self.frame_index]))
         self.renderer_request_draw()
 
         # Sending the sync event
-        self._send_sync_event(
-            update_type="pan",
-            delta_t = delta_t
-        )
+        self._send_sync_event(update_type="pan", delta_t=delta_t)
 
     def sync(self, event):
         """Get a new data point and update the texture"""
@@ -338,11 +366,13 @@ class GetController(CustomController):
         self.frame_index = self.data.get_slice(new_t).start
         self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
         self.texture.update_full()
+        self.time_text.geometry.set_text(str(self.data.t[self.frame_index]))
         self.renderer_request_draw()
 
     def show_interval(self, start, end):
-        self.frame_index = self.data.get_slice(start + (end-start)/2).start
+        t = start + (end - start) / 2
+        self.frame_index = self.data.get_slice(t).start
         self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
         self.texture.update_full()
+        self.time_text.geometry.set_text(str(self.data.t[self.frame_index]))
         self.renderer_request_draw()
-

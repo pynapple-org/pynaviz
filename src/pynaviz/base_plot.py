@@ -57,12 +57,9 @@ class _BasePlot(ABC):
         self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
         self.ruler_ref_time = gfx.Line(
             gfx.Geometry(positions=[[0, 0, 0], [0, 0, 0]]),
-            gfx.LineMaterial(thickness=0.5, color="#aaf"),
+            gfx.LineMaterial(thickness=0.5, color="#B4F8C8"),
         )
         self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
-        # self.camera.show_rect(  # Uses world coordinates
-        #     left=start, right=end, top=-5, bottom=5
-        # )
 
     def animate(self):
         # get range of screen space in pixels
@@ -102,7 +99,6 @@ class _BasePlot(ABC):
         self.renderer.render(self.scene, self.camera)
 
 
-
 class PlotTsd(_BasePlot):
     def __init__(self, data: nap.Tsd, index=None, parent=None):
         super().__init__(parent=parent)
@@ -114,6 +110,8 @@ class PlotTsd(_BasePlot):
             renderer=self.renderer,
             controller_id=index,
             dict_sync_funcs=dict_sync_funcs,
+            min=np.min(data),
+            max=np.max(data),
         )
 
         # Passing the data
@@ -124,11 +122,11 @@ class PlotTsd(_BasePlot):
             gfx.Geometry(positions=positions),
             gfx.LineMaterial(thickness=4.0, color="#aaf"),
         )
-        # self.camera.show_rect(  # Uses world coordinates
-        #     left=0, right=1, top=-5, bottom=5
-        # )
+
         self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, self.line)
         self.canvas.request_draw(self.animate)
+        # self.controller.show_interval(start=0, end=1)
+
 
 
 class PlotTsdFrame(_BasePlot):
@@ -142,8 +140,11 @@ class PlotTsdFrame(_BasePlot):
             renderer=self.renderer,
             controller_id=index,
             dict_sync_funcs=dict_sync_funcs,
+            min=np.min(data),
+            max=np.max(data)
         )
 
+        # Passing the data
         self.lines = []
         for i in range(self.data.shape[1]):
             positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T
@@ -154,6 +155,7 @@ class PlotTsdFrame(_BasePlot):
                     gfx.LineMaterial(thickness=4.0, color=COLORS[i % len(COLORS)]),
                 )
             )
+
         self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, *self.lines)
         self.canvas.request_draw(self.animate)
 
@@ -169,6 +171,8 @@ class PlotTsGroup(_BasePlot):
             renderer=self.renderer,
             controller_id=index,
             dict_sync_funcs=dict_sync_funcs,
+            min = 0,
+            max= len(data) + 1
         )
 
         self.raster = []
@@ -196,15 +200,24 @@ class PlotTsdTensor(_BasePlot):
         super().__init__(parent=parent, maintain_aspect=True)
         self.data = data
 
+        # Image
         texture = gfx.Texture(self.data.values[0].astype("float32"), dim=2)
         self.image = gfx.Image(
-            gfx.Geometry(
-                grid=texture
-            ),
+            gfx.Geometry(grid=texture),
             gfx.ImageBasicMaterial(clim=(0, 1)),
         )
-        self.scene.add(self.image)
-        self.camera.show_object(self.scene)#, view_dir=(0, 0, -1))
+        # Text of the current time
+        self.time_text = gfx.Text(
+            gfx.TextGeometry(
+                text="0.0", font_size=0.5, anchor="bottom-left"),
+            gfx.TextMaterial(
+                color="#B4F8C8",outline_color="#000", outline_thickness=0.15
+            ),
+        )
+        self.time_text.geometry.anchor = "bottom-left"
+
+        self.scene.add(self.image, self.time_text)
+        self.camera.show_object(self.scene)  # , view_dir=(0, 0, -1))
 
         # # Pynaviz specific controller
         self.controller = GetController(
@@ -212,12 +225,15 @@ class PlotTsdTensor(_BasePlot):
             renderer=self.renderer,
             controller_id=index,
             data=data,
-            texture=texture
+            texture=texture,
+            time_text=self.time_text
         )
 
         # In the draw event, the draw function is called
         # This assign the function draw_frame of WgpuCanvasBase
-        self.canvas.request_draw(draw_function=lambda: self.renderer.render(self.scene, self.camera))
+        self.canvas.request_draw(
+            draw_function=lambda: self.renderer.render(self.scene, self.camera)
+        )
 
 
 class PlotTs(_BasePlot):
