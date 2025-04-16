@@ -23,4 +23,4 @@ tsdframe = nap.TsdFrame(
 tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
 
-scope(globals())
+# scope(globals())

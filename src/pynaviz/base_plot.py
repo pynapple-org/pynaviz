@@ -208,12 +208,12 @@ class PlotTsdTensor(_BasePlot):
         )
         # Text of the current time
         self.time_text = gfx.Text(
-            gfx.TextGeometry(
-                text="0.0", font_size=0.5, anchor="bottom-left"),
-            gfx.TextMaterial(
-                color="#B4F8C8",outline_color="#000", outline_thickness=0.15
-            ),
+                text="0.0", font_size=0.5, anchor="bottom-left",
+            material = gfx.TextMaterial(
+                color="#B4F8C8", outline_color="#000", outline_thickness=0.15
+            )
         )
+
         self.time_text.geometry.anchor = "bottom-left"
 
         self.scene.add(self.image, self.time_text)
