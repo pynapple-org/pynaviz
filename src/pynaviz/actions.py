@@ -1,20 +1,27 @@
 import pygfx as gfx
+import matplotlib.cm as cm
 
-def color_by(materials, **kwargs):
+
+
+def color_by(materials, values, cmap_name='jet'):
     """
     Color by a particular cmap
 
     materials:
         Dict of pygfx materials object
-    array:
-        some color value
+    values:
+        pandas.Series
     cmap:
-        Default cmap (Jet)
+        The color map. Default is "jet".
+        See https://matplotlib.org/stable/gallery/color/colormap_reference.html
 
 
     """
+    cmap = cm.get_cmap(cmap_name)
+    values = values - values.min()
+    values = values / values.max()
     for c in materials:
-        materials[c].color = "red"
+        materials[c].color = cmap(values[c])
 
 def sort_by(geometries, values):
     """

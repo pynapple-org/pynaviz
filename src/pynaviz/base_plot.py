@@ -163,7 +163,9 @@ class PlotTsdFrame(_BasePlot):
         print(event)
         if event == "color_by":
             color_by(
-                {c:self.lines[c].material for c in self.lines}
+                {c:self.lines[c].material for c in self.lines},
+                self.data.get_info(label),
+                **kwargs
             )
         elif event == "sort_by":
             sort_by(
@@ -199,7 +201,7 @@ class PlotTsGroup(_BasePlot):
             self.raster[n] = gfx.Points(
                     gfx.Geometry(positions=positions),
                     gfx.PointsMaterial(
-                        size=5, color=COLORS[i % len(COLORS)], opacity=0.5
+                        size=5, color=COLORS[i % len(COLORS)], opacity=1
                     ),
                 )
 
@@ -210,7 +212,8 @@ class PlotTsGroup(_BasePlot):
         print(event)
         if event == "color_by":
             color_by(
-                {c:self.raster[c].material for c in self.raster}
+                {c:self.raster[c].material for c in self.raster},
+                self.data.get_info(label)
             )
         elif event == "sort_by":
             sort_by(
