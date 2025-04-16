@@ -12,6 +12,8 @@ import pygfx as gfx
 from abc import ABC
 from pylinalg import vec_transform, vec_unproject
 import numpy as np
+
+from .actions import color_by, sort_by
 from .controller import SpanController, GetController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
@@ -145,19 +147,31 @@ class PlotTsdFrame(_BasePlot):
         )
 
         # Passing the data
-        self.lines = []
-        for i in range(self.data.shape[1]):
+        self.lines = {}
+        for i, c in enumerate(self.data.columns):
             positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T
             positions = positions.astype("float32")
-            self.lines.append(
-                gfx.Line(
+            self.lines[c] = gfx.Line(
                     gfx.Geometry(positions=positions),
                     gfx.LineMaterial(thickness=4.0, color=COLORS[i % len(COLORS)]),
                 )
+
+        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, *list(self.lines.values()))
+        self.canvas.request_draw(self.animate)
+
+    def update(self, event, label="label", **kwargs):
+        print(event)
+        if event == "color_by":
+            color_by(
+                {c:self.lines[c].material for c in self.lines}
+            )
+        elif event == "sort_by":
+            sort_by(
+                {c: self.lines[c].geometry for c in self.lines},
+                self.data.get_info(label)
             )
 
-        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, *self.lines)
-        self.canvas.request_draw(self.animate)
+        self.renderer.render(self.scene, self.camera)
 
 
 class PlotTsGroup(_BasePlot):
@@ -175,25 +189,37 @@ class PlotTsGroup(_BasePlot):
             max= len(data) + 1
         )
 
-        self.raster = []
+        self.raster = {}
         for i, n in enumerate(data.keys()):
             positions = np.stack(
                 (data[n].t, np.ones(len(data[n])) * i, np.zeros(len(data[n])))
             ).T
             positions = positions.astype("float32")
 
-            self.raster.append(
-                gfx.Points(
+            self.raster[n] = gfx.Points(
                     gfx.Geometry(positions=positions),
                     gfx.PointsMaterial(
                         size=5, color=COLORS[i % len(COLORS)], opacity=0.5
                     ),
                 )
-            )
 
-        self.scene.add(self.rulerx, self.rulery, *self.raster)
+        self.scene.add(self.rulerx, self.rulery, *list(self.raster.values()))
         self.canvas.request_draw(self.animate)
 
+    def update(self, event, label="label", **kwargs):
+        print(event)
+        if event == "color_by":
+            color_by(
+                {c:self.raster[c].material for c in self.raster}
+            )
+        elif event == "sort_by":
+            sort_by(
+                {c: self.raster[c].geometry for c in self.raster},
+                self.data.get_info(label)
+            )
+
+        self.canvas.request_draw(self.animate)
+        self.renderer.render(self.scene, self.camera)
 
 class PlotTsdTensor(_BasePlot):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
