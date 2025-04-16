@@ -52,6 +52,9 @@ class TsdFrameWidget(QWidget):
         button2 = QPushButton("Button 2")
         button3 = QPushButton("Button 3")
 
+        # connect button
+        button1.clicked.connect(self.button1_clicked)
+
         # Add buttons to the layout
         button_layout.addWidget(button1)
         button_layout.addWidget(button2)
@@ -64,6 +67,9 @@ class TsdFrameWidget(QWidget):
         button_container.setParent(self.plot.canvas)
         self.button_container = button_container
         self.button_container.hide()
+
+    def button1_clicked(self):
+        print("clicked button1")
 
     def enterEvent(self, event):
         """Show the widget when the mouse enters."""
