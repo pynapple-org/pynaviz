@@ -205,7 +205,7 @@ class PlotTsGroup(_BasePlot):
             self.graphic[n] = gfx.Points(
                     gfx.Geometry(positions=positions),
                     gfx.PointsMaterial(
-                        size=5, color=COLORS[i % len(COLORS)], opacity=0.5
+                        size=5, color=COLORS[i % len(COLORS)], opacity=1
                     ),
                 )
 
