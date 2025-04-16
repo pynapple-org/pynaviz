@@ -2,8 +2,11 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
-import abc
+from typing import Any, Callable, Optional
 
+import pygfx as gfx
+import pandas as pd
+import matplotlib.cm as cm
 import pynapple as nap
 from PyQt6.QtWidgets import QWidget
 from wgpu.gui.qt import (
@@ -102,12 +105,22 @@ class _BasePlot(ABC):
 
         self.renderer.render(self.scene, self.camera)
 
-    def color_by(self, **kwargs):
-        # implement logic
+    def color_by(self, materials, values, cmap_name='jet', map_values: Optional[Callable[[Any], float]]=None):
+        # do nothing for empty values
+        if not values:
+            return
+        cmap = cm.get_cmap(cmap_name)
+        # assume that we can specify some value-map
+        values = pd.Series(values) if map_values is None else map_values(values)
+        values = values - np.nanmin(values)
+        values = values / np.nanmax(values)
+        for c in materials:
+            materials[c].color = cmap(values[c])
         self.canvas.request_draw(self.animate)
 
 
-    def sort_by(self,  **kwargs):
+    def sort_by(self,  geometries, values, map_values: Optional[Callable[[Any], float]]=None):
+        values = pd.Series(values) if map_values is None else map_values(values)
         # implement logic
         self.canvas.request_draw(self.animate)
 
