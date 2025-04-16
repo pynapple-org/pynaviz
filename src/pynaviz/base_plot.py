@@ -2,6 +2,7 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
+import abc
 
 import pynapple as nap
 from PyQt6.QtWidgets import QWidget
@@ -13,7 +14,7 @@ from abc import ABC
 from pylinalg import vec_transform, vec_unproject
 import numpy as np
 
-from .actions import color_by, sort_by
+from .utils import action_caller
 from .controller import SpanController, GetController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
@@ -51,8 +52,9 @@ def map_screen_to_world(camera, pos, viewport_size):
 
 
 class _BasePlot(ABC):
-    def __init__(self, parent=None, maintain_aspect=False):
+    def __init__(self, data, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
+        self.data = data
         self.renderer = gfx.WgpuRenderer(self.canvas)
         self.scene = gfx.Scene()
         self.rulerx = gfx.Ruler(tick_side="right")
@@ -100,11 +102,32 @@ class _BasePlot(ABC):
 
         self.renderer.render(self.scene, self.camera)
 
+    def color_by(self, **kwargs):
+        # implement logic
+        self.canvas.request_draw(self.animate)
+
+
+    def sort_by(self,  **kwargs):
+        # implement logic
+        self.canvas.request_draw(self.animate)
+
+
+    def update(self, event, **kwargs):
+
+        # TODO: Change this to assume that the event contains info about the metadata.
+        # metadata_name = event["metadata_name"]
+        # action = event["action"]
+        # kwargs = event["kwargs"]
+        metadata_name = "label"
+        action = event
+        metadata = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
+        action_caller(self, action, metadata=metadata, **kwargs)
+        # TODO: make it more targeted than update all
+
 
 class PlotTsd(_BasePlot):
     def __init__(self, data: nap.Tsd, index=None, parent=None):
-        super().__init__(parent=parent)
-        self.data = data
+        super().__init__(data=data, parent=parent)
 
         # Pynaviz specific controller
         self.controller = SpanController(
@@ -130,11 +153,9 @@ class PlotTsd(_BasePlot):
         # self.controller.show_interval(start=0, end=1)
 
 
-
 class PlotTsdFrame(_BasePlot):
     def __init__(self, data: nap.TsdFrame, index=None, parent=None):
-        super().__init__(parent=parent)
-        self.data = data
+        super().__init__(data=data, parent=parent)
 
         # Pynaviz specific controller
         self.controller = SpanController(
@@ -147,37 +168,22 @@ class PlotTsdFrame(_BasePlot):
         )
 
         # Passing the data
-        self.lines = {}
+        self.graphic: dict = {}
         for i, c in enumerate(self.data.columns):
             positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T
             positions = positions.astype("float32")
-            self.lines[c] = gfx.Line(
+            self.graphic[c] = gfx.Line(
                     gfx.Geometry(positions=positions),
                     gfx.LineMaterial(thickness=4.0, color=COLORS[i % len(COLORS)]),
                 )
 
-        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, *list(self.lines.values()))
+        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, *list(self.graphic.values()))
         self.canvas.request_draw(self.animate)
-
-    def update(self, event, label="label", **kwargs):
-        print(event)
-        if event == "color_by":
-            color_by(
-                {c:self.lines[c].material for c in self.lines}
-            )
-        elif event == "sort_by":
-            sort_by(
-                {c: self.lines[c].geometry for c in self.lines},
-                self.data.get_info(label)
-            )
-
-        self.renderer.render(self.scene, self.camera)
 
 
 class PlotTsGroup(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
-        super().__init__(parent=parent)
-        self.data = data
+        super().__init__(data=data, parent=parent)
 
         # Pynaviz specific controller
         self.controller = SpanController(
@@ -189,37 +195,23 @@ class PlotTsGroup(_BasePlot):
             max= len(data) + 1
         )
 
-        self.raster = {}
+        self.graphic = {}
         for i, n in enumerate(data.keys()):
             positions = np.stack(
                 (data[n].t, np.ones(len(data[n])) * i, np.zeros(len(data[n])))
             ).T
             positions = positions.astype("float32")
 
-            self.raster[n] = gfx.Points(
+            self.graphic[n] = gfx.Points(
                     gfx.Geometry(positions=positions),
                     gfx.PointsMaterial(
                         size=5, color=COLORS[i % len(COLORS)], opacity=0.5
                     ),
                 )
 
-        self.scene.add(self.rulerx, self.rulery, *list(self.raster.values()))
+        self.scene.add(self.rulerx, self.rulery, *list(self.graphic.values()))
         self.canvas.request_draw(self.animate)
 
-    def update(self, event, label="label", **kwargs):
-        print(event)
-        if event == "color_by":
-            color_by(
-                {c:self.raster[c].material for c in self.raster}
-            )
-        elif event == "sort_by":
-            sort_by(
-                {c: self.raster[c].geometry for c in self.raster},
-                self.data.get_info(label)
-            )
-
-        self.canvas.request_draw(self.animate)
-        self.renderer.render(self.scene, self.camera)
 
 class PlotTsdTensor(_BasePlot):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):

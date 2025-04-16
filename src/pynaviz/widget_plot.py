@@ -42,7 +42,7 @@ class TsGroupWidget(QWidget):
         button_layout.addWidget(button2)
         button_layout.addWidget(button3)
 
-        button1.clicked.connect(lambda : self.plot.update("color_by"))
+        button1.clicked.connect(lambda: self.plot.update("color_by"))
         button2.clicked.connect(lambda: self.plot.update("sort_by"))
 
         # Set layout to the container widget
