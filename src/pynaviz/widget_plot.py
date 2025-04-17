@@ -33,7 +33,7 @@ class TsGroupWidget(QWidget):
         button_layout = QHBoxLayout()  # Arrange buttons horizontally
 
         # Create three buttons
-        button1 = QPushButton("Colrby")
+        button1 = QPushButton("Colorby")
         button2 = QPushButton("Sortby")
         button3 = QPushButton("Button 3")
 
