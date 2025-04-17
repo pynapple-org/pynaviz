@@ -48,13 +48,13 @@ class TsdFrameColumnListModel(QAbstractListModel):
 
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtWidgets import QTableView
+    from PyQt6.QtWidgets import QListView
     import pynapple as nap
     import numpy as np
 
     my_tsdframe = nap.TsdFrame(t=np.arange(10), d=np.random.randn(10,3), columns=["a", "b", "c"], metadata={"meta":np.array([5, 10, 15])})
     app = QApplication([])
-    view = QTableView()
+    view = QListView()
     model = TsdFrameColumnListModel(my_tsdframe)
     view.setModel(model)
     view.show()
