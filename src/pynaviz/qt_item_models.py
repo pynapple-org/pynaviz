@@ -19,16 +19,19 @@ class TsdFrameColumnListModel(QAbstractListModel):
         return None
 
     def flags(self, index):
+        """Flags that determines what one can do with the items."""
         return (
             Qt.ItemFlag.ItemIsEnabled
-            | Qt.ItemFlag.ItemIsUserCheckable
-            | Qt.ItemFlag.ItemIsSelectable
+            | Qt.ItemFlag.ItemIsUserCheckable  # adds a check box
+            | Qt.ItemFlag.ItemIsSelectable  # makes item selectable
         )
 
     def setData(self, index, value, role):
         if role == Qt.ItemDataRole.CheckStateRole:
+            value = value.value if hasattr(value, "value") else value
             self.checks[index.row()] = (int(value) == Qt.CheckState.Checked.value)
             self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
+
             return True
         return False
 
@@ -49,14 +52,30 @@ class TsdFrameColumnListModel(QAbstractListModel):
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication
     from PyQt6.QtWidgets import QListView
+
     import pynapple as nap
     import numpy as np
+
+
+    def handle_click(index):
+        # Get current state of clicked item
+        state = model.data(index, Qt.ItemDataRole.CheckStateRole)
+        new_state = Qt.CheckState.Unchecked if state == Qt.CheckState.Checked else Qt.CheckState.Checked
+
+        # Get selected indexes
+        selected = view.selectionModel().selectedIndexes()
+
+        # Update all selected indexes
+        for idx in selected:
+            model.setData(idx, new_state, Qt.ItemDataRole.CheckStateRole)
 
     my_tsdframe = nap.TsdFrame(t=np.arange(10), d=np.random.randn(10,3), columns=["a", "b", "c"], metadata={"meta":np.array([5, 10, 15])})
     app = QApplication([])
     view = QListView()
     model = TsdFrameColumnListModel(my_tsdframe)
     view.setModel(model)
+    view.setSelectionMode(view.SelectionMode.MultiSelection)
+    view.clicked.connect(handle_click)
     view.show()
 
     app.exec()
