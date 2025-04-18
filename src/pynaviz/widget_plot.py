@@ -5,6 +5,8 @@ Classes hold the specific interactive methods for each pynapple object.
 """
 from importlib.metadata import metadata
 from typing import List
+import bisect
+import numpy as np
 from PyQt6.QtGui import QIcon
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QStyle, QMenu, QListWidget, QDialog, QComboBox
@@ -19,6 +21,7 @@ class DropdownDialog(QDialog):
             title: str,
             meta_names: List[str],
             other_combo: List[str],
+            initial_idx_other: int,
             parent=None
     ):
         """
@@ -42,6 +45,7 @@ class DropdownDialog(QDialog):
 
         self.combo_other = QComboBox()
         self.combo_other.addItems(list(other_combo))
+        self.combo_other.setCurrentIndex(initial_idx_other)
 
         # Layout setup
         layout = QHBoxLayout()
@@ -52,6 +56,12 @@ class DropdownDialog(QDialog):
         self.combo_meta.currentIndexChanged.connect(self.combo_changed)
         self.combo_other.currentIndexChanged.connect(self.combo_changed)
         self._parent = parent
+
+    def get_current_cmap(self):
+        plot = getattr(self._parent, 'plot', None)
+        if plot:
+            return plot.cmap
+        return None
 
     def get_selections(self):
         return self.combo_meta.currentText(), self.combo_other.currentText()
@@ -86,7 +96,7 @@ class MenuWidget(QWidget):
         self.setFixedHeight(15)
         # self.setStyleSheet("background-color: rgba(100, 100, 100, 100); color: white; padding: 10px;")
         # self.setStyleSheet("background-color: white; color: white; padding: 10px;")
-        self.setStyleSheet("background-color: white; color: white; padding: 10px; margin: 0px;")
+        # self.setStyleSheet("background-color: white; color: white; padding: 10px; margin: 0px;")
 
         self.button_layout = QHBoxLayout()  # Arrange buttons horizontally
         self.button_layout.setContentsMargins(2, 2, 2, 2)
@@ -150,7 +160,11 @@ class MenuWidget(QWidget):
         popup_name = action.objectName()
 
         if popup_name == "color_by":
-            dialog = DropdownDialog("Color by", self.metadata.columns, sorted(plt.colormaps()), parent=self)
+            cmap_list = sorted(plt.colormaps())
+            cmap = getattr(self.plot, "cmap", None)
+            idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
+            dialog = DropdownDialog("Color by", self.metadata.columns, cmap_list, idx, parent=self)
+            dialog.setEnabled(True)
             dialog.exec()
         #
         #

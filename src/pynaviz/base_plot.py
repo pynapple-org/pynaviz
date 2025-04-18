@@ -126,10 +126,11 @@ class _BasePlot(ABC):
 
     def color_by(self, metadata_name, cmap_name='viridis'):
         try:
-            cmap = cm.get_cmap(cmap_name)
+            self.cmap = cmap_name
         except:
-            cmap = 'jet'
+            self.cmap = 'jet'
 
+        cmap = cm.get_cmap(self.cmap)
         # Grabbing the material object
         materials = get_plot_attribute(self, "material")
 
