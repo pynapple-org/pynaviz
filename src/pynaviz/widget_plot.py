@@ -75,9 +75,9 @@ class DropdownDialog(QDialog):
 
 
 
-class MenuWidget(QWidget):
+class MenuWidget(QHBoxLayout):
 
-    def __init__(self, metadata, plot, index=None):
+    def __init__(self, metadata, plot, parent):
         """
 
         Parameters
@@ -86,27 +86,26 @@ class MenuWidget(QWidget):
             The list of metadata column names
         plot: _BasePlot
             All the possible base plot
-        index
-            The item index
+        parent: QWidget
+            The parent widget
         """
         super().__init__(None)
         self.metadata = metadata
         self.plot = plot
-        self.setFixedHeight(20)
+        self.parent = parent
+        # self.setFixedHeight(20)
+        self.setSpacing(0)
         self.setContentsMargins(0, 0, 0, 0)
 
-        self.button_layout = QHBoxLayout()  # Arrange buttons horizontally
-        self.button_layout.setContentsMargins(0, 0, 0, 0)
-        self.button_layout.setSpacing(0)
-
         # Select button
-        icon_size = 20
+        icon_size = 15
         self.select_button = self._make_button(
             menu_to_show=self.show_select_menu,
             icon_name="SP_DialogApplyButton",
             icon_size=icon_size
         )
-        self.button_layout.addWidget(self.select_button)
+        self.addWidget(self.select_button)
+
 
         # Action button
         self.action_button = self._make_button(
@@ -114,19 +113,18 @@ class MenuWidget(QWidget):
             icon_name="SP_FileDialogDetailedView",
             icon_size=icon_size
         )
-        self.button_layout.addWidget(self.action_button)
+        self.addWidget(self.action_button)
 
         # Action menu
         self._action_menu()
 
         # Set layout to the container widget
-        self.button_layout.addStretch()
-        self.setLayout(self.button_layout)
+        self.addStretch()
 
 
     def _action_menu(self):
         # First-level menu
-        self.action_menu = QMenu(self)
+        self.action_menu = QMenu()
 
         # Second-level submenu
         for action_name, action_func in zip(
@@ -137,15 +135,6 @@ class MenuWidget(QWidget):
             action.setObjectName(action_name)
             action.triggered.connect(self.popup_menu)
             action.setObjectName(action_func)
-
-            # self.action_menu.addAction(action_name)
-            # menu = QMenu(action_name, self.action_menu)
-            # for name in self.metadata.columns:
-            #     action = menu.addAction(name)
-            #     action.setObjectName(action_func+"|"+name)
-            #     action.triggered.connect(self.handle_action)
-            #
-            # self.action_menu.addMenu(menu)
 
     def popup_menu(self):
         action = self.sender()
@@ -187,7 +176,7 @@ class MenuWidget(QWidget):
     def _make_button(self, menu_to_show, icon_name, icon_size=20):
         button = QPushButton()
         pixmapi = getattr(QStyle.StandardPixmap, icon_name)
-        icon = self.style().standardIcon(pixmapi)
+        icon = self.parent.style().standardIcon(pixmapi)
         button.setIcon(icon)
         button.setIconSize(QSize(icon_size,icon_size))
         button.setFixedSize(icon_size + 8, icon_size + 8)
@@ -213,6 +202,7 @@ class TsGroupWidget(QWidget):
         super().__init__(None)
         self.resize(*size)
 
+        # The main layout
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
         self.setLayout(layout)
@@ -222,15 +212,11 @@ class TsGroupWidget(QWidget):
         self.plot = PlotTsGroup(data, index=index, parent=parent)
 
         # Top level menu container
-        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
+        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot, parent=self)
 
         # Add overlay and canvas to layout
-        layout.addWidget(self.button_container)
+        layout.addLayout(self.button_container)
         layout.addWidget(self.plot.canvas)
-
-        # # Top level menu container
-        # self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
-        # self.button_container.setParent(self.plot.canvas)
 
 class TsdWidget(QWidget):
 
