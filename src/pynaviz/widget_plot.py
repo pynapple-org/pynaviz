@@ -93,7 +93,7 @@ class MenuWidget(QHBoxLayout):
         self.metadata = metadata
         self.plot = plot
         self.parent = parent
-        # self.setFixedHeight(20)
+
         self.setSpacing(0)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -144,7 +144,7 @@ class MenuWidget(QHBoxLayout):
             cmap_list = sorted(plt.colormaps())
             cmap = getattr(self.plot, "cmap", None)
             idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
-            dialog = DropdownDialog("Color by", self.metadata.columns, cmap_list, idx, parent=self)
+            dialog = DropdownDialog("Color by", self.metadata.columns, cmap_list, idx, parent=self.parent)
             dialog.setEnabled(True)
             dialog.exec()
         #
@@ -179,7 +179,7 @@ class MenuWidget(QHBoxLayout):
         icon = self.parent.style().standardIcon(pixmapi)
         button.setIcon(icon)
         button.setIconSize(QSize(icon_size,icon_size))
-        button.setFixedSize(icon_size + 8, icon_size + 8)
+        button.setFixedSize(icon_size + 5, icon_size + 5)
         button.setFlat(True)
         button.clicked.connect(menu_to_show)
         button.setStyleSheet("""
