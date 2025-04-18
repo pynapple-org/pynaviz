@@ -6,6 +6,7 @@ Classes hold the specific interactive methods for each pynapple object.
 from importlib.metadata import metadata
 from typing import List
 from PyQt6.QtGui import QIcon
+
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QStyle, QMenu, QListWidget, QDialog, QComboBox
 from PyQt6.QtCore import Qt, QSize, QPoint
 from pynaviz import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
@@ -81,19 +82,24 @@ class MenuWidget(QWidget):
         super().__init__(None)
         self.metadata = metadata
         self.plot = plot
-        self.setFixedHeight(50)
+
+        self.setFixedHeight(15)
         # self.setStyleSheet("background-color: rgba(100, 100, 100, 100); color: white; padding: 10px;")
         # self.setStyleSheet("background-color: white; color: white; padding: 10px;")
+        self.setStyleSheet("background-color: white; color: white; padding: 10px; margin: 0px;")
+
         self.button_layout = QHBoxLayout()  # Arrange buttons horizontally
+        self.button_layout.setContentsMargins(2, 2, 2, 2)
+        self.button_layout.setSpacing(0)
 
         # Select button
         self.select_button = QPushButton()
         pixmapi = getattr(QStyle.StandardPixmap, "SP_DialogApplyButton")
         icon = self.style().standardIcon(pixmapi)
         self.select_button.setIcon(icon)
-        self.select_button.setIconSize(QSize(32,32))
+        self.select_button.setIconSize(QSize(15,15))
         self.select_button.setFlat(True)
-        self.select_button.setFixedSize(40,40)
+        self.select_button.setFixedSize(15,15)
         self.select_button.clicked.connect(self.show_select_menu)
         self.button_layout.addWidget(self.select_button)
 
@@ -102,9 +108,9 @@ class MenuWidget(QWidget):
         pixmapi = getattr(QStyle.StandardPixmap, "SP_FileDialogDetailedView")
         icon = self.style().standardIcon(pixmapi)
         self.action_button.setIcon(icon)
-        self.action_button.setIconSize(QSize(32,32))
+        # self.action_button.setIconSize(QSize(32,32))
         self.action_button.setFlat(True)
-        self.action_button.setFixedSize(40,40)
+        # self.action_button.setFixedSize(40,40)
         self.action_button.clicked.connect(self.show_action_menu)
         self.button_layout.addWidget(self.action_button)
 
@@ -114,7 +120,7 @@ class MenuWidget(QWidget):
         # Set layout to the container widget
         self.button_layout.addStretch()
         self.setLayout(self.button_layout)
-        # self.hide()
+
 
     def _action_menu(self):
         # First-level menu
@@ -184,26 +190,19 @@ class TsGroupWidget(QWidget):
         self.setLayout(layout)
 
         # Canvas
-        # super().__init__(None)
         parent = self if set_parent else None
         self.plot = PlotTsGroup(data, index=index, parent=parent)
 
-        # Add overlay and canvas to layout
-        layout.addWidget(self.plot.canvas)
-
         # Top level menu container
         self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
-        self.button_container.setParent(self.plot.canvas)
 
-    def enterEvent(self, event):
-        """Show the widget when the mouse enters."""
-        self.button_container.show()
-        super().enterEvent(event)
+        # Add overlay and canvas to layout
+        layout.addWidget(self.button_container)
+        layout.addWidget(self.plot.canvas)
 
-    def leaveEvent(self, event):
-        """Hide the widget when the mouse leaves."""
-        self.button_container.hide()
-        super().leaveEvent(event)
+        # # Top level menu container
+        # self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
+        # self.button_container.setParent(self.plot.canvas)
 
 class TsdWidget(QWidget):
 
@@ -258,20 +257,7 @@ class TsdFrameWidget(QWidget):
         # # Add to the canvas
         button_container.setParent(self.plot.canvas)
         self.button_container = button_container
-        self.button_container.hide()
 
-    def button1_clicked(self):
-        print("clicked button1")
-
-    def enterEvent(self, event):
-        """Show the widget when the mouse enters."""
-        self.button_container.show()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        """Hide the widget when the mouse leaves."""
-        self.button_container.hide()
-        super().leaveEvent(event)
 
 
 class TsdTensorWidget(QWidget):
