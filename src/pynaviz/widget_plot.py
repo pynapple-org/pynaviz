@@ -93,35 +93,25 @@ class MenuWidget(QWidget):
         self.metadata = metadata
         self.plot = plot
 
-        self.setFixedHeight(15)
-        # self.setStyleSheet("background-color: rgba(100, 100, 100, 100); color: white; padding: 10px;")
-        # self.setStyleSheet("background-color: white; color: white; padding: 10px;")
-        # self.setStyleSheet("background-color: white; color: white; padding: 10px; margin: 0px;")
-
         self.button_layout = QHBoxLayout()  # Arrange buttons horizontally
-        self.button_layout.setContentsMargins(2, 2, 2, 2)
+        self.button_layout.setContentsMargins(0, 0, 0, 0)
         self.button_layout.setSpacing(0)
 
         # Select button
-        self.select_button = QPushButton()
-        pixmapi = getattr(QStyle.StandardPixmap, "SP_DialogApplyButton")
-        icon = self.style().standardIcon(pixmapi)
-        self.select_button.setIcon(icon)
-        self.select_button.setIconSize(QSize(15,15))
-        self.select_button.setFlat(True)
-        self.select_button.setFixedSize(15,15)
-        self.select_button.clicked.connect(self.show_select_menu)
+        icon_size = 10
+        self.select_button = self._make_button(
+            menu_to_show=self.show_select_menu,
+            icon_name="SP_DialogApplyButton",
+            icon_size=icon_size
+        )
         self.button_layout.addWidget(self.select_button)
 
         # Action button
-        self.action_button = QPushButton()
-        pixmapi = getattr(QStyle.StandardPixmap, "SP_FileDialogDetailedView")
-        icon = self.style().standardIcon(pixmapi)
-        self.action_button.setIcon(icon)
-        # self.action_button.setIconSize(QSize(32,32))
-        self.action_button.setFlat(True)
-        # self.action_button.setFixedSize(40,40)
-        self.action_button.clicked.connect(self.show_action_menu)
+        self.action_button = self._make_button(
+            menu_to_show=self.show_action_menu,
+            icon_name="SP_FileDialogDetailedView",
+            icon_size=icon_size
+        )
         self.button_layout.addWidget(self.action_button)
 
         # Action menu
@@ -191,6 +181,28 @@ class MenuWidget(QWidget):
         action = self.sender()
         event = action.data()
         self.plot.update(event)
+
+    def _make_button(self, menu_to_show, icon_name, icon_size=20):
+        button = QPushButton()
+        pixmapi = getattr(QStyle.StandardPixmap, icon_name)
+        icon = self.style().standardIcon(pixmapi)
+        button.setIcon(icon)
+        button.setIconSize(QSize(icon_size,icon_size))
+        button.setFixedSize(icon_size + 8, icon_size + 8)
+        button.setFlat(True)
+        button.clicked.connect(menu_to_show)
+        button.setStyleSheet("""
+            QPushButton {
+                background-color: #3a3a3a;
+                border: none;
+                padding: 0px;
+                margin: 0px;
+            }
+            QPushButton:hover {
+                background-color: #505050;
+            }
+        """)
+        return button
 
 
 class TsGroupWidget(QWidget):
