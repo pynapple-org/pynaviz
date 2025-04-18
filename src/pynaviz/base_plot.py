@@ -147,19 +147,18 @@ class _BasePlot(ABC):
             self.canvas.request_draw(self.animate)
 
 
-    def update(self, event, **kwargs):
+    def update(self, event):
         """
         Apply an action to the widget plot.
         Actions can be "color_by", "sort_by" and "group_by"
         """
-        # TODO: Change this to assume that the event contains info about the metadata.
         metadata_name = event["metadata_name"]
-        action = event["action"]
-        kwargs = event["kwargs"]
+        action_name = event["action"]
+        if action_name == "color_by":
+            self.color_by(metadata_name)
+        elif action_name == "sort_by":
+            self.sort_by(metadata_name)
 
-        metadata = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
-        action_caller(self, action, metadata=metadata, **kwargs)
-        # TODO: make it more targeted than update all
 
 
 class PlotTsd(_BasePlot):

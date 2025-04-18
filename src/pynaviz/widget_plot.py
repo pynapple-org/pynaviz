@@ -72,7 +72,13 @@ class MenuWidget(QWidget):
             menu = QMenu(action_name, self.action_menu)
             for name in self.metadata.columns:
                 action = menu.addAction(name)
-                action.setObjectName(action_func+"|"+name)
+                action.setObjectName(action_func+"_"+name)
+                action.setData(
+                    {
+                        "action":action_func,
+                        "metadata_name":name
+                    }
+                )
                 action.triggered.connect(self.handle_action)
 
             self.action_menu.addMenu(menu)
@@ -87,14 +93,8 @@ class MenuWidget(QWidget):
 
     def handle_action(self):
         action = self.sender()
-        action_name = action.objectName()
-        self.plot.update(
-            {
-                "action" : action_name.split("|")[0],
-                "metadata_name" : "".join(action_name.split("|")[1:])
-            }
-        )
-
+        event = action.data()
+        self.plot.update(event)
 
 
 class TsGroupWidget(QWidget):
