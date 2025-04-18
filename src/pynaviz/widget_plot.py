@@ -3,10 +3,65 @@ Plotting class for each pynapple object using Qt Widget.
 Create a unique Qt widget for each class.
 Classes hold the specific interactive methods for each pynapple object.
 """
+from importlib.metadata import metadata
+from typing import List
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QStyle, QMenu, QListWidget
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QStyle, QMenu, QListWidget, QDialog, QComboBox
 from PyQt6.QtCore import Qt, QSize, QPoint
 from pynaviz import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
+import matplotlib.pyplot as plt
+
+class DropdownDialog(QDialog):
+    def __init__(self, meta_columns: List[str], other_combo: List[str], parent=None):
+        """
+        Parameters
+        ----------
+        meta_columns:
+            The metadata column names.
+        other_combo:
+            Key value pair for the combo box. Keys are used for element to list, values as the content.
+        parent:
+            The parent widget.
+        """
+        super().__init__(parent)
+        self.setWindowTitle("Select Options")
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self.setFixedSize(300, 150)
+
+        # Create dropdown menus
+        self.combo_meta = QComboBox()
+        self.combo_meta.addItems(list(meta_columns))
+
+        self.combo_other = QComboBox()
+        self.combo_other.addItems(list(other_combo))
+
+
+        # Layout setup
+        layout = QVBoxLayout()
+        layout.addWidget(self.combo_meta)
+        layout.addWidget(self.combo_other)
+        self.setLayout(layout)
+
+        self.combo_meta.currentIndexChanged.connect(self.combo_meta_changed)
+        self.combo_other.currentIndexChanged.connect(self.combo_item_changed)
+        self._parent = parent
+
+    def get_selections(self):
+        return self.combo_meta.currentText(), self.combo_other.currentText()
+
+    def combo_meta_changed(self):
+        combo = self.sender()
+        print("meta", combo)
+        plot = getattr(combo._parent, "plot", None)
+        if plot:
+            meta, cmap = combo.get_selections()
+            plot.color_by(meta, cmap)
+
+    def combo_item_changed(self):
+        combo = self.sender()
+        print("meta", combo)
+
+
 
 class MenuWidget(QWidget):
 
@@ -74,7 +129,6 @@ class MenuWidget(QWidget):
             action.triggered.connect(self.popup_menu)
             action.setObjectName(action_func)
 
-
             # self.action_menu.addAction(action_name)
             # menu = QMenu(action_name, self.action_menu)
             # for name in self.metadata.columns:
@@ -85,9 +139,22 @@ class MenuWidget(QWidget):
             # self.action_menu.addMenu(menu)
 
     def popup_menu(self):
-        print("active")
         action = self.sender()
-        print(action.objectName())
+        popup_name = action.objectName()
+
+        if popup_name == "color_by":
+            dialog = DropdownDialog(self.metadata.columns, plt.colormaps(), parent=self)
+            dialog.exec()
+        #
+        #
+        # # Example metadata and other_combo data
+        # meta_columns = ["Column1", "Column2", "Column3"]
+        # other_combo = {"Option1": "Value1", "Option2": "Value2"}
+        #
+        #
+        # if dialog.exec():
+        #     selection1, selection2 = dialog.get_selections()
+        #     print(f"Selected: {selection1}, {selection2}")
 
 
     def show_action_menu(self):
@@ -101,14 +168,8 @@ class MenuWidget(QWidget):
 
     def handle_action(self):
         action = self.sender()
-        action_name = action.objectName()
-        self.plot.update(
-            {
-                "action" : action_name.split("|")[0],
-                "metadata_name" : "".join(action_name.split("|")[1:])
-            }
-        )
-
+        event = action.data()
+        self.plot.update(event)
 
 
 class TsGroupWidget(QWidget):
