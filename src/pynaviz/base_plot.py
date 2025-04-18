@@ -2,11 +2,13 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
+import warnings
 from typing import Any, Callable, Optional
-
+from matplotlib.colors import Colormap
 import pygfx as gfx
 import pandas as pd
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import pynapple as nap
 from PyQt6.QtWidgets import QWidget
 from wgpu.gui.qt import (
@@ -67,6 +69,23 @@ class _BasePlot(ABC):
             gfx.LineMaterial(thickness=0.5, color="#B4F8C8"),
         )
         self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
+        self._cmap = "jet"
+
+    @property
+    def cmap(self):
+        return self._cmap
+
+    @cmap.setter
+    def cmap(self, value):
+        if isinstance(value, Colormap) and hasattr(value, "name"):
+            self._cmap = value.name
+        elif not isinstance(value, str):
+            warnings.warn(message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.", category=UserWarning)
+            return
+        if not value in plt.colormaps():
+            warnings.warn(message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.", category=UserWarning)
+            return
+        self._cmap = value
 
     def animate(self):
         # get range of screen space in pixels
