@@ -4,7 +4,7 @@ Create a unique Qt widget for each class.
 Classes hold the specific interactive methods for each pynapple object.
 """
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QStyle, QMenu
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QStyle, QMenu, QListWidget
 from PyQt6.QtCore import Qt, QSize, QPoint
 from pynaviz import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
 
@@ -62,25 +62,39 @@ class MenuWidget(QWidget):
 
     def _action_menu(self):
         # First-level menu
-        self.action_menu = QMenu()
+        self.action_menu = QMenu(self)
 
         # Second-level submenu
         for action_name, action_func in zip(
                 ["Color by", "Group by", "Sort by"],
                 ["color_by", "group_by", "sort_by"]
         ):
-            menu = QMenu(action_name, self.action_menu)
-            for name in self.metadata.columns:
-                action = menu.addAction(name)
-                action.setObjectName(action_func+"|"+name)
-                action.triggered.connect(self.handle_action)
+            action = self.action_menu.addAction(action_name)
+            action.setObjectName(action_name)
+            action.triggered.connect(self.popup_menu)
+            action.setObjectName(action_func)
 
-            self.action_menu.addMenu(menu)
+
+            # self.action_menu.addAction(action_name)
+            # menu = QMenu(action_name, self.action_menu)
+            # for name in self.metadata.columns:
+            #     action = menu.addAction(name)
+            #     action.setObjectName(action_func+"|"+name)
+            #     action.triggered.connect(self.handle_action)
+            #
+            # self.action_menu.addMenu(menu)
+
+    def popup_menu(self):
+        print("active")
+        action = self.sender()
+        print(action.objectName())
+
 
     def show_action_menu(self):
         # Show menu below the button
         pos = self.action_button.mapToGlobal(QPoint(0, self.action_button.height()))
         self.action_menu.exec(pos)
+
 
     def show_select_menu(self):
         pass

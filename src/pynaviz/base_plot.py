@@ -158,7 +158,7 @@ class _BasePlot(ABC):
         kwargs = event["kwargs"]
 
         metadata = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
-        action_caller(self, action, metadata=metadata, **kwargs)
+        #action_caller(self, action, metadata=metadata, **kwargs)
         # TODO: make it more targeted than update all
 
 
