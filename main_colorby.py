@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QApplication
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
 tsg = nap.TsGroup({
     i:nap.Ts(
-        t=np.sort(np.random.uniform(0, 1000, 100*(i+1)))
+        t=np.linspace(0, 100, 100*(10-i))
     ) for i in range(10)},
     metadata={
         "label":np.arange(10),
@@ -27,7 +27,8 @@ app = QApplication([])
 # viz.TsdTensorWidget(tsdtensor).show()
 v = viz.TsGroupWidget(tsg)
 v.plot.controller.show_interval(0, 20)
-# v.plot.update("color_by", label="label", cmap_name="jet")
+v.plot.color_by("label", 'jet')
+v.plot.sort_by("rate")
 v.show()
 # v = viz.TsdFrameWidget(tsdframe)
 # v.show()

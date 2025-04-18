@@ -17,7 +17,7 @@ from abc import ABC
 from pylinalg import vec_transform, vec_unproject
 import numpy as np
 
-from .utils import action_caller
+from .utils import get_plot_attribute
 from .controller import SpanController, GetController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
@@ -105,28 +105,53 @@ class _BasePlot(ABC):
 
         self.renderer.render(self.scene, self.camera)
 
-    def color_by(self, materials, values, cmap_name='jet', map_values: Optional[Callable[[Any], float]]=None):
-        # do nothing for empty values
-        if not values:
-            return
-        cmap = cm.get_cmap(cmap_name)
-        # assume that we can specify some value-map
-        values = pd.Series(values) if map_values is None else map_values(values)
-        values = values - np.nanmin(values)
-        values = values / np.nanmax(values)
-        for c in materials:
-            materials[c].color = cmap(values[c])
-        self.canvas.request_draw(self.animate)
+    def color_by(self, metadata_name, cmap_name='viridis'):
+        try:
+            cmap = cm.get_cmap(cmap_name)
+        except:
+            cmap = 'jet'
+
+        # Grabbing the material object
+        materials = get_plot_attribute(self, "material")
+
+        # Grabbing the metadata
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
+
+        # If metadata found
+        if len(values):
+            # assume that we can specify some value-map
+            values = pd.Series(values)
+            values = values - np.nanmin(values)
+            values = values / np.nanmax(values)
+            for c in materials:
+                materials[c].color = cmap(values[c])
+            self.canvas.request_draw(self.animate) # To fix
 
 
-    def sort_by(self,  geometries, values, map_values: Optional[Callable[[Any], float]]=None):
-        values = pd.Series(values) if map_values is None else map_values(values)
-        # implement logic
-        self.canvas.request_draw(self.animate)
+    def sort_by(self,  metadata_name):
+        # Grabbing the material object
+        geometries = get_plot_attribute(self, "geometry")
+
+        # Grabbing the metadata
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
+
+        # If metadata found
+        if len(values):
+            values = pd.Series(values)
+            order = np.argsort(values)
+
+            for c in geometries:
+                geometries[c].positions.data[:,1] = order[c]
+                geometries[c].positions.update_full()
+
+            self.canvas.request_draw(self.animate)
 
 
     def update(self, event, **kwargs):
-
+        """
+        Apply an action to the widget plot.
+        Actions can be "color_by", "sort_by" and "group_by"
+        """
         # TODO: Change this to assume that the event contains info about the metadata.
         # metadata_name = event["metadata_name"]
         # action = event["action"]

@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [    
     'fastplotlib',
     'pynapple',
+    'matplotlib'
 ]
 
 
