@@ -11,12 +11,19 @@ from PyQt6.QtCore import Qt, QSize, QPoint
 from pynaviz import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
 import matplotlib.pyplot as plt
 
+
 class DropdownDialog(QDialog):
-    def __init__(self, meta_columns: List[str], other_combo: List[str], parent=None):
+    def __init__(
+            self,
+            title: str,
+            meta_names: List[str],
+            other_combo: List[str],
+            parent=None
+    ):
         """
         Parameters
         ----------
-        meta_columns:
+        meta_names:
             The metadata column names.
         other_combo:
             Key value pair for the combo box. Keys are used for element to list, values as the content.
@@ -24,42 +31,36 @@ class DropdownDialog(QDialog):
             The parent widget.
         """
         super().__init__(parent)
-        self.setWindowTitle("Select Options")
+        self.setWindowTitle(title)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setFixedSize(300, 150)
 
         # Create dropdown menus
         self.combo_meta = QComboBox()
-        self.combo_meta.addItems(list(meta_columns))
+        self.combo_meta.addItems(list(meta_names))
 
         self.combo_other = QComboBox()
         self.combo_other.addItems(list(other_combo))
 
-
         # Layout setup
-        layout = QVBoxLayout()
+        layout = QHBoxLayout()
         layout.addWidget(self.combo_meta)
         layout.addWidget(self.combo_other)
         self.setLayout(layout)
 
-        self.combo_meta.currentIndexChanged.connect(self.combo_meta_changed)
-        self.combo_other.currentIndexChanged.connect(self.combo_item_changed)
+        self.combo_meta.currentIndexChanged.connect(self.combo_changed)
+        self.combo_other.currentIndexChanged.connect(self.combo_changed)
         self._parent = parent
 
     def get_selections(self):
         return self.combo_meta.currentText(), self.combo_other.currentText()
 
-    def combo_meta_changed(self):
-        combo = self.sender()
-        print("meta", combo)
-        plot = getattr(combo._parent, "plot", None)
+    def combo_changed(self):
+        plot = getattr(self._parent, "plot", None)
         if plot:
-            meta, cmap = combo.get_selections()
+            meta, cmap = self.get_selections()
             plot.color_by(meta, cmap)
 
-    def combo_item_changed(self):
-        combo = self.sender()
-        print("meta", combo)
 
 
 
@@ -143,7 +144,7 @@ class MenuWidget(QWidget):
         popup_name = action.objectName()
 
         if popup_name == "color_by":
-            dialog = DropdownDialog(self.metadata.columns, plt.colormaps(), parent=self)
+            dialog = DropdownDialog("Color by", self.metadata.columns, sorted(plt.colormaps()), parent=self)
             dialog.exec()
         #
         #
