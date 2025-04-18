@@ -10,22 +10,25 @@ from pynaviz import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
 
 class MenuWidget(QWidget):
 
-    def __init__(self, metadata, index=None):
+    def __init__(self, metadata, plot, index=None):
         """
 
         Parameters
         ----------
         metadata: pd.DataFrame or dict
             The list of metadata column names
+        plot: _BasePlot
+            All the possible base plot
         index
             The item index
         """
         super().__init__(None)
         self.metadata = metadata
+        self.plot = plot
         self.setFixedHeight(50)
         # self.setStyleSheet("background-color: rgba(100, 100, 100, 100); color: white; padding: 10px;")
-        self.setStyleSheet("background-color: white; color: white; padding: 10px;")
-        button_layout = QHBoxLayout()  # Arrange buttons horizontally
+        # self.setStyleSheet("background-color: white; color: white; padding: 10px;")
+        self.button_layout = QHBoxLayout()  # Arrange buttons horizontally
 
         # Select button
         self.select_button = QPushButton()
@@ -36,7 +39,7 @@ class MenuWidget(QWidget):
         self.select_button.setFlat(True)
         self.select_button.setFixedSize(40,40)
         self.select_button.clicked.connect(self.show_select_menu)
-        button_layout.addWidget(self.select_button)
+        self.button_layout.addWidget(self.select_button)
 
         # Action button
         self.action_button = QPushButton()
@@ -47,25 +50,30 @@ class MenuWidget(QWidget):
         self.action_button.setFlat(True)
         self.action_button.setFixedSize(40,40)
         self.action_button.clicked.connect(self.show_action_menu)
-        button_layout.addWidget(self.action_button)
+        self.button_layout.addWidget(self.action_button)
 
         # Action menu
         self._action_menu()
 
         # Set layout to the container widget
-        button_layout.addStretch()
-        self.setLayout(button_layout)
-        self.hide()
+        self.button_layout.addStretch()
+        self.setLayout(self.button_layout)
+        # self.hide()
 
     def _action_menu(self):
         # First-level menu
         self.action_menu = QMenu()
 
         # Second-level submenu
-        for action_name in ["Color by", "Group by", "Sort by"]:
+        for action_name, action_func in zip(
+                ["Color by", "Group by", "Sort by"],
+                ["color_by", "group_by", "sort_by"]
+        ):
             menu = QMenu(action_name, self.action_menu)
             for name in self.metadata.columns:
-                menu.addAction(name, lambda: print("yo"))
+                action = menu.addAction(name)
+                action.setObjectName(action_func+"|"+name)
+                action.triggered.connect(self.handle_action)
 
             self.action_menu.addMenu(menu)
 
@@ -76,6 +84,16 @@ class MenuWidget(QWidget):
 
     def show_select_menu(self):
         pass
+
+    def handle_action(self):
+        action = self.sender()
+        action_name = action.objectName()
+        self.plot.update(
+            {
+                "action" : action_name.split("|")[0],
+                "metadata_name" : "".join(action_name.split("|")[1:])
+            }
+        )
 
 
 
@@ -98,7 +116,7 @@ class TsGroupWidget(QWidget):
         layout.addWidget(self.plot.canvas)
 
         # Top level menu container
-        self.button_container = MenuWidget(metadata=data.metadata)
+        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
         self.button_container.setParent(self.plot.canvas)
 
     def enterEvent(self, event):
@@ -110,7 +128,6 @@ class TsGroupWidget(QWidget):
         """Hide the widget when the mouse leaves."""
         self.button_container.hide()
         super().leaveEvent(event)
-
 
 class TsdWidget(QWidget):
 

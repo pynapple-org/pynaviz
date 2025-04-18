@@ -153,11 +153,10 @@ class _BasePlot(ABC):
         Actions can be "color_by", "sort_by" and "group_by"
         """
         # TODO: Change this to assume that the event contains info about the metadata.
-        # metadata_name = event["metadata_name"]
-        # action = event["action"]
-        # kwargs = event["kwargs"]
-        metadata_name = "label"
-        action = event
+        metadata_name = event["metadata_name"]
+        action = event["action"]
+        kwargs = event["kwargs"]
+
         metadata = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
         action_caller(self, action, metadata=metadata, **kwargs)
         # TODO: make it more targeted than update all
