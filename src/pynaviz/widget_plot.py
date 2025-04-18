@@ -92,13 +92,15 @@ class MenuWidget(QWidget):
         super().__init__(None)
         self.metadata = metadata
         self.plot = plot
+        self.setFixedHeight(20)
+        self.setContentsMargins(0, 0, 0, 0)
 
         self.button_layout = QHBoxLayout()  # Arrange buttons horizontally
         self.button_layout.setContentsMargins(0, 0, 0, 0)
         self.button_layout.setSpacing(0)
 
         # Select button
-        icon_size = 10
+        icon_size = 20
         self.select_button = self._make_button(
             menu_to_show=self.show_select_menu,
             icon_name="SP_DialogApplyButton",
