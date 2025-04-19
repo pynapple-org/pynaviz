@@ -319,29 +319,6 @@ class MenuWidget(QWidget):
             action.triggered.connect(self._popup_menu)
             action.setObjectName(action_func)
 
-    def _popup_menu(self):
-        action = self.sender()
-        popup_name = action.objectName()
-
-        if popup_name == "color_by":
-            cmap_list = sorted(plt.colormaps())
-            cmap = getattr(self.plot, "cmap", None)
-            idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
-            dialog = DropdownDialog(
-                "Color by", self.metadata.columns, cmap_list, idx, parent=self
-            )
-            dialog.setEnabled(True)
-            dialog.exec()
-        #
-        #
-        # # Example metadata and other_combo data
-        # meta_columns = ["Column1", "Column2", "Column3"]
-        # other_combo = {"Option1": "Value1", "Option2": "Value2"}
-        #
-        #
-        # if dialog.exec():
-        #     selection1, selection2 = dialog.get_selections()
-        #     print(f"Selected: {selection1}, {selection2}")
 
     def show_action_menu(self):
         # Show menu below the button
@@ -352,6 +329,31 @@ class MenuWidget(QWidget):
         # model = TsdFrameColumnListModel(my_tsdframe)
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.exec()
+
+    def _popup_menu(self):
+        action = self.sender()
+        popup_name = action.objectName()
+
+        if popup_name == "color_by":
+            cmap_list = sorted(plt.colormaps())
+            cmap = getattr(self.plot, "cmap", None)
+            idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
+            parameters = {
+                "type": QComboBox,
+                "name": "colormap",
+                "items": cmap_list,
+                "current_index": idx,
+            }
+            dialog = DropdownDialog(
+                "Color by",
+                self.metadata.columns,
+                dict(Colormap=parameters),
+                self.plot.color_by,
+                parent=self,
+            )
+
+            dialog.setEnabled(True)
+            dialog.exec()
 
 
 
@@ -380,31 +382,6 @@ class TsGroupWidget(QWidget):
         # Add overlay and canvas to layout
         layout.addWidget(self.button_container)
         layout.addWidget(self.plot.canvas)
-
-    def popup_menu(self):
-        action = self.sender()
-        popup_name = action.objectName()
-
-        if popup_name == "color_by":
-            cmap_list = sorted(plt.colormaps())
-            cmap = getattr(self.plot, "cmap", None)
-            idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
-            parameters = {
-                "type": QComboBox,
-                "name": "colormap",
-                "items": cmap_list,
-                "current_index": idx,
-            }
-            dialog = DropdownDialog(
-                "Color by",
-                self.button_container.metadata.columns,
-                dict(Colormap=parameters),
-                self.button_container.plot.color_by,
-                parent=self,
-            )
-
-            dialog.setEnabled(True)
-            dialog.exec()
 
 
 class TsdWidget(QWidget):
