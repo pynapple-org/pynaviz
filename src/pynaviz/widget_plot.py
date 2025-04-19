@@ -4,15 +4,55 @@ Create a unique Qt widget for each class.
 Classes hold the specific interactive methods for each pynapple object.
 """
 from importlib.metadata import metadata
-from typing import List
+from typing import List, Callable
 import bisect
 import numpy as np
 from PyQt6.QtGui import QIcon
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QStyle, QMenu, QListWidget, QDialog, QComboBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QStyle, QMenu, QListWidget, QDialog, \
+    QComboBox, QScrollArea, QGridLayout, QDoubleSpinBox
 from PyQt6.QtCore import Qt, QSize, QPoint
 from pynaviz import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
 import matplotlib.pyplot as plt
+
+WIDGET_PARAMS = {
+    QComboBox: {
+        "name": "setObjectName",
+        "items": "addItems",
+        "values": "setItemData",  # needs to iterate over items
+        "current_index": "setCurrentIndex",
+    },
+    QDoubleSpinBox: {
+        "name": "setObjectNAme",
+        "value": "setValue",
+    }
+}
+
+
+
+def widget_factory(parameters):
+    widget_type = parameters.pop("type")
+    if widget_type == QComboBox:
+        widget = QComboBox()
+        for arg_name, attr_name in WIDGET_PARAMS[QComboBox].items():
+            meth = getattr(widget, attr_name, None)
+            val = parameters.get(arg_name, None)
+            if meth and val:
+                if arg_name == "values":
+                    for i, v in enumerate(val):
+                        meth(i, v)
+                else:
+                    meth(val)
+    elif widget_type == QDoubleSpinBox:
+        widget = QDoubleSpinBox()
+        for arg_name, attr_name in WIDGET_PARAMS[QDoubleSpinBox].items():
+            meth = getattr(widget, attr_name, None)
+            val = parameters.get(arg_name, None)
+            if meth and val:
+                meth(val)
+    else:
+        raise ValueError("Unknown widget type.")
+    return widget
 
 
 class DropdownDialog(QDialog):
@@ -20,8 +60,8 @@ class DropdownDialog(QDialog):
             self,
             title: str,
             meta_names: List[str],
-            other_combo: List[str],
-            initial_idx_other: int,
+            other_widgets: dict[dict],
+            func: Callable,
             parent=None
     ):
         """
@@ -29,8 +69,8 @@ class DropdownDialog(QDialog):
         ----------
         meta_names:
             The metadata column names.
-        other_combo:
-            Key value pair for the combo box. Keys are used for element to list, values as the content.
+        other_widgets:
+            Parameter for constructing other widgets.
         parent:
             The parent widget.
         """
@@ -38,39 +78,70 @@ class DropdownDialog(QDialog):
         self.setWindowTitle(title)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setFixedSize(300, 150)
+        self._func = func
 
-        # Create dropdown menus
+        main_layout = QVBoxLayout()
+        # Scroll area setup
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        grid_layout = QGridLayout(scroll_content)
+
+        # ComboBoxes from metadata columns
+        num_cols = min(len(other_widgets) + 1, 3) # max per row
+        container = QVBoxLayout()
+        container.addWidget(QLabel("Metadata"))
         self.combo_meta = QComboBox()
         self.combo_meta.addItems(list(meta_names))
+        container.addWidget(self.combo_meta)
 
-        self.combo_other = QComboBox()
-        self.combo_other.addItems(list(other_combo))
-        self.combo_other.setCurrentIndex(initial_idx_other)
+        self.other_widgets = {}
+        grid_layout.addLayout(container, 0, 0)
+        num_widget = 1
+        for key, params in other_widgets.items():
+            widget = widget_factory(params)
+            container = QVBoxLayout()
+            container.addWidget(QLabel(key))
+            container.addWidget(widget)
+            if hasattr(widget, "currentIndexChanged"):
+                widget.currentIndexChanged.connect(self.item_changed)
+            if hasattr(widget, "valueChanged"):
+                widget.valueChanged.connect(self.item_changed)
+            row, col = num_widget // num_cols, num_widget % num_cols
+            grid_layout.addLayout(container, row, col)
+            self.other_widgets[num_widget] = widget
+            num_widget += 1
 
-        # Layout setup
-        layout = QHBoxLayout()
-        layout.addWidget(self.combo_meta)
-        layout.addWidget(self.combo_other)
-        self.setLayout(layout)
+        scroll.setWidget(scroll_content)
+        main_layout.addWidget(scroll)
 
-        self.combo_meta.currentIndexChanged.connect(self.combo_changed)
-        self.combo_other.currentIndexChanged.connect(self.combo_changed)
-        self._parent = parent
+        self.setLayout(main_layout)
+        # self.combo_other = QComboBox()
+        # self.combo_other.addItems(list(other_combo))
+        # self.combo_other.setCurrentIndex(initial_idx_other)
 
-    def get_current_cmap(self):
-        plot = getattr(self._parent, 'plot', None)
-        if plot:
-            return plot.cmap
-        return None
+        # # Layout setup
+        # layout = QHBoxLayout()
+        # layout.addWidget(self.combo_meta)
+        # layout.addWidget(self.combo_other)
+        # self.setLayout(layout)
+        #
+        # self.combo_meta.currentIndexChanged.connect(self.item_changed)
+        # self.combo_other.currentIndexChanged.connect(self.item_changed)
+        # self._parent = parent
 
     def get_selections(self):
-        return self.combo_meta.currentText(), self.combo_other.currentText()
+        out = [self.combo_meta.currentText()]
+        for widget in self.other_widgets.values():
+            if isinstance(widget, QComboBox):
+                out += [widget.currentText()]
+            elif isinstance(widget, QDoubleSpinBox):
+                out += [widget.value()]
+        return out
 
-    def combo_changed(self):
-        plot = getattr(self._parent, "plot", None)
-        if plot:
-            meta, cmap = self.get_selections()
-            plot.color_by(meta, cmap)
+    def item_changed(self):
+        out = self.get_selections()
+        self._func(*out)
 
 
 
@@ -155,7 +226,13 @@ class MenuWidget(QWidget):
             cmap_list = sorted(plt.colormaps())
             cmap = getattr(self.plot, "cmap", None)
             idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
-            dialog = DropdownDialog("Color by", self.metadata.columns, cmap_list, idx, parent=self)
+            parameters = {
+                "type": QComboBox,
+                "name": "colormap",
+                "items": cmap_list,
+                "current_index": idx,
+            }
+            dialog = DropdownDialog("Color by", self.metadata.columns, dict(Colormap=parameters), self.plot.color_by, parent=self)
             dialog.setEnabled(True)
             dialog.exec()
         #
