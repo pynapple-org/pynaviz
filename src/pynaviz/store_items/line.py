@@ -1,6 +1,6 @@
-import pynapple as nap
 import fastplotlib as fpl
 import numpy as np
+import pynapple as nap
 
 from ._base_item import StoreModelItem
 

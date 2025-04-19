@@ -2,27 +2,27 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
+
 import warnings
+from abc import ABC
 from typing import Any, Callable, Optional
-from matplotlib.colors import Colormap
-import pygfx as gfx
-import pandas as pd
+
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pygfx as gfx
 import pynapple as nap
+from matplotlib.colors import Colormap
+from pylinalg import vec_transform, vec_unproject
 from PyQt6.QtWidgets import QWidget
 from wgpu.gui.qt import (
-    WgpuCanvas,
-)  # Should use auto here or be able to select qt if parent passed
-import pygfx as gfx
-from abc import ABC
-from pylinalg import vec_transform, vec_unproject
-import numpy as np
+    WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
+)
 
-from .utils import get_plot_attribute
-from .controller import SpanController, GetController
+from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
-
+from .utils import get_plot_attribute
 
 COLORS = [
     "hotpink",
@@ -80,10 +80,16 @@ class _BasePlot(ABC):
         if isinstance(value, Colormap) and hasattr(value, "name"):
             self._cmap = value.name
         elif not isinstance(value, str):
-            warnings.warn(message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.", category=UserWarning)
+            warnings.warn(
+                message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.",
+                category=UserWarning,
+            )
             return
         if not value in plt.colormaps():
-            warnings.warn(message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.", category=UserWarning)
+            warnings.warn(
+                message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.",
+                category=UserWarning,
+            )
             return
         self._cmap = value
 
@@ -124,18 +130,22 @@ class _BasePlot(ABC):
 
         self.renderer.render(self.scene, self.camera)
 
-    def color_by(self, metadata_name, cmap_name='viridis'):
+    def color_by(self, metadata_name, cmap_name="viridis"):
         try:
             self.cmap = cmap_name
         except:
-            self.cmap = 'jet'
+            self.cmap = "jet"
 
         cmap = cm.get_cmap(self.cmap)
         # Grabbing the material object
         materials = get_plot_attribute(self, "material")
 
         # Grabbing the metadata
-        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
 
         # If metadata found
         if len(values):
@@ -145,15 +155,18 @@ class _BasePlot(ABC):
             values = values / np.nanmax(values)
             for c in materials:
                 materials[c].color = cmap(values[c])
-            self.canvas.request_draw(self.animate) # To fix
+            self.canvas.request_draw(self.animate)  # To fix
 
-
-    def sort_by(self,  metadata_name):
+    def sort_by(self, metadata_name):
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry")
 
         # Grabbing the metadata
-        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
 
         # If metadata found
         if len(values):
@@ -161,11 +174,10 @@ class _BasePlot(ABC):
             order = np.argsort(values)
 
             for c in geometries:
-                geometries[c].positions.data[:,1] = order[c]
+                geometries[c].positions.data[:, 1] = order[c]
                 geometries[c].positions.update_full()
 
             self.canvas.request_draw(self.animate)
-
 
     def update(self, event):
         """
@@ -179,8 +191,12 @@ class _BasePlot(ABC):
         elif action_name == "sort_by":
             self.sort_by(metadata_name)
 
-        metadata = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
-        #action_caller(self, action, metadata=metadata, **kwargs)
+        metadata = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
+        # action_caller(self, action, metadata=metadata, **kwargs)
         # TODO: make it more targeted than update all
 
 
@@ -223,7 +239,7 @@ class PlotTsdFrame(_BasePlot):
             controller_id=index,
             dict_sync_funcs=dict_sync_funcs,
             min=np.min(data),
-            max=np.max(data)
+            max=np.max(data),
         )
 
         # Passing the data
@@ -232,11 +248,13 @@ class PlotTsdFrame(_BasePlot):
             positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T
             positions = positions.astype("float32")
             self.graphic[c] = gfx.Line(
-                    gfx.Geometry(positions=positions),
-                    gfx.LineMaterial(thickness=4.0, color=COLORS[i % len(COLORS)]),
-                )
+                gfx.Geometry(positions=positions),
+                gfx.LineMaterial(thickness=4.0, color=COLORS[i % len(COLORS)]),
+            )
 
-        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, *list(self.graphic.values()))
+        self.scene.add(
+            self.rulerx, self.rulery, self.ruler_ref_time, *list(self.graphic.values())
+        )
         self.canvas.request_draw(self.animate)
 
 
@@ -250,8 +268,8 @@ class PlotTsGroup(_BasePlot):
             renderer=self.renderer,
             controller_id=index,
             dict_sync_funcs=dict_sync_funcs,
-            min = 0,
-            max= len(data) + 1
+            min=0,
+            max=len(data) + 1,
         )
 
         self.graphic = {}
@@ -262,11 +280,9 @@ class PlotTsGroup(_BasePlot):
             positions = positions.astype("float32")
 
             self.graphic[n] = gfx.Points(
-                    gfx.Geometry(positions=positions),
-                    gfx.PointsMaterial(
-                        size=5, color=COLORS[i % len(COLORS)], opacity=1
-                    ),
-                )
+                gfx.Geometry(positions=positions),
+                gfx.PointsMaterial(size=5, color=COLORS[i % len(COLORS)], opacity=1),
+            )
 
         self.scene.add(self.rulerx, self.rulery, *list(self.graphic.values()))
         self.canvas.request_draw(self.animate)
@@ -284,10 +300,12 @@ class PlotTsdTensor(_BasePlot):
         )
         # Text of the current time
         self.time_text = gfx.Text(
-                text="0.0", font_size=0.5, anchor="bottom-left",
-            material = gfx.TextMaterial(
+            text="0.0",
+            font_size=0.5,
+            anchor="bottom-left",
+            material=gfx.TextMaterial(
                 color="#B4F8C8", outline_color="#000", outline_thickness=0.15
-            )
+            ),
         )
 
         self.time_text.geometry.anchor = "bottom-left"
@@ -302,7 +320,7 @@ class PlotTsdTensor(_BasePlot):
             controller_id=index,
             data=data,
             texture=texture,
-            time_text=self.time_text
+            time_text=self.time_text,
         )
 
         # In the draw event, the draw function is called
