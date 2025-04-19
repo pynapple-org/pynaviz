@@ -154,6 +154,7 @@ class DropdownDialog(QDialog):
         self.combo_meta.addItems(meta_names)
         meta_widget = make_labeled_widget("Metadata", self.combo_meta)
         self.combo_meta.setMinimumWidth(120)
+        self.combo_meta.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         grid_layout.addWidget(meta_widget, 0, 0)
 
         # Other widgets
