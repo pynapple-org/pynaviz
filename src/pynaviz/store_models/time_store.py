@@ -1,9 +1,8 @@
-from fastplotlib.graphics._features import FeatureEvent
 import pynapple as nap
+from fastplotlib.graphics._features import FeatureEvent
 
-
-from ._base_store import StoreModel
 from ..store_items import *
+from ._base_store import StoreModel
 
 
 class TimeStore(StoreModel):

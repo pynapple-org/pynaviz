@@ -1,13 +1,19 @@
-from typing import List
 from itertools import product
+from typing import List
 
 import fastplotlib as fpl
-import pynapple as nap
 import numpy as np
+import pynapple as nap
 
-from .store_items import LineItem, HeatmapItem, MovieItem, ROIsItem, RasterItem
-from .store_models import TimeStore, ComponentStore
-from .store_items import StoreModelItem
+from .store_items import (
+    HeatmapItem,
+    LineItem,
+    MovieItem,
+    RasterItem,
+    ROIsItem,
+    StoreModelItem,
+)
+from .store_models import ComponentStore, TimeStore
 
 
 class NeuroWidget:

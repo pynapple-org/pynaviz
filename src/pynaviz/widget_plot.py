@@ -283,7 +283,6 @@ class MenuWidget(QHBoxLayout):
             action.triggered.connect(self.parent.popup_menu)
             action.setObjectName(action_func)
 
-
         #
         #
         # # Example metadata and other_combo data

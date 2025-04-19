@@ -1,2 +1,2 @@
-from .time_store import TimeStore
 from .component_store import ComponentStore
+from .time_store import TimeStore

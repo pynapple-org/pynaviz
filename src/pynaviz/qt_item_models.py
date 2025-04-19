@@ -1,6 +1,7 @@
-from PyQt6.QtCore import Qt, QAbstractListModel
-from pynaviz.utils import get_plot_attribute
 import pynapple as nap
+from PyQt6.QtCore import QAbstractListModel, Qt
+
+from pynaviz.utils import get_plot_attribute
 
 
 class ChannelListModel(QAbstractListModel):
@@ -101,11 +102,9 @@ class TsdFrameColumnListModel(QAbstractListModel):
 
 
 if __name__ == "__main__":
-    from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtWidgets import QListView
-
-    import pynapple as nap
     import numpy as np
+    import pynapple as nap
+    from PyQt6.QtWidgets import QApplication, QListView
 
     def handle_click(index):
         # Get current state of clicked item

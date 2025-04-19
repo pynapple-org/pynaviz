@@ -1,27 +1,26 @@
 import sys
-import pynapple as nap
 
+import pynapple as nap
+from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (
     QApplication,
-    QMainWindow,
     QDockWidget,
-    QWidget,
-    QVBoxLayout,
-    QListWidget,
     QHBoxLayout,
     QLabel,
+    QListWidget,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, QSize
 
+from .controller import ControllerGroup
 from .widget_plot import (
-    TsdWidget,
     TsdFrameWidget,
     TsdTensorWidget,
+    TsdWidget,
     TsGroupWidget,
     TsWidget,
 )
-from .controller import ControllerGroup
-
 
 DOCK_TITLE_STYLESHEET = """
     * {

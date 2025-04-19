@@ -1,8 +1,8 @@
 import abc
 from typing import Any, List
 
-from fastplotlib.graphics._base import Graphic
 import pynapple as nap
+from fastplotlib.graphics._base import Graphic
 
 
 class StoreModelItem:

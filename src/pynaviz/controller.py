@@ -4,12 +4,12 @@ The controller class.
 
 from typing import Callable, Optional, Union
 
-from pygfx import Camera, PanZoomController, Renderer, Viewport
 import pygfx as gfx
+import pynapple as nap
+from pygfx import Camera, PanZoomController, Renderer, Viewport
 from pylinalg import vec_transform, vec_unproject
 
 from .events import SyncEvent
-import pynapple as nap
 
 
 def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
@@ -238,7 +238,6 @@ class SpanController(CustomController):
         self._max = max
         self.show_interval(0, 1)
 
-
     def _update_pan(self, delta, *, vecx, vecy):
         super()._update_pan(delta, vecx=vecx, vecy=vecy)
         self._send_sync_event(
@@ -319,7 +318,7 @@ class GetController(CustomController):
         controller_id: Optional[int] = None,
         data: nap.TsdTensor = None,
         texture: gfx.Texture = None,
-        time_text: gfx.Text = None
+        time_text: gfx.Text = None,
     ):
         super().__init__(
             camera=camera,
