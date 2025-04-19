@@ -43,7 +43,8 @@ dev = [
     'matplotlib>=3.7',              # Plotting library
     "nox",
     "ruff",
-    "isort"
+    "isort",
+    "qdarkstyle",
 ]
 docs = [
     "mkdocs",                       # Documentation generator

@@ -96,7 +96,7 @@ class DropdownDialog(QDialog):
         num_cols = min(len(other_widgets) + 1, 3)  # max 3 per row
         num_rows = (len(other_widgets) + 1) // num_cols
         self.setFixedWidth(180 * num_cols)
-        self.setFixedHeight(min(100 * num_rows, 400))
+        self.setFixedHeight(min(150 * num_rows, 400))
         self._func = func
         self.other_widgets = {}
 
@@ -153,6 +153,8 @@ class DropdownDialog(QDialog):
         self.combo_meta = QComboBox()
         self.combo_meta.addItems(meta_names)
         meta_widget = make_labeled_widget("Metadata", self.combo_meta)
+        self.combo_meta.setMinimumWidth(120)
+        self.combo_meta.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         grid_layout.addWidget(meta_widget, 0, 0)
 
         # Other widgets
