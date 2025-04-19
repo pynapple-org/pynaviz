@@ -318,7 +318,6 @@ class MenuWidget(QWidget):
             action.triggered.connect(self._popup_menu)
             action.setObjectName(action_func)
 
-
     def show_action_menu(self):
         # Show menu below the button
         pos = self.action_button.mapToGlobal(QPoint(0, self.action_button.height()))

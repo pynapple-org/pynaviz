@@ -8,8 +8,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from pynaviz import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
-from widget_menu import MenuWidget
+from .base_plot import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
+from .widget_menu import MenuWidget
+
 
 class TsGroupWidget(QWidget):
 
@@ -28,9 +29,7 @@ class TsGroupWidget(QWidget):
         self.plot = PlotTsGroup(data, index=index, parent=parent)
 
         # Top level menu container
-        self.button_container = MenuWidget(
-            metadata=data.metadata, plot=self.plot
-        )
+        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
 
         # Add overlay and canvas to layout
         layout.addWidget(self.button_container)
@@ -62,9 +61,7 @@ class TsdFrameWidget(QWidget):
         self.plot = PlotTsdFrame(data, index=index, parent=parent)
 
         # Top level menu container
-        self.button_container = MenuWidget(
-            metadata=data.metadata, plot=self.plot
-        )
+        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
 
         # Add overlay and canvas to layout
         layout.addWidget(self.button_container)
