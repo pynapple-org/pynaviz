@@ -10,7 +10,7 @@ import numpy as np
 from PyQt6.QtGui import QIcon
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QStyle, QMenu, QListWidget, QDialog, \
-    QComboBox, QScrollArea, QGridLayout, QDoubleSpinBox
+    QComboBox, QScrollArea, QGridLayout, QDoubleSpinBox, QSizePolicy,QSpacerItem
 from PyQt6.QtCore import Qt, QSize, QPoint
 from pynaviz import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
 import matplotlib.pyplot as plt
@@ -77,58 +77,80 @@ class DropdownDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
-        self.setFixedSize(300, 150)
-        self._func = func
 
-        main_layout = QVBoxLayout()
-        # Scroll area setup
+        # Determine grid arrangement
+        num_cols = min(len(other_widgets) + 1, 3)  # max 3 per row
+        num_rows = (len(other_widgets) + 1) // num_cols
+        self.setFixedWidth(180 * num_cols)
+        self.setFixedHeight(min(100 * num_rows, 400))
+        self._func = func
+        self.other_widgets = {}
+
+        main_layout = QVBoxLayout(self)
+
+        # Scroll area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         scroll_content = QWidget()
-        grid_layout = QGridLayout(scroll_content)
+        scroll_content.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
 
-        # ComboBoxes from metadata columns
-        num_cols = min(len(other_widgets) + 1, 3) # max per row
-        container = QVBoxLayout()
-        container.addWidget(QLabel("Metadata"))
-        self.combo_meta = QComboBox()
-        self.combo_meta.addItems(list(meta_names))
-        container.addWidget(self.combo_meta)
+        grid_layout = QGridLayout()
 
-        self.other_widgets = {}
-        grid_layout.addLayout(container, 0, 0)
-        num_widget = 1
-        for key, params in other_widgets.items():
-            widget = widget_factory(params)
-            container = QVBoxLayout()
-            container.addWidget(QLabel(key))
-            container.addWidget(widget)
-            if hasattr(widget, "currentIndexChanged"):
-                widget.currentIndexChanged.connect(self.item_changed)
-            if hasattr(widget, "valueChanged"):
-                widget.valueChanged.connect(self.item_changed)
-            row, col = num_widget // num_cols, num_widget % num_cols
-            grid_layout.addLayout(container, row, col)
-            self.other_widgets[num_widget] = widget
-            num_widget += 1
+        outer_layout = QHBoxLayout()
+        inner_layout = QVBoxLayout()
+        inner_layout.addLayout(grid_layout)
+
+        # Expanding spacer to push everything to the top
+        spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        h_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        inner_layout.addItem(spacer)
+        outer_layout.addLayout(inner_layout)
+        outer_layout.addItem(h_spacer)
+
+        # Set inner_layout on the scroll_content widget
+        scroll_content.setLayout(outer_layout)
 
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
-        self.setLayout(main_layout)
-        # self.combo_other = QComboBox()
-        # self.combo_other.addItems(list(other_combo))
-        # self.combo_other.setCurrentIndex(initial_idx_other)
 
-        # # Layout setup
-        # layout = QHBoxLayout()
-        # layout.addWidget(self.combo_meta)
-        # layout.addWidget(self.combo_other)
-        # self.setLayout(layout)
-        #
-        # self.combo_meta.currentIndexChanged.connect(self.item_changed)
-        # self.combo_other.currentIndexChanged.connect(self.item_changed)
-        # self._parent = parent
+        def make_labeled_widget(label_text, widget):
+            label = QLabel(label_text)
+            label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+
+            wrapper = QWidget()
+            wrapper_layout = QVBoxLayout()
+            wrapper_layout.setContentsMargins(0, 0, 0, 0)
+            wrapper_layout.setSpacing(2)
+            wrapper_layout.addWidget(label)
+            wrapper_layout.addWidget(widget)
+            wrapper.setLayout(wrapper_layout)
+
+
+            return wrapper
+
+        # Metadata combobox
+        self.combo_meta = QComboBox()
+        self.combo_meta.addItems(meta_names)
+        meta_widget = make_labeled_widget("Metadata", self.combo_meta)
+        grid_layout.addWidget(meta_widget, 0, 0)
+
+        # Other widgets
+        for i, (label, params) in enumerate(other_widgets.items(), start=1):
+            widget = widget_factory(params)
+            if hasattr(widget, "currentIndexChanged"):
+                widget.currentIndexChanged.connect(self.item_changed)
+            if hasattr(widget, "valueChanged"):
+                widget.valueChanged.connect(self.item_changed)
+
+            labeled_widget = make_labeled_widget(label, widget)
+            row, col = divmod(i, num_cols)
+            grid_layout.addWidget(labeled_widget, row, col)
+
+            self.other_widgets[i] = widget
+
 
     def get_selections(self):
         out = [self.combo_meta.currentText()]
