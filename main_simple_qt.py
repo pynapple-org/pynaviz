@@ -19,9 +19,9 @@ tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 app = QApplication([])
 
 # viz.TsdWidget(tsd1).show()
-# viz.TsdTensorWidget(tsdtensor).show()
-v = viz.TsGroupWidget(tsg)
-v.show()
+viz.TsdTensorWidget(tsdtensor).show()
+# v = viz.TsGroupWidget(tsg)
+# v.show()
 # v = viz.TsdFrameWidget(tsdframe)
 # v.show()
 

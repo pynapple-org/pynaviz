@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
     QDialog,
     QComboBox,
     QListView,
+    QSizePolicy,
 )
 from PyQt6.QtCore import Qt, QSize, QPoint
 from pynaviz import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
@@ -127,9 +128,9 @@ class ChannelList(QDialog):
             self.model.setData(idx, new_state, Qt.ItemDataRole.CheckStateRole)
 
 
-class MenuWidget(QHBoxLayout):
+class MenuWidget(QWidget):
 
-    def __init__(self, metadata, plot, parent):
+    def __init__(self, metadata, plot):
         """
 
         Parameters
@@ -138,27 +139,24 @@ class MenuWidget(QHBoxLayout):
             The list of metadata column names
         plot: _BasePlot
             All the possible base plot
-        parent: QWidget
-            The parent widget
         """
-        super().__init__(None)
+        super().__init__()
         self.metadata = metadata
         self.plot = plot
         self.channel_model = ChannelListModel(self.plot)
 
-        self.parent = parent
-
-        self.setSpacing(0)
-        self.setContentsMargins(0, 0, 0, 0)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)  # No border padding
+        layout.setSpacing(0)
 
         # Select button
-        icon_size = 15
+        icon_size = 18
         self.select_button = self._make_button(
             menu_to_show=self.show_select_menu,
             icon_name="SP_DialogApplyButton",
             icon_size=icon_size,
         )
-        self.addWidget(self.select_button)
+        layout.addWidget(self.select_button)
 
         # Action button
         self.action_button = self._make_button(
@@ -166,13 +164,50 @@ class MenuWidget(QHBoxLayout):
             icon_name="SP_FileDialogDetailedView",
             icon_size=icon_size,
         )
-        self.addWidget(self.action_button)
+        layout.addWidget(self.action_button)
+        layout.addStretch()
 
         # Action menu
         self._action_menu()
 
         # Set layout to the container widget
-        self.addStretch()
+        self.setLayout(layout)
+        self.setFixedHeight(icon_size)
+
+    def _make_button(self, menu_to_show, icon_name, icon_size=20):
+        button = QPushButton()
+        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        pixmapi = getattr(QStyle.StandardPixmap, icon_name)
+        icon = self.style().standardIcon(pixmapi)
+        button.setIcon(icon)
+        button.setIconSize(QSize(icon_size, icon_size))
+        button.setFixedSize(icon_size + 3, icon_size + 3)
+        button.setFlat(True)
+        button.clicked.connect(menu_to_show)
+        # button.setStyleSheet(
+        #     """
+        #     QPushButton {
+        #         background-color: #232426;
+        #         border: none;
+        #         border-radius: 4px;
+        #         padding: 2px;
+        #         margin: 0px;
+        #     }
+        #
+        #     QPushButton:hover {
+        #         background-color: #3c3c3c;
+        #     }
+        #
+        #     QPushButton:pressed {
+        #         background-color: #1f1f1f;
+        #     }
+        #
+        #     QPushButton:focus {
+        #         outline: none;
+        #     }
+        #     """
+        # )
+        return button
 
     def _action_menu(self):
         # First-level menu
@@ -184,10 +219,10 @@ class MenuWidget(QHBoxLayout):
         ):
             action = self.action_menu.addAction(action_name)
             action.setObjectName(action_name)
-            action.triggered.connect(self.popup_menu)
+            action.triggered.connect(self._popup_menu)
             action.setObjectName(action_func)
 
-    def popup_menu(self):
+    def _popup_menu(self):
         action = self.sender()
         popup_name = action.objectName()
 
@@ -196,7 +231,7 @@ class MenuWidget(QHBoxLayout):
             cmap = getattr(self.plot, "cmap", None)
             idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
             dialog = DropdownDialog(
-                "Color by", self.metadata.columns, cmap_list, idx, parent=self.parent
+                "Color by", self.metadata.columns, cmap_list, idx, parent=self
             )
             dialog.setEnabled(True)
             dialog.exec()
@@ -218,37 +253,10 @@ class MenuWidget(QHBoxLayout):
 
     def show_select_menu(self):
         # model = TsdFrameColumnListModel(my_tsdframe)
-        dialog = ChannelList(self.channel_model, parent=self.parent)
+        dialog = ChannelList(self.channel_model, parent=self)
         dialog.exec()
 
-    def handle_action(self):
-        action = self.sender()
-        event = action.data()
-        self.plot.update(event)
 
-    def _make_button(self, menu_to_show, icon_name, icon_size=20):
-        button = QPushButton()
-        pixmapi = getattr(QStyle.StandardPixmap, icon_name)
-        icon = self.parent.style().standardIcon(pixmapi)
-        button.setIcon(icon)
-        button.setIconSize(QSize(icon_size, icon_size))
-        button.setFixedSize(icon_size + 8, icon_size + 8)
-        button.setFlat(True)
-        button.clicked.connect(menu_to_show)
-        button.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #3a3a3a;
-                border: none;
-                padding: 0px;
-                margin: 0px;
-            }
-            QPushButton:hover {
-                background-color: #505050;
-            }
-        """
-        )
-        return button
 
 
 class TsGroupWidget(QWidget):
@@ -260,6 +268,7 @@ class TsGroupWidget(QWidget):
         # The main layout
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
+        layout.setSpacing(0)
         self.setLayout(layout)
 
         # Canvas
@@ -268,11 +277,11 @@ class TsGroupWidget(QWidget):
 
         # Top level menu container
         self.button_container = MenuWidget(
-            metadata=data.metadata, plot=self.plot, parent=self
+            metadata=data.metadata, plot=self.plot
         )
 
         # Add overlay and canvas to layout
-        layout.addLayout(self.button_container)
+        layout.addWidget(self.button_container)
         layout.addWidget(self.plot.canvas)
 
 
@@ -290,52 +299,29 @@ class TsdFrameWidget(QWidget):
         super().__init__(None)
         self.resize(*size)
 
+        # The main layout
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
+        layout.setSpacing(0)
         self.setLayout(layout)
 
         # Canvas
-        # super().__init__(None)
         parent = self if set_parent else None
         self.plot = PlotTsdFrame(data, index=index, parent=parent)
 
-        # Add overlay and canvas to layout
-        layout.addWidget(self.plot.canvas)
-
-        button_container = QWidget()
-        button_container.setFixedHeight(50)
-        button_container.setStyleSheet(
-            "background-color: rgba(0, 0, 0, 150); color: white; padding: 10px;"
+        # Top level menu container
+        self.button_container = MenuWidget(
+            metadata=data.metadata, plot=self.plot
         )
-        button_layout = QHBoxLayout()  # Arrange buttons horizontally
 
-        # Create three buttons
-        button1 = QPushButton("Colrby")
-        button2 = QPushButton("Sortby")
-        button3 = QPushButton("Button 3")
-
-        # connect button
-        button1.clicked.connect(self.button1_clicked)
-
-        # Add buttons to the layout
-        button_layout.addWidget(button1)
-        button_layout.addWidget(button2)
-        button_layout.addWidget(button3)
-
-        button1.clicked.connect(lambda: self.plot.update("color_by"))
-        button2.clicked.connect(lambda: self.plot.update("sort_by"))
-
-        # Set layout to the container widget
-        button_container.setLayout(button_layout)
-
-        # # Add to the canvas
-        button_container.setParent(self.plot.canvas)
-        self.button_container = button_container
+        # Add overlay and canvas to layout
+        layout.addWidget(self.button_container)
+        layout.addWidget(self.plot.canvas)
 
 
 class TsdTensorWidget(QWidget):
 
-    def __init__(self, data, index=None, set_parent=False):
+    def __init__(self, data, index=None, set_parent=True):
         super().__init__(None)
         parent = self if set_parent else None
         self.plot = PlotTsdTensor(data, index=index, parent=parent)

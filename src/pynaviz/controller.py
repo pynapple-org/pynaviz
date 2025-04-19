@@ -354,7 +354,7 @@ class GetController(CustomController):
         delta_t = self.data.index.values[self.frame_index] - current_t
         self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
         self.texture.update_full()
-        self.time_text.geometry.set_text(str(self.data.t[self.frame_index]))
+        self.time_text.set_text(str(self.data.t[self.frame_index]))
         self.renderer_request_draw()
 
         # Sending the sync event
@@ -366,7 +366,7 @@ class GetController(CustomController):
         self.frame_index = self.data.get_slice(new_t).start
         self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
         self.texture.update_full()
-        self.time_text.geometry.set_text(str(self.data.t[self.frame_index]))
+        self.time_text.set_text(str(self.data.t[self.frame_index]))
         self.renderer_request_draw()
 
     def show_interval(self, start, end):

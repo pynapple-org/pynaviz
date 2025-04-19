@@ -274,8 +274,7 @@ class PlotTsGroup(_BasePlot):
 
 class PlotTsdTensor(_BasePlot):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
-        super().__init__(parent=parent, maintain_aspect=True)
-        self.data = data
+        super().__init__(data, parent=parent, maintain_aspect=True)
 
         # Image
         texture = gfx.Texture(self.data.values[0].astype("float32"), dim=2)
