@@ -314,9 +314,13 @@ class MenuWidget(QWidget):
             ["Color by", "Group by", "Sort by"], ["color_by", "group_by", "sort_by"]
         ):
             action = self.action_menu.addAction(action_name)
-            action.setObjectName(action_name)
             action.triggered.connect(self._popup_menu)
             action.setObjectName(action_func)
+
+        self.action_menu.addSeparator()
+        action = self.action_menu.addAction("Plot x vs y")
+        action.triggered.connect(self._popup_menu)
+        action.setObjectName("x_vs_y")
 
     def show_action_menu(self):
         # Show menu below the button
@@ -347,6 +351,27 @@ class MenuWidget(QWidget):
                 self.metadata.columns,
                 dict(Colormap=parameters),
                 self.plot.color_by,
+                parent=self,
+            )
+
+            dialog.setEnabled(True)
+            dialog.exec()
+
+        if popup_name == "x_vs_y":
+            # cmap_list = sorted(plt.colormaps())
+            # cmap = getattr(self.plot, "cmap", None)
+            # idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
+            # parameters = {
+            #     "type": QComboBox,
+            #     "name": "colormap",
+            #     "items": cmap_list,
+            #     "current_index": idx,
+            # }
+            dialog = DropdownDialog(
+                "Plot x vs y",
+                self.metadata.columns,
+                {},
+                lambda: print("yo"),
                 parent=self,
             )
 

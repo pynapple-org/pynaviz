@@ -257,6 +257,48 @@ class PlotTsdFrame(_BasePlot):
         )
         self.canvas.request_draw(self.animate)
 
+        self.x_vs_y(0, 1)
+
+    def x_vs_y(self, x_label, y_label, color="white", thickness=1):
+        """
+        This uses column names.
+
+        Parameters
+        ----------
+        x_label: int or string
+        y_label: int or string
+        color
+
+        Returns
+        -------
+        """
+        # Removing objects
+        self.scene.remove(*list(self.graphic.values()))
+        self.scene.remove(self.ruler_ref_time)
+
+        # Adding new object
+        positions = np.zeros((len(self.data), 3), dtype="float32")
+        positions[:,0:2] = self.data.loc[[x_label, y_label]].values.astype("float32")
+
+        self.graphic = gfx.Line(
+            gfx.Geometry(positions=positions),
+            gfx.LineMaterial(thickness=thickness, color=color),
+        )
+        self.scene.add(self.graphic)
+
+        # Changing controller
+        self.controller = GetController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=-1,
+            data=data,
+            texture=texture,
+            time_text=self.time_text,
+        )
+
+
+        self.canvas.request_draw(self.animate)
+
 
 class PlotTsGroup(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):

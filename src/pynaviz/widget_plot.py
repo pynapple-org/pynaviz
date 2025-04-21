@@ -36,12 +36,29 @@ class TsGroupWidget(QWidget):
         layout.addWidget(self.plot.canvas)
 
 
+
 class TsdWidget(QWidget):
 
-    def __init__(self, data, index=None, set_parent=False):
+    def __init__(self, data, index=None, size=(640, 480), set_parent=True):
         super().__init__(None)
+        self.resize(*size)
+
+        # The main layout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
+        layout.setSpacing(0)
+        self.setLayout(layout)
+
+        # Canvas
         parent = self if set_parent else None
         self.plot = PlotTsd(data, index=index, parent=parent)
+
+        # Top level menu container
+        self.button_container = MenuWidget(metadata={}, plot=self.plot)
+
+        # Add overlay and canvas to layout
+        layout.addWidget(self.button_container)
+        layout.addWidget(self.plot.canvas)
 
 
 class TsdFrameWidget(QWidget):
@@ -70,10 +87,26 @@ class TsdFrameWidget(QWidget):
 
 class TsdTensorWidget(QWidget):
 
-    def __init__(self, data, index=None, set_parent=True):
+    def __init__(self, data, index=None,  size=(640, 480), set_parent=True):
         super().__init__(None)
+        self.resize(*size)
+
+        # The main layout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
+        layout.setSpacing(0)
+        self.setLayout(layout)
+
+        # Canvas
         parent = self if set_parent else None
         self.plot = PlotTsdTensor(data, index=index, parent=parent)
+
+        # Top level menu container
+        self.button_container = MenuWidget(metadata={}, plot=self.plot)
+
+        # Add overlay and canvas to layout
+        layout.addWidget(self.button_container)
+        layout.addWidget(self.plot.canvas)
 
 
 class TsWidget(QWidget):

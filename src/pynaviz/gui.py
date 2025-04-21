@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QVBoxLayout,
     QWidget,
+    QPushButton,
+    QStyle,
 )
 
 from .controller import ControllerGroup
@@ -124,9 +126,24 @@ class ListDock(QDockWidget):
         # Instantiating the dock widget
         dock = QDockWidget()
         dock.setWidget(widget)
-        dock.setWindowTitle(item.text())
-        # dock.setWidget(dock.container)
-        dock.setMinimumSize(200, 150)
+
+
+        # Adding the name of the variable to the button container
+        layout = widget.button_container.layout()
+        label = QLabel(item.text())
+        # label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        layout.addWidget(label)
+        layout.addStretch()
+
+        # Adding the close button to the button container
+        close_btn = QPushButton()
+        close_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
+        close_btn.setFixedSize(12, 12)
+        close_btn.clicked.connect(dock.close)
+        layout.addWidget(close_btn)
+
+        # Setting the button container as the title bar
+        dock.setTitleBarWidget(widget.button_container)
 
         # Adding the dock widget to the GUI window.
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
@@ -134,7 +151,6 @@ class ListDock(QDockWidget):
         # Adding controller and render to control group
         self.ctrl_group.add(widget.plot.controller, widget.plot.renderer, index)
         self._n_dock_open += 1
-        return
 
     def _create_title_bar(self):
         """Create the title bar."""
