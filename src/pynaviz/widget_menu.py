@@ -5,8 +5,8 @@ Classes hold the specific interactive methods for each pynapple object.
 """
 
 import bisect
-from typing import Callable, List
 from collections import OrderedDict
+from typing import Callable
 
 import matplotlib.pyplot as plt
 from PyQt6.QtCore import QPoint, QSize, Qt
@@ -29,6 +29,8 @@ from PyQt6.QtWidgets import (
 )
 
 from pynaviz.qt_item_models import ChannelListModel
+
+from .utils import GRADED_COLOR_LIST
 
 WIDGET_PARAMS = {
     QComboBox: {
@@ -75,6 +77,7 @@ class DropdownDialog(QDialog):
         title: str,
         widgets: OrderedDict[dict],
         func: Callable,
+        ok_cancel_button: bool=False,
         parent=None,
     ):
         """
@@ -162,6 +165,29 @@ class DropdownDialog(QDialog):
 
             self.widgets[i] = widget
 
+        if ok_cancel_button:
+            self._update_on_selection = False
+            button_layout = QHBoxLayout()
+            button_layout.addStretch()  # This is the spacer
+
+            ok_button = QPushButton("OK")
+            ok_button.setDefault(True)
+            cancel_button = QPushButton("Cancel")
+
+            ok_button.clicked.connect(self.accept)
+            cancel_button.clicked.connect(self.reject)
+
+            button_layout.addWidget(cancel_button)
+            button_layout.addWidget(ok_button)
+
+            main_layout.addLayout(button_layout)
+        else:
+            self._update_on_selection = True
+
+    def accept(self):
+        self.update_plot()
+        return super().accept()
+
     def get_selections(self):
         out = []
         for widget in self.widgets.values():
@@ -171,9 +197,14 @@ class DropdownDialog(QDialog):
                 out += [widget.value()]
         return out
 
-    def item_changed(self):
+    def update_plot(self):
         out = self.get_selections()
         self._func(*out)
+
+    def item_changed(self):
+        if self._update_on_selection:
+            self.update_plot()
+
 
 
 class ChannelList(QDialog):
@@ -354,20 +385,19 @@ class MenuWidget(QWidget):
             dialog.exec()
 
         if popup_name == "x_vs_y":
-            # cmap_list = sorted(plt.colormaps())
-            # cmap = getattr(self.plot, "cmap", None)
-            # idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
-            # parameters = {
-            #     "type": QComboBox,
-            #     "name": "colormap",
-            #     "items": cmap_list,
-            #     "current_index": idx,
-            # }
+            meta_y = meta.copy()
+            meta_y.update(current_index=1)
+            colors = {
+                "type": QComboBox,
+                "name": "colors",
+                "items": GRADED_COLOR_LIST,
+                "current_index": 0,
+            }
             dialog = DropdownDialog(
                 "Plot x vs y",
-                self.metadata.columns,
-                {},
-                lambda: print("yo"),
+                {"x data": meta, "y data": meta_y, "Color": colors},
+                lambda *args,**kwargs: print("yo"),
+                ok_cancel_button=True,
                 parent=self,
             )
 

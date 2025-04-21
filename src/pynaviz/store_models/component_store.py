@@ -1,4 +1,4 @@
-from ..store_items import *
+from ..store_items import HeatmapItem, StoreModelItem
 from ._base_store import StoreModel
 
 # TODO: click events, would need to add to subplot renderer based on whether subplot has ROI visual or not

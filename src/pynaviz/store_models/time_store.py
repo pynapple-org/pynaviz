@@ -1,7 +1,6 @@
-import pynapple as nap
 from fastplotlib.graphics._features import FeatureEvent
 
-from ..store_items import *
+from ..store_items import HeatmapItem, LineItem, RasterItem, StoreModelItem
 from ._base_store import StoreModel
 
 

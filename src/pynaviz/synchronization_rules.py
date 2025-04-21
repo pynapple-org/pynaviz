@@ -30,13 +30,6 @@ def _match_pan_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
 
     other_cam_state = update_event.kwargs["cam_state"]
     x_pos = other_cam_state["position"][0]
-    width = other_cam_state["width"]
-
-    self_x_pos = camera_state["position"][0]
-    self_width = camera_state["width"]
-
-    # get the dx
-    # dx = (x_pos / width - self_x_pos / self_width) * self_width
 
     new_position = camera_state["position"].copy()
     # new_position[0] = new_position[0] + dx

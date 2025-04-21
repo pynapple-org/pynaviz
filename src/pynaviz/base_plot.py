@@ -5,7 +5,6 @@ Create a unique canvas/renderer for each class
 
 import warnings
 from abc import ABC
-from typing import Any, Callable, Optional
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -15,7 +14,6 @@ import pygfx as gfx
 import pynapple as nap
 from matplotlib.colors import Colormap
 from pylinalg import vec_transform, vec_unproject
-from PyQt6.QtWidgets import QWidget
 from wgpu.gui.qt import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
 )
