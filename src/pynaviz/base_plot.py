@@ -15,8 +15,9 @@ import pynapple as nap
 import PyQt6
 from matplotlib.colors import Colormap
 from pylinalg import vec_transform, vec_unproject
-from wgpu.gui.qt import \
-    WgpuCanvas  # Should use auto here or be able to select qt if parent passed
+from wgpu.gui.qt import (
+    WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
+)
 
 from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis

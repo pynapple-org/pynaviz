@@ -5,8 +5,7 @@ Create a unique Qt widget for each class.
 
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
-from .base_plot import (PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor,
-                        PlotTsGroup)
+from .base_plot import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
 from .widget_menu import MenuWidget
 
 

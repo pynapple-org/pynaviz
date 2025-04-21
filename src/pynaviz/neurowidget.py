@@ -5,8 +5,14 @@ import fastplotlib as fpl
 import numpy as np
 import pynapple as nap
 
-from .store_items import (HeatmapItem, LineItem, MovieItem, RasterItem,
-                          ROIsItem, StoreModelItem)
+from .store_items import (
+    HeatmapItem,
+    LineItem,
+    MovieItem,
+    RasterItem,
+    ROIsItem,
+    StoreModelItem,
+)
 from .store_models import ComponentStore, TimeStore
 
 

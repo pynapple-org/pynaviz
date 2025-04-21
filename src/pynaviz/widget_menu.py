@@ -10,10 +10,23 @@ from typing import Callable
 
 import matplotlib.pyplot as plt
 from PyQt6.QtCore import QPoint, QSize, Qt
-from PyQt6.QtWidgets import (QComboBox, QDialog, QDoubleSpinBox, QGridLayout,
-                             QHBoxLayout, QLabel, QListView, QMenu,
-                             QPushButton, QScrollArea, QSizePolicy,
-                             QSpacerItem, QStyle, QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QListView,
+    QMenu,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSpacerItem,
+    QStyle,
+    QVBoxLayout,
+    QWidget,
+)
 
 from pynaviz.qt_item_models import ChannelListModel
 
