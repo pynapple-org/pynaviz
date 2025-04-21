@@ -171,10 +171,12 @@ class _BasePlot(ABC):
 
         # If metadata found
         if len(values):
+            print(values)
             values = pd.Series(values)
             idx_srt = np.argsort(values)
-            idx_srt = idx_srt[::-1] if order == "descending" else idx_srt
 
+            idx_srt = idx_srt[::-1] if order == "descending" else idx_srt
+            idx_srt = dict((i, v) for i, v in zip(idx_srt.index, idx_srt.values))
             for c in geometries:
                 geometries[c].positions.data[:, 1] = idx_srt[c]
                 geometries[c].positions.update_full()
