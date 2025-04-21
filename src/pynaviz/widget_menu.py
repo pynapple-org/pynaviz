@@ -90,7 +90,7 @@ class DropdownDialog(QDialog):
         parent:
             The parent widget.
         """
-        super().__init__()
+        super().__init__(parent=parent)
         self.setWindowTitle(title)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
