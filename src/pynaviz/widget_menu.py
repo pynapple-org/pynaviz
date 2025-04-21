@@ -6,6 +6,7 @@ Classes hold the specific interactive methods for each pynapple object.
 
 import bisect
 from typing import Callable, List
+from collections import OrderedDict
 
 import matplotlib.pyplot as plt
 from PyQt6.QtCore import QPoint, QSize, Qt
@@ -50,7 +51,7 @@ def widget_factory(parameters):
         for arg_name, attr_name in WIDGET_PARAMS[QComboBox].items():
             meth = getattr(widget, attr_name, None)
             val = parameters.get(arg_name, None)
-            if meth and val:
+            if (meth is not None) and (val is not None):
                 if arg_name == "values":
                     for i, v in enumerate(val):
                         meth(i, v)
@@ -72,8 +73,7 @@ class DropdownDialog(QDialog):
     def __init__(
         self,
         title: str,
-        meta_names: List[str],
-        other_widgets: dict[dict],
+        widgets: OrderedDict[dict],
         func: Callable,
         parent=None,
     ):
@@ -92,12 +92,12 @@ class DropdownDialog(QDialog):
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         # Determine grid arrangement
-        num_cols = min(len(other_widgets) + 1, 3)  # max 3 per row
-        num_rows = (len(other_widgets) + 1) // num_cols
+        num_cols = min(len(widgets), 3)  # max 3 per row
+        num_rows = (len(widgets)) // num_cols
         self.setFixedWidth(180 * num_cols)
         self.setFixedHeight(min(150 * num_rows, 400))
         self._func = func
-        self.other_widgets = {}
+        self.widgets = {}
 
         main_layout = QVBoxLayout(self)
 
@@ -136,7 +136,7 @@ class DropdownDialog(QDialog):
         def make_labeled_widget(label_text, widget):
             label = QLabel(label_text)
             label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-            widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
 
             wrapper = QWidget()
             wrapper_layout = QVBoxLayout()
@@ -148,16 +148,8 @@ class DropdownDialog(QDialog):
 
             return wrapper
 
-        # Metadata combobox
-        self.combo_meta = QComboBox()
-        self.combo_meta.addItems(meta_names)
-        meta_widget = make_labeled_widget("Metadata", self.combo_meta)
-        self.combo_meta.setMinimumWidth(120)
-        self.combo_meta.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        grid_layout.addWidget(meta_widget, 0, 0)
-
         # Other widgets
-        for i, (label, params) in enumerate(other_widgets.items(), start=1):
+        for i, (label, params) in enumerate(widgets.items()):
             widget = widget_factory(params)
             if hasattr(widget, "currentIndexChanged"):
                 widget.currentIndexChanged.connect(self.item_changed)
@@ -168,11 +160,11 @@ class DropdownDialog(QDialog):
             row, col = divmod(i, num_cols)
             grid_layout.addWidget(labeled_widget, row, col)
 
-            self.other_widgets[i] = widget
+            self.widgets[i] = widget
 
     def get_selections(self):
-        out = [self.combo_meta.currentText()]
-        for widget in self.other_widgets.values():
+        out = []
+        for widget in self.widgets.values():
             if isinstance(widget, QComboBox):
                 out += [widget.currentText()]
             elif isinstance(widget, QDoubleSpinBox):
@@ -335,7 +327,12 @@ class MenuWidget(QWidget):
     def _popup_menu(self):
         action = self.sender()
         popup_name = action.objectName()
-
+        meta = {
+            "type": QComboBox,
+            "name": "metadata",
+            "items": self.metadata.columns,
+            "current_index": 0,
+        }
         if popup_name == "color_by":
             cmap_list = sorted(plt.colormaps())
             cmap = getattr(self.plot, "cmap", None)
@@ -348,8 +345,7 @@ class MenuWidget(QWidget):
             }
             dialog = DropdownDialog(
                 "Color by",
-                self.metadata.columns,
-                dict(Colormap=parameters),
+                OrderedDict(Metadata=meta, Colormap=parameters),
                 self.plot.color_by,
                 parent=self,
             )
