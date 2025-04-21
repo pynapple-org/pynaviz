@@ -44,7 +44,6 @@ dev = [
     "nox",
     "ruff",
     "isort",
-    "qdarkstyle",
 ]
 docs = [
     "mkdocs",                       # Documentation generator
