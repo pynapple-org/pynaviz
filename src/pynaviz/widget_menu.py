@@ -5,7 +5,8 @@ Classes hold the specific interactive methods for each pynapple object.
 """
 
 import bisect
-from typing import Callable, List
+from collections import OrderedDict
+from typing import Callable
 
 import matplotlib.pyplot as plt
 from PyQt6.QtCore import QPoint, QSize, Qt
@@ -29,6 +30,8 @@ from PyQt6.QtWidgets import (
 
 from pynaviz.qt_item_models import ChannelListModel
 
+from .utils import GRADED_COLOR_LIST
+
 WIDGET_PARAMS = {
     QComboBox: {
         "name": "setObjectName",
@@ -50,7 +53,7 @@ def widget_factory(parameters):
         for arg_name, attr_name in WIDGET_PARAMS[QComboBox].items():
             meth = getattr(widget, attr_name, None)
             val = parameters.get(arg_name, None)
-            if meth and val:
+            if (meth is not None) and (val is not None):
                 if arg_name == "values":
                     for i, v in enumerate(val):
                         meth(i, v)
@@ -72,9 +75,9 @@ class DropdownDialog(QDialog):
     def __init__(
         self,
         title: str,
-        meta_names: List[str],
-        other_widgets: dict[dict],
+        widgets: OrderedDict[dict],
         func: Callable,
+        ok_cancel_button: bool = False,
         parent=None,
     ):
         """
@@ -87,17 +90,17 @@ class DropdownDialog(QDialog):
         parent:
             The parent widget.
         """
-        super().__init__(parent)
+        super().__init__(parent=parent)
         self.setWindowTitle(title)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         # Determine grid arrangement
-        num_cols = min(len(other_widgets) + 1, 3)  # max 3 per row
-        num_rows = (len(other_widgets) + 1) // num_cols
+        num_cols = min(len(widgets), 3)  # max 3 per row
+        num_rows = (len(widgets)) // num_cols
         self.setFixedWidth(180 * num_cols)
         self.setFixedHeight(min(150 * num_rows, 400))
         self._func = func
-        self.other_widgets = {}
+        self.widgets = {}
 
         main_layout = QVBoxLayout(self)
 
@@ -136,11 +139,11 @@ class DropdownDialog(QDialog):
         def make_labeled_widget(label_text, widget):
             label = QLabel(label_text)
             label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-            widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
 
             wrapper = QWidget()
-            wrapper_layout = QVBoxLayout()
-            wrapper_layout.setContentsMargins(0, 0, 0, 0)
+            wrapper_layout = QHBoxLayout()
+            wrapper_layout.setContentsMargins(1, 0, 1, 0)
             wrapper_layout.setSpacing(2)
             wrapper_layout.addWidget(label)
             wrapper_layout.addWidget(widget)
@@ -148,16 +151,8 @@ class DropdownDialog(QDialog):
 
             return wrapper
 
-        # Metadata combobox
-        self.combo_meta = QComboBox()
-        self.combo_meta.addItems(meta_names)
-        meta_widget = make_labeled_widget("Metadata", self.combo_meta)
-        self.combo_meta.setMinimumWidth(120)
-        self.combo_meta.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        grid_layout.addWidget(meta_widget, 0, 0)
-
         # Other widgets
-        for i, (label, params) in enumerate(other_widgets.items(), start=1):
+        for i, (label, params) in enumerate(widgets.items()):
             widget = widget_factory(params)
             if hasattr(widget, "currentIndexChanged"):
                 widget.currentIndexChanged.connect(self.item_changed)
@@ -168,20 +163,49 @@ class DropdownDialog(QDialog):
             row, col = divmod(i, num_cols)
             grid_layout.addWidget(labeled_widget, row, col)
 
-            self.other_widgets[i] = widget
+            self.widgets[i] = widget
+
+        if ok_cancel_button:
+            self._update_on_selection = False
+            button_layout = QHBoxLayout()
+            button_layout.addStretch()  # This is the spacer
+
+            ok_button = QPushButton("OK")
+            ok_button.setDefault(True)
+            cancel_button = QPushButton("Cancel")
+
+            ok_button.clicked.connect(self.accept)
+            cancel_button.clicked.connect(self.reject)
+
+            button_layout.addWidget(cancel_button)
+            button_layout.addWidget(ok_button)
+
+            main_layout.addLayout(button_layout)
+        else:
+            self._update_on_selection = True
+
+        self.adjustSize()
+
+    def accept(self):
+        self.update_plot()
+        return super().accept()
 
     def get_selections(self):
-        out = [self.combo_meta.currentText()]
-        for widget in self.other_widgets.values():
+        out = []
+        for widget in self.widgets.values():
             if isinstance(widget, QComboBox):
                 out += [widget.currentText()]
             elif isinstance(widget, QDoubleSpinBox):
                 out += [widget.value()]
         return out
 
-    def item_changed(self):
+    def update_plot(self):
         out = self.get_selections()
         self._func(*out)
+
+    def item_changed(self):
+        if self._update_on_selection:
+            self.update_plot()
 
 
 class ChannelList(QDialog):
@@ -337,6 +361,12 @@ class MenuWidget(QWidget):
         popup_name = action.objectName()
 
         if popup_name == "color_by":
+            meta = {
+                "type": QComboBox,
+                "name": "metadata",
+                "items": self.metadata.columns,
+                "current_index": 0,
+            }
             cmap_list = sorted(plt.colormaps())
             cmap = getattr(self.plot, "cmap", None)
             idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
@@ -348,8 +378,7 @@ class MenuWidget(QWidget):
             }
             dialog = DropdownDialog(
                 "Color by",
-                self.metadata.columns,
-                dict(Colormap=parameters),
+                OrderedDict(Metadata=meta, Colormap=parameters),
                 self.plot.color_by,
                 parent=self,
             )
@@ -358,20 +387,25 @@ class MenuWidget(QWidget):
             dialog.exec()
 
         if popup_name == "x_vs_y":
-            # cmap_list = sorted(plt.colormaps())
-            # cmap = getattr(self.plot, "cmap", None)
-            # idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
-            # parameters = {
-            #     "type": QComboBox,
-            #     "name": "colormap",
-            #     "items": cmap_list,
-            #     "current_index": idx,
-            # }
+            cols = {}
+            for i, x in enumerate(['x', 'y']):
+                cols[x] ={
+                "type": QComboBox,
+                "name": f"{x} data",
+                "items": self.plot.data.columns.astype("str"),
+                "current_index": 0 if self.plot.data.shape[1] == 1 else i,
+            }
+            cols['Color'] = {
+                "type": QComboBox,
+                "name": "colors",
+                "items": GRADED_COLOR_LIST,
+                "current_index": 0,
+            }
             dialog = DropdownDialog(
                 "Plot x vs y",
-                self.metadata.columns,
-                {},
-                lambda: print("yo"),
+                cols,
+                lambda *args, **kwargs: print("yo"),
+                ok_cancel_button=True,
                 parent=self,
             )
 

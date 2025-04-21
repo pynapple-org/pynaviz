@@ -9,10 +9,10 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QMainWindow,
-    QVBoxLayout,
-    QWidget,
     QPushButton,
     QStyle,
+    QVBoxLayout,
+    QWidget,
 )
 
 from .controller import ControllerGroup
@@ -127,7 +127,6 @@ class ListDock(QDockWidget):
         dock = QDockWidget()
         dock.setWidget(widget)
 
-
         # Adding the name of the variable to the button container
         layout = widget.button_container.layout()
         label = QLabel(item.text())
@@ -137,7 +136,9 @@ class ListDock(QDockWidget):
 
         # Adding the close button to the button container
         close_btn = QPushButton()
-        close_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
+        close_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton)
+        )
         close_btn.setFixedSize(12, 12)
         close_btn.clicked.connect(dock.close)
         layout.addWidget(close_btn)

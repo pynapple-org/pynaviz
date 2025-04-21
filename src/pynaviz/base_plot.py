@@ -5,7 +5,6 @@ Create a unique canvas/renderer for each class
 
 import warnings
 from abc import ABC
-from typing import Any, Callable, Optional
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -13,9 +12,9 @@ import numpy as np
 import pandas as pd
 import pygfx as gfx
 import pynapple as nap
+import PyQt6
 from matplotlib.colors import Colormap
 from pylinalg import vec_transform, vec_unproject
-from PyQt6.QtWidgets import QWidget
 from wgpu.gui.qt import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
 )
@@ -257,7 +256,7 @@ class PlotTsdFrame(_BasePlot):
         )
         self.canvas.request_draw(self.animate)
 
-        self.x_vs_y(0, 1)
+        # self.x_vs_y(0, 1)
 
     def x_vs_y(self, x_label, y_label, color="white", thickness=1):
         """
@@ -278,7 +277,7 @@ class PlotTsdFrame(_BasePlot):
 
         # Adding new object
         positions = np.zeros((len(self.data), 3), dtype="float32")
-        positions[:,0:2] = self.data.loc[[x_label, y_label]].values.astype("float32")
+        positions[:, 0:2] = self.data.loc[[x_label, y_label]].values.astype("float32")
 
         self.graphic = gfx.Line(
             gfx.Geometry(positions=positions),
@@ -286,16 +285,15 @@ class PlotTsdFrame(_BasePlot):
         )
         self.scene.add(self.graphic)
 
-        # Changing controller
-        self.controller = GetController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=-1,
-            data=data,
-            texture=texture,
-            time_text=self.time_text,
-        )
-
+        # # Changing controller
+        # self.controller = GetController(
+        #     camera=self.camera,
+        #     renderer=self.renderer,
+        #     controller_id=-1,
+        #     data=data,
+        #     texture=texture,
+        #     time_text=self.time_text,
+        # )
 
         self.canvas.request_draw(self.animate)
 

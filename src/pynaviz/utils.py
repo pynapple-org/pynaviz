@@ -1,7 +1,30 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .base_plot import _BasePlot
+
+GRADED_COLOR_LIST = [
+    "midnightblue",
+    "navy",
+    "blue",
+    "royalblue",
+    "cornflowerblue",
+    "skyblue",
+    "lightblue",
+    "aquamarine",
+    "mediumseagreen",
+    "limegreen",
+    "yellowgreen",
+    "gold",
+    "orange",
+    "darkorange",
+    "tomato",
+    "orangered",
+    "red",
+    "crimson",
+    "deeppink",
+    "magenta",
+]
 
 
 def get_plot_attribute(

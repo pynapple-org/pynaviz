@@ -23,7 +23,7 @@ tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
 
 app = QApplication([])
-app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt6())
+# app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt6())
 
 # viz.TsdWidget(tsd1).show()
 # viz.TsdTensorWidget(tsdtensor).show()

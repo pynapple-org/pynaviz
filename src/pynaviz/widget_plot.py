@@ -3,10 +3,7 @@ Plotting class for each pynapple object using Qt Widget.
 Create a unique Qt widget for each class.
 """
 
-from PyQt6.QtWidgets import (
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 from .base_plot import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
 from .widget_menu import MenuWidget
@@ -34,7 +31,6 @@ class TsGroupWidget(QWidget):
         # Add overlay and canvas to layout
         layout.addWidget(self.button_container)
         layout.addWidget(self.plot.canvas)
-
 
 
 class TsdWidget(QWidget):
@@ -87,7 +83,7 @@ class TsdFrameWidget(QWidget):
 
 class TsdTensorWidget(QWidget):
 
-    def __init__(self, data, index=None,  size=(640, 480), set_parent=True):
+    def __init__(self, data, index=None, size=(640, 480), set_parent=True):
         super().__init__(None)
         self.resize(*size)
 
