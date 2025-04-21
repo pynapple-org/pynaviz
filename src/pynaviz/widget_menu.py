@@ -30,6 +30,7 @@ from PyQt6.QtWidgets import (
 
 from pynaviz.qt_item_models import ChannelListModel
 
+from .drop_down_dict_builder import get_popup_kwargs
 from .utils import GRADED_COLOR_LIST
 
 WIDGET_PARAMS = {
@@ -97,7 +98,7 @@ class DropdownDialog(QDialog):
         # Determine grid arrangement
         num_cols = min(len(widgets), 3)  # max 3 per row
         num_rows = (len(widgets)) // num_cols
-        self.setFixedWidth(180 * num_cols)
+        self.setFixedWidth(200 * num_cols)
         self.setFixedHeight(min(150 * num_rows, 400))
         self._func = func
         self.widgets = {}
@@ -139,7 +140,7 @@ class DropdownDialog(QDialog):
         def make_labeled_widget(label_text, widget):
             label = QLabel(label_text)
             label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-            widget.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
             wrapper = QWidget()
             wrapper_layout = QHBoxLayout()
@@ -360,54 +361,8 @@ class MenuWidget(QWidget):
         action = self.sender()
         popup_name = action.objectName()
 
-        if popup_name == "color_by":
-            meta = {
-                "type": QComboBox,
-                "name": "metadata",
-                "items": self.metadata.columns,
-                "current_index": 0,
-            }
-            cmap_list = sorted(plt.colormaps())
-            cmap = getattr(self.plot, "cmap", None)
-            idx = bisect.bisect_left(cmap_list, cmap) if cmap else 0
-            parameters = {
-                "type": QComboBox,
-                "name": "colormap",
-                "items": cmap_list,
-                "current_index": idx,
-            }
-            dialog = DropdownDialog(
-                "Color by",
-                OrderedDict(Metadata=meta, Colormap=parameters),
-                self.plot.color_by,
-                parent=self,
-            )
-
-            dialog.setEnabled(True)
-            dialog.exec()
-
-        if popup_name == "x_vs_y":
-            cols = {}
-            for i, x in enumerate(['x', 'y']):
-                cols[x] ={
-                "type": QComboBox,
-                "name": f"{x} data",
-                "items": self.plot.data.columns.astype("str"),
-                "current_index": 0 if self.plot.data.shape[1] == 1 else i,
-            }
-            cols['Color'] = {
-                "type": QComboBox,
-                "name": "colors",
-                "items": GRADED_COLOR_LIST,
-                "current_index": 0,
-            }
-            dialog = DropdownDialog(
-                "Plot x vs y",
-                cols,
-                lambda *args, **kwargs: print("yo"),
-                ok_cancel_button=True,
-                parent=self,
-            )
-
+        kwargs = get_popup_kwargs(popup_name, self)
+        if kwargs is not None:
+            dialog = DropdownDialog(**kwargs)
             dialog.setEnabled(True)
             dialog.exec()

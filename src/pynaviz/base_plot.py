@@ -5,6 +5,7 @@ Create a unique canvas/renderer for each class
 
 import warnings
 from abc import ABC
+from typing import Optional
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -156,7 +157,8 @@ class _BasePlot(ABC):
                 materials[c].color = cmap(values[c])
             self.canvas.request_draw(self.animate)  # To fix
 
-    def sort_by(self, metadata_name):
+    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+        print("called sort_by")
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry")
 
@@ -170,13 +172,15 @@ class _BasePlot(ABC):
         # If metadata found
         if len(values):
             values = pd.Series(values)
-            order = np.argsort(values)
+            idx_srt = np.argsort(values)
+            idx_srt = idx_srt[::-1] if order == "descending" else idx_srt
 
             for c in geometries:
-                geometries[c].positions.data[:, 1] = order[c]
+                geometries[c].positions.data[:, 1] = idx_srt[c]
                 geometries[c].positions.update_full()
 
             self.canvas.request_draw(self.animate)
+            print("should update")
 
     def update(self, event):
         """
