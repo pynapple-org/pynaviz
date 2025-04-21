@@ -23,7 +23,7 @@ GRADED_COLOR_LIST = [
     "red",
     "crimson",
     "deeppink",
-    "magenta"
+    "magenta",
 ]
 
 

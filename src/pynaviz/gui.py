@@ -2,27 +2,13 @@ import sys
 
 import pynapple as nap
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtWidgets import (
-    QApplication,
-    QDockWidget,
-    QHBoxLayout,
-    QLabel,
-    QListWidget,
-    QMainWindow,
-    QPushButton,
-    QStyle,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import (QApplication, QDockWidget, QHBoxLayout, QLabel,
+                             QListWidget, QMainWindow, QPushButton, QStyle,
+                             QVBoxLayout, QWidget)
 
 from .controller import ControllerGroup
-from .widget_plot import (
-    TsdFrameWidget,
-    TsdTensorWidget,
-    TsdWidget,
-    TsGroupWidget,
-    TsWidget,
-)
+from .widget_plot import (TsdFrameWidget, TsdTensorWidget, TsdWidget,
+                          TsGroupWidget, TsWidget)
 
 DOCK_TITLE_STYLESHEET = """
     * {
@@ -127,7 +113,6 @@ class ListDock(QDockWidget):
         dock = QDockWidget()
         dock.setWidget(widget)
 
-
         # Adding the name of the variable to the button container
         layout = widget.button_container.layout()
         label = QLabel(item.text())
@@ -137,7 +122,9 @@ class ListDock(QDockWidget):
 
         # Adding the close button to the button container
         close_btn = QPushButton()
-        close_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
+        close_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton)
+        )
         close_btn.setFixedSize(12, 12)
         close_btn.clicked.connect(dock.close)
         layout.addWidget(close_btn)

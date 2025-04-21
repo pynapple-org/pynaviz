@@ -12,11 +12,11 @@ import numpy as np
 import pandas as pd
 import pygfx as gfx
 import pynapple as nap
+import PyQt6
 from matplotlib.colors import Colormap
 from pylinalg import vec_transform, vec_unproject
-from wgpu.gui.qt import (
-    WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
-)
+from wgpu.gui.qt import \
+    WgpuCanvas  # Should use auto here or be able to select qt if parent passed
 
 from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
@@ -276,7 +276,7 @@ class PlotTsdFrame(_BasePlot):
 
         # Adding new object
         positions = np.zeros((len(self.data), 3), dtype="float32")
-        positions[:,0:2] = self.data.loc[[x_label, y_label]].values.astype("float32")
+        positions[:, 0:2] = self.data.loc[[x_label, y_label]].values.astype("float32")
 
         self.graphic = gfx.Line(
             gfx.Geometry(positions=positions),
@@ -293,7 +293,6 @@ class PlotTsdFrame(_BasePlot):
             texture=texture,
             time_text=self.time_text,
         )
-
 
         self.canvas.request_draw(self.animate)
 

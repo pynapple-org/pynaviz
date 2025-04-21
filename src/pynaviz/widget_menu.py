@@ -10,23 +10,10 @@ from typing import Callable
 
 import matplotlib.pyplot as plt
 from PyQt6.QtCore import QPoint, QSize, Qt
-from PyQt6.QtWidgets import (
-    QComboBox,
-    QDialog,
-    QDoubleSpinBox,
-    QGridLayout,
-    QHBoxLayout,
-    QLabel,
-    QListView,
-    QMenu,
-    QPushButton,
-    QScrollArea,
-    QSizePolicy,
-    QSpacerItem,
-    QStyle,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import (QComboBox, QDialog, QDoubleSpinBox, QGridLayout,
+                             QHBoxLayout, QLabel, QListView, QMenu,
+                             QPushButton, QScrollArea, QSizePolicy,
+                             QSpacerItem, QStyle, QVBoxLayout, QWidget)
 
 from pynaviz.qt_item_models import ChannelListModel
 
@@ -77,7 +64,7 @@ class DropdownDialog(QDialog):
         title: str,
         widgets: OrderedDict[dict],
         func: Callable,
-        ok_cancel_button: bool=False,
+        ok_cancel_button: bool = False,
         parent=None,
     ):
         """
@@ -204,7 +191,6 @@ class DropdownDialog(QDialog):
     def item_changed(self):
         if self._update_on_selection:
             self.update_plot()
-
 
 
 class ChannelList(QDialog):
@@ -396,7 +382,7 @@ class MenuWidget(QWidget):
             dialog = DropdownDialog(
                 "Plot x vs y",
                 {"x data": meta, "y data": meta_y, "Color": colors},
-                lambda *args,**kwargs: print("yo"),
+                lambda *args, **kwargs: print("yo"),
                 ok_cancel_button=True,
                 parent=self,
             )
