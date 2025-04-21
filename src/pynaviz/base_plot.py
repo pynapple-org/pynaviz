@@ -256,7 +256,7 @@ class PlotTsdFrame(_BasePlot):
         )
         self.canvas.request_draw(self.animate)
 
-        self.x_vs_y(0, 1)
+        # self.x_vs_y(0, 1)
 
     def x_vs_y(self, x_label, y_label, color="white", thickness=1):
         """
@@ -285,15 +285,15 @@ class PlotTsdFrame(_BasePlot):
         )
         self.scene.add(self.graphic)
 
-        # Changing controller
-        self.controller = GetController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=-1,
-            data=data,
-            texture=texture,
-            time_text=self.time_text,
-        )
+        # # Changing controller
+        # self.controller = GetController(
+        #     camera=self.camera,
+        #     renderer=self.renderer,
+        #     controller_id=-1,
+        #     data=data,
+        #     texture=texture,
+        #     time_text=self.time_text,
+        # )
 
         self.canvas.request_draw(self.animate)
 
