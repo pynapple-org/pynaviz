@@ -176,10 +176,8 @@ class _BasePlot(ABC):
             idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
 
             for c in geometries:
-                print(c, geometries[c].positions.data[:, 1])
                 geometries[c].positions.data[:, 1] = idx_map[c]
                 geometries[c].positions.update_full()
-                print(c, geometries[c].positions.data[:, 1][0], idx_map[c])
 
             self.canvas.request_draw(self.animate)
 
