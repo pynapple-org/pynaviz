@@ -185,6 +185,8 @@ class DropdownDialog(QDialog):
         else:
             self._update_on_selection = True
 
+        self.update_plot()
+
         self.adjustSize()
 
     def accept(self):
