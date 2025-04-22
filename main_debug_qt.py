@@ -26,7 +26,7 @@ window.setMinimumSize(1500, 800)
 
 layout = QHBoxLayout()
 
-viz1 = viz.TsdWidget(tsd1, set_parent=True)
+viz1 = viz.TsdFrameWidget(tsdframe, set_parent=True)
 # viz2 = viz.TsdWidget(tsd1, set_parent=True)
 viz2 = viz.TsdTensorWidget(tsdtensor, set_parent=True)
 
@@ -40,6 +40,8 @@ layout.addWidget(viz1)
 layout.addWidget(viz2)
 window.setLayout(layout)
 window.show()
+
+viz1.plot.x_vs_y(0, 1)
 
 if __name__ == "__main__":
     app.exit(app.exec())

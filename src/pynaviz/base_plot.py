@@ -254,6 +254,7 @@ class PlotTsdFrame(_BasePlot):
         self.scene.add(
             self.rulerx, self.rulery, self.ruler_ref_time, *list(self.graphic.values())
         )
+
         self.canvas.request_draw(self.animate)
 
         # self.x_vs_y(0, 1)
@@ -294,6 +295,9 @@ class PlotTsdFrame(_BasePlot):
         #     texture=texture,
         #     time_text=self.time_text,
         # )
+        self.controller = gfx.PanZoomController(self.camera)
+        self.controller.register_events(self.renderer)
+
 
         self.canvas.request_draw(self.animate)
 
