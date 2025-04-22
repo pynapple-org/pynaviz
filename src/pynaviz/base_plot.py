@@ -171,18 +171,17 @@ class _BasePlot(ABC):
 
         # If metadata found
         if len(values):
-            print(values)
             values = pd.Series(values)
-            idx_srt = np.argsort(values)
+            idx_sorted = values.sort_values(ascending=(order == "ascending"))
+            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
 
-            idx_srt = idx_srt[::-1] if order == "descending" else idx_srt
-            idx_srt = dict((i, v) for i, v in zip(idx_srt.index, idx_srt.values))
             for c in geometries:
-                geometries[c].positions.data[:, 1] = idx_srt[c]
+                print(c, geometries[c].positions.data[:, 1])
+                geometries[c].positions.data[:, 1] = idx_map[c]
                 geometries[c].positions.update_full()
+                print(c, geometries[c].positions.data[:, 1][0], idx_map[c])
 
             self.canvas.request_draw(self.animate)
-            print("should update")
 
     def update(self, event):
         """
