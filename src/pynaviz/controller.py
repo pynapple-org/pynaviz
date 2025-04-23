@@ -109,9 +109,8 @@ class ControllerGroup:
         """Sync controllers according to their rule."""
         # print(event)
         for id_other, ctrl in self._controller_group.items():
-            if event.controller_id == id_other:
-                continue
-            ctrl.sync(event)
+            if event.controller_id != id_other and ctrl.enabled:
+                ctrl.sync(event)
 
 
 class CustomController(PanZoomController):
@@ -315,6 +314,7 @@ class GetController(CustomController):
         self,
         camera: Optional[Camera] = None,
         *,
+        enabled=True,
         auto_update: bool = True,
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
@@ -324,13 +324,15 @@ class GetController(CustomController):
     ):
         super().__init__(
             camera=camera,
+            enabled=enabled,
             auto_update=auto_update,
             renderer=renderer,
             controller_id=controller_id,
         )
         self.data = data
-        self.n_frames = data.shape[0]
-        self.frame_index = 0
+        if self.data:
+            self.n_frames = data.shape[0]
+            self.frame_index = 0
         self.buffer = buffer
         self.time_text = time_text
 

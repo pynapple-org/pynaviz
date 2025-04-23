@@ -234,15 +234,26 @@ class PlotTsdFrame(_BasePlot):
     def __init__(self, data: nap.TsdFrame, index=None, parent=None):
         super().__init__(data=data, parent=parent)
 
-        # Pynaviz specific controller
-        self.controller = SpanController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,
-            min=np.min(data),
-            max=np.max(data),
-        )
+        self.controllers = {
+            "span": SpanController(
+                camera=self.camera,
+                renderer=self.renderer,
+                controller_id=index,
+                dict_sync_funcs=dict_sync_funcs,
+                min=np.min(data),
+                max=np.max(data),
+                ),
+            "get": GetController(
+                camera=self.camera,
+                renderer=self.renderer,
+                data=None,
+                buffer=None,
+                enabled=False
+            )
+        }
+
+        # First controller
+        self.controller = self.controllers['span']
 
         # Passing the data
         self.graphic: dict = {}
@@ -258,8 +269,6 @@ class PlotTsdFrame(_BasePlot):
             self.rulerx, self.rulery, self.ruler_ref_time, *list(self.graphic.values())
         )
         self.canvas.request_draw(self.animate)
-
-        # self.x_vs_y(0, 1)
 
     def x_vs_y(self, x_label, y_label, color="white", thickness=1):
         """
@@ -297,16 +306,20 @@ class PlotTsdFrame(_BasePlot):
             )
         self.scene.add(self.time_point)
 
-        # Removing camera from current controller
-        self.controller.remove_camera(self.camera)
+        # # Removing camera from current controller
+        # self.controller.remove_camera(self.camera)
+
+        # Disable old controller
+        self.controller.enabled = False
 
         # Instantiating new controller
-        self.controller = GetController(
-            camera=self.camera,
-            renderer=self.renderer,
-            data=self.data.loc[[x_label, y_label]],
-            buffer=self.time_point.geometry.positions
-        )
+        self.controller = self.controllers['get']
+        self.controller.n_frames = len(self.data)
+        self.controller.frame_index = 0
+        self.controller.enabled = True
+        self.controller.data = self.data.loc[[x_label, y_label]]
+        self.controller.buffer = self.time_point.geometry.positions
+
 
         self.canvas.request_draw(self.animate)
 
