@@ -316,8 +316,8 @@ class GetController(CustomController):
         auto_update: bool = True,
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
-        data: nap.TsdTensor = None,
-        texture: gfx.Texture = None,
+        data: Optional[Union[nap.TsdFrame, nap.TsdTensor]] = None,
+        object: Optional[Union[gfx.Points,gfx.Texture]] = None,
         time_text: gfx.Text = None,
     ):
         super().__init__(
@@ -329,7 +329,7 @@ class GetController(CustomController):
         self.data = data
         self.n_frames = data.shape[0]
         self.frame_index = 0
-        self.texture = texture
+        self.object = object
         self.time_text = time_text
 
     @property
@@ -351,9 +351,16 @@ class GetController(CustomController):
         else:
             self.frame_index -= 1
         delta_t = self.data.index.values[self.frame_index] - current_t
-        self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
-        self.texture.update_full()
-        self.time_text.set_text(str(self.data.t[self.frame_index]))
+        if isinstance(self.object, gfx.Texture):
+            self.object.data[:] = self.data.values[self.frame_index].astype("float32")
+            self.object.update_full()
+
+        if isinstance(self.object, gfx.Points):
+            print(delta_t)
+
+        if self.time_text:
+            self.time_text.set_text(str(self.data.t[self.frame_index]))
+
         self.renderer_request_draw()
 
         # Sending the sync event
@@ -363,15 +370,15 @@ class GetController(CustomController):
         """Get a new data point and update the texture"""
         new_t = event.kwargs["cam_state"]["position"][0]
         self.frame_index = self.data.get_slice(new_t).start
-        self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
-        self.texture.update_full()
+        self.object.data[:] = self.data.values[self.frame_index].astype("float32")
+        self.object.update_full()
         self.time_text.set_text(str(self.data.t[self.frame_index]))
         self.renderer_request_draw()
 
     def show_interval(self, start, end):
         t = start + (end - start) / 2
         self.frame_index = self.data.get_slice(t).start
-        self.texture.data[:] = self.data.values[self.frame_index].astype("float32")
-        self.texture.update_full()
+        self.object.data[:] = self.data.values[self.frame_index].astype("float32")
+        self.object.update_full()
         self.time_text.set_text(str(self.data.t[self.frame_index]))
         self.renderer_request_draw()

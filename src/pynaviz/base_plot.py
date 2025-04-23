@@ -278,7 +278,7 @@ class PlotTsdFrame(_BasePlot):
         self.scene.remove(*list(self.graphic.values()))
         self.scene.remove(self.ruler_ref_time)
 
-        # Adding new object
+        # Adding line object
         positions = np.zeros((len(self.data), 3), dtype="float32")
         positions[:, 0:2] = self.data.loc[[x_label, y_label]].values.astype("float32")
 
@@ -288,15 +288,32 @@ class PlotTsdFrame(_BasePlot):
         )
         self.scene.add(self.graphic)
 
-        # # Changing controller
-        # self.controller = GetController(
+        # Adding point object to track time
+        xy = np.zeros((1,3), dtype="float32")
+        xy[0,0:2] = self.data.loc[[x_label, y_label]].get(0.0).astype("float32")
+        self.time_point = gfx.Points(
+                gfx.Geometry(positions=xy),
+                gfx.PointsMaterial(size=30, color="red", opacity=1),
+            )
+        self.scene.add(self.time_point)
+
+        # Removing camera from current controller
+        self.controller.remove_camera(self.camera)
+
+        from pygfx import PanZoomController
+
+        # self.controller = PanZoomController(
         #     camera=self.camera,
-        #     renderer=self.renderer,
-        #     controller_id=-1,
-        #     data=data,
-        #     texture=texture,
-        #     time_text=self.time_text,
+        #     enabled=True,
+        #     register_events=self.renderer
         # )
+        # Instantiating new controller
+        self.controller = GetController(
+            camera=self.camera,
+            renderer=self.renderer,
+            data=self.data,
+            object=self.time_point
+        )
 
         self.canvas.request_draw(self.animate)
 
@@ -362,7 +379,7 @@ class PlotTsdTensor(_BasePlot):
             renderer=self.renderer,
             controller_id=index,
             data=data,
-            texture=texture,
+            object=texture,
             time_text=self.time_text,
         )
 
