@@ -300,19 +300,12 @@ class PlotTsdFrame(_BasePlot):
         # Removing camera from current controller
         self.controller.remove_camera(self.camera)
 
-        from pygfx import PanZoomController
-
-        # self.controller = PanZoomController(
-        #     camera=self.camera,
-        #     enabled=True,
-        #     register_events=self.renderer
-        # )
         # Instantiating new controller
         self.controller = GetController(
             camera=self.camera,
             renderer=self.renderer,
-            data=self.data,
-            object=self.time_point
+            data=self.data.loc[[x_label, y_label]],
+            buffer=self.time_point.geometry.positions
         )
 
         self.canvas.request_draw(self.animate)
@@ -379,7 +372,7 @@ class PlotTsdTensor(_BasePlot):
             renderer=self.renderer,
             controller_id=index,
             data=data,
-            object=texture,
+            buffer=texture,
             time_text=self.time_text,
         )
 

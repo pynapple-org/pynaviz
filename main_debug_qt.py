@@ -14,7 +14,11 @@ tsg = nap.TsGroup({
     i:nap.Ts(
         t=np.sort(np.random.uniform(0, 1000, 100*(i+1)))
     ) for i in range(10)})
-tsdframe = nap.TsdFrame(t=np.arange(1000),d=np.random.randn(1000, 10))
+tsdframe = nap.TsdFrame(
+    t=np.arange(1000),
+    d=np.stack((np.cos(np.arange(1000)*0.1),
+                np.sin(np.arange(1000)*0.1))).T
+                )
 tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
 
@@ -26,7 +30,9 @@ window.setMinimumSize(1500, 800)
 
 layout = QHBoxLayout()
 
-viz1 = viz.TsdWidget(tsd1, set_parent=True)
+# viz1 = viz.TsdWidget(tsd1, set_parent=True)
+viz1 = viz.TsdFrameWidget(tsdframe, set_parent=True)
+viz1.plot.x_vs_y(0, 1)
 # viz2 = viz.TsdWidget(tsd1, set_parent=True)
 viz2 = viz.TsdTensorWidget(tsdtensor, set_parent=True)
 

@@ -4,8 +4,10 @@ The controller class.
 
 from typing import Callable, Optional, Union
 
+import pygfx
 import pygfx as gfx
 import pynapple as nap
+from debugpy.common.timestamp import current
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 from pylinalg import vec_transform, vec_unproject
 
@@ -317,7 +319,7 @@ class GetController(CustomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         data: Optional[Union[nap.TsdFrame, nap.TsdTensor]] = None,
-        object: Optional[Union[gfx.Points,gfx.Texture]] = None,
+        buffer: pygfx.Buffer = None,
         time_text: gfx.Text = None,
     ):
         super().__init__(
@@ -329,7 +331,7 @@ class GetController(CustomController):
         self.data = data
         self.n_frames = data.shape[0]
         self.frame_index = 0
-        self.object = object
+        self.buffer = buffer
         self.time_text = time_text
 
     @property
@@ -351,12 +353,12 @@ class GetController(CustomController):
         else:
             self.frame_index -= 1
         delta_t = self.data.index.values[self.frame_index] - current_t
-        if isinstance(self.object, gfx.Texture):
-            self.object.data[:] = self.data.values[self.frame_index].astype("float32")
-            self.object.update_full()
 
-        if isinstance(self.object, gfx.Points):
-            print(delta_t)
+        if self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3: # assume single point
+            self.buffer.data[0,0:2] = self.data.values[self.frame_index].astype("float32")
+        else:
+            self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+        self.buffer.update_full()
 
         if self.time_text:
             self.time_text.set_text(str(self.data.t[self.frame_index]))
@@ -368,17 +370,36 @@ class GetController(CustomController):
 
     def sync(self, event):
         """Get a new data point and update the texture"""
-        new_t = event.kwargs["cam_state"]["position"][0]
+        if "cam_state" in event.kwargs:
+            new_t = event.kwargs["cam_state"]["position"][0]
+        else:
+            delta_t = event.kwargs["delta_t"]
+            new_t = self.data.t[self.frame_index] + delta_t
+
         self.frame_index = self.data.get_slice(new_t).start
-        self.object.data[:] = self.data.values[self.frame_index].astype("float32")
-        self.object.update_full()
-        self.time_text.set_text(str(self.data.t[self.frame_index]))
+
+        if self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3: # assume single point
+            self.buffer.data[0,0:2] = self.data.values[self.frame_index].astype("float32")
+        else:
+            self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+
+        self.buffer.update_full()
+
+        if self.time_text:
+            self.time_text.set_text(str(self.data.t[self.frame_index]))
+
         self.renderer_request_draw()
 
     def show_interval(self, start, end):
         t = start + (end - start) / 2
         self.frame_index = self.data.get_slice(t).start
-        self.object.data[:] = self.data.values[self.frame_index].astype("float32")
-        self.object.update_full()
-        self.time_text.set_text(str(self.data.t[self.frame_index]))
+        # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+        if self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3: # assume single point
+            self.buffer.data[0,0:2] = self.data.values[self.frame_index].astype("float32")
+        else:
+            self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+
+        self.buffer.update_full()
+        if self.time_text:
+            self.time_text.set_text(str(self.data.t[self.frame_index]))
         self.renderer_request_draw()
