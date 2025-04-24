@@ -184,8 +184,7 @@ class DropdownDialog(QDialog):
             main_layout.addLayout(button_layout)
         else:
             self._update_on_selection = True
-
-        self.update_plot()
+            self.update_plot()
 
         self.adjustSize()
 
@@ -197,7 +196,8 @@ class DropdownDialog(QDialog):
         out = []
         for widget in self.widgets.values():
             if isinstance(widget, QComboBox):
-                out += [widget.currentText()]
+                data = widget.currentData()
+                out += [data if data is not None else widget.currentText()]
             elif isinstance(widget, QDoubleSpinBox):
                 out += [widget.value()]
         return out

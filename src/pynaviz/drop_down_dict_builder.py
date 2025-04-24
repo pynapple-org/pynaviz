@@ -62,6 +62,8 @@ def get_popup_kwargs(popup_name: str, widget: QWidget) -> dict | None:
                 "name": f"{x} data",
                 "items": plot.data.columns.astype("str"),
                 "current_index": 0 if plot.data.shape[1] == 1 else i,
+                "values":plot.data.columns
+
             }
         cols["Color"] = {
             "type": QComboBox,
