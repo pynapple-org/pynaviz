@@ -158,7 +158,6 @@ class _BasePlot(ABC):
             self.canvas.request_draw(self.animate)  # To fix
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
-        print("called sort_by")
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry")
 
@@ -234,7 +233,8 @@ class PlotTsdFrame(_BasePlot):
     def __init__(self, data: nap.TsdFrame, index=None, parent=None):
         super().__init__(data=data, parent=parent)
 
-        self.controllers = {
+        # Possible controllers for TsdFrame
+        self._controllers = {
             "span": SpanController(
                 camera=self.camera,
                 renderer=self.renderer,
@@ -253,7 +253,7 @@ class PlotTsdFrame(_BasePlot):
         }
 
         # First controller
-        self.controller = self.controllers['span']
+        self.controller = self._controllers['span']
 
         # Passing the data
         self.graphic: dict = {}
@@ -270,7 +270,7 @@ class PlotTsdFrame(_BasePlot):
         )
         self.canvas.request_draw(self.animate)
 
-    def x_vs_y(self, x_label, y_label, color="white", thickness=1):
+    def plot_x_vs_y(self, x_label, y_label, color="white", thickness=1):
         """
         This uses column names.
 
@@ -299,21 +299,17 @@ class PlotTsdFrame(_BasePlot):
 
         # Adding point object to track time
         xy = np.zeros((1,3), dtype="float32")
-        xy[0,0:2] = self.data.loc[[x_label, y_label]].get(0.0).astype("float32")
         self.time_point = gfx.Points(
                 gfx.Geometry(positions=xy),
                 gfx.PointsMaterial(size=30, color="red", opacity=1),
             )
         self.scene.add(self.time_point)
 
-        # # Removing camera from current controller
-        # self.controller.remove_camera(self.camera)
-
         # Disable old controller
         self.controller.enabled = False
 
         # Instantiating new controller
-        self.controller = self.controllers['get']
+        self.controller = self._controllers['get']
         self.controller.n_frames = len(self.data)
         self.controller.frame_index = 0
         self.controller.enabled = True

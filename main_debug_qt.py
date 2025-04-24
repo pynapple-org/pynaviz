@@ -32,7 +32,7 @@ layout = QHBoxLayout()
 
 # viz1 = viz.TsdWidget(tsd1, set_parent=True)
 viz1 = viz.TsdFrameWidget(tsdframe, set_parent=True)
-viz1.plot.x_vs_y(0, 1)
+viz1.plot.plot_x_vs_y(0, 1)
 # viz2 = viz.TsdWidget(tsd1, set_parent=True)
 viz2 = viz.TsdTensorWidget(tsdtensor, set_parent=True)
 

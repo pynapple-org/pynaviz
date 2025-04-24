@@ -55,7 +55,6 @@ def get_popup_kwargs(popup_name: str, widget: QWidget) -> dict | None:
         )
 
     elif popup_name == "x_vs_y":
-
         cols = {}
         for i, x in enumerate(["x", "y"]):
             cols[x] = {
@@ -73,7 +72,7 @@ def get_popup_kwargs(popup_name: str, widget: QWidget) -> dict | None:
         kwargs = dict(
             widgets=cols,
             title="Plot x vs y",
-            func=lambda *args, **kwargs: print("yo"),
+            func=plot.plot_x_vs_y,
             ok_cancel_button=True,
             parent=widget,
         )

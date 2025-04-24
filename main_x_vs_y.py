@@ -28,8 +28,8 @@ app = QApplication([])
 # v.plot.sort_by("rate")
 # v.show()
 v = viz.TsdFrameWidget(tsdframe)
-v.plot.plot_x_vs_y(0, 1)
-v.plot.plot_time_series()
+# v.plot.plot_x_vs_y(0, 1)
+# v.plot.plot_time_series()
 v.show()
 
 if __name__ == "__main__":
