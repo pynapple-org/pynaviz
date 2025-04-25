@@ -101,28 +101,6 @@ class ChannelListModel(QAbstractListModel):
 
         return False
 
-    def editorEvent(self, event, model_index, option, widget):
-        if (
-            event.type() == QEvent.Type.MouseButtonRelease
-            and event.button() == Qt.MouseButton.LeftButton
-        ):
-            # Figure out where the checkbox is
-            # option.rect is the entire item rect
-            # we assume the checkbox is on the left part
-            checkbox_rect = self.get_checkbox_rect(option)
-
-            if checkbox_rect.contains(event.pos()):
-                # Click was inside checkbox → toggle
-                current_state = self.checks[model_index.row()]
-                self.checks[model_index.row()] = not current_state
-                self.dataChanged.emit(
-                    model_index, model_index, [Qt.ItemDataRole.CheckStateRole]
-                )
-                self.checkStateChanged.emit()
-                return True  # Event handled
-
-        return super().editorEvent(event, model_index, option, widget)
-
 
 class TsdFrameColumnListModel(QAbstractListModel):
     checkStateChanged = pyqtSignal(int)
@@ -183,21 +161,6 @@ if __name__ == "__main__":
     import pynapple as nap
     from PyQt6.QtWidgets import QApplication, QListView
 
-    # def handle_click(index):
-    #     # Get current state of clicked item
-    #     state = model.data(index, Qt.ItemDataRole.CheckStateRole)
-    #     new_state = (
-    #         Qt.CheckState.Unchecked
-    #         if state == Qt.CheckState.Checked
-    #         else Qt.CheckState.Checked
-    #     )
-    #
-    #     # Get selected indexes
-    #     selected = view.selectionModel().selectedIndexes()
-    #
-    #     # Update all selected indexes
-    #     for idx in selected:
-    #         model.setData(idx, new_state, Qt.ItemDataRole.CheckStateRole)
 
     my_tsdframe = nap.TsdFrame(
         t=np.arange(10),
