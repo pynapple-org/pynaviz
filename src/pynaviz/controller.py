@@ -7,7 +7,6 @@ from typing import Callable, Optional, Union
 import pygfx
 import pygfx as gfx
 import pynapple as nap
-from debugpy.common.timestamp import current
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 from pylinalg import vec_transform, vec_unproject
 

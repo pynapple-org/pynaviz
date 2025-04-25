@@ -28,10 +28,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from pynaviz.qt_item_models import ChannelListModel
+from pynaviz.qt_item_models import ChannelListModel, DynamicSelectionListView
 
 from .drop_down_dict_builder import get_popup_kwargs
 from .utils import GRADED_COLOR_LIST
+from .utils import get_plot_attribute
 
 WIDGET_PARAMS = {
     QComboBox: {
@@ -218,37 +219,21 @@ class ChannelList(QDialog):
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setFixedSize(300, 150)
 
-        self.view = QListView(self)
+        self.view = DynamicSelectionListView(self)
 
         # Set the model for the list view
         # self.plot = plot
         self.model = model
         self.view.setModel(self.model)
+        self.model.checkStateChanged.connect(self.view.on_check_state_changed)
+
 
         # Set the selection mode
         self.view.setSelectionMode(self.view.SelectionMode.MultiSelection)
 
-        self.view.clicked.connect(self.handle_click)
-
         layout = QVBoxLayout()
         layout.addWidget(self.view)
         self.setLayout(layout)
-
-    def handle_click(self, index):
-        # Get current state of clicked item
-        state = self.model.data(index, Qt.ItemDataRole.CheckStateRole)
-        new_state = (
-            Qt.CheckState.Unchecked
-            if state == Qt.CheckState.Checked
-            else Qt.CheckState.Checked
-        )
-
-        # Get selected indexes
-        selected = self.view.selectionModel().selectedIndexes()
-
-        # Update all selected indexes
-        for idx in selected:
-            self.model.setData(idx, new_state, Qt.ItemDataRole.CheckStateRole)
 
 
 class MenuWidget(QWidget):
@@ -267,6 +252,7 @@ class MenuWidget(QWidget):
         self.metadata = metadata
         self.plot = plot
         self.channel_model = ChannelListModel(self.plot)
+        self.channel_model.checkStateChanged.connect(self._request_draw)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # No border padding
@@ -296,6 +282,13 @@ class MenuWidget(QWidget):
         # Set layout to the container widget
         self.setLayout(layout)
         self.setFixedHeight(icon_size)
+
+    def _request_draw(self):
+        widget = self.sender()
+        materials = get_plot_attribute(self.plot, "material")
+        for index, val in getattr(widget, "checks", {}).items():
+            materials[index].opacity = val
+        self.plot.canvas.request_draw(self.plot.animate)
 
     def _make_button(self, menu_to_show, icon_name, icon_size=20):
         button = QPushButton()
@@ -355,7 +348,6 @@ class MenuWidget(QWidget):
         self.action_menu.exec(pos)
 
     def show_select_menu(self):
-        # model = TsdFrameColumnListModel(my_tsdframe)
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.exec()
 
