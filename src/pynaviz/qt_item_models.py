@@ -33,7 +33,6 @@ class DynamicSelectionListView(QListView):
                 self.selectionModel().select(
                     idx, QItemSelectionModel.SelectionFlag.Deselect
                 )
-            # roll back to no selection.
 
             self.selectionModel().select(
                 changed_index, QItemSelectionModel.SelectionFlag.Deselect
