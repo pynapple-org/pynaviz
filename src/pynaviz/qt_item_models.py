@@ -74,7 +74,7 @@ class ChannelListModel(QAbstractListModel):
     def rowCount(self, parent=None):
         return len(self.checks.keys())
 
-    def data(self, index, role):
+    def data(self, index, role=None):
         row = index.row()
         if role == Qt.ItemDataRole.DisplayRole:
             return row
