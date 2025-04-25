@@ -9,7 +9,7 @@ from collections import OrderedDict
 from typing import Callable
 
 import matplotlib.pyplot as plt
-from PyQt6.QtCore import QPoint, QSize, Qt
+from PyQt6.QtCore import QPoint, QSize, Qt, QItemSelectionModel
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -25,7 +25,7 @@ from PyQt6.QtWidgets import (
     QSpacerItem,
     QStyle,
     QVBoxLayout,
-    QWidget,
+    QWidget, QAbstractItemView,
 )
 
 from pynaviz.qt_item_models import ChannelListModel, DynamicSelectionListView
@@ -220,6 +220,7 @@ class ChannelList(QDialog):
         self.setFixedSize(300, 150)
 
         self.view = DynamicSelectionListView(self)
+        self.view.setSelectionMode(self.view.SelectionMode.ExtendedSelection)
 
         # Set the model for the list view
         # self.plot = plot
@@ -229,8 +230,6 @@ class ChannelList(QDialog):
 
 
         # Set the selection mode
-        self.view.setSelectionMode(self.view.SelectionMode.MultiSelection)
-
         layout = QVBoxLayout()
         layout.addWidget(self.view)
         self.setLayout(layout)

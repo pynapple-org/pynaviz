@@ -28,14 +28,12 @@ class DynamicSelectionListView(QListView):
                 idx = self.model().index(row, 0)
                 self.model().setData(idx, new_state, Qt.ItemDataRole.CheckStateRole)
 
-            self.setSelectionMode(QListView.SelectionMode.MultiSelection)
             for row in selected_rows:
                 idx = self.model().index(row, 0)
                 self.selectionModel().select(
                     idx, QItemSelectionModel.SelectionFlag.Deselect
                 )
             # roll back to no selection.
-            self.setSelectionMode(QListView.SelectionMode.NoSelection)
 
             self.selectionModel().select(
                 changed_index, QItemSelectionModel.SelectionFlag.Deselect
@@ -44,19 +42,23 @@ class DynamicSelectionListView(QListView):
         # Defer model modification safely (it crashes otherwise)
         QTimer.singleShot(0, apply_changes)
 
-    # diversify behavior of simple click vs cmd/ctrl+click
-    def mousePressEvent(self, event):
-        modifiers = event.modifiers()
+    def selectionCommand(self, index, event=None):
+        if event is not None and event.type() == QEvent.Type.MouseButtonPress:
+            modifiers = event.modifiers()
 
-        if (
-            modifiers & Qt.KeyboardModifier.ControlModifier
-            or modifiers & Qt.KeyboardModifier.MetaModifier
-        ):
-            self.setSelectionMode(QListView.SelectionMode.MultiSelection)
-        else:
-            self.setSelectionMode(QListView.SelectionMode.NoSelection)
+            if modifiers & Qt.KeyboardModifier.ShiftModifier:
+                return super().selectionCommand(index, event)  # allow range selection
 
-        super().mousePressEvent(event)
+            if modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier):
+                return QItemSelectionModel.SelectionFlag.Toggle  # Cmd/Ctrl + click → toggle
+
+            # Regular click
+            if self.selectionModel().isSelected(index):
+                return QItemSelectionModel.SelectionFlag.Deselect
+            else:
+                return QItemSelectionModel.SelectionFlag.Select
+
+        return super().selectionCommand(index, event)
 
 
 class ChannelListModel(QAbstractListModel):
@@ -176,6 +178,7 @@ if __name__ == "__main__":
 
     model = TsdFrameColumnListModel(my_tsdframe)
     view.setModel(model)
+    view.setSelectionMode(view.SelectionMode.ExtendedSelection)
     model.checkStateChanged.connect(view.on_check_state_changed)
     # view.setSelectionMode(view.SelectionMode.MultiSelection)
     # view.clicked.connect(handle_click)
