@@ -280,7 +280,7 @@ class MenuWidget(QWidget):
 
         # Set layout to the container widget
         self.setLayout(layout)
-        self.setFixedHeight(icon_size)
+        self.setFixedHeight(icon_size+2)
 
     def _request_draw(self):
         widget = self.sender()
