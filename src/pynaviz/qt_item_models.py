@@ -28,11 +28,14 @@ class DynamicSelectionListView(QListView):
                 idx = self.model().index(row, 0)
                 self.model().setData(idx, new_state, Qt.ItemDataRole.CheckStateRole)
 
+            self.setSelectionMode(QListView.SelectionMode.MultiSelection)
             for row in selected_rows:
                 idx = self.model().index(row, 0)
                 self.selectionModel().select(
                     idx, QItemSelectionModel.SelectionFlag.Deselect
                 )
+            # roll back to no selction.
+            self.setSelectionMode(QListView.SelectionMode.NoSelection)
 
             self.selectionModel().select(
                 changed_index, QItemSelectionModel.SelectionFlag.Deselect
@@ -51,7 +54,7 @@ class DynamicSelectionListView(QListView):
         ):
             self.setSelectionMode(QListView.SelectionMode.MultiSelection)
         else:
-            self.setSelectionMode(QListView.SelectionMode.SingleSelection)
+            self.setSelectionMode(QListView.SelectionMode.NoSelection)
 
         super().mousePressEvent(event)
 
