@@ -34,7 +34,7 @@ class DynamicSelectionListView(QListView):
                 self.selectionModel().select(
                     idx, QItemSelectionModel.SelectionFlag.Deselect
                 )
-            # roll back to no selction.
+            # roll back to no selection.
             self.setSelectionMode(QListView.SelectionMode.NoSelection)
 
             self.selectionModel().select(
