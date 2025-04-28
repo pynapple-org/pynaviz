@@ -1,10 +1,68 @@
-import pynapple as nap
-from PyQt6.QtCore import QAbstractListModel, Qt
+from PyQt6.QtCore import (
+    QAbstractListModel,
+    QEvent,
+    QItemSelectionModel,
+    Qt,
+    QTimer,
+    pyqtSignal,
+)
+from PyQt6.QtWidgets import QListView
 
-from pynaviz.utils import get_plot_attribute
+import pynapple as nap
+
+class DynamicSelectionListView(QListView):
+
+    def on_check_state_changed(self, changed_row):
+        selected_rows = [
+            index.row() for index in self.selectionModel().selectedIndexes()
+        ]
+
+        if not selected_rows:
+            return  # nothing selected, nothing to do
+
+        changed_index = self.model().index(changed_row, 0)
+        new_state = self.model().data(changed_index, Qt.ItemDataRole.CheckStateRole)
+
+        def apply_changes():
+            for row in selected_rows:
+                idx = self.model().index(row, 0)
+                self.model().setData(idx, new_state, Qt.ItemDataRole.CheckStateRole)
+
+            for row in selected_rows:
+                idx = self.model().index(row, 0)
+                self.selectionModel().select(
+                    idx, QItemSelectionModel.SelectionFlag.Deselect
+                )
+
+            self.selectionModel().select(
+                changed_index, QItemSelectionModel.SelectionFlag.Deselect
+            )
+
+        # Defer model modification safely (it crashes otherwise)
+        QTimer.singleShot(0, apply_changes)
+
+    def selectionCommand(self, index, event=None):
+        if event is not None and event.type() == QEvent.Type.MouseButtonPress:
+            modifiers = event.modifiers()
+
+            if modifiers & Qt.KeyboardModifier.ShiftModifier:
+                return super().selectionCommand(index, event)  # allow range selection
+
+            if modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier):
+                return QItemSelectionModel.SelectionFlag.Toggle  # Cmd/Ctrl + click → toggle
+
+            # Regular click
+            if self.selectionModel().isSelected(index):
+                return QItemSelectionModel.SelectionFlag.Deselect
+            else:
+                return QItemSelectionModel.SelectionFlag.Select
+
+        return super().selectionCommand(index, event)
 
 
 class ChannelListModel(QAbstractListModel):
+    checkStateChanged = pyqtSignal(int)
+
     def __init__(self, plot):
         super().__init__()
         self._plot = plot
@@ -17,7 +75,7 @@ class ChannelListModel(QAbstractListModel):
     def rowCount(self, parent=None):
         return len(self.checks.keys())
 
-    def data(self, index, role):
+    def data(self, index, role=None):
         row = index.row()
         if role == Qt.ItemDataRole.DisplayRole:
             return row
@@ -38,18 +96,19 @@ class ChannelListModel(QAbstractListModel):
     def setData(self, index, value, role):
         if role == Qt.ItemDataRole.CheckStateRole:
             value = value.value if hasattr(value, "value") else value
-            self.checks[index.row()] = int(value) == Qt.CheckState.Checked.value
-            self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
-
-            materials = get_plot_attribute(self._plot, "material")
-            materials[index.row()].opacity = value
-            self._plot.canvas.request_draw(self._plot.animate)
+            state = int(value) == Qt.CheckState.Checked.value
+            if self.checks[index.row()] != state:
+                self.checks[index.row()] = state
+                self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
+                self.checkStateChanged.emit(index.row())
             return True
 
         return False
 
 
 class TsdFrameColumnListModel(QAbstractListModel):
+    checkStateChanged = pyqtSignal(int)
+
     def __init__(self, tsdframe):
         super().__init__()
         self.data_ = tsdframe
@@ -81,7 +140,7 @@ class TsdFrameColumnListModel(QAbstractListModel):
             value = value.value if hasattr(value, "value") else value
             self.checks[index.row()] = int(value) == Qt.CheckState.Checked.value
             self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
-            self.plot.materials
+            self.checkStateChanged.emit(index.row())
             return True
         return False
 
@@ -106,21 +165,6 @@ if __name__ == "__main__":
     import pynapple as nap
     from PyQt6.QtWidgets import QApplication, QListView
 
-    def handle_click(index):
-        # Get current state of clicked item
-        state = model.data(index, Qt.ItemDataRole.CheckStateRole)
-        new_state = (
-            Qt.CheckState.Unchecked
-            if state == Qt.CheckState.Checked
-            else Qt.CheckState.Checked
-        )
-
-        # Get selected indexes
-        selected = view.selectionModel().selectedIndexes()
-
-        # Update all selected indexes
-        for idx in selected:
-            model.setData(idx, new_state, Qt.ItemDataRole.CheckStateRole)
 
     my_tsdframe = nap.TsdFrame(
         t=np.arange(10),
@@ -129,11 +173,14 @@ if __name__ == "__main__":
         metadata={"meta": np.array([5, 10, 15])},
     )
     app = QApplication([])
-    view = QListView()
+    view = DynamicSelectionListView()
+
     model = TsdFrameColumnListModel(my_tsdframe)
     view.setModel(model)
-    view.setSelectionMode(view.SelectionMode.MultiSelection)
-    view.clicked.connect(handle_click)
+    view.setSelectionMode(view.SelectionMode.ExtendedSelection)
+    model.checkStateChanged.connect(view.on_check_state_changed)
+    # view.setSelectionMode(view.SelectionMode.MultiSelection)
+    # view.clicked.connect(handle_click)
     view.show()
 
     app.exec()
