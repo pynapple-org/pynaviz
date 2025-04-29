@@ -8,7 +8,6 @@ import warnings
 from abc import ABC
 from typing import Optional
 
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
