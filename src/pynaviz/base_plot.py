@@ -15,6 +15,7 @@ import pygfx as gfx
 import pynapple as nap
 import PyQt6
 from matplotlib.colors import Colormap
+from matplotlib.pyplot import colormaps
 from pylinalg import vec_transform, vec_unproject
 from wgpu.gui.qt import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
@@ -22,7 +23,9 @@ from wgpu.gui.qt import (
 
 from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
-from .utils import get_plot_attribute, map_metadata_to_zero_one
+from .utils import get_plot_attribute, trim_kwargs
+from .threads.metadata_to_color_maps import MetadataMappingThread
+import threading
 
 COLORS = [
     "hotpink",
@@ -59,7 +62,8 @@ def map_screen_to_world(camera, pos, viewport_size):
 class _BasePlot(ABC):
     def __init__(self, data, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
-        self.data = data
+        self._data = data
+        self.color_mapping_thread = MetadataMappingThread(data)
         self.renderer = gfx.WgpuRenderer(self.canvas)
         self.scene = gfx.Scene()
         self.rulerx = gfx.Ruler(tick_side="right")
@@ -70,6 +74,15 @@ class _BasePlot(ABC):
         )
         self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
         self._cmap = "jet"
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self.color_mapping_thread.update_maps(data)
+        self._data = data
 
     @property
     def cmap(self):
@@ -130,13 +143,28 @@ class _BasePlot(ABC):
 
         self.renderer.render(self.scene, self.camera)
 
-    def color_by(self, metadata_name, cmap_name="viridis", vmin=0., vmax=1.):
+    def color_by(self, metadata_name, cmap_name="viridis", vmin=0., vmax=100.):
+        # if still computing label, set a 25ms timer and try again
+        if self.color_mapping_thread.is_running():
+            slot = lambda: self.color_by(metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
+            threading.Timer(0.025, slot).start()
+            return
+
         try:
             self.cmap = cmap_name
         except:
             self.cmap = "jet"
 
-        cmap = cm.get_cmap(self.cmap)
+        map_to_colors = self.color_mapping_thread.color_maps.get(metadata_name, None)
+
+        if map_to_colors is None:
+            warnings.warn(
+                message=f"Cannot find appropriate color mapping for {metadata_name} metadata.",
+                category=UserWarning
+            )
+
+        map_kwargs = trim_kwargs(map_to_colors, dict(cmap=colormaps[self.cmap], vmin=vmin, vmax=vmax))
+
         # Grabbing the material object
         materials = get_plot_attribute(self, "material")
 
@@ -149,10 +177,10 @@ class _BasePlot(ABC):
 
         # If metadata found
         if len(values):
-            map_color = map_metadata_to_zero_one(values, vmin, vmax)
+            map_color = map_to_colors(values, **map_kwargs)
             if map_color:
                 for c in materials:
-                    materials[c].color = cmap(map_color[values[c]])
+                    materials[c].color = map_color[values[c]]
                 self.canvas.request_draw(self.animate)  # To fix
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):

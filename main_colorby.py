@@ -14,7 +14,8 @@ tsg = nap.TsGroup({
     ) for i in range(10)},
     metadata={
         "label":np.arange(10),
-        "colors":["hotpink","lightpink","cyan","orange","lightcoral","lightsteelblue","lime","lightgreen","magenta","pink"]
+        "colors":["hotpink","lightpink","cyan","orange","lightcoral","lightsteelblue","lime","lightgreen","magenta","pink"],
+        "test": ["hello", "word"]*5,
         }
     )
 tsdframe = nap.TsdFrame(t=np.arange(1000),d=np.random.randn(1000, 10), metadata={"label":np.random.randn(10)})
