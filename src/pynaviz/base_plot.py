@@ -22,7 +22,7 @@ from wgpu.gui.qt import (
 
 from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
-from .utils import get_plot_attribute
+from .utils import get_plot_attribute, map_metadata_to_zero_one
 
 COLORS = [
     "hotpink",
@@ -130,7 +130,7 @@ class _BasePlot(ABC):
 
         self.renderer.render(self.scene, self.camera)
 
-    def color_by(self, metadata_name, cmap_name="viridis"):
+    def color_by(self, metadata_name, cmap_name="viridis", vmin=0., vmax=1.):
         try:
             self.cmap = cmap_name
         except:
@@ -142,20 +142,18 @@ class _BasePlot(ABC):
 
         # Grabbing the metadata
         values = (
-            dict(self.data.get_info(metadata_name))
+            self.data.get_info(metadata_name)
             if hasattr(self.data, "get_info")
             else {}
         )
 
         # If metadata found
         if len(values):
-            # assume that we can specify some value-map
-            values = pd.Series(values)
-            values = values - np.nanmin(values)
-            values = values / np.nanmax(values)
-            for c in materials:
-                materials[c].color = cmap(values[c])
-            self.canvas.request_draw(self.animate)  # To fix
+            map_color = map_metadata_to_zero_one(values, vmin, vmax)
+            if map_color:
+                for c in materials:
+                    materials[c].color = cmap(map_color[values[c]])
+                self.canvas.request_draw(self.animate)  # To fix
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
         # Grabbing the material object
@@ -199,6 +197,10 @@ class _BasePlot(ABC):
         )
         # action_caller(self, action, metadata=metadata, **kwargs)
         # TODO: make it more targeted than update all
+
+    def set_metadata_maps(self):
+        if not hasattr(self.data, "metadata"):
+            return
 
 
 class PlotTsd(_BasePlot):
