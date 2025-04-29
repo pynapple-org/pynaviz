@@ -143,7 +143,7 @@ class _BasePlot(ABC):
         self.renderer.render(self.scene, self.camera)
 
     def color_by(self, metadata_name, cmap_name="viridis", vmin=0.0, vmax=100.0):
-        # if still computing label, set a 25ms timer and try again
+        # if still computing color maps, set a 25ms timer and try again
         if self.color_mapping_thread.is_running():
             slot = lambda: self.color_by(
                 metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax

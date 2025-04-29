@@ -111,7 +111,10 @@ class MetadataMappingThread:
         self.compute_map()
 
     def update_maps(self, time_series):
-        self.shutdown()
+        self.request_stop()
+        self.wait_until_done()
+        with self.map_lock:
+            self.color_maps = {}
         self._meta = getattr(time_series, "metadata", None)
         self.compute_map()
 
