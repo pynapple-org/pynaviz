@@ -1,7 +1,6 @@
 import inspect
 from typing import TYPE_CHECKING
 
-
 if TYPE_CHECKING:
     from .base_plot import _BasePlot
 

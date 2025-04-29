@@ -9,8 +9,9 @@ from collections import OrderedDict
 from typing import Callable
 
 import matplotlib.pyplot as plt
-from PyQt6.QtCore import QPoint, QSize, Qt, QItemSelectionModel
+from PyQt6.QtCore import QItemSelectionModel, QPoint, QSize, Qt
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QDialog,
     QDoubleSpinBox,
@@ -25,14 +26,13 @@ from PyQt6.QtWidgets import (
     QSpacerItem,
     QStyle,
     QVBoxLayout,
-    QWidget, QAbstractItemView,
+    QWidget,
 )
 
 from pynaviz.qt_item_models import ChannelListModel, DynamicSelectionListView
 
 from .drop_down_dict_builder import get_popup_kwargs
-from .utils import GRADED_COLOR_LIST
-from .utils import get_plot_attribute
+from .utils import GRADED_COLOR_LIST, get_plot_attribute
 
 WIDGET_PARAMS = {
     QComboBox: {
