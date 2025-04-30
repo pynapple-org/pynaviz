@@ -23,8 +23,11 @@ from wgpu.gui.qt import (
 
 from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
+
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import get_plot_attribute, trim_kwargs
+import fastplotlib as fpl
+
 
 COLORS = [
     "hotpink",
@@ -185,6 +188,14 @@ class _BasePlot(ABC):
                 self.canvas.request_draw(self.animate)  # To fix
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+        """
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata columns to sort lines
+        order
+        """
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry")
 
@@ -296,23 +307,31 @@ class PlotTsdFrame(_BasePlot):
                 gfx.LineMaterial(thickness=4.0, color=COLORS[i % len(COLORS)]),
             )
 
+        # Extra init depending on the context
+        self.time_point = None
+
         self.scene.add(
             self.rulerx, self.rulery, self.ruler_ref_time, *list(self.graphic.values())
         )
         self.canvas.request_draw(self.animate)
 
-    def plot_x_vs_y(self, x_label, y_label, color="white", thickness=1):
+    def plot_x_vs_y(self, x_label, y_label, color="white", thickness=1, markersize=10):
         """
-        This uses column names.
+        Plot one column vs the other. The x-axis can be selected with the `x_label`
+        and the y-axis can be selected with the `y_label` argument.
 
         Parameters
         ----------
-        x_label: int or string
-        y_label: int or string
-        color
-
-        Returns
-        -------
+        x_label : string or int or float
+            Column name for the x-axis
+        y_label : string or int or float
+            Column name for the y-axis
+        color : string or hex or rgb
+            Color of the line.
+        thickness : Number
+            Thickness of the line
+        markersize : Number
+            Size of the marker
         """
         # Removing objects
         self.scene.remove(*list(self.graphic.values()))
@@ -348,6 +367,7 @@ class PlotTsdFrame(_BasePlot):
         self.controller.buffer = self.time_point.geometry.positions
 
         self.canvas.request_draw(self.animate)
+
 
 
 class PlotTsGroup(_BasePlot):
