@@ -365,14 +365,14 @@ class PlotTsdFrame(_BasePlot):
         self.controller.enabled = False
 
         # preserve controller id
-        controller_id = self.controller.controller_id
+        controller_id = self.controller._controller_id
 
         # Instantiating new controller
         self.controller = self._controllers["get"]
         self.controller.n_frames = len(self.data)
         self.controller.frame_index = 0
         self.controller.enabled = True
-        self.controller_id = controller_id
+        self.controller._controller_id = controller_id
         self.controller.data = self.data.loc[[x_label, y_label]]
         self.controller.buffer = self.time_point.geometry.positions
 
