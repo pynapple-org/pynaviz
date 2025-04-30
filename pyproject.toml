@@ -45,6 +45,7 @@ dev = [
     "nox",
     "ruff",
     "isort",
+    "qt-material"
 ]
 docs = [
     "mkdocs",                       # Documentation generator

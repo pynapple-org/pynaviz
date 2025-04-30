@@ -5,8 +5,7 @@ import numpy as np
 import pynapple as nap
 from PyQt6.QtWidgets import QApplication
 import pynaviz as viz
-
-import qdarkstyle
+from qt_material import apply_stylesheet
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
 tsg = nap.TsGroup({
@@ -25,8 +24,7 @@ tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
 
 app = QApplication([])
-# app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt6())
-
+apply_stylesheet(app, theme='dark_cyan.xml')
 # viz.TsdWidget(tsd1).show()
 # viz.TsdTensorWidget(tsdtensor).show()
 v = viz.TsGroupWidget(tsg)
