@@ -12,7 +12,7 @@ import pynaviz as viz
 tsdframe = nap.misc.load_eeg(
     os.path.expanduser("~/Dropbox/A2929-200711/A2929-200711.eeg"),
     n_channels=16,
-    frequency=20000
+    frequency=1250
     )
 tsdframe.group = np.hstack((np.zeros(10), np.ones(6)))
 tsdframe.channel = np.hstack((np.arange(10), np.arange(10,16)))

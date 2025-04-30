@@ -396,9 +396,9 @@ class PlotTsdFrame(_BasePlot):
 
         # If metadata found
         if len(values):
-            values = pd.Series(values)
-            idx_sorted = values.sort_values(ascending=(order == "ascending"))
-            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
+            # values = pd.Series(values)
+            # idx_sorted = values.sort_values(ascending=(order == "ascending"))
+            # idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
 
             # TODO try LineStack from fastplotlib
 
