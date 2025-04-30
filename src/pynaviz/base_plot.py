@@ -219,6 +219,12 @@ class _BasePlot():
 
             self.canvas.request_draw(self.animate)
 
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        """
+        Separate groups of items. The argument `spacing` controls the amount of space between each item.
+        """
+        pass
+
     def update(self, event):
         """
         Apply an action to the widget plot.
@@ -305,7 +311,7 @@ class PlotTsdFrame(_BasePlot):
             positions = positions.astype("float32")
             self.graphic[c] = gfx.Line(
                 gfx.Geometry(positions=positions),
-                gfx.LineMaterial(thickness=4.0, color=COLORS[i % len(COLORS)]),
+                gfx.LineMaterial(thickness=1.0, color=COLORS[i % len(COLORS)]),
             )
 
         # Extra init depending on the context
@@ -369,6 +375,42 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
+    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+        """
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata columns to sort lines
+        order
+        """
+        # Grabbing the material object
+        geometries = get_plot_attribute(self, "geometry")
+
+        # Grabbing the metadata
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
+
+        # If metadata found
+        if len(values):
+            values = pd.Series(values)
+            idx_sorted = values.sort_values(ascending=(order == "ascending"))
+            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
+
+            # TODO try LineStack from fastplotlib
+
+            for i, c in enumerate(geometries):
+                geometries[c].positions.data[:,1] /= np.max(np.abs(geometries[c].positions.data[:,1]))
+                geometries[c].positions.data[:, 1] += (i+1)
+                geometries[c].positions.update_full()
+
+            # Need to update cameras in the y-axis
+            self.controller.set_ylim(-1, len(values)+1)
+
+            self.canvas.request_draw(self.animate)
 
 
 class PlotTsGroup(_BasePlot):

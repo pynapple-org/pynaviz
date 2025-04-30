@@ -288,23 +288,25 @@ class SpanController(CustomController):
         self.renderer_request_draw()
 
     def show_interval(self, start, end):
-        # # print(start, end, self._min, self._max)
-        # viewport_size = self.renderer.logical_size
-        #
-        # xmin, ymin = 0, self.renderer.logical_size[1]
-        # xmax, ymax = self.renderer.logical_size[0], 0
-        #
-        # world_xmin, world_ymin, _ = map_screen_to_world(self.camera,(xmin, ymin), viewport_size)
-        # world_xmax, world_ymax, _ = map_screen_to_world(self.camera,(xmax, ymax), viewport_size)
-        #
-        # # print(world_xmin, world_xmax, world_ymin, world_ymax)
-        # print(self._get_camera_state())
-
         self.camera.show_rect(  # Uses world coordinates
             left=start, right=end, top=self._min, bottom=self._max
         )
         self._update_cameras()
         self.renderer_request_draw()
+
+    def set_ylim(self, bottom, top):
+        """
+        Set the ylim of the canvas
+        TODO
+        """
+        viewport_size = self.renderer.logical_size
+        xmin, ymin = 0, self.renderer.logical_size[1]
+        xmax, ymax = self.renderer.logical_size[0], 0
+        world_xmin, world_ymin, _ = map_screen_to_world(self.camera,(xmin, ymin), viewport_size)
+        world_xmax, world_ymax, _ = map_screen_to_world(self.camera,(xmax, ymax), viewport_size)
+        self._min = bottom
+        self._max = top
+        self.show_interval(start=world_xmin, end=world_xmax)
 
 
 class GetController(CustomController):
