@@ -49,7 +49,7 @@ jobs:
 
   check:
     if: always()
-    needs: tox
+    needs: nox
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether all tests and notebooks succeeded
