@@ -189,16 +189,8 @@ class _BasePlot():
                 self.canvas.request_draw(self.animate)  # To fix
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
-        """
-
-        Parameters
-        ----------
-        metadata_name : str
-            Metadata columns to sort lines
-        order
-        """
         # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry")
+        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
 
         # Grabbing the metadata
         values = (
@@ -206,18 +198,7 @@ class _BasePlot():
             if hasattr(self.data, "get_info")
             else {}
         )
-
-        # If metadata found
-        if len(values):
-            values = pd.Series(values)
-            idx_sorted = values.sort_values(ascending=(order == "ascending"))
-            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
-
-            for c in geometries:
-                geometries[c].positions.data[:, 1] = idx_map[c]
-                geometries[c].positions.update_full()
-
-            self.canvas.request_draw(self.animate)
+        return geometries, values
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
         """
@@ -377,41 +358,40 @@ class PlotTsdFrame(_BasePlot):
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
         """
+        Sort by metadata entry.
 
         Parameters
         ----------
         metadata_name : str
             Metadata columns to sort lines
-        order
+        order : str, optional
+            Options are ["ascending"[default], "descending"]
         """
-        # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry")
+        geometries, values = super().sort_by(metadata_name, order)
 
-        # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        # print(self.camera.get_state())
 
         # If metadata found
         if len(values):
-            # values = pd.Series(values)
-            # idx_sorted = values.sort_values(ascending=(order == "ascending"))
-            # idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
+            values = pd.Series(values)
+            idx_sorted = values.sort_values(ascending=(order == "ascending"))
+            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
 
             # TODO try LineStack from fastplotlib
 
-            for i, c in enumerate(geometries):
-                geometries[c].positions.data[:,1] /= np.max(np.abs(geometries[c].positions.data[:,1]))
-                geometries[c].positions.data[:, 1] += (i+1)
+            for c in geometries:
+                geometries[c].positions.data[:, 1] = (
+                        self.data.loc[c].values /  np.max(np.abs(self.data.loc[c]))
+                        + idx_map[c] + 1
+                    ).astype("float32")
                 geometries[c].positions.update_full()
 
             # Need to update cameras in the y-axis
-            self.controller.set_ylim(-1, len(values)+1)
+            # self.controller.set_ylim(-1, len(idx_map)+1)
 
             self.canvas.request_draw(self.animate)
 
+    # def group_by(self, metadata_name: str, spacing: Optional = None):
 
 class PlotTsGroup(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
@@ -442,6 +422,29 @@ class PlotTsGroup(_BasePlot):
         self.scene.add(self.rulerx, self.rulery, *list(self.graphic.values()))
         self.canvas.request_draw(self.animate)
 
+    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+        """
+        Sort by metadata entry.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata columns to sort lines
+        order : str, optional
+            Options are ["ascending"[default], "descending"]
+        """
+        geometries, values = super().sort_by(metadata_name, order)
+        # If metadata found
+        if len(values):
+            values = pd.Series(values)
+            idx_sorted = values.sort_values(ascending=(order == "ascending"))
+            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
+
+            for c in geometries:
+                geometries[c].positions.data[:, 1] = idx_map[c]
+                geometries[c].positions.update_full()
+
+            self.canvas.request_draw(self.animate)
 
 class PlotTsdTensor(_BasePlot):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):

@@ -20,7 +20,9 @@ tsdframe.channel = np.hstack((np.arange(10), np.arange(10,16)))
 app = QApplication([])
 
 v = viz.TsdFrameWidget(tsdframe)
+v.plot.sort_by("group")
 v.plot.sort_by("channel")
+
 # v.plot.group_by("group")
 v.show()
 
