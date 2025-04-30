@@ -366,6 +366,9 @@ class PlotTsdFrame(_BasePlot):
         self.scene.add(self.time_point)
 
         # Disable old controller
+        # self.controller.show_interval(
+        #     np.min(self.data.loc[x_label]), np.max(self.data.loc[x_label])
+        # )
         self.controller.enabled = False
 
         # preserve controller id
@@ -380,6 +383,13 @@ class PlotTsdFrame(_BasePlot):
         self.controller._controller_id = controller_id
         self.controller.data = self.data.loc[[x_label, y_label]]
         self.controller.buffer = self.time_point.geometry.positions
+
+        self.camera.show_rect(
+            left=np.min(self.data.loc[x_label]),
+            right=np.max(self.data.loc[x_label]),
+            bottom=np.min(self.data.loc[y_label]),
+            top=np.max(self.data.loc[y_label]),
+        )
 
         self.canvas.request_draw(self.animate)
 
