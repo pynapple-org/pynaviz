@@ -359,7 +359,6 @@ class PlotTsdFrame(_BasePlot):
             (self.data.loc[[x_label, y_label]].get(current_time), 0),
             dtype="float32",
         )[None, :]
-        # np.zeros((1, 3), dtype="float32")
         self.time_point = gfx.Points(
             gfx.Geometry(positions=xy),
             gfx.PointsMaterial(size=30, color="red", opacity=1),
@@ -375,7 +374,8 @@ class PlotTsdFrame(_BasePlot):
         # Instantiating new controller
         self.controller = self._controllers["get"]
         self.controller.n_frames = len(self.data)
-        self.controller.frame_index = 0
+        current_frame = self.data.get_slice(current_time).start
+        self.controller.frame_index = current_frame
         self.controller.enabled = True
         self.controller._controller_id = controller_id
         self.controller.data = self.data.loc[[x_label, y_label]]
