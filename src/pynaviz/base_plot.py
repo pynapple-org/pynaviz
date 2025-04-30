@@ -369,8 +369,6 @@ class PlotTsdFrame(_BasePlot):
         """
         geometries, values = super().sort_by(metadata_name, order)
 
-        # print(self.camera.get_state())
-
         # If metadata found
         if len(values):
             values = pd.Series(values)
@@ -387,7 +385,7 @@ class PlotTsdFrame(_BasePlot):
                 geometries[c].positions.update_full()
 
             # Need to update cameras in the y-axis
-            # self.controller.set_ylim(-1, len(idx_map)+1)
+            self.controller.set_ylim(-1, len(idx_map)+1)
 
             self.canvas.request_draw(self.animate)
 
