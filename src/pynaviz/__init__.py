@@ -9,7 +9,11 @@ from .widget_plot import (
 )
 
 __version__ = "0.0.1"
-__all__ = ["PlotTsd", "PlotTsdFrame", "PlotTsdTensor", "PlotTsGroup", "PlotTs"]
+__all__ = [
+    "PlotTsd", "PlotTsdFrame", "PlotTsdTensor", "PlotTsGroup", "PlotTs",
+    "TsdFrameWidget", "TsdTensorWidget", "TsdWidget", "TsGroupWidget", "TsWidget",
+    "scope"
+]
 
 
 # from .neurowidget import NeuroWidget

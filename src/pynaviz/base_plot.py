@@ -5,7 +5,8 @@ Create a unique canvas/renderer for each class
 
 import threading
 import warnings
-from abc import ABC
+
+# from abc import ABC
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -24,6 +25,7 @@ from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import get_plot_attribute, trim_kwargs
+
 # import fastplotlib as fpl
 
 
@@ -60,7 +62,7 @@ def map_screen_to_world(camera, pos, viewport_size):
     return pos_world
 
 
-class _BasePlot(ABC):
+class _BasePlot():
     def __init__(self, data, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
         self._data = data
@@ -97,12 +99,14 @@ class _BasePlot(ABC):
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.",
                 category=UserWarning,
+                stacklevel=2
             )
             return
         if value not in plt.colormaps():
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.",
                 category=UserWarning,
+                stacklevel=2
             )
             return
         self._cmap = value
@@ -153,10 +157,7 @@ class _BasePlot(ABC):
             threading.Timer(0.025, slot).start()
             return
 
-        try:
-            self.cmap = cmap_name
-        except:
-            self.cmap = "jet"
+        self.cmap = cmap_name
 
         map_to_colors = self.color_mapping_thread.color_maps.get(metadata_name, None)
 
@@ -164,6 +165,7 @@ class _BasePlot(ABC):
             warnings.warn(
                 message=f"Cannot find appropriate color mapping for {metadata_name} metadata.",
                 category=UserWarning,
+                stacklevel=2
             )
 
         map_kwargs = trim_kwargs(
