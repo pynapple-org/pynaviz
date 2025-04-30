@@ -4,8 +4,9 @@ Test script
 import numpy as np
 import os
 import pynapple as nap
-import pynaviz as viz
 from PyQt6.QtWidgets import QApplication
+import pynaviz as viz
+
 
 
 tsdframe = nap.misc.load_eeg(

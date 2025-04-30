@@ -3,8 +3,9 @@ Test script
 """
 import numpy as np
 import pynapple as nap
-import pynaviz as viz
 from PyQt6.QtWidgets import QApplication
+import pynaviz as viz
+
 import qdarkstyle
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))

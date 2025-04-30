@@ -3,8 +3,8 @@ Test script
 """
 import numpy as np
 import pynapple as nap
-import pynaviz as viz
 from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton
+import pynaviz as viz
 import sys
 from pynaviz.controller import ControllerGroup
 

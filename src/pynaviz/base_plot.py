@@ -17,7 +17,7 @@ import pynapple as nap
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
 from pylinalg import vec_transform, vec_unproject
-from wgpu.gui.qt import (
+from wgpu.gui.auto import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
 )
 
