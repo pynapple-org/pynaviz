@@ -7,8 +7,11 @@ Classes hold the specific interactive methods for each pynapple object.
 from collections import OrderedDict
 from typing import Callable
 
-from PyQt6.QtCore import QPoint, QSize, Qt
+# import matplotlib.pyplot as plt
+from PyQt6.QtCore import QItemSelectionModel, QPoint, QSize, Qt
+
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QDialog,
     QDoubleSpinBox,
@@ -28,7 +31,11 @@ from PyQt6.QtWidgets import (
 from pynaviz.qt_item_models import ChannelListModel, DynamicSelectionListView
 
 from .drop_down_dict_builder import get_popup_kwargs
+<<<<<<< HEAD
 from .utils import get_plot_attribute
+=======
+from .utils import GRADED_COLOR_LIST, get_plot_attribute
+>>>>>>> f9562f6b976161705385e4ce4a9b12240de986ce
 
 WIDGET_PARAMS = {
     QComboBox: {
