@@ -29,7 +29,6 @@ from .utils import get_plot_attribute, trim_kwargs
 # import fastplotlib as fpl
 
 
-
 COLORS = [
     "hotpink",
     "lightpink",
@@ -62,7 +61,7 @@ def map_screen_to_world(camera, pos, viewport_size):
     return pos_world
 
 
-class _BasePlot():
+class _BasePlot:
     def __init__(self, data, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
         self._data = data
@@ -99,14 +98,14 @@ class _BasePlot():
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.",
                 category=UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             return
         if value not in plt.colormaps():
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.",
                 category=UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             return
         self._cmap = value
@@ -165,7 +164,7 @@ class _BasePlot():
             warnings.warn(
                 message=f"Cannot find appropriate color mapping for {metadata_name} metadata.",
                 category=UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
         map_kwargs = trim_kwargs(
@@ -365,11 +364,15 @@ class PlotTsdFrame(_BasePlot):
         # Disable old controller
         self.controller.enabled = False
 
+        # preserve controller id
+        controller_id = self.controller.controller_id
+
         # Instantiating new controller
         self.controller = self._controllers["get"]
         self.controller.n_frames = len(self.data)
         self.controller.frame_index = 0
         self.controller.enabled = True
+        self.controller_id = controller_id
         self.controller.data = self.data.loc[[x_label, y_label]]
         self.controller.buffer = self.time_point.geometry.positions
 
@@ -403,12 +406,14 @@ class PlotTsdFrame(_BasePlot):
             # TODO try LineStack from fastplotlib
 
             for i, c in enumerate(geometries):
-                geometries[c].positions.data[:,1] /= np.max(np.abs(geometries[c].positions.data[:,1]))
-                geometries[c].positions.data[:, 1] += (i+1)
+                geometries[c].positions.data[:, 1] /= np.max(
+                    np.abs(geometries[c].positions.data[:, 1])
+                )
+                geometries[c].positions.data[:, 1] += i + 1
                 geometries[c].positions.update_full()
 
             # Need to update cameras in the y-axis
-            self.controller.set_ylim(-1, len(values)+1)
+            self.controller.set_ylim(-1, len(values) + 1)
 
             self.canvas.request_draw(self.animate)
 

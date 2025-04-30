@@ -53,23 +53,7 @@ class ControllerGroup:
 
     """
 
-    def __init__(self, controllers_and_renderers=None, interval=(0, 10)):
-        self._controller_group = dict()
-        if controllers_and_renderers is None:
-            controllers_and_renderers = []
-        ids = [
-            ctrl.controller_id
-            for ctrl, _ in controllers_and_renderers
-            if ctrl.controller_id is not None
-        ]
-
-        if len(set(ids)) != len(ids):
-            raise ValueError("Controller ids must be all different!")
-        if ids:
-            id0 = max(ids) + 1
-        else:
-            id0 = 0
-
+    def __init__(self, plots=None, interval=(0, 10)):
         if not isinstance(interval, (tuple, list)):
             raise ValueError("interval should be tuple or list")
         if not len(interval) == 2 and not all(
@@ -79,40 +63,29 @@ class ControllerGroup:
         if interval[0] > interval[1]:
             raise RuntimeError("interval start should precede interval end")
 
-        self.interval = interval
+        if plots is not None:
+            for i, plt in enumerate(plots):
+                plt.controller._controller_id = i
+                self._add_update_handler(plt.renderer)
+                plt.controller.show_interval(*interval)
 
-        for i, cntrl_and_rend in enumerate(controllers_and_renderers):
-            ctrl, rend = cntrl_and_rend
-            if ctrl.controller_id is None:
-                ctrl.controller_id = i + id0
-            self._controller_group[ctrl.controller_id] = ctrl
-            self._add_update_handler(rend)
-            # # Need to move the controllers to show the given interval.
-            ctrl.show_interval(*interval)
+        self.interval = interval
+        self.plots = plots
 
     def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
         viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
         viewport.renderer.add_event_handler(self.sync_controllers, "sync")
 
-    def add(self, controller, renderer, controller_id):
-        if controller_id in self._controller_group.keys():
-            raise RuntimeError(
-                f"controller_id {controller_id} already in controller group."
-            )
-        if controller.controller_id is None:
-            controller.controller_id = controller_id
-        self._controller_group[controller_id] = controller
-        self._add_update_handler(renderer)
-
-    def remove(self, controller_id):
-        pass
-
     def sync_controllers(self, event):
         """Sync controllers according to their rule."""
         # print(event)
-        for id_other, ctrl in self._controller_group.items():
-            if event.controller_id != id_other and ctrl.enabled:
-                ctrl.sync(event)
+        # self._update_controller_group()
+        for plt in self.plots:
+            if (
+                event.controller_id != plt.controller.controller_id
+                and plt.controller.enabled
+            ):
+                plt.controller.sync(event)
 
 
 class CustomController(PanZoomController):
@@ -302,8 +275,12 @@ class SpanController(CustomController):
         viewport_size = self.renderer.logical_size
         xmin, ymin = 0, self.renderer.logical_size[1]
         xmax, ymax = self.renderer.logical_size[0], 0
-        world_xmin, world_ymin, _ = map_screen_to_world(self.camera,(xmin, ymin), viewport_size)
-        world_xmax, world_ymax, _ = map_screen_to_world(self.camera,(xmax, ymax), viewport_size)
+        world_xmin, world_ymin, _ = map_screen_to_world(
+            self.camera, (xmin, ymin), viewport_size
+        )
+        world_xmax, world_ymax, _ = map_screen_to_world(
+            self.camera, (xmax, ymax), viewport_size
+        )
         self._min = bottom
         self._max = top
         self.show_interval(start=world_xmin, end=world_xmax)
@@ -360,8 +337,12 @@ class GetController(CustomController):
             self.frame_index -= 1
         delta_t = self.data.index.values[self.frame_index] - current_t
 
-        if self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3: # assume single point
-            self.buffer.data[0,0:2] = self.data.values[self.frame_index].astype("float32")
+        if (
+            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
+        ):  # assume single point
+            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+                "float32"
+            )
         else:
             self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
         self.buffer.update_full()
@@ -384,8 +365,12 @@ class GetController(CustomController):
 
         self.frame_index = self.data.get_slice(new_t).start
 
-        if self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3: # assume single point
-            self.buffer.data[0,0:2] = self.data.values[self.frame_index].astype("float32")
+        if (
+            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
+        ):  # assume single point
+            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+                "float32"
+            )
         else:
             self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
 
@@ -400,8 +385,12 @@ class GetController(CustomController):
         t = start + (end - start) / 2
         self.frame_index = self.data.get_slice(t).start
         # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
-        if self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3: # assume single point
-            self.buffer.data[0,0:2] = self.data.values[self.frame_index].astype("float32")
+        if (
+            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
+        ):  # assume single point
+            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+                "float32"
+            )
         else:
             self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
 
