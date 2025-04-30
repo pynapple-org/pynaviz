@@ -125,7 +125,7 @@ class NeuroWidget:
                 )
             # check for unique names
             if len(set(self.names)) != len(self.names):
-                raise ValueError(f"Each visual requires a unique name.")
+                raise ValueError("Each visual requires a unique name.")
 
             # if odd # of visuals
             while len(self.names) < len(

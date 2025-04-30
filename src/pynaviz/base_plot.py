@@ -13,7 +13,6 @@ import numpy as np
 import pandas as pd
 import pygfx as gfx
 import pynapple as nap
-import PyQt6
 from matplotlib.colors import Colormap
 from pylinalg import vec_transform, vec_unproject
 from wgpu.gui.qt import (
@@ -23,7 +22,6 @@ from wgpu.gui.qt import (
 from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .utils import get_plot_attribute
-import fastplotlib as fpl
 
 COLORS = [
     "hotpink",
@@ -86,7 +84,7 @@ class _BasePlot(ABC):
                 category=UserWarning,
             )
             return
-        if not value in plt.colormaps():
+        if value not in plt.colormaps():
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.",
                 category=UserWarning,
@@ -201,13 +199,13 @@ class _BasePlot(ABC):
         elif action_name == "sort_by":
             self.sort_by(metadata_name)
 
-        metadata = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
-        # action_caller(self, action, metadata=metadata, **kwargs)
-        # TODO: make it more targeted than update all
+        # metadata = (
+        #     dict(self.data.get_info(metadata_name))
+        #     if hasattr(self.data, "get_info")
+        #     else {}
+        # )
+        # # action_caller(self, action, metadata=metadata, **kwargs)
+        # # TODO: make it more targeted than update all
 
 
 class PlotTsd(_BasePlot):

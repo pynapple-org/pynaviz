@@ -1,6 +1,5 @@
 import bisect
 from collections import OrderedDict
-from typing import Callable, Tuple
 
 import matplotlib.pyplot as plt
 from PyQt6.QtWidgets import QComboBox, QWidget

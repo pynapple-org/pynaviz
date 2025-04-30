@@ -46,20 +46,23 @@ class ControllerGroup:
 
     Parameters
     ----------
-    controllers_and_renderers : list
+    controllers_and_renderers : list or None
         controllers and renderers. Can be empty.
     interval : tuple of float or int
         The start and end of the epoch to show when initializing.
 
     """
 
-    def __init__(self, controllers_and_renderers=[], interval=(0, 10)):
+    def __init__(self, controllers_and_renderers=None, interval=(0, 10)):
         self._controller_group = dict()
-        ids = [
-            ctrl.controller_id
-            for ctrl, _ in controllers_and_renderers
-            if ctrl.controller_id is not None
-        ]
+        if controllers_and_renderers is not None:
+            ids = [
+                ctrl.controller_id
+                for ctrl, _ in controllers_and_renderers
+                if ctrl.controller_id is not None
+            ]
+        else:
+            ids = []
         if len(set(ids)) != len(ids):
             raise ValueError("Controller ids must be all different!")
         if ids:

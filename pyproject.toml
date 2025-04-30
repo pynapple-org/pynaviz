@@ -23,7 +23,8 @@ classifiers = [
 dependencies = [    
     'fastplotlib',
     'pynapple',
-    'matplotlib'
+    'matplotlib',
+
 ]
 
 
@@ -110,7 +111,5 @@ ignore-init-module-imports = true
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
-[tool.coverage.report] # Numba compiled functions
-exclude_also = [
-  
-]
+[tool.coverage.report]
+exclude_also = []

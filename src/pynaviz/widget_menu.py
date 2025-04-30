@@ -4,12 +4,10 @@ Create a unique Qt widget menu for each plot.
 Classes hold the specific interactive methods for each pynapple object.
 """
 
-import bisect
 from collections import OrderedDict
 from typing import Callable
 
-import matplotlib.pyplot as plt
-from PyQt6.QtCore import QPoint, QSize, Qt, QItemSelectionModel
+from PyQt6.QtCore import QPoint, QSize, Qt
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -17,7 +15,6 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
-    QListView,
     QMenu,
     QPushButton,
     QScrollArea,
@@ -25,13 +22,12 @@ from PyQt6.QtWidgets import (
     QSpacerItem,
     QStyle,
     QVBoxLayout,
-    QWidget, QAbstractItemView,
+    QWidget,
 )
 
 from pynaviz.qt_item_models import ChannelListModel, DynamicSelectionListView
 
 from .drop_down_dict_builder import get_popup_kwargs
-from .utils import GRADED_COLOR_LIST
 from .utils import get_plot_attribute
 
 WIDGET_PARAMS = {
