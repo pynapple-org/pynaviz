@@ -3,11 +3,11 @@ Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
 
+import threading
 import warnings
 from abc import ABC
 from typing import Optional
 
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -15,6 +15,7 @@ import pygfx as gfx
 import pynapple as nap
 import PyQt6
 from matplotlib.colors import Colormap
+from matplotlib.pyplot import colormaps
 from pylinalg import vec_transform, vec_unproject
 from wgpu.gui.qt import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
@@ -22,8 +23,11 @@ from wgpu.gui.qt import (
 
 from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
-from .utils import get_plot_attribute
+
+from .threads.metadata_to_color_maps import MetadataMappingThread
+from .utils import get_plot_attribute, trim_kwargs
 import fastplotlib as fpl
+
 
 COLORS = [
     "hotpink",
@@ -60,7 +64,8 @@ def map_screen_to_world(camera, pos, viewport_size):
 class _BasePlot(ABC):
     def __init__(self, data, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
-        self.data = data
+        self._data = data
+        self.color_mapping_thread = MetadataMappingThread(data)
         self.renderer = gfx.WgpuRenderer(self.canvas)
         self.scene = gfx.Scene()
         self.rulerx = gfx.Ruler(tick_side="right")
@@ -71,6 +76,15 @@ class _BasePlot(ABC):
         )
         self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
         self._cmap = "jet"
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self.color_mapping_thread.update_maps(data)
+        self._data = data
 
     @property
     def cmap(self):
@@ -131,32 +145,47 @@ class _BasePlot(ABC):
 
         self.renderer.render(self.scene, self.camera)
 
-    def color_by(self, metadata_name, cmap_name="viridis"):
+    def color_by(self, metadata_name, cmap_name="viridis", vmin=0.0, vmax=100.0):
+        # if still computing color maps, set a 25ms timer and try again
+        if self.color_mapping_thread.is_running():
+            slot = lambda: self.color_by(
+                metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
+            )
+            threading.Timer(0.025, slot).start()
+            return
+
         try:
             self.cmap = cmap_name
         except:
             self.cmap = "jet"
 
-        cmap = cm.get_cmap(self.cmap)
+        map_to_colors = self.color_mapping_thread.color_maps.get(metadata_name, None)
+
+        if map_to_colors is None:
+            warnings.warn(
+                message=f"Cannot find appropriate color mapping for {metadata_name} metadata.",
+                category=UserWarning,
+            )
+
+        map_kwargs = trim_kwargs(
+            map_to_colors, dict(cmap=colormaps[self.cmap], vmin=vmin, vmax=vmax)
+        )
+
         # Grabbing the material object
         materials = get_plot_attribute(self, "material")
 
         # Grabbing the metadata
         values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
+            self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
         )
 
         # If metadata found
         if len(values):
-            # assume that we can specify some value-map
-            values = pd.Series(values)
-            values = values - np.nanmin(values)
-            values = values / np.nanmax(values)
-            for c in materials:
-                materials[c].color = cmap(values[c])
-            self.canvas.request_draw(self.animate)  # To fix
+            map_color = map_to_colors(values, **map_kwargs)
+            if map_color:
+                for c in materials:
+                    materials[c].color = map_color[values[c]]
+                self.canvas.request_draw(self.animate)  # To fix
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
         """
@@ -209,6 +238,10 @@ class _BasePlot(ABC):
         # action_caller(self, action, metadata=metadata, **kwargs)
         # TODO: make it more targeted than update all
 
+    def set_metadata_maps(self):
+        if not hasattr(self.data, "metadata"):
+            return
+
 
 class PlotTsd(_BasePlot):
     def __init__(self, data: nap.Tsd, index=None, parent=None):
@@ -251,18 +284,18 @@ class PlotTsdFrame(_BasePlot):
                 dict_sync_funcs=dict_sync_funcs,
                 min=np.min(data),
                 max=np.max(data),
-                ),
+            ),
             "get": GetController(
                 camera=self.camera,
                 renderer=self.renderer,
                 data=None,
                 buffer=None,
-                enabled=False
-            )
+                enabled=False,
+            ),
         }
 
         # First controller
-        self.controller = self._controllers['span']
+        self.controller = self._controllers["span"]
 
         # Passing the data
         self.graphic: dict = {}
@@ -315,18 +348,18 @@ class PlotTsdFrame(_BasePlot):
         self.scene.add(self.graphic)
 
         # Adding point object to track time
-        xy = np.zeros((1,3), dtype="float32")
+        xy = np.zeros((1, 3), dtype="float32")
         self.time_point = gfx.Points(
-                gfx.Geometry(positions=xy),
-                gfx.PointsMaterial(size=markersize, color="red", opacity=1),
-            )
+            gfx.Geometry(positions=xy),
+            gfx.PointsMaterial(size=30, color="red", opacity=1),
+        )
         self.scene.add(self.time_point)
 
         # Disable old controller
         self.controller.enabled = False
 
         # Instantiating new controller
-        self.controller = self._controllers['get']
+        self.controller = self._controllers["get"]
         self.controller.n_frames = len(self.data)
         self.controller.frame_index = 0
         self.controller.enabled = True

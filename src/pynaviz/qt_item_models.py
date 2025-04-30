@@ -1,3 +1,4 @@
+import pynapple as nap
 from PyQt6.QtCore import (
     QAbstractListModel,
     QEvent,
@@ -8,7 +9,6 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtWidgets import QListView
 
-import pynapple as nap
 
 class DynamicSelectionListView(QListView):
 

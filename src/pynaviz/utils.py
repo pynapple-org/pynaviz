@@ -1,3 +1,4 @@
+import inspect
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -44,12 +45,6 @@ def get_plot_attribute(
     return dict_attr
 
 
-# def action_caller(plot: "_BasePlot", action_name: str, metadata: Optional[dict], **kwargs):
-#     metadata = metadata or {}
-#     if action_name == "color_by":
-#         materials = get_plot_attribute(plot, "material")
-#         if materials:
-#             plot.color_by(materials, metadata, **kwargs)
-#     elif action_name == "sort_by":
-#         geom = get_plot_attribute(plot, "geometry")
-#         plot.sort_by(geom, metadata, **kwargs)
+def trim_kwargs(func, kwargs):
+    params = inspect.signature(func).parameters
+    return {k: v for k, v in kwargs.items() if k in params}
