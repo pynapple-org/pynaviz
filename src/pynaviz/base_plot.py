@@ -341,6 +341,7 @@ class PlotTsdFrame(_BasePlot):
         """
         # Removing objects
         self.scene.remove(*list(self.graphic.values()))
+        current_time = self.ruler_ref_time.geometry.positions.data[0][0]
         self.scene.remove(self.ruler_ref_time)
 
         # Adding line object
@@ -354,7 +355,11 @@ class PlotTsdFrame(_BasePlot):
         self.scene.add(self.graphic)
 
         # Adding point object to track time
-        xy = np.zeros((1, 3), dtype="float32")
+        xy = np.hstack(
+            (self.data.loc[[x_label, y_label]].get(current_time), 0),
+            dtype="float32",
+        )[None, :]
+        # np.zeros((1, 3), dtype="float32")
         self.time_point = gfx.Points(
             gfx.Geometry(positions=xy),
             gfx.PointsMaterial(size=30, color="red", opacity=1),
