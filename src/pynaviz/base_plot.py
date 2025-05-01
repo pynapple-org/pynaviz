@@ -192,25 +192,25 @@ class _BasePlot(ABC):
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
 
-    def update(self, event):
-        """
-        Apply an action to the widget plot.
-        Actions can be "color_by", "sort_by" and "group_by"
-        """
-        metadata_name = event["metadata_name"]
-        action_name = event["action"]
-        if action_name == "color_by":
-            self.color_by(metadata_name)
-        elif action_name == "sort_by":
-            self.sort_by(metadata_name)
-
-        # metadata = (
-        #     dict(self.data.get_info(metadata_name))
-        #     if hasattr(self.data, "get_info")
-        #     else {}
-        # )
-        # # action_caller(self, action, metadata=metadata, **kwargs)
-        # # TODO: make it more targeted than update all
+    # def update(self, event):
+    #     """
+    #     Apply an action to the widget plot.
+    #     Actions can be "color_by", "sort_by" and "group_by"
+    #     """
+    #     metadata_name = event["metadata_name"]
+    #     action_name = event["action"]
+    #     if action_name == "color_by":
+    #         self.color_by(metadata_name)
+    #     elif action_name == "sort_by":
+    #         self.sort_by(metadata_name)
+    #
+    #     # metadata = (
+    #     #     dict(self.data.get_info(metadata_name))
+    #     #     if hasattr(self.data, "get_info")
+    #     #     else {}
+    #     # )
+    #     # # action_caller(self, action, metadata=metadata, **kwargs)
+    #     # # TODO: make it more targeted than update all
 
     def set_metadata_maps(self):
         if not hasattr(self.data, "metadata"):
