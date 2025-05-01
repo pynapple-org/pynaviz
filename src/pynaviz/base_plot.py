@@ -29,7 +29,6 @@ from .interval_set import IntervalSetInterface
 # import fastplotlib as fpl
 
 
-
 COLORS = [
     "hotpink",
     "lightpink",
@@ -89,14 +88,14 @@ class _BasePlot(IntervalSetInterface):
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.",
                 category=UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             return
         if value not in plt.colormaps():
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.",
                 category=UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             return
         self._cmap = value
@@ -144,7 +143,7 @@ class _BasePlot(IntervalSetInterface):
             warnings.warn(
                 message=f"Cannot find appropriate color mapping for {metadata_name} metadata.",
                 category=UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
         map_kwargs = trim_kwargs(
@@ -241,7 +240,7 @@ class PlotTsd(_BasePlot):
             dict_sync_funcs=dict_sync_funcs,
             min=np.min(data),
             max=np.max(data),
-            plot_updates=[], # list of callables
+            plot_updates=[],  # list of callables
         )
 
         # Passing the data
@@ -383,12 +382,14 @@ class PlotTsdFrame(_BasePlot):
             # TODO try LineStack from fastplotlib
 
             for i, c in enumerate(geometries):
-                geometries[c].positions.data[:,1] /= np.max(np.abs(geometries[c].positions.data[:,1]))
-                geometries[c].positions.data[:, 1] += (i+1)
+                geometries[c].positions.data[:, 1] /= np.max(
+                    np.abs(geometries[c].positions.data[:, 1])
+                )
+                geometries[c].positions.data[:, 1] += i + 1
                 geometries[c].positions.update_full()
 
             # Need to update cameras in the y-axis
-            self.controller.set_ylim(-1, len(values)+1)
+            self.controller.set_ylim(-1, len(values) + 1)
 
             self.canvas.request_draw(self.animate)
 

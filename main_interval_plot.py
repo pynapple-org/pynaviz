@@ -29,6 +29,8 @@ v = viz.TsGroupWidget(tsg)
 v.plot.controller.show_interval(0, 20)
 ep = [nap.IntervalSet(10, 20), nap.IntervalSet(35, 50), nap.IntervalSet(30, 40)]
 v.plot.add_interval_sets(ep, colors=["red", "cyan", "blue"])
+
+v.plot.add_interval_sets(nap.IntervalSet(80, 100), colors=["purple"])
 # v.plot.plot_intervals(["interval_0", "interval_1"], )
 # v.plot.color_by("label", 'jet')
 # v.plot.sort_by("rate")

@@ -2,7 +2,7 @@
 The controller class.
 """
 
-from typing import Callable, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import pygfx
 import pygfx as gfx
@@ -128,6 +128,7 @@ class CustomController(PanZoomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
+        plot_updates: Optional[List[Callable]] = None,
     ):
         super().__init__(
             camera=camera,
@@ -237,12 +238,13 @@ class SpanController(CustomController):
             renderer=renderer,
             controller_id=controller_id,
             dict_sync_funcs=dict_sync_funcs,
+            plot_updates=None,
         )
+        self.plot_updates = plot_updates if plot_updates is not None else []
         self._min = min
 
         self._max = max
         self.show_interval(0, 1)
-        self.plot_updates = plot_updates if plot_updates is not None else []
 
     def _update_pan(self, delta, *, vecx, vecy):
         super()._update_pan(delta, vecx=vecx, vecy=vecy)
@@ -311,8 +313,12 @@ class SpanController(CustomController):
         viewport_size = self.renderer.logical_size
         xmin, ymin = 0, self.renderer.logical_size[1]
         xmax, ymax = self.renderer.logical_size[0], 0
-        world_xmin, world_ymin, _ = map_screen_to_world(self.camera,(xmin, ymin), viewport_size)
-        world_xmax, world_ymax, _ = map_screen_to_world(self.camera,(xmax, ymax), viewport_size)
+        world_xmin, world_ymin, _ = map_screen_to_world(
+            self.camera, (xmin, ymin), viewport_size
+        )
+        world_xmax, world_ymax, _ = map_screen_to_world(
+            self.camera, (xmax, ymax), viewport_size
+        )
         self._min = bottom
         self._max = top
         self.show_interval(start=world_xmin, end=world_xmax)
@@ -369,8 +375,12 @@ class GetController(CustomController):
             self.frame_index -= 1
         delta_t = self.data.index.values[self.frame_index] - current_t
 
-        if self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3: # assume single point
-            self.buffer.data[0,0:2] = self.data.values[self.frame_index].astype("float32")
+        if (
+            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
+        ):  # assume single point
+            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+                "float32"
+            )
         else:
             self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
         self.buffer.update_full()
@@ -393,8 +403,12 @@ class GetController(CustomController):
 
         self.frame_index = self.data.get_slice(new_t).start
 
-        if self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3: # assume single point
-            self.buffer.data[0,0:2] = self.data.values[self.frame_index].astype("float32")
+        if (
+            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
+        ):  # assume single point
+            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+                "float32"
+            )
         else:
             self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
 
@@ -409,8 +423,12 @@ class GetController(CustomController):
         t = start + (end - start) / 2
         self.frame_index = self.data.get_slice(t).start
         # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
-        if self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3: # assume single point
-            self.buffer.data[0,0:2] = self.data.values[self.frame_index].astype("float32")
+        if (
+            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
+        ):  # assume single point
+            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+                "float32"
+            )
         else:
             self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
 
