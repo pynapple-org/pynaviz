@@ -11,7 +11,7 @@ from pygfx import Camera, PanZoomController, Renderer, Viewport
 from pylinalg import vec_transform, vec_unproject
 
 from .events import SyncEvent
-
+import threading
 
 def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
     """
@@ -246,10 +246,14 @@ class SpanController(CustomController):
         self._max = max
         self.show_interval(0, 1)
 
-    def _update_pan(self, delta, *, vecx, vecy):
-        super()._update_pan(delta, vecx=vecx, vecy=vecy)
+    def _update_plots(self):
         for update_func in self.plot_updates:
             update_func()
+
+    def _update_pan(self, delta, *, vecx, vecy):
+        super()._update_pan(delta, vecx=vecx, vecy=vecy)
+        # trigger after 10ms, most likely that the pan action is completed
+        threading.Timer(0.01, self._update_plots).start()
         self._send_sync_event(
             update_type="pan",
             cam_state=self._get_camera_state(),
@@ -260,16 +264,16 @@ class SpanController(CustomController):
 
     def _update_zoom(self, delta):
         super()._update_zoom(delta)
-        for update_func in self.plot_updates:
-            update_func()
+        threading.Timer(0.01, self._update_plots).start()
         self._send_sync_event(
             update_type="zoom", cam_state=self._get_camera_state(), delta=delta
         )
 
+
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
-        for update_func in self.plot_updates:
-            update_func()
+        # trigger after 10ms, most likely that the pan action is completed
+        threading.Timer(0.01, self._update_plots).start()
         self._send_sync_event(
             update_type="zoom_to_point",
             cam_state=self._get_camera_state(),
@@ -277,6 +281,7 @@ class SpanController(CustomController):
             screen_pos=screen_pos,
             rect=rect,
         )
+
 
     def sync(self, event):
         """Set a new camera state using the sync rule provided."""

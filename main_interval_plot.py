@@ -2,7 +2,8 @@ import numpy as np
 import pynapple as nap
 from PyQt6.QtWidgets import QApplication
 import pynaviz as viz
-from pynaviz.utils import get_plot_min_max
+from pynaviz.controller import ControllerGroup
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton
 
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
@@ -31,10 +32,28 @@ ep = [nap.IntervalSet(10, 20), nap.IntervalSet(35, 50), nap.IntervalSet(30, 40)]
 v.plot.add_interval_sets(ep, colors=["red", "cyan", "blue"])
 
 v.plot.add_interval_sets(nap.IntervalSet(80, 100), colors=["purple"])
+
+
+v2 = viz.TsGroupWidget(tsg)
+arg =  [(v.plot.controller, v.plot.renderer), (v2.plot.controller, v2.plot.renderer)]
+
+ctrl_group = ControllerGroup(arg)
+
 # v.plot.plot_intervals(["interval_0", "interval_1"], )
 # v.plot.color_by("label", 'jet')
 # v.plot.sort_by("rate")
 v.show()
+v2.show()
+
+
+window = QWidget()
+window.setMinimumSize(1500, 800)
+
+layout = QHBoxLayout()
+layout.addWidget(v)
+layout.addWidget(v2)
+window.setLayout(layout)
+window.show()
 # v = viz.TsdFrameWidget(tsdframe)
 # v.show()
 
