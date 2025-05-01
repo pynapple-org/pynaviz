@@ -227,6 +227,7 @@ class SpanController(CustomController):
         dict_sync_funcs: Optional[dict[Callable]] = None,
         min=None,
         max=None,
+        plot_updates=None,
     ):
         super().__init__(
             camera=camera,
@@ -238,11 +239,15 @@ class SpanController(CustomController):
             dict_sync_funcs=dict_sync_funcs,
         )
         self._min = min
+
         self._max = max
         self.show_interval(0, 1)
+        self.plot_updates = plot_updates if plot_updates is not None else []
 
     def _update_pan(self, delta, *, vecx, vecy):
         super()._update_pan(delta, vecx=vecx, vecy=vecy)
+        for update_func in self.plot_updates:
+            update_func()
         self._send_sync_event(
             update_type="pan",
             cam_state=self._get_camera_state(),
@@ -253,12 +258,16 @@ class SpanController(CustomController):
 
     def _update_zoom(self, delta):
         super()._update_zoom(delta)
+        for update_func in self.plot_updates:
+            update_func()
         self._send_sync_event(
             update_type="zoom", cam_state=self._get_camera_state(), delta=delta
         )
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
+        for update_func in self.plot_updates:
+            update_func()
         self._send_sync_event(
             update_type="zoom_to_point",
             cam_state=self._get_camera_state(),

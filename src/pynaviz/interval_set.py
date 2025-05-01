@@ -1,8 +1,11 @@
 """Handling of interval sets associated to base_plot classes."""
+from locale import currency
 from typing import Iterable, Optional
 import pynapple as nap
 import pygfx
-
+import warnings
+from .utils import get_plot_min_max, GRADED_COLOR_LIST
+import numpy as np
 
 class IntervalSetInterface:
     def __init__(
@@ -12,76 +15,132 @@ class IntervalSetInterface:
     ):
         self._epochs = dict()
         if epochs is not None:
-            self.add_interval_set(epochs, labels)
+            self.add_interval_sets(epochs, labels)
 
-    def add_interval_set(self, epochs: Iterable[nap.IntervalSet] | nap.IntervalSet, labels: Optional[Iterable[str] | str]=None):
+        # map to the rectangle meshes
+        self._interval_rects = dict()
+
+    def add_interval_sets(
+            self,
+            epochs: Iterable[nap.IntervalSet] | nap.IntervalSet,
+            colors: Optional[Iterable | str | pygfx.Color] = None,
+            alpha: Optional[Iterable[float] | float] = None,
+            labels: Optional[Iterable[str] | str]=None
+    ):
         epochs = list(epochs)
         labels = labels if labels is not None else [f"interval_{i}" for i, _ in enumerate(epochs)]
+        labels = [labels] if isinstance(labels, str) else list(labels)
         if len(labels) != len(epochs):
             raise ValueError("The number of labels provided does not match the number of epochs.")
-        self._epochs.update(dict(zip(labels, epochs)))
+        new_intervals = dict(zip(labels, epochs))
+        self._epochs.update(new_intervals)
+        self._plot_intervals(labels, colors, alpha)
 
-    def plot_intervals(self, labels: Iterable[str] | str):
-        getattr(self, "material", None)
+    def _plot_intervals(
+            self,
+            labels: Iterable[str] | str,
+            colors: Optional[Iterable]=None,
+            alpha: Optional[Iterable[float] | float]=1.) -> None:
+        """
+        Plot rectangle over label areas.
+
+        This method plot the rectangle. If an interval is already plotted, then
+        the method updates the coloring properties only.
+
+        Parameters
+        ----------
+        labels:
+            The label of the epochs to be plotted.
+        colors:
+            Optional, list of colors, format must be compatible with pygfx.Color.
+        alpha:
+            The transparency level, between 0 and 1.
+
+        """
+        if isinstance(labels, str):
+            labels = [labels]
+
+        if alpha is None or isinstance(alpha, float):
+            alpha = [0.4] * len(labels)
+
+        if isinstance(colors, str):
+            colors = [colors] * len(labels)
+
+        if colors is None:
+            colors = [None] * len(labels)
+
+        color_idx = len(self._interval_rects) + 1
+        for label, color, transparency in zip(labels, colors, alpha):
+            if label not in self._epochs:
+                warnings.warn(message=f"Epochs {label} is not available. Available epochs: {list(self._epochs.keys())}.", category=UserWarning)
+                continue
+            is_new = label not in self._interval_rects
+            if is_new:
+                col = pygfx.Color(GRADED_COLOR_LIST[color_idx % len(GRADED_COLOR_LIST)]) if color is None else color
+                meshes = self._create_and_plot_rectangle(self._epochs[label], col, transparency)
+                self._interval_rects[label] = meshes
+                color_idx += 1
+            else:
+                self._update_rectangles(self._interval_rects[label], color, transparency)
+
+    def _update_all_isets(self):
+        for meshes in self._interval_rects.values():
+            self._update_rectangles(meshes)
+
+    def _update_rectangles(self, rectangles, color=None, transparency=None):
+        # set to current values if not provided
+        color = color if color is not None else next(iter(rectangles.values())).material.color
+        transparency = transparency if transparency is not None else color.a
+
+        _, _, ymin, ymax = get_plot_min_max(self)
+        new_height = ymax - ymin
+        for rect in rectangles.values():
+            # compute new height
+            width, old_height = np.ptp(np.asarray(rect.geometry.positions.data)[:, :2], axis=0)
+            if old_height != new_height:
+                geom = pygfx.plane_geometry(width, new_height)
+                rect.geometry = geom
+                position = rect.local.position
+                rect.local.position = np.array(
+                    [position[0], ymin + new_height / 2, position[-1]],
+                    dtype=np.float32
+                )
+
+            # update color & transparency
+            new_color = pygfx.Color(*pygfx.Color(color).rgb, transparency)
+            if rect.material.color != new_color:
+                rect.material.color = new_color
 
 
-    def mesh_definition(self, color: pygfx.Color | str):
-        mesh = pygfx.Mesh(
-            pygfx.box_geometry(1, 2, 1),
-            pygfx.MeshBasicMaterial(
-                color=pygfx.Color(color), pick_write=True
-            ),
-        )
+    def _create_and_plot_rectangle(self, epoch, color, transparency):
+        _, _, ymin, ymax = get_plot_min_max(self)
+        color = pygfx.Color(*pygfx.Color(color).rgb, transparency)
+        height = ymax - ymin
+        mesh_dict = dict()
+        ruler = getattr(self, "rulerx", None)
+        if ruler is not None:
+            # plot rect behind ruler.
+            depth = ruler.start_pos[-1] - 1
+        else:
+            # hardcode a background level.
+            depth = -1001.
 
-if __name__ == "__main__":
+        for ep in epoch:
+            width = ep.end[0] - ep.start[0]
+            geom = pygfx.plane_geometry(width, height)
+            material = pygfx.MeshBasicMaterial(
+                color=color, pick_write=True
+            )
+            mesh = pygfx.Mesh(geom, material)
+            mesh.local.position = np.array(
+                [ep.start[0] + width / 2, ymin + height / 2, depth],
+                dtype=np.float32
+            )
+            mesh_dict[ep.start[0], ep.end[0]] = mesh
 
-    import numpy as np
-    import pynapple as nap
-    from PyQt6.QtWidgets import QApplication
-    import pynaviz as viz
-
-
-    tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
-    tsg = nap.TsGroup({
-        i: nap.Ts(
-            t=np.linspace(0, 100, 100 * (10 - i))
-        ) for i in range(10)},
-        metadata={
-            "label": np.arange(10),
-            "colors": ["hotpink", "lightpink", "cyan", "orange", "lightcoral", "lightsteelblue", "lime", "lightgreen",
-                       "magenta", "pink"],
-            "test": ["hello", "word"] * 5,
-        }
-    )
-    tsdframe = nap.TsdFrame(t=np.arange(1000), d=np.random.randn(1000, 10), metadata={"label": np.random.randn(10)})
-    tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
-
-    app = QApplication([])
-    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt6())
-
-    # viz.TsdWidget(tsd1).show()
-    # viz.TsdTensorWidget(tsdtensor).show()
-    v = viz.TsGroupWidget(tsg)
-    v.plot.controller.show_interval(0, 20)
-    # v.plot.color_by("label", 'jet')
-    # v.plot.sort_by("rate")
-    v.show()
-    # v = viz.TsdFrameWidget(tsdframe)
-    # v.show()
+        self.scene.add(*mesh_dict.values())
+        self.canvas.request_draw(self.animate)
+        self.controller.plot_updates.append(self._update_all_isets)
+        return mesh_dict
 
 
-    import numpy as np
-    obj = IntervalSetInterface()
-
-    mesh = pygfx.Mesh(pygfx.box_geometry(1, 2, 0),
-                      pygfx.MeshBasicMaterial(
-                          color=pygfx.Color("red"), pick_write=True
-                      ))
-
-    mesh.geometry.positions.data  = mesh.geometry.positions.data + np.atleast_2d(np.array([0, 10, 0]))
-    print(mesh.geometry.positions.data +  np.atleast_2d(np.array([0, 10, 0])))
-    disp = pygfx.Display()
-    disp.show(mesh)
-    #obj.mesh_definition("blue")
-
-    app.exit(app.exec())

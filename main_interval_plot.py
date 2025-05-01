@@ -1,0 +1,40 @@
+import numpy as np
+import pynapple as nap
+from PyQt6.QtWidgets import QApplication
+import pynaviz as viz
+from pynaviz.utils import get_plot_min_max
+
+
+tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
+tsg = nap.TsGroup({
+    i: nap.Ts(
+        t=np.linspace(0, 100, 100 * (10 - i))
+    ) for i in range(10)},
+    metadata={
+        "label": np.arange(10),
+        "colors": ["hotpink", "lightpink", "cyan", "orange", "lightcoral", "lightsteelblue", "lime", "lightgreen",
+                   "magenta", "pink"],
+        "test": ["hello", "word"] * 5,
+    }
+)
+tsdframe = nap.TsdFrame(t=np.arange(1000), d=np.random.randn(1000, 10), metadata={"label": np.random.randn(10)})
+tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
+
+app = QApplication([])
+# app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt6())
+
+# viz.TsdWidget(tsd1).show()
+# viz.TsdTensorWidget(tsdtensor).show()
+v = viz.TsGroupWidget(tsg)
+v.plot.controller.show_interval(0, 20)
+ep = [nap.IntervalSet(10, 20), nap.IntervalSet(35, 50), nap.IntervalSet(30, 40)]
+v.plot.add_interval_sets(ep, colors=["red", "cyan", "blue"])
+# v.plot.plot_intervals(["interval_0", "interval_1"], )
+# v.plot.color_by("label", 'jet')
+# v.plot.sort_by("rate")
+v.show()
+# v = viz.TsdFrameWidget(tsdframe)
+# v.show()
+
+
+app.exit(app.exec())
