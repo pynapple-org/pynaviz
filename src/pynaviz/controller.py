@@ -2,6 +2,7 @@
 The controller class.
 """
 
+import threading
 from typing import Callable, List, Optional, Union
 
 import pygfx
@@ -11,7 +12,7 @@ from pygfx import Camera, PanZoomController, Renderer, Viewport
 from pylinalg import vec_transform, vec_unproject
 
 from .events import SyncEvent
-import threading
+
 
 def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
     """
@@ -269,7 +270,6 @@ class SpanController(CustomController):
             update_type="zoom", cam_state=self._get_camera_state(), delta=delta
         )
 
-
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
         # trigger after 10ms, most likely that the pan action is completed
@@ -281,7 +281,6 @@ class SpanController(CustomController):
             screen_pos=screen_pos,
             rect=rect,
         )
-
 
     def sync(self, event):
         """Set a new camera state using the sync rule provided."""
