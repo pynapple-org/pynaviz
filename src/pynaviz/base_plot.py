@@ -6,7 +6,7 @@ Create a unique canvas/renderer for each class
 import threading
 import warnings
 
-# from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -25,9 +25,6 @@ from .controller import GetController, SpanController
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import get_plot_attribute, trim_kwargs
-
-# import fastplotlib as fpl
-
 
 
 COLORS = [
@@ -61,8 +58,7 @@ def map_screen_to_world(camera, pos, viewport_size):
     pos_world = vec_unproject(pos_ndc[:2], camera.camera_matrix)
     return pos_world
 
-
-class _BasePlot():
+class _BasePlot(ABC):
     def __init__(self, data, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
         self._data = data
@@ -188,22 +184,12 @@ class _BasePlot():
                     materials[c].color = map_color[values[c]]
                 self.canvas.request_draw(self.animate)  # To fix
 
+    @abstractmethod
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
-        # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+        pass
 
-        # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
-        return geometries, values
-
+    @abstractmethod
     def group_by(self, metadata_name: str, spacing: Optional = None):
-        """
-        Separate groups of items. The argument `spacing` controls the amount of space between each item.
-        """
         pass
 
     def update(self, event):
@@ -367,7 +353,15 @@ class PlotTsdFrame(_BasePlot):
         order : str, optional
             Options are ["ascending"[default], "descending"]
         """
-        geometries, values = super().sort_by(metadata_name, order)
+        # Grabbing the material object
+        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+
+        # Grabbing the metadata
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
 
         # If metadata found
         if len(values):
@@ -389,7 +383,9 @@ class PlotTsdFrame(_BasePlot):
 
             self.canvas.request_draw(self.animate)
 
-    # def group_by(self, metadata_name: str, spacing: Optional = None):
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
+
 
 class PlotTsGroup(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
@@ -431,7 +427,15 @@ class PlotTsGroup(_BasePlot):
         order : str, optional
             Options are ["ascending"[default], "descending"]
         """
-        geometries, values = super().sort_by(metadata_name, order)
+        # Grabbing the material object
+        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+
+        # Grabbing the metadata
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
         # If metadata found
         if len(values):
             values = pd.Series(values)
