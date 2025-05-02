@@ -13,6 +13,25 @@ from .utils import GRADED_COLOR_LIST, get_plot_min_max
 INTERVAL_PATTERN = re.compile("^interval_\d+$")
 
 
+def is_in_view(screen_xmin, screen_xmax, width, rectangle):
+    """Compute if a rectangle is in the field of view.
+
+    Parameters
+    ----------
+    screen_xmin :
+        Lower xlim of the canvas.
+    screen_xmax :
+        Upper xlim of the canvas.
+    width:
+        Rectangle width.
+    rectangle :
+        A rectangle as a pygfx.Mesh.
+    """
+    rect_center_x = rectangle.local.position[0]
+    rect_min, rect_max = rect_center_x - width / 2, rect_center_x + width / 2
+    return (screen_xmin < rect_max) and (screen_xmax > rect_min)
+
+
 def get_max_interval_index(labels):
     return max((-1, *(int(lab.split("_")[1]) for lab in labels if re.match(INTERVAL_PATTERN, lab))))
 
@@ -128,14 +147,13 @@ class IntervalSetInterface:
         )
         transparency = transparency if transparency is not None else color.a
 
-        _, _, ymin, ymax = get_plot_min_max(self)
+        xmin, xmax, ymin, ymax = get_plot_min_max(self)
         new_height = ymax - ymin
         for rect in rectangles.values():
             # compute new height
-            width, old_height = np.ptp(
-                np.asarray(rect.geometry.positions.data)[:, :2], axis=0
-            )
-            if old_height != new_height:
+            position = np.asarray(rect.geometry.positions.data)
+            width, old_height = np.ptp(position[:, :2], axis=0)
+            if (old_height != new_height) and is_in_view(xmin, xmax, width, rect):
                 geom = pygfx.plane_geometry(width, new_height)
                 rect.geometry = geom
                 position = rect.local.position
