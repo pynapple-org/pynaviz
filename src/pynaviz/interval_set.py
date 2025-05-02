@@ -56,7 +56,10 @@ class IntervalSetInterface:
         alpha: Optional[Iterable[float] | float] = None,
         labels: Optional[Iterable[str] | str] = None,
     ):
-        epochs = list(epochs)
+        if isinstance(epochs, nap.IntervalSet):
+            epochs = [epochs]
+        else:
+            epochs = list(epochs)
         indx_start = get_max_interval_index(self._epochs.keys()) + 1
         labels = (
             labels

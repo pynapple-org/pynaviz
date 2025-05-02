@@ -28,10 +28,10 @@ app = QApplication([])
 # viz.TsdTensorWidget(tsdtensor).show()
 v = viz.TsGroupWidget(tsg)
 v.plot.controller.show_interval(0, 20)
-ep = [nap.IntervalSet(10, 20), nap.IntervalSet(35, 50), nap.IntervalSet(30, 40)]
-v.plot.add_interval_sets(ep, colors=["red", "cyan", "blue"])
+ep = [nap.IntervalSet(35, 50), nap.IntervalSet(30, 40)]
+v.plot.add_interval_sets(ep, colors=["cyan", "blue"])
 
-v.plot.add_interval_sets(nap.IntervalSet(80, 100), colors=["purple"])
+v.plot.add_interval_sets(nap.IntervalSet([10,80], [20,100]), colors=["purple"])
 
 
 v2 = viz.TsGroupWidget(tsg)
