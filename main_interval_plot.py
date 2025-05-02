@@ -31,7 +31,7 @@ v.plot.controller.show_interval(0, 20)
 ep = [nap.IntervalSet(35, 50), nap.IntervalSet(30, 40)]
 v.plot.add_interval_sets(ep, colors=["cyan", "blue"])
 
-v.plot.add_interval_sets(nap.IntervalSet([10,80], [20,100]), colors=["purple"])
+v.plot.add_interval_sets(nap.IntervalSet([10, 80], [20,100]), colors="purple", alpha=0.3)
 
 
 v2 = viz.TsGroupWidget(tsg)

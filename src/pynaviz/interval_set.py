@@ -103,8 +103,10 @@ class IntervalSetInterface:
         if isinstance(labels, str):
             labels = [labels]
 
-        if alpha is None or isinstance(alpha, float):
+        if alpha is None:
             alpha = [0.4] * len(labels)
+        elif isinstance(alpha, float):
+            alpha = [alpha] * len(labels)
 
         if isinstance(colors, str):
             colors = [colors] * len(labels)
