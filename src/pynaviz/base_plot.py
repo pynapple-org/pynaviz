@@ -21,10 +21,10 @@ from wgpu.gui.auto import (
 )
 
 from .controller import GetController, SpanController
+from .interval_set import IntervalSetInterface
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.metadata_to_color_maps import MetadataMappingThread
-from .utils import get_plot_attribute, trim_kwargs, get_plot_min_max
-from .interval_set import IntervalSetInterface
+from .utils import get_plot_attribute, get_plot_min_max, trim_kwargs
 
 # import fastplotlib as fpl
 
@@ -376,9 +376,6 @@ class PlotTsdFrame(_BasePlot):
         # If metadata found
         if len(values):
             values = pd.Series(values)
-            idx_sorted = values.sort_values(ascending=(order == "ascending"))
-            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
-
             # TODO try LineStack from fastplotlib
 
             for i, c in enumerate(geometries):

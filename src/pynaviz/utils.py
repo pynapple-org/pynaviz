@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .base_plot import _BasePlot
-from pylinalg import vec_transform, vec_unproject
 
+from pylinalg import vec_transform, vec_unproject
 
 GRADED_COLOR_LIST = [
     "midnightblue",

@@ -10,7 +10,7 @@ import pynapple as nap
 
 from .utils import GRADED_COLOR_LIST, get_plot_min_max
 
-INTERVAL_PATTERN = re.compile("^interval_\d+$")
+INTERVAL_PATTERN = re.compile(r"^interval_\d+$")
 
 
 def is_in_view(screen_xmin, screen_xmax, width, rectangle):
@@ -115,6 +115,7 @@ class IntervalSetInterface:
                 warnings.warn(
                     message=f"Epochs {label} is not available. Available epochs: {list(self._epochs.keys())}.",
                     category=UserWarning,
+                    stacklevel=2,
                 )
                 continue
             is_new = label not in self._interval_rects
