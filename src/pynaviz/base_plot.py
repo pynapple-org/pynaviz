@@ -5,8 +5,7 @@ Create a unique canvas/renderer for each class
 
 import threading
 import warnings
-
-# from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -25,9 +24,6 @@ from .interval_set import IntervalSetInterface
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import get_plot_attribute, get_plot_min_max, trim_kwargs
-
-# import fastplotlib as fpl
-
 
 COLORS = [
     "hotpink",
@@ -49,7 +45,8 @@ dict_sync_funcs = {
     "zoom_to_point": _match_zoom_on_x_axis,
 }
 
-class _BasePlot(IntervalSetInterface):
+
+class _BasePlot(ABC, IntervalSetInterface):
 
     def __init__(self, data, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
@@ -166,62 +163,33 @@ class _BasePlot(IntervalSetInterface):
                     materials[c].color = map_color[values[c]]
                 self.canvas.request_draw(self.animate)  # To fix
 
+    @abstractmethod
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
-        """
-
-        Parameters
-        ----------
-        metadata_name : str
-            Metadata columns to sort lines
-        order
-        """
-        # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry")
-
-        # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
-
-        # If metadata found
-        if len(values):
-            values = pd.Series(values)
-            idx_sorted = values.sort_values(ascending=(order == "ascending"))
-            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
-
-            for c in geometries:
-                geometries[c].positions.data[:, 1] = idx_map[c]
-                geometries[c].positions.update_full()
-
-            self.canvas.request_draw(self.animate)
-
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        """
-        Separate groups of items. The argument `spacing` controls the amount of space between each item.
-        """
         pass
 
-    def update(self, event):
-        """
-        Apply an action to the widget plot.
-        Actions can be "color_by", "sort_by" and "group_by"
-        """
-        metadata_name = event["metadata_name"]
-        action_name = event["action"]
-        if action_name == "color_by":
-            self.color_by(metadata_name)
-        elif action_name == "sort_by":
-            self.sort_by(metadata_name)
+    @abstractmethod
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
 
-        # metadata = (
-        #     dict(self.data.get_info(metadata_name))
-        #     if hasattr(self.data, "get_info")
-        #     else {}
-        # )
-        # # action_caller(self, action, metadata=metadata, **kwargs)
-        # # TODO: make it more targeted than update all
+    # def update(self, event):
+    #     """
+    #     Apply an action to the widget plot.
+    #     Actions can be "color_by", "sort_by" and "group_by"
+    #     """
+    #     metadata_name = event["metadata_name"]
+    #     action_name = event["action"]
+    #     if action_name == "color_by":
+    #         self.color_by(metadata_name)
+    #     elif action_name == "sort_by":
+    #         self.sort_by(metadata_name)
+    #
+    #     # metadata = (
+    #     #     dict(self.data.get_info(metadata_name))
+    #     #     if hasattr(self.data, "get_info")
+    #     #     else {}
+    #     # )
+    #     # # action_caller(self, action, metadata=metadata, **kwargs)
+    #     # # TODO: make it more targeted than update all
 
     def set_metadata_maps(self):
         if not hasattr(self.data, "metadata"):
@@ -256,6 +224,11 @@ class PlotTsd(_BasePlot):
         self.canvas.request_draw(self.animate)
         # self.controller.show_interval(start=0, end=1)
 
+    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+        pass
+
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
 
 class PlotTsdFrame(_BasePlot):
     def __init__(self, data: nap.TsdFrame, index=None, parent=None):
@@ -375,15 +348,17 @@ class PlotTsdFrame(_BasePlot):
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
         """
+        Sort by metadata entry.
 
         Parameters
         ----------
         metadata_name : str
             Metadata columns to sort lines
-        order
+        order : str, optional
+            Options are ["ascending"[default], "descending"]
         """
         # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry")
+        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
 
         # Grabbing the metadata
         values = (
@@ -395,20 +370,25 @@ class PlotTsdFrame(_BasePlot):
         # If metadata found
         if len(values):
             values = pd.Series(values)
+            idx_sorted = values.sort_values(ascending=(order == "ascending"))
+            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
 
             # TODO try LineStack from fastplotlib
 
-            for i, c in enumerate(geometries):
-                geometries[c].positions.data[:, 1] /= np.max(
-                    np.abs(geometries[c].positions.data[:, 1])
-                )
-                geometries[c].positions.data[:, 1] += i + 1
+            for c in geometries:
+                geometries[c].positions.data[:, 1] = (
+                        self.data.loc[c].values /  np.max(np.abs(self.data.loc[c]))
+                        + idx_map[c] + 1
+                    ).astype("float32")
                 geometries[c].positions.update_full()
 
             # Need to update cameras in the y-axis
-            self.controller.set_ylim(-1, len(values) + 1)
+            self.controller.set_ylim(-1, len(idx_map)+1)
 
             self.canvas.request_draw(self.animate)
+
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
 
 
 class PlotTsGroup(_BasePlot):
@@ -440,6 +420,40 @@ class PlotTsGroup(_BasePlot):
         self.scene.add(self.rulerx, self.rulery, *list(self.graphic.values()))
         self.canvas.request_draw(self.animate)
 
+    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+        """
+        Sort by metadata entry.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata columns to sort lines
+        order : str, optional
+            Options are ["ascending"[default], "descending"]
+        """
+        # Grabbing the material object
+        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+
+        # Grabbing the metadata
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
+        # If metadata found
+        if len(values):
+            values = pd.Series(values)
+            idx_sorted = values.sort_values(ascending=(order == "ascending"))
+            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
+
+            for c in geometries:
+                geometries[c].positions.data[:, 1] = idx_map[c]
+                geometries[c].positions.update_full()
+
+            self.canvas.request_draw(self.animate)
+
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
 
 class PlotTsdTensor(_BasePlot):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
@@ -482,6 +496,11 @@ class PlotTsdTensor(_BasePlot):
             draw_function=lambda: self.renderer.render(self.scene, self.camera)
         )
 
+    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+        pass
+
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
 
 class PlotTs(_BasePlot):
     def __init__(self, data: nap.Ts, index=None, parent=None):
@@ -495,3 +514,9 @@ class PlotTs(_BasePlot):
             controller_id=index,
             dict_sync_funcs=dict_sync_funcs,
         )
+
+    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+        pass
+
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
