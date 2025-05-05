@@ -49,8 +49,8 @@ dict_sync_funcs = {
     "zoom_to_point": _match_zoom_on_x_axis,
 }
 
-
 class _BasePlot(IntervalSetInterface):
+
     def __init__(self, data, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
         self._data = data
@@ -321,6 +321,7 @@ class PlotTsdFrame(_BasePlot):
         """
         # Removing objects
         self.scene.remove(*list(self.graphic.values()))
+        current_time = self.ruler_ref_time.geometry.positions.data[0][0]
         self.scene.remove(self.ruler_ref_time)
 
         # Adding line object
@@ -334,7 +335,10 @@ class PlotTsdFrame(_BasePlot):
         self.scene.add(self.graphic)
 
         # Adding point object to track time
-        xy = np.zeros((1, 3), dtype="float32")
+        xy = np.hstack(
+            (self.data.loc[[x_label, y_label]].get(current_time), 0),
+            dtype="float32",
+        )[None, :]
         self.time_point = gfx.Points(
             gfx.Geometry(positions=xy),
             gfx.PointsMaterial(size=30, color="red", opacity=1),
@@ -342,15 +346,30 @@ class PlotTsdFrame(_BasePlot):
         self.scene.add(self.time_point)
 
         # Disable old controller
+        # self.controller.show_interval(
+        #     np.min(self.data.loc[x_label]), np.max(self.data.loc[x_label])
+        # )
         self.controller.enabled = False
+
+        # preserve controller id
+        controller_id = self.controller._controller_id
 
         # Instantiating new controller
         self.controller = self._controllers["get"]
         self.controller.n_frames = len(self.data)
-        self.controller.frame_index = 0
+        current_frame = self.data.get_slice(current_time).start
+        self.controller.frame_index = current_frame
         self.controller.enabled = True
+        self.controller._controller_id = controller_id
         self.controller.data = self.data.loc[[x_label, y_label]]
         self.controller.buffer = self.time_point.geometry.positions
+
+        self.camera.show_rect(
+            left=np.min(self.data.loc[x_label]),
+            right=np.max(self.data.loc[x_label]),
+            bottom=np.min(self.data.loc[y_label]),
+            top=np.max(self.data.loc[y_label]),
+        )
 
         self.canvas.request_draw(self.animate)
 

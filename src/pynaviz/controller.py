@@ -9,9 +9,9 @@ import pygfx
 import pygfx as gfx
 import pynapple as nap
 from pygfx import Camera, PanZoomController, Renderer, Viewport
-from pylinalg import vec_transform, vec_unproject
 
 from .events import SyncEvent
+from .utils import map_screen_to_world
 
 
 def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
@@ -30,18 +30,6 @@ def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
     viewport = Viewport.from_viewport_or_renderer(renderer)
     return viewport.renderer.handle_event
 
-
-def map_screen_to_world(camera, pos, viewport_size):
-    # first convert position to NDC
-    x = pos[0] / viewport_size[0] * 2 - 1
-    y = -(pos[1] / viewport_size[1] * 2 - 1)
-    pos_ndc = (x, y, 0)
-    pos_ndc += vec_transform(camera.world.position, camera.camera_matrix)
-    # unproject to world space
-    pos_world = vec_unproject(pos_ndc[:2], camera.camera_matrix)
-    return pos_world
-
-
 class ControllerGroup:
     """
 
@@ -54,23 +42,7 @@ class ControllerGroup:
 
     """
 
-    def __init__(self, controllers_and_renderers=None, interval=(0, 10)):
-        self._controller_group = dict()
-        if controllers_and_renderers is None:
-            controllers_and_renderers = []
-        ids = [
-            ctrl.controller_id
-            for ctrl, _ in controllers_and_renderers
-            if ctrl.controller_id is not None
-        ]
-
-        if len(set(ids)) != len(ids):
-            raise ValueError("Controller ids must be all different!")
-        if ids:
-            id0 = max(ids) + 1
-        else:
-            id0 = 0
-
+    def __init__(self, plots=None, interval=(0, 10)):
         if not isinstance(interval, (tuple, list)):
             raise ValueError("interval should be tuple or list")
         if not len(interval) == 2 and not all(
@@ -80,40 +52,29 @@ class ControllerGroup:
         if interval[0] > interval[1]:
             raise RuntimeError("interval start should precede interval end")
 
-        self.interval = interval
+        if plots is not None:
+            for i, plt in enumerate(plots):
+                plt.controller._controller_id = i
+                self._add_update_handler(plt.renderer)
+                plt.controller.show_interval(*interval)
 
-        for i, cntrl_and_rend in enumerate(controllers_and_renderers):
-            ctrl, rend = cntrl_and_rend
-            if ctrl.controller_id is None:
-                ctrl.controller_id = i + id0
-            self._controller_group[ctrl.controller_id] = ctrl
-            self._add_update_handler(rend)
-            # # Need to move the controllers to show the given interval.
-            ctrl.show_interval(*interval)
+        self.interval = interval
+        self.plots = plots
 
     def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
         viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
         viewport.renderer.add_event_handler(self.sync_controllers, "sync")
 
-    def add(self, controller, renderer, controller_id):
-        if controller_id in self._controller_group.keys():
-            raise RuntimeError(
-                f"controller_id {controller_id} already in controller group."
-            )
-        if controller.controller_id is None:
-            controller.controller_id = controller_id
-        self._controller_group[controller_id] = controller
-        self._add_update_handler(renderer)
-
-    def remove(self, controller_id):
-        pass
-
     def sync_controllers(self, event):
         """Sync controllers according to their rule."""
         # print(event)
-        for id_other, ctrl in self._controller_group.items():
-            if event.controller_id != id_other and ctrl.enabled:
-                ctrl.sync(event)
+        # self._update_controller_group()
+        for plt in self.plots:
+            if (
+                event.controller_id != plt.controller.controller_id
+                and plt.controller.enabled
+            ):
+                plt.controller.sync(event)
 
 
 class CustomController(PanZoomController):
