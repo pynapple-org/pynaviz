@@ -6,7 +6,7 @@ Create a unique canvas/renderer for each class
 import threading
 import warnings
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Any, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,6 +21,7 @@ from wgpu.gui.auto import (
 
 from .controller import GetController, SpanController
 from .interval_set import IntervalSetInterface
+from .plot_manager import _PlotManager
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import get_plot_attribute, get_plot_min_max, trim_kwargs
@@ -47,22 +48,91 @@ dict_sync_funcs = {
 
 
 class _BasePlot(ABC, IntervalSetInterface):
+    """
+    Abstract base class for time-aligned visualizations using pygfx.
+
+    This class sets up the rendering infrastructure, including a canvas, scene,
+    camera, rulers, and rendering thread. It is intended to be subclassed by specific
+    plot implementations that display data aligned to time intervals.
+
+    Parameters
+    ----------
+    data : Ts, Tsd, TsdFrame, IntervalSet or TsGroup object
+        The dataset to be visualized. Must be pynapple object.
+    parent : Optional[Any], default=None
+        Optional parent widget for integration in GUI applications.
+    maintain_aspect : bool, default=False
+        If True, maintains the aspect ratio in the orthographic camera.
+
+    Attributes
+    ----------
+    _data : Ts, Tsd, TsdFrame, IntervalSet or TsGroup object
+        Pynapple object
+    canvas : WgpuCanvas
+        The rendering canvas using the WGPU backend.
+    color_mapping_thread : MetadataMappingThread
+        A separate thread for mapping metadata to visual colors.
+    renderer : gfx.WgpuRenderer
+        The WGPU renderer responsible for drawing the scene.
+    scene : gfx.Scene
+        The scene graph containing all graphical objects.
+    rulerx : gfx.Ruler
+        Horizontal axis ruler with ticks shown on the right.
+    rulery : gfx.Ruler
+        Vertical axis ruler with ticks on the left and minimum spacing.
+    ruler_ref_time : gfx.Line
+        A vertical line indicating a reference time point (e.g., center).
+    camera : gfx.OrthographicCamera
+        Orthographic camera with optional aspect ratio locking.
+    _cmap : str
+        Default colormap name used for visual mapping (e.g., "viridis").
+    """
 
     def __init__(self, data, parent=None, maintain_aspect=False):
-        self.canvas = WgpuCanvas(parent=parent)
-        self._data = data
-        self.color_mapping_thread = MetadataMappingThread(data)
-        self.renderer = gfx.WgpuRenderer(self.canvas)
-        self.scene = gfx.Scene()
-        self.rulerx = gfx.Ruler(tick_side="right")
-        self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
-        self.ruler_ref_time = gfx.Line(
-            gfx.Geometry(positions=[[0, 0, 0], [0, 0, 0]]),
-            gfx.LineMaterial(thickness=0.5, color="#B4F8C8"),
-        )
-        self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
-        self._cmap = "jet"
         super().__init__()
+
+        # Store the input data for later use
+        self._data = data
+
+        # Create a GPU-accelerated canvas for rendering, optionally with a parent widget
+        self.canvas = WgpuCanvas(parent=parent)
+
+        # Initialize a separate thread to handle metadata-to-color mapping
+        self.color_mapping_thread = MetadataMappingThread(data)
+
+        # Create a WGPU-based renderer attached to the canvas
+        self.renderer = gfx.WgpuRenderer(self.canvas)
+
+        # Create a new scene to hold and manage objects
+        self.scene = gfx.Scene()
+
+        # Add a horizontal ruler (x-axis) with ticks on the right
+        self.rulerx = gfx.Ruler(tick_side="right")
+
+        # Add a vertical ruler (y-axis) with ticks on the left and minimum spacing
+        self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
+
+        # A vertical reference line, for the center time point
+        self.ruler_ref_time = gfx.Line(
+            gfx.Geometry(positions=[[0, 0, 0], [0, 0, 0]]),  # Placeholder geometry
+            gfx.LineMaterial(thickness=0.5, color="#B4F8C8"),  # Thin light green line
+        )
+
+        # Use an orthographic camera to preserve scale without perspective distortion
+        self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
+
+        # Set default colormap for rendering
+        self._cmap = "viridis"
+
+        # Set the plot manager that store past actions only for data with metadata class
+        if isinstance(data, (nap.TsGroup, nap.IntervalSet)):
+            index=data.index
+        elif isinstance(data, nap.TsdFrame):
+            index=data.columns
+        else:
+            index=[]
+        self._manager = _PlotManager(index=index)
+
 
     @property
     def data(self):
@@ -98,6 +168,21 @@ class _BasePlot(ABC, IntervalSetInterface):
         self._cmap = value
 
     def animate(self):
+        """
+        Updates the positions of rulers and reference lines based on the current
+        world coordinate bounds and triggers a re-render of the scene.
+
+        This method performs the following:
+        - Computes the visible world coordinate bounds.
+        - Updates the horizontal (x) and vertical (y) rulers accordingly.
+        - Repositions the center time reference line in the scene.
+        - Re-renders the scene using the current camera and canvas settings.
+
+        Notes
+        -----
+        This method should be called whenever the visible region of the plot
+        changes (e.g., after zooming, panning, or resizing the canvas).
+        """
         world_xmin, world_xmax, world_ymin, world_ymax = get_plot_min_max(self)
 
         # X axis
@@ -123,8 +208,45 @@ class _BasePlot(ABC, IntervalSetInterface):
 
         self.renderer.render(self.scene, self.camera)
 
-    def color_by(self, metadata_name, cmap_name="viridis", vmin=0.0, vmax=100.0):
-        # if still computing color maps, set a 25ms timer and try again
+    def color_by(self,
+            metadata_name: str,
+            cmap_name: str = "viridis",
+            vmin: float = 0.0,
+            vmax: float = 100.0,
+    ) -> None:
+        """
+        Applies color mapping to plot elements based on a metadata field.
+
+        This method retrieves values from the given metadata field and maps them
+        to colors using the specified colormap and value range. The mapped colors
+        are applied to each plot element's material. If color mappings are still
+        being computed in a background thread, the function retries after a short delay.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Name of the metadata field used for color mapping.
+        cmap_name : str, default="viridis"
+            Name of the colormap to apply (e.g., "jet", "plasma", "viridis").
+        vmin : float, default=0.0
+            Minimum value for the colormap normalization.
+        vmax : float, default=100.0
+            Maximum value for the colormap normalization.
+
+        Notes
+        -----
+        - If the `color_mapping_thread` is still running, the method defers execution
+          by 25 milliseconds and retries automatically.
+        - If no appropriate color map is found for the metadata, a warning is issued.
+        - Requires `self.data` to support `get_info()` for metadata retrieval.
+        - Triggers a canvas redraw by calling `self.animate()` after updating colors.
+
+        Warnings
+        --------
+        UserWarning
+            Raised when the specified metadata field has no associated color mapping.
+        """
+        # If the color mapping thread is still processing, retry in 25 milliseconds
         if self.color_mapping_thread.is_running():
             slot = lambda: self.color_by(
                 metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
@@ -132,10 +254,13 @@ class _BasePlot(ABC, IntervalSetInterface):
             threading.Timer(0.025, slot).start()
             return
 
+        # Set the current colormap
         self.cmap = cmap_name
 
+        # Get the metadata-to-color mapping function for the given metadata field
         map_to_colors = self.color_mapping_thread.color_maps.get(metadata_name, None)
 
+        # Warn the user if the color map is missing
         if map_to_colors is None:
             warnings.warn(
                 message=f"Cannot find appropriate color mapping for {metadata_name} metadata.",
@@ -143,25 +268,28 @@ class _BasePlot(ABC, IntervalSetInterface):
                 stacklevel=2,
             )
 
+        # Prepare keyword arguments for the color mapping function
         map_kwargs = trim_kwargs(
             map_to_colors, dict(cmap=colormaps[self.cmap], vmin=vmin, vmax=vmax)
         )
 
-        # Grabbing the material object
+        # Get the material objects that will have their colors updated
         materials = get_plot_attribute(self, "material")
 
-        # Grabbing the metadata
+        # Get the metadata values for each plotted element
         values = (
             self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
         )
 
-        # If metadata found
+        # If metadata is found and mapping works, update the material colors
         if len(values):
             map_color = map_to_colors(values, **map_kwargs)
             if map_color:
                 for c in materials:
                     materials[c].color = map_color[values[c]]
-                self.canvas.request_draw(self.animate)  # To fix
+
+                # Request a redraw of the canvas to reflect the new colors
+                self.canvas.request_draw(self.animate)
 
     @abstractmethod
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
@@ -191,37 +319,62 @@ class _BasePlot(ABC, IntervalSetInterface):
     #     # # action_caller(self, action, metadata=metadata, **kwargs)
     #     # # TODO: make it more targeted than update all
 
-    def set_metadata_maps(self):
-        if not hasattr(self.data, "metadata"):
-            return
-
 
 class PlotTsd(_BasePlot):
-    def __init__(self, data: nap.Tsd, index=None, parent=None):
+    """
+    A time series plot for `nap.Tsd` objects using GPU-accelerated rendering.
+
+    This class renders a continuous 1D time series as a line plot and manages
+    user interaction through a `SpanController`. It supports optional synchronization
+    across multiple plots and rendering via WebGPU.
+
+    Parameters
+    ----------
+    data : nap.Tsd
+        The time series data to be visualized (timestamps + values).
+    index : Optional[int], default=None
+        Controller index used for synchronized interaction (e.g., panning across multiple plots).
+    parent : Optional[Any], default=None
+        Optional parent widget (e.g., in a Qt or IPython GUI context).
+
+    Attributes
+    ----------
+    controller : SpanController
+        Manages viewport updates, syncing, and linked plot interactions.
+    line : gfx.Line
+        The main line plot showing the time series.
+    """
+
+    def __init__(self, data: nap.Tsd, index: Optional[int] = None, parent: Optional[Any] = None) -> None:
         super().__init__(data=data, parent=parent)
 
-        # Pynaviz specific controller
+        # Create a controller for span-based interaction, syncing, and user inputs
         self.controller = SpanController(
             camera=self.camera,
             renderer=self.renderer,
             controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,
-            min=np.min(data),
-            max=np.max(data),
-            plot_updates=[],  # list of callables
+            dict_sync_funcs=dict_sync_funcs,  # shared sync registry
+            min=np.min(data),  # minimum value of the time series
+            max=np.max(data),  # maximum value of the time series
+            plot_updates=[],  # list of callables to trigger on span updates
         )
 
-        # Passing the data
+        # Prepare geometry: stack time, data, and zeros (Z=0) into (N, 3) float32 positions
         positions = np.stack((data.t, data.d, np.zeros_like(data))).T
         positions = positions.astype("float32")
 
+        # Create a line geometry and material to render the time series
         self.line = gfx.Line(
             gfx.Geometry(positions=positions),
-            gfx.LineMaterial(thickness=4.0, color="#aaf"),
+            gfx.LineMaterial(thickness=4.0, color="#aaf"),  # light blue line
         )
 
+        # Add rulers and line to the scene
         self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, self.line)
+
+        # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
+
         # self.controller.show_interval(start=0, end=1)
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
@@ -231,10 +384,35 @@ class PlotTsd(_BasePlot):
         pass
 
 class PlotTsdFrame(_BasePlot):
-    def __init__(self, data: nap.TsdFrame, index=None, parent=None):
+    """
+    A GPU-accelerated visualization of a multi-columns time series (nap.TsdFrame).
+
+    This class allows dynamic rendering of each column in a `nap.TsdFrame`, with interactive
+    controls for span navigation. It supports switching between
+    standard time series display and scatter-style x-vs-y plotting between columns.
+
+    Parameters
+    ----------
+    data : nap.TsdFrame
+        The column-based time series data (columns as features).
+    index : Optional[int], default=None
+        Unique ID for synchronizing with external controllers.
+    parent : Optional[Any], default=None
+        Optional GUI parent (e.g. QWidget in Qt).
+
+    Attributes
+    ----------
+    controller : Union[SpanController, GetController]
+        Active interactive controller for zooming or selecting.
+    graphic : dict[str, gfx.Line] or gfx.Line
+        Dictionary of per-column lines or single line for x-vs-y plotting.
+    time_point : Optional[gfx.Points]
+        A marker showing the selected time point (used in x-vs-y plotting).
+    """
+    def __init__(self, data: nap.TsdFrame, index: Optional[int] = None, parent: Optional[Any] = None):
         super().__init__(data=data, parent=parent)
 
-        # Possible controllers for TsdFrame
+        # Controllers for different interaction styles
         self._controllers = {
             "span": SpanController(
                 camera=self.camera,
@@ -253,90 +431,93 @@ class PlotTsdFrame(_BasePlot):
             ),
         }
 
-        # First controller
+        # Use span controller by default
         self.controller = self._controllers["span"]
 
-        # Passing the data
-        self.graphic: dict = {}
+        # Initialize lines for each column in the TsdFrame
+        self.graphic: dict[str, gfx.Line] = {}
         for i, c in enumerate(self.data.columns):
-            positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T
-            positions = positions.astype("float32")
+            positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T.astype("float32")
             self.graphic[c] = gfx.Line(
                 gfx.Geometry(positions=positions),
                 gfx.LineMaterial(thickness=1.0, color=COLORS[i % len(COLORS)]),
             )
 
-        # Extra init depending on the context
-        self.time_point = None
+        self.time_point = None  # Used later in x-vs-y plotting
 
+        # Add elements to the scene for rendering
         self.scene.add(
-            self.rulerx, self.rulery, self.ruler_ref_time, *list(self.graphic.values())
+            self.rulerx, self.rulery, self.ruler_ref_time, *self.graphic.values()
         )
         self.canvas.request_draw(self.animate)
 
-    def plot_x_vs_y(self, x_label, y_label, color="white", thickness=1, markersize=10):
+    def plot_x_vs_y(
+        self,
+        x_label: Union[str, int, float],
+        y_label: Union[str, int, float],
+        color: Union[str, tuple] = "white",
+        thickness: float = 1.0,
+        markersize: float = 10.0,
+    ) -> None:
         """
-        Plot one column vs the other. The x-axis can be selected with the `x_label`
-        and the y-axis can be selected with the `y_label` argument.
+        Plot one metadata column versus another as a line plot.
 
         Parameters
         ----------
-        x_label : string or int or float
-            Column name for the x-axis
-        y_label : string or int or float
-            Column name for the y-axis
-        color : string or hex or rgb
-            Color of the line.
-        thickness : Number
-            Thickness of the line
-        markersize : Number
-            Size of the marker
+        x_label : str or int or float
+            Column name for the x-axis.
+        y_label : str or int or float
+            Column name for the y-axis.
+        color : str or hex or RGB, default="white"
+            Line color.
+        thickness : float, default=1.0
+            Thickness of the connecting line.
+        markersize : float, default=10.0
+            Size of the time marker.
         """
-        # Removing objects
-        self.scene.remove(*list(self.graphic.values()))
+        # Remove time series line graphics from the scene
+        self.scene.remove(*self.graphic.values())
+
+        # Get current time from the center reference line
         current_time = self.ruler_ref_time.geometry.positions.data[0][0]
         self.scene.remove(self.ruler_ref_time)
 
-        # Adding line object
+        # Build new geometry for x-y data
+        xy_values = self.data.loc[[x_label, y_label]].values.astype("float32")
         positions = np.zeros((len(self.data), 3), dtype="float32")
-        positions[:, 0:2] = self.data.loc[[x_label, y_label]].values.astype("float32")
+        positions[:, 0:2] = xy_values
 
+        # Create new line and add it to the scene
         self.graphic = gfx.Line(
             gfx.Geometry(positions=positions),
             gfx.LineMaterial(thickness=thickness, color=color),
         )
         self.scene.add(self.graphic)
 
-        # Adding point object to track time
-        xy = np.hstack(
-            (self.data.loc[[x_label, y_label]].get(current_time), 0),
-            dtype="float32",
-        )[None, :]
+        # Create and add a point marker at the current time
+        current_xy = self.data.loc[[x_label, y_label]].get(current_time)
+        xy = np.hstack((current_xy, 0), dtype="float32")[None, :]
         self.time_point = gfx.Points(
             gfx.Geometry(positions=xy),
-            gfx.PointsMaterial(size=30, color="red", opacity=1),
+            gfx.PointsMaterial(size=markersize, color="red", opacity=1),
         )
         self.scene.add(self.time_point)
 
-        # Disable old controller
-        # self.controller.show_interval(
-        #     np.min(self.data.loc[x_label]), np.max(self.data.loc[x_label])
-        # )
+        # Disable span controller and switch to get controller
         self.controller.enabled = False
-
-        # preserve controller id
         controller_id = self.controller._controller_id
 
-        # Instantiating new controller
-        self.controller = self._controllers["get"]
-        self.controller.n_frames = len(self.data)
-        current_frame = self.data.get_slice(current_time).start
-        self.controller.frame_index = current_frame
-        self.controller.enabled = True
-        self.controller._controller_id = controller_id
-        self.controller.data = self.data.loc[[x_label, y_label]]
-        self.controller.buffer = self.time_point.geometry.positions
+        get_controller = self._controllers["get"]
+        get_controller.n_frames = len(self.data)
+        get_controller.frame_index = self.data.get_slice(current_time).start
+        get_controller.enabled = True
+        get_controller._controller_id = controller_id
+        get_controller.data = self.data.loc[[x_label, y_label]]
+        get_controller.buffer = self.time_point.geometry.positions
 
+        self.controller = get_controller
+
+        # Update camera to fit the full x-y range
         self.camera.show_rect(
             left=np.min(self.data.loc[x_label]),
             right=np.max(self.data.loc[x_label]),
@@ -346,16 +527,16 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
-    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending") -> None:
         """
-        Sort by metadata entry.
+        Sort the plotted time series lines vertically by a metadata field.
 
         Parameters
         ----------
         metadata_name : str
-            Metadata columns to sort lines
+            Metadata key to sort by.
         order : str, optional
-            Options are ["ascending"[default], "descending"]
+            "ascending" (default) or "descending".
         """
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
