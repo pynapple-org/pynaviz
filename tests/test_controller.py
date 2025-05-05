@@ -1,12 +1,15 @@
+import pdb
+
 import numpy as np
 import pygfx
 from pygfx import controllers, cameras, renderers
-from pynaviz.controller import _get_event_handle, SpanController
+from pynaviz.controller import _get_event_handle, SpanController, GetController
 from pynaviz.synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from wgpu.gui.auto import WgpuCanvas
 import pytest
 from contextlib import nullcontext as does_not_raise
 from typing import Callable
+import pynapple as nap
 
 
 def test_controller_state_dict():
@@ -37,6 +40,20 @@ def test_controller_state_dict():
     assert isinstance(cam_state["maintain_aspect"], bool)
 
 
+def test_get_event_handle():
+    canvas = WgpuCanvas()
+    renderer = renderers.WgpuRenderer(canvas)
+    try:
+        func = _get_event_handle(renderer)
+        assert isinstance(func, Callable)
+    finally:
+        canvas.close()
+
+
+@pytest.mark.parametrize(
+    "ctrl_cls, data",
+    [(SpanController, {}), (GetController,  dict(data=nap.TsdTensor(np.arange(3), np.zeros((3, 2, 2)))))]
+)
 class TestPynaVizController:
 
     @pytest.mark.parametrize(
@@ -47,13 +64,13 @@ class TestPynaVizController:
             ("id", pytest.raises(TypeError, match="f provided, `controller_id` must"))
         ]
     )
-    def test_init_controller_id(self, ctrl_id, expectation):
+    def test_init_controller_id(self, ctrl_cls, data, ctrl_id, expectation):
         camera = pygfx.OrthographicCamera()
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             with expectation:
-                ctrl = SpanController(camera, renderer=renderer, controller_id=ctrl_id)
+                ctrl = ctrl_cls(camera, renderer=renderer, controller_id=ctrl_id, **data)
                 assert ctrl.controller_id == ctrl_id
         finally:
             canvas.close()
@@ -68,44 +85,35 @@ class TestPynaVizController:
             (dict(abc="not a callable"), pytest.raises(TypeError, match="`dict_sync_funcs` items must be of")),
         ]
     )
-    def test_init_sync_func_dict(self, dict_sync, expectation):
+    def test_init_sync_func_dict(self, ctrl_cls, data, dict_sync, expectation):
         camera = pygfx.OrthographicCamera()
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             with expectation:
-                SpanController(camera, renderer=renderer, dict_sync_funcs=dict_sync)
+                ctrl_cls(camera, renderer=renderer, dict_sync_funcs=dict_sync, **data)
         finally:
             canvas.close()
 
-    def test_control_id_setter(self):
+    def test_control_id_setter(self, ctrl_cls, data):
         camera = pygfx.OrthographicCamera()
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(camera, renderer=renderer, controller_id=None)
+            ctrl = ctrl_cls(camera, renderer=renderer, controller_id=None, **data)
             ctrl.controller_id = 1
             with pytest.raises(ValueError, match="Controller id can be set only once"):
                 ctrl.controller_id = 1
         finally:
             canvas.close()
 
-    def test_get_event_handle(self):
-        canvas = WgpuCanvas()
-        renderer = renderers.WgpuRenderer(canvas)
-        try:
-            func = _get_event_handle(renderer)
-            assert isinstance(func, Callable)
-        finally:
-            canvas.close()
-
     @pytest.mark.parametrize("auto_update", [True, False])
-    def test_request_draw(self, auto_update):
+    def test_request_draw(self, ctrl_cls, data, auto_update):
         camera = pygfx.OrthographicCamera()
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(camera, auto_update=auto_update, renderer=renderer, controller_id=None)
+            ctrl = ctrl_cls(camera, auto_update=auto_update, renderer=renderer, controller_id=None, **data)
             ctrl._request_draw(renderer)
         finally:
             canvas.close()
@@ -118,47 +126,48 @@ class TestPynaVizController:
             ("zoom_to_point", dict(screen_position=(100, 100), rect=(0, 0, 200, 300)))
         ]
     )
-    def test_update_event(self, update_type, kwargs):
+    def test_update_event(self, ctrl_cls, data, update_type, kwargs):
         camera = pygfx.OrthographicCamera()
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(camera, renderer=renderer)
+            ctrl = ctrl_cls(camera, renderer=renderer, **data)
             state = ctrl._get_camera_state()
             ctrl._send_sync_event(update_type=update_type, cam_state=state, **kwargs)
         finally:
             canvas.close()
 
-    def test_update_zoom(self):
+    def test_update_zoom(self, ctrl_cls, data):
         camera = pygfx.OrthographicCamera()
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(camera, renderer=renderer)
+            ctrl = ctrl_cls(camera, renderer=renderer, **data)
             ctrl._update_zoom(delta=0.001)
         finally:
             canvas.close()
 
-    def test_update_zoom_to_point(self):
+    def test_update_zoom_to_point(self, ctrl_cls, data):
         camera = pygfx.OrthographicCamera()
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(camera, renderer=renderer)
+            ctrl = ctrl_cls(camera, renderer=renderer, **data)
             ctrl._update_zoom_to_point(delta=0.001, screen_pos=(100, 200), rect=(1, 2, 300, 400))
         finally:
             canvas.close()
 
-    def test_update_pan(self):
+    def test_update_pan(self, ctrl_cls, data):
         camera = pygfx.OrthographicCamera()
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            ctrl = SpanController(camera, renderer=renderer)
+            ctrl = ctrl_cls(camera, renderer=renderer, **data)
             ctrl._update_pan(delta=(0.001, 0.002), vecx=np.zeros((3,)), vecy=np.zeros((3,)))
         finally:
             canvas.close()
 
+class TestSpanController:
     @pytest.mark.parametrize(
         "update_dict, expectation",
         [
@@ -216,5 +225,37 @@ class TestPynaVizController:
             ctrl = SpanController(camera, renderer=renderer, dict_sync_funcs=update_dict)
             with expectation:
                 ctrl.sync(event_zoom_to_point_update)
+        finally:
+            canvas.close()
+
+
+@pytest.fixture
+def event(request, event_pan_update, event_zoom_update, event_zoom_to_point_update):
+    if request.param == "event_pan_update":
+        return event_pan_update
+    elif request.param == "event_zoom_update":
+        return event_zoom_update
+    elif request.param == "event_zoom_to_point_update":
+        return event_zoom_to_point_update
+
+
+@pytest.mark.parametrize("data", [nap.Tsd(np.arange(11), np.arange(11))])
+class TestGetController:
+    @pytest.mark.parametrize(
+        "event",
+        ["event_pan_update", "event_zoom_update", "event_zoom_to_point_update"],
+        indirect=True
+    )
+    def test_sync(self, data, event):
+        camera = pygfx.OrthographicCamera()
+        canvas = WgpuCanvas()
+        renderer = renderers.WgpuRenderer(canvas)
+        try:
+            ctrl = GetController(camera, renderer=renderer, data=data)
+            # initial buffer should be of zeros, check that
+            assert np.all(ctrl.buffer.data == 0)
+            ctrl.sync(event)
+            new_t = event.kwargs["cam_state"]["position"][0]
+            assert np.all(ctrl.buffer.data[0] == new_t)
         finally:
             canvas.close()

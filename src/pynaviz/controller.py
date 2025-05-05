@@ -292,6 +292,7 @@ class GetController(CustomController):
         auto_update: bool = True,
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
+        dict_sync_funcs: Optional[dict[Callable]] = None,
         data: Optional[Union[nap.TsdFrame, nap.TsdTensor]] = None,
         buffer: pygfx.Buffer = None,
         time_text: gfx.Text = None,
@@ -302,11 +303,18 @@ class GetController(CustomController):
             auto_update=auto_update,
             renderer=renderer,
             controller_id=controller_id,
+            dict_sync_funcs=dict_sync_funcs,
         )
         self.data = data
         if self.data:
             self.n_frames = data.shape[0]
             self.frame_index = 0
+
+        # initialize buffer ND time text (simplify tests)
+        if buffer is None:
+            import numpy as np
+            buffer = pygfx.Buffer(np.empty(self.data.shape, dtype=np.float32))
+        time_text = time_text if time_text is not None else pygfx.Text("0")
         self.buffer = buffer
         self.time_text = time_text
 
@@ -321,7 +329,7 @@ class GetController(CustomController):
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         """Should convert the jump of time to camera position
         before emitting the sync event.
-        Does not propagate to the original PanZoomController
+        Does not propagate to the original PanZoomController.
         """
         current_t = self.data.index.values[self.frame_index]
         if delta > 0:
@@ -333,7 +341,7 @@ class GetController(CustomController):
         if (
             self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
         ):  # assume single point
-            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+            self.buffer.data[0,:2] = self.data.values[self.frame_index].astype(
                 "float32"
             )
         else:
@@ -361,7 +369,7 @@ class GetController(CustomController):
         if (
             self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
         ):  # assume single point
-            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+            self.buffer.data[0, :2] = self.data.values[self.frame_index].astype(
                 "float32"
             )
         else:
@@ -381,7 +389,7 @@ class GetController(CustomController):
         if (
             self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
         ):  # assume single point
-            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+            self.buffer.data[0, :2] = self.data.values[self.frame_index].astype(
                 "float32"
             )
         else:
