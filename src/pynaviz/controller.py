@@ -56,14 +56,14 @@ class ControllerGroup:
 
     def __init__(self, controllers_and_renderers=None, interval=(0, 10)):
         self._controller_group = dict()
-        if controllers_and_renderers is not None:
-            ids = [
-                ctrl.controller_id
-                for ctrl, _ in controllers_and_renderers
-                if ctrl.controller_id is not None
-            ]
-        else:
-            ids = []
+        if controllers_and_renderers is None:
+            controllers_and_renderers = []
+        ids = [
+            ctrl.controller_id
+            for ctrl, _ in controllers_and_renderers
+            if ctrl.controller_id is not None
+        ]
+
         if len(set(ids)) != len(ids):
             raise ValueError("Controller ids must be all different!")
         if ids:

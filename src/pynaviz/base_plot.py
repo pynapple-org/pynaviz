@@ -376,6 +376,7 @@ class PlotTsdFrame(_BasePlot):
         # If metadata found
         if len(values):
             values = pd.Series(values)
+
             # TODO try LineStack from fastplotlib
 
             for i, c in enumerate(geometries):
