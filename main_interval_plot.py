@@ -37,7 +37,7 @@ v.plot.add_interval_sets(nap.IntervalSet([10, 80], [20,100]), colors="purple", a
 v2 = viz.TsGroupWidget(tsg)
 arg =  [(v.plot.controller, v.plot.renderer), (v2.plot.controller, v2.plot.renderer)]
 
-ctrl_group = ControllerGroup(arg)
+ctrl_group = ControllerGroup([v.plot, v2.plot])
 
 # v.plot.plot_intervals(["interval_0", "interval_1"], )
 # v.plot.color_by("label", 'jet')
