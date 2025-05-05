@@ -9,9 +9,9 @@ import pygfx
 import pygfx as gfx
 import pynapple as nap
 from pygfx import Camera, PanZoomController, Renderer, Viewport
-from pylinalg import vec_transform, vec_unproject
 
 from .events import SyncEvent
+from .utils import map_screen_to_world
 
 
 def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
@@ -29,18 +29,6 @@ def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
     # grab the viewport
     viewport = Viewport.from_viewport_or_renderer(renderer)
     return viewport.renderer.handle_event
-
-
-def map_screen_to_world(camera, pos, viewport_size):
-    # first convert position to NDC
-    x = pos[0] / viewport_size[0] * 2 - 1
-    y = -(pos[1] / viewport_size[1] * 2 - 1)
-    pos_ndc = (x, y, 0)
-    pos_ndc += vec_transform(camera.world.position, camera.camera_matrix)
-    # unproject to world space
-    pos_world = vec_unproject(pos_ndc[:2], camera.camera_matrix)
-    return pos_world
-
 
 class ControllerGroup:
     """

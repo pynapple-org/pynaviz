@@ -49,18 +49,6 @@ dict_sync_funcs = {
     "zoom_to_point": _match_zoom_on_x_axis,
 }
 
-
-def map_screen_to_world(camera, pos, viewport_size):
-    # first convert position to NDC
-    x = pos[0] / viewport_size[0] * 2 - 1
-    y = -(pos[1] / viewport_size[1] * 2 - 1)
-    pos_ndc = (x, y, 0)
-    pos_ndc += vec_transform(camera.world.position, camera.camera_matrix)
-    # unproject to world space
-    pos_world = vec_unproject(pos_ndc[:2], camera.camera_matrix)
-    return pos_world
-
-
 class _BasePlot(IntervalSetInterface):
 
     def __init__(self, data, parent=None, maintain_aspect=False):
