@@ -2,7 +2,8 @@
 The controller class.
 """
 
-from typing import Callable, Optional, Union
+import threading
+from typing import Callable, List, Optional, Union
 
 import pygfx
 import pygfx as gfx
@@ -101,6 +102,7 @@ class CustomController(PanZoomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
+        plot_updates: Optional[List[Callable]] = None,
     ):
         super().__init__(
             camera=camera,
@@ -200,6 +202,7 @@ class SpanController(CustomController):
         dict_sync_funcs: Optional[dict[Callable]] = None,
         min=None,
         max=None,
+        plot_updates=None,
     ):
         super().__init__(
             camera=camera,
@@ -209,13 +212,22 @@ class SpanController(CustomController):
             renderer=renderer,
             controller_id=controller_id,
             dict_sync_funcs=dict_sync_funcs,
+            plot_updates=None,
         )
+        self.plot_updates = plot_updates if plot_updates is not None else []
         self._min = min
+
         self._max = max
         self.show_interval(0, 1)
 
+    def _update_plots(self):
+        for update_func in self.plot_updates:
+            update_func()
+
     def _update_pan(self, delta, *, vecx, vecy):
         super()._update_pan(delta, vecx=vecx, vecy=vecy)
+        # trigger after 10ms, most likely that the pan action is completed
+        threading.Timer(0.01, self._update_plots).start()
         self._send_sync_event(
             update_type="pan",
             cam_state=self._get_camera_state(),
@@ -226,12 +238,15 @@ class SpanController(CustomController):
 
     def _update_zoom(self, delta):
         super()._update_zoom(delta)
+        threading.Timer(0.01, self._update_plots).start()
         self._send_sync_event(
             update_type="zoom", cam_state=self._get_camera_state(), delta=delta
         )
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
+        # trigger after 10ms, most likely that the pan action is completed
+        threading.Timer(0.01, self._update_plots).start()
         self._send_sync_event(
             update_type="zoom_to_point",
             cam_state=self._get_camera_state(),
