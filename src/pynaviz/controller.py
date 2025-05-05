@@ -12,7 +12,7 @@ from pygfx import Camera, PanZoomController, Renderer, Viewport
 
 from .events import SyncEvent
 from .utils import map_screen_to_world
-
+from .utils import get_plot_min_max
 
 def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
     """
@@ -188,8 +188,8 @@ class SpanController(CustomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
-        min=None,
-        max=None,
+        ymin: Optional[int] = None,
+        ymax: Optional[int] = None,
         plot_updates=None,
     ):
         super().__init__(
@@ -203,9 +203,8 @@ class SpanController(CustomController):
             plot_updates=None,
         )
         self.plot_updates = plot_updates if plot_updates is not None else []
-        self._min = min
-
-        self._max = max
+        self._ymin = ymin if ymin is not None else 0
+        self._ymax = ymax if ymax is not None else 1
         self.show_interval(0, 1)
 
     def _update_plots(self):
@@ -265,27 +264,18 @@ class SpanController(CustomController):
 
     def show_interval(self, start, end):
         self.camera.show_rect(  # Uses world coordinates
-            left=start, right=end, top=self._min, bottom=self._max
+            left=start, right=end, top=self._ymin, bottom=self._ymax
         )
         self._update_cameras()
         self.renderer_request_draw()
 
     def set_ylim(self, bottom, top):
         """
-        Set the ylim of the canvas
-        TODO
+        Set the ylim of the canvas.
         """
-        viewport_size = self.renderer.logical_size
-        xmin, ymin = 0, self.renderer.logical_size[1]
-        xmax, ymax = self.renderer.logical_size[0], 0
-        world_xmin, world_ymin, _ = map_screen_to_world(
-            self.camera, (xmin, ymin), viewport_size
-        )
-        world_xmax, world_ymax, _ = map_screen_to_world(
-            self.camera, (xmax, ymax), viewport_size
-        )
-        self._min = bottom
-        self._max = top
+        world_xmin, world_xmax, _, _ = get_plot_min_max(self)
+        self._ymin = bottom
+        self._ymax = top
         self.show_interval(start=world_xmin, end=world_xmax)
 
 

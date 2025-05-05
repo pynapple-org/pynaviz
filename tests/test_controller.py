@@ -1,7 +1,7 @@
 import numpy as np
 import pygfx
 from pygfx import controllers, cameras, renderers
-from pynaviz.controller import SpanController
+from pynaviz.controller import _get_event_handle, SpanController
 from pynaviz.synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from wgpu.gui.auto import WgpuCanvas
 import pytest
@@ -94,7 +94,7 @@ class TestPynaVizController:
         canvas = WgpuCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
-            func = SpanController._get_event_handle(renderer)
+            func = _get_event_handle(renderer)
             assert isinstance(func, Callable)
         finally:
             canvas.close()
@@ -125,7 +125,7 @@ class TestPynaVizController:
         try:
             ctrl = SpanController(camera, renderer=renderer)
             state = ctrl._get_camera_state()
-            ctrl._update_event(update_type=update_type, cam_state=state, **kwargs)
+            ctrl._send_sync_event(update_type=update_type, cam_state=state, **kwargs)
         finally:
             canvas.close()
 
