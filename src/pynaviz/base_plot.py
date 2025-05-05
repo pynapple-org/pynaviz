@@ -16,18 +16,17 @@ import pygfx as gfx
 import pynapple as nap
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
-from pylinalg import vec_transform, vec_unproject
 from wgpu.gui.auto import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
 )
 
 from .controller import GetController, SpanController
+from .interval_set import IntervalSetInterface
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.metadata_to_color_maps import MetadataMappingThread
-from .utils import get_plot_attribute, trim_kwargs
+from .utils import get_plot_attribute, get_plot_min_max, trim_kwargs
 
 # import fastplotlib as fpl
-
 
 
 COLORS = [
@@ -51,18 +50,7 @@ dict_sync_funcs = {
 }
 
 
-def map_screen_to_world(camera, pos, viewport_size):
-    # first convert position to NDC
-    x = pos[0] / viewport_size[0] * 2 - 1
-    y = -(pos[1] / viewport_size[1] * 2 - 1)
-    pos_ndc = (x, y, 0)
-    pos_ndc += vec_transform(camera.world.position, camera.camera_matrix)
-    # unproject to world space
-    pos_world = vec_unproject(pos_ndc[:2], camera.camera_matrix)
-    return pos_world
-
-
-class _BasePlot():
+class _BasePlot(IntervalSetInterface):
     def __init__(self, data, parent=None, maintain_aspect=False):
         self.canvas = WgpuCanvas(parent=parent)
         self._data = data
@@ -77,6 +65,7 @@ class _BasePlot():
         )
         self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
         self._cmap = "jet"
+        super().__init__()
 
     @property
     def data(self):
@@ -99,31 +88,20 @@ class _BasePlot():
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.",
                 category=UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             return
         if value not in plt.colormaps():
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.",
                 category=UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             return
         self._cmap = value
 
     def animate(self):
-        # get range of screen space in pixels
-        xmin, ymin = 0, self.renderer.logical_size[1]
-        xmax, ymax = self.renderer.logical_size[0], 0
-
-        # Given the camera position and the range of screen space, convert to world space.
-        # Get the bottom corner and top corner
-        world_xmin, world_ymin, _ = map_screen_to_world(
-            self.camera, pos=(xmin, ymin), viewport_size=self.renderer.logical_size
-        )
-        world_xmax, world_ymax, _ = map_screen_to_world(
-            self.camera, pos=(xmax, ymax), viewport_size=self.renderer.logical_size
-        )
+        world_xmin, world_xmax, world_ymin, world_ymax = get_plot_min_max(self)
 
         # X axis
         self.rulerx.start_pos = world_xmin, 0, -1000
@@ -165,7 +143,7 @@ class _BasePlot():
             warnings.warn(
                 message=f"Cannot find appropriate color mapping for {metadata_name} metadata.",
                 category=UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
         map_kwargs = trim_kwargs(
@@ -262,6 +240,7 @@ class PlotTsd(_BasePlot):
             dict_sync_funcs=dict_sync_funcs,
             min=np.min(data),
             max=np.max(data),
+            plot_updates=[],  # list of callables
         )
 
         # Passing the data
@@ -396,19 +375,19 @@ class PlotTsdFrame(_BasePlot):
 
         # If metadata found
         if len(values):
-            # values = pd.Series(values)
-            # idx_sorted = values.sort_values(ascending=(order == "ascending"))
-            # idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
+            values = pd.Series(values)
 
             # TODO try LineStack from fastplotlib
 
             for i, c in enumerate(geometries):
-                geometries[c].positions.data[:,1] /= np.max(np.abs(geometries[c].positions.data[:,1]))
-                geometries[c].positions.data[:, 1] += (i+1)
+                geometries[c].positions.data[:, 1] /= np.max(
+                    np.abs(geometries[c].positions.data[:, 1])
+                )
+                geometries[c].positions.data[:, 1] += i + 1
                 geometries[c].positions.update_full()
 
             # Need to update cameras in the y-axis
-            self.controller.set_ylim(-1, len(values)+1)
+            self.controller.set_ylim(-1, len(values) + 1)
 
             self.canvas.request_draw(self.animate)
 
