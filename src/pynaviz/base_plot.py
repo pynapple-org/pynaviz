@@ -6,7 +6,7 @@ Create a unique canvas/renderer for each class
 import threading
 import warnings
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Union
+from typing import Any, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -550,26 +550,60 @@ class PlotTsdFrame(_BasePlot):
 
         # If metadata found
         if len(values):
-            values = pd.Series(values)
-            idx_sorted = values.sort_values(ascending=(order == "ascending"))
-            idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
 
-            # TODO try LineStack from fastplotlib
+            # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
+            new_y_pos = self._manager._sorted_y_pos(values, order)
 
             for c in geometries:
                 geometries[c].positions.data[:, 1] = (
                         self.data.loc[c].values /  np.max(np.abs(self.data.loc[c]))
-                        + idx_map[c] + 1
+                        + new_y_pos[c] + 1
                     ).astype("float32")
                 geometries[c].positions.update_full()
 
             # Need to update cameras in the y-axis
-            self.controller.set_ylim(-1, len(idx_map)+1)
+            self.controller.set_ylim(-1, len(geometries)+1)
 
             self.canvas.request_draw(self.animate)
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
-        pass
+        """
+        Group the plotted time series lines vertically by a metadata field.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata key to group by.
+        spacing : int, optional
+            amount of spacing between groups
+        """
+        # Grabbing the material object
+        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+
+        # Grabbing the metadata
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
+
+        # If metadata found
+        if len(values):
+
+            # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
+            new_y_pos = self._manager._grouped_y_pos(values, spacing)
+
+            for c in geometries:
+                geometries[c].positions.data[:, 1] = (
+                        self.data.loc[c].values /  np.max(np.abs(self.data.loc[c]))
+                        + new_y_pos[c] + 1
+                    ).astype("float32")
+                geometries[c].positions.update_full()
+
+            # Need to update cameras in the y-axis
+            self.controller.set_ylim(-1, len(geometries)+1)
+
+            self.canvas.request_draw(self.animate)
 
 
 class PlotTsGroup(_BasePlot):

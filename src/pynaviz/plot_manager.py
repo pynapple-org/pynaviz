@@ -1,6 +1,7 @@
 import numpy as np
 from pynapple.core.metadata_class import _Metadata
 
+
 class _PlotManager:
     """
     Class that keep track of the actions applied to the visual. The information that
@@ -25,8 +26,18 @@ class _PlotManager:
         self.data = _Metadata(
             index = index,
             data = {
-                "groups":np.zeros(len(index)),
+                "groups":np.zeros(len(index), dtype="int"),
                 "order":np.arange(0, len(index)),
                 "visible":np.ones(len(index), dtype=bool)
             }
         )
+
+    def _sorted_y_pos(self, values, order):
+        # Need to get each groups
+        import pandas as pd
+        values = pd.Series(values)
+        idx_sorted = values.sort_values(ascending=(order == order))
+        return {idx: i for i, idx in enumerate(idx_sorted.index)}
+
+    def _grouped_y_pos(self, values, spacing):
+        pass
