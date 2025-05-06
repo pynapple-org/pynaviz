@@ -28,16 +28,18 @@ class _PlotManager:
             data = {
                 "groups":np.zeros(len(index), dtype="int"),
                 "order":np.arange(0, len(index)),
-                "visible":np.ones(len(index), dtype=bool)
+                "visible":np.ones(len(index), dtype=bool),
+                "offset":np.zeros(len(index)),
+                "scale":np.ones(len(index))
             }
         )
 
-    def _sorted_y_pos(self, values, order):
+    def _sort_by(self, values, order):
         # Need to get each groups
         import pandas as pd
         values = pd.Series(values)
         idx_sorted = values.sort_values(ascending=(order == order))
         return {idx: i for i, idx in enumerate(idx_sorted.index)}
 
-    def _grouped_y_pos(self, values, spacing):
+    def _group_by(self, values, spacing):
         pass

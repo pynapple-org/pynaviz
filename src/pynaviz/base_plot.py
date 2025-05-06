@@ -552,13 +552,18 @@ class PlotTsdFrame(_BasePlot):
         if len(values):
 
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
-            new_y_pos = self._manager._sorted_y_pos(values, order)
+            self._manager._sort_by(values, order)
 
             for c in geometries:
                 geometries[c].positions.data[:, 1] = (
-                        self.data.loc[c].values /  np.max(np.abs(self.data.loc[c]))
-                        + new_y_pos[c] + 1
+                        self.data.loc[c].values * self._manager.scale[c]
+                        + self._manager.offset[c]
                     ).astype("float32")
+
+                # geometries[c].positions.data[:, 1] = (
+                #         self.data.loc[c].values /  np.max(np.abs(self.data.loc[c]))
+                #         + new_y_pos[c] + 1
+                #     ).astype("float32")
                 geometries[c].positions.update_full()
 
             # Need to update cameras in the y-axis
