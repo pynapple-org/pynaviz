@@ -556,8 +556,8 @@ class PlotTsdFrame(_BasePlot):
 
             for c in geometries:
                 geometries[c].positions.data[:, 1] = (
-                        self.data.loc[c].values * self._manager.scale[c]
-                        + self._manager.offset[c]
+                        self.data.loc[c].values * self._manager.data.loc[c,'scale']
+                        + self._manager.data.loc[c,'offset']
                     ).astype("float32")
 
                 # geometries[c].positions.data[:, 1] = (

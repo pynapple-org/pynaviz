@@ -34,12 +34,22 @@ class _PlotManager:
             }
         )
 
+    @property
+    def offset(self):
+        return self.data['offset']
+
+    @offset.setter
+    def offset(self, values):
+        self.data['offset'] = values
+
+
     def _sort_by(self, values, order):
-        # Need to get each groups
-        import pandas as pd
-        values = pd.Series(values)
-        idx_sorted = values.sort_values(ascending=(order == order))
-        return {idx: i for i, idx in enumerate(idx_sorted.index)}
+        tmp = np.array([v for v in values.values()])
+        unique, inverse = np.unique(tmp, return_inverse=True)
+        order = np.argsort(unique)
+        offset = order[inverse] + 1
+        self.offset += offset
+
 
     def _group_by(self, values, spacing):
         pass
