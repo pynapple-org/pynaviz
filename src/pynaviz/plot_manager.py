@@ -44,6 +44,11 @@ class _PlotManager:
 
 
     def _sort_by(self, values, order):
+
+        # First rescaling
+
+
+        # Then computing offset
         tmp = np.array([v for v in values.values()])
         unique, inverse = np.unique(tmp, return_inverse=True)
         order = np.argsort(unique)
