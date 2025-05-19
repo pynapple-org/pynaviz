@@ -1,60 +1,134 @@
+"""
+Plot manager for TsGroup, TsdFrame, and IntervalSet visualizations.
+"""
+
 import numpy as np
 from pynapple.core.metadata_class import _Metadata
 
 
 class _PlotManager:
     """
-    Class that keep track of the actions applied to the visual. The information that
-    are being tracked are :
-        - `groups` from action group_by.
-        - `order` from action sort_by.
-        - `visible` from selection action.
+    Manages the plotting state for visual elements like TsGroup, TsdFrame, and IntervalSet.
+
+    Tracks the following per-element metadata:
+        - `groups`: group labels from group_by action.
+        - `order`: display order from sort_by action.
+        - `visible`: visibility status of each element.
+        - `offset`: vertical offset per element.
+        - `scale`: scale multiplier per element.
     """
 
-    def __init__(self, index):
+    def __init__(self, index: list | np.ndarray):
         """
-        By default, passing just `index` initialize the PlotManager
-        with default values.
+        Initializes the plot manager with default metadata values for a given index.
 
         Parameters
         ----------
-        index: list or np.ndarray
-            The index of the elements. Either index in TsGroup, column labels
-            in TsdFrame or index in IntervalSet.
+        index : list or np.ndarray
+            Index of elements—e.g., TsGroup keys, TsdFrame columns, or IntervalSet rows.
         """
         self.index = index
         self.data = _Metadata(
-            index = index,
-            data = {
-                "groups":np.zeros(len(index), dtype="int"),
-                "order":np.arange(0, len(index)),
-                "visible":np.ones(len(index), dtype=bool),
-                "offset":np.zeros(len(index)),
-                "scale":np.ones(len(index))
+            index=index,
+            data={
+                "groups": np.zeros(len(index), dtype=int),
+                "order": np.arange(0, len(index)),
+                "visible": np.ones(len(index), dtype=bool),
+                "offset": np.zeros(len(index)),
+                "scale": np.ones(len(index)),
             }
         )
+        # To keep track of past actions
+        self._sorted = False
+        self._grouped = False
 
     @property
-    def offset(self):
+    def offset(self) -> np.ndarray:
+        """
+        Vertical offsets applied to each visual element (e.g., for line plots).
+
+        Returns
+        -------
+        np.ndarray
+            Array of vertical offsets.
+        """
         return self.data['offset']
 
     @offset.setter
-    def offset(self, values):
+    def offset(self, values: np.ndarray) -> None:
         self.data['offset'] = values
 
+    @property
+    def scale(self) -> np.ndarray:
+        """
+        Scale factors applied to each visual element.
 
-    def _sort_by(self, values, order):
+        Returns
+        -------
+        np.ndarray
+            Array of scale multipliers.
+        """
+        return self.data['scale']
 
-        # First rescaling
+    @scale.setter
+    def scale(self, values: np.ndarray) -> None:
+        self.data['scale'] = values
 
+    def sort_by(self, values: dict, order: str) -> None:
+        """
+        Updates the offset based on sorted group values.
 
-        # Then computing offset
-        tmp = np.array([v for v in values.values()])
+        Parameters
+        ----------
+        values : dict
+            Mapping from index to sortable values (e.g., a metric or label).
+        order : str
+            Sort direction; either 'ascending' or 'descending'.
+        """
+        tmp = np.array(list(values.values()))
         unique, inverse = np.unique(tmp, return_inverse=True)
-        order = np.argsort(unique)
-        offset = order[inverse] + 1
+        y_order = np.argsort(unique)
+        offset = y_order[inverse] + 1
+        if order == "descending":
+            offset = offset[::-1]
         self.offset += offset
+        self._sorted = True
 
+    def group_by(self, values: dict, spacing: int) -> None:
+        """
+        Updates the offset to separate elements into visual groups.
 
-    def _group_by(self, values, spacing):
-        pass
+        Parameters
+        ----------
+        values : dict
+            Mapping from index to group identifiers.
+        spacing : int
+            Unused parameter (reserved for future logic).
+        """
+        tmp = np.array(list(values.values()))
+        unique, inverse = np.unique(tmp, return_inverse=True)
+        offset = np.arange(1, len(unique) + 1)[inverse]
+        self.offset += offset
+        self._grouped = True
+
+    def rescale(self, factor: float) -> None:
+        """
+        Multiplies each element's scale by `factor`. This action is only
+        possible if `sort_by` or `group_by` has been called before.
+
+        Parameters
+        ----------
+        factor : float
+            Scale adjustment factor (e.g., 0.1 increases scale by 10%).
+        """
+        if self._sorted or self._grouped:
+            self.scale = self.scale + (self.scale * factor)
+
+    def reset(self) -> None:
+        """
+        Resets offset and scale to default values (0 and 1 respectively).
+        """
+        self.data["offset"] = np.zeros(len(self.index))
+        self.data["scale"] = np.ones(len(self.index))
+        self._grouped = False
+        self._sorted = False

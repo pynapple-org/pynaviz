@@ -24,21 +24,7 @@ from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.metadata_to_color_maps import MetadataMappingThread
-from .utils import get_plot_attribute, get_plot_min_max, trim_kwargs
-
-COLORS = [
-    "hotpink",
-    "lightpink",
-    "cyan",
-    "orange",
-    "lightcoral",
-    "lightsteelblue",
-    "lime",
-    "lightgreen",
-    "magenta",
-    "pink",
-    "aliceblue",
-]
+from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -299,26 +285,6 @@ class _BasePlot(ABC, IntervalSetInterface):
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
 
-    # def update(self, event):
-    #     """
-    #     Apply an action to the widget plot.
-    #     Actions can be "color_by", "sort_by" and "group_by"
-    #     """
-    #     metadata_name = event["metadata_name"]
-    #     action_name = event["action"]
-    #     if action_name == "color_by":
-    #         self.color_by(metadata_name)
-    #     elif action_name == "sort_by":
-    #         self.sort_by(metadata_name)
-    #
-    #     # metadata = (
-    #     #     dict(self.data.get_info(metadata_name))
-    #     #     if hasattr(self.data, "get_info")
-    #     #     else {}
-    #     # )
-    #     # # action_caller(self, action, metadata=metadata, **kwargs)
-    #     # # TODO: make it more targeted than update all
-
 
 class PlotTsd(_BasePlot):
     """
@@ -440,7 +406,7 @@ class PlotTsdFrame(_BasePlot):
             positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T.astype("float32")
             self.graphic[c] = gfx.Line(
                 gfx.Geometry(positions=positions),
-                gfx.LineMaterial(thickness=1.0, color=COLORS[i % len(COLORS)]),
+                gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
             )
 
         self.time_point = None  # Used later in x-vs-y plotting
@@ -449,6 +415,56 @@ class PlotTsdFrame(_BasePlot):
         self.scene.add(
             self.rulerx, self.rulery, self.ruler_ref_time, *self.graphic.values()
         )
+
+        # Connect event handler for TsdFrame
+        self.renderer.add_event_handler(self._rescale, "key_down")
+        self.renderer.add_event_handler(self._reset, "key_down")
+
+        self.canvas.request_draw(self.animate)
+
+    def _rescale(self, event):
+        """
+        "i" key increase the scale by 10%.
+        "d" key decrease the scale by 10%
+        """
+        if event.type == "key_down":
+            if event.key == "i":
+                self._manager.rescale(factor=0.5)
+                self._update()
+            if event.key == "d":
+                self._manager.rescale(factor=0.5)
+                self._update()
+
+    def _reset(self, event):
+        """
+        "r" key reset the plot manager to initial values
+        """
+        if event.type == "key_down":
+            if event.key == "r":
+                self._manager.reset()
+                self._update()
+
+    def _update(self):
+        """
+        Update function for sort_by, group_by and rescaling
+        """
+        # Grabbing the material object
+        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+
+        for c in geometries:
+            geometries[c].positions.data[:, 1] = (
+                    self.data.loc[c].values * self._manager.data.loc[c]['scale']
+                    + self._manager.data.loc[c]['offset']
+            ).astype("float32")
+
+            geometries[c].positions.update_full()
+
+        # Need to update cameras in the y-axis
+        self.controller.set_ylim(
+            np.min(self._manager.offset) - 1,
+            np.max(self._manager.offset) + 1
+        )
+
         self.canvas.request_draw(self.animate)
 
     def plot_x_vs_y(
@@ -538,9 +554,6 @@ class PlotTsdFrame(_BasePlot):
         order : str, optional
             "ascending" (default) or "descending".
         """
-        # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
-
         # Grabbing the metadata
         values = (
             dict(self.data.get_info(metadata_name))
@@ -552,22 +565,14 @@ class PlotTsdFrame(_BasePlot):
         if len(values):
 
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
-            self._manager._sort_by(values, order)
+            self._manager.sort_by(values, order)
 
-            # By default this action reset the scale of each line
+            # By default, this action reset the scale of each line
+            self._manager.scale = 1 / np.array([
+                np.max(self.data.loc[c])-np.min(self.data.loc[c])
+                for c in self._manager.index])
 
-            for c in geometries:
-                geometries[c].positions.data[:, 1] = (
-                        self.data.loc[c].values /  np.max(np.abs(self.data.loc[c]))
-                        + self._manager.data.loc[c]['offset']
-                    ).astype("float32")
-
-                geometries[c].positions.update_full()
-
-            # Need to update cameras in the y-axis
-            self.controller.set_ylim(-1, len(geometries)+1)
-
-            self.canvas.request_draw(self.animate)
+            self._update()
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
         """
@@ -580,9 +585,6 @@ class PlotTsdFrame(_BasePlot):
         spacing : int, optional
             amount of spacing between groups
         """
-        # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
-
         # Grabbing the metadata
         values = (
             dict(self.data.get_info(metadata_name))
@@ -594,19 +596,14 @@ class PlotTsdFrame(_BasePlot):
         if len(values):
 
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
-            new_y_pos = self._manager._grouped_y_pos(values, spacing)
+            self._manager.group_by(values, spacing)
 
-            for c in geometries:
-                geometries[c].positions.data[:, 1] = (
-                        self.data.loc[c].values /  np.max(np.abs(self.data.loc[c]))
-                        + new_y_pos[c] + 1
-                    ).astype("float32")
-                geometries[c].positions.update_full()
+            # This action reset the scale of each line only if scale is 1
+            self._manager.scale = 1 / np.array([
+                np.max(self.data.loc[c])-np.min(self.data.loc[c])
+                for c in self._manager.index])
 
-            # Need to update cameras in the y-axis
-            self.controller.set_ylim(-1, len(geometries)+1)
-
-            self.canvas.request_draw(self.animate)
+            self._update()
 
 
 class PlotTsGroup(_BasePlot):
@@ -632,7 +629,7 @@ class PlotTsGroup(_BasePlot):
 
             self.graphic[n] = gfx.Points(
                 gfx.Geometry(positions=positions),
-                gfx.PointsMaterial(size=5, color=COLORS[i % len(COLORS)], opacity=1),
+                gfx.PointsMaterial(size=5, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)], opacity=1),
             )
 
         self.scene.add(self.rulerx, self.rulery, *list(self.graphic.values()))

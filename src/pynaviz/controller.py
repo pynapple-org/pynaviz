@@ -11,24 +11,8 @@ import pynapple as nap
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 
 from .events import SyncEvent
-from .utils import map_screen_to_world
+from .utils import _get_event_handle, map_screen_to_world
 
-
-def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
-    """
-    Set up the callback to update.
-
-    When initializing the custom controller, the method register_events
-    is called. It adds to the renderer an event handler by calling
-    viewport.renderer.add_event_handler of EventTarget.
-    This function grabs the function that loops through the callbacks in
-    renderer._event_handlers dictionary.
-
-    :return:
-    """
-    # grab the viewport
-    viewport = Viewport.from_viewport_or_renderer(renderer)
-    return viewport.renderer.handle_event
 
 class ControllerGroup:
     """
