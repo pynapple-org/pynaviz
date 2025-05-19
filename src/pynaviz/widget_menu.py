@@ -182,7 +182,6 @@ class DropdownDialog(QDialog):
             main_layout.addLayout(button_layout)
         else:
             self._update_on_selection = True
-            self.update_plot()
 
         self.adjustSize()
 
