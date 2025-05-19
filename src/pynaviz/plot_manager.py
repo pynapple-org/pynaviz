@@ -1,5 +1,6 @@
 """
 Plot manager for TsGroup, TsdFrame, and IntervalSet visualizations.
+The manager gives context for which action has been applied to the visual.
 """
 
 import numpy as np
