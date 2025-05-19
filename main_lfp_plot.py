@@ -22,9 +22,11 @@ app = QApplication([])
 
 v = viz.TsdFrameWidget(tsdframe)
 # v.plot.sort_by("group")
-# v.plot.sort_by("channel")
+# v.plot.sort_by("channel", order="descending")
 
+# v.plot.sort_by("channel")
 # v.plot.group_by("group")
+
 v.show()
 
 if __name__ == "__main__":

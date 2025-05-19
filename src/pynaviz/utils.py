@@ -1,5 +1,7 @@
 import inspect
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Union
+
+from pygfx import Renderer, Viewport
 
 if TYPE_CHECKING:
     from .base_plot import _BasePlot
@@ -28,6 +30,23 @@ GRADED_COLOR_LIST = [
     "deeppink",
     "magenta",
 ]
+
+
+def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
+    """
+    Set up the callback to update.
+
+    When initializing the custom controller, the method register_events
+    is called. It adds to the renderer an event handler by calling
+    viewport.renderer.add_event_handler of EventTarget.
+    This function grabs the function that loops through the callbacks in
+    renderer._event_handlers dictionary.
+
+    :return:
+    """
+    # grab the viewport
+    viewport = Viewport.from_viewport_or_renderer(renderer)
+    return viewport.renderer.handle_event
 
 
 def get_plot_attribute(
