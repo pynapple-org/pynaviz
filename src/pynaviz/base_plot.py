@@ -315,15 +315,9 @@ class PlotTsd(_BasePlot):
         super().__init__(data=data, parent=parent)
 
         # Create a controller for span-based interaction, syncing, and user inputs
-        self.controller = SpanController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,  # shared sync registry
-            min=np.min(data),  # minimum value of the time series
-            max=np.max(data),  # maximum value of the time series
-            plot_updates=[],  # list of callables to trigger on span updates
-        )
+        self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
+                                         dict_sync_funcs=dict_sync_funcs, min=np.min(data), max=np.max(data),
+                                         plot_updates=[])
 
         # Prepare geometry: stack time, data, and zeros (Z=0) into (N, 3) float32 positions
         positions = np.stack((data.t, data.d, np.zeros_like(data))).T
@@ -380,14 +374,8 @@ class PlotTsdFrame(_BasePlot):
 
         # Controllers for different interaction styles
         self._controllers = {
-            "span": SpanController(
-                camera=self.camera,
-                renderer=self.renderer,
-                controller_id=index,
-                dict_sync_funcs=dict_sync_funcs,
-                min=np.min(data),
-                max=np.max(data),
-            ),
+            "span": SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
+                                   dict_sync_funcs=dict_sync_funcs, min=np.min(data), max=np.max(data)),
             "get": GetController(
                 camera=self.camera,
                 renderer=self.renderer,
@@ -611,14 +599,8 @@ class PlotTsGroup(_BasePlot):
         super().__init__(data=data, parent=parent)
 
         # Pynaviz specific controller
-        self.controller = SpanController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,
-            min=0,
-            max=len(data) + 1,
-        )
+        self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
+                                         dict_sync_funcs=dict_sync_funcs, min=0, max=len(data) + 1)
 
         self.graphic = {}
         for i, n in enumerate(data.keys()):
@@ -723,12 +705,8 @@ class PlotTs(_BasePlot):
         self.data = data
 
         # Pynaviz specific controller
-        self.controller = SpanController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,
-        )
+        self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
+                                         dict_sync_funcs=dict_sync_funcs)
 
     def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
         pass

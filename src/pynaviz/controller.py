@@ -172,8 +172,8 @@ class SpanController(CustomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
-        min=None,
-        max=None,
+        min=0,
+        max=1,
         plot_updates=None,
     ):
         super().__init__(

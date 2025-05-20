@@ -15,7 +15,7 @@ def linters(session):
     session.run("ruff", "check", "src", "--ignore", "D")
 
 
-# @nox.session(name="tests")
-# def tests(session):
-#     """Run the test suite."""
-#     session.run("pytest")  # , "--pdb", "--pdbcls=IPython.terminal.debugger:Pdb")
+@nox.session(name="tests")
+def tests(session):
+    """Run the test suite."""
+    session.run("pytest")  # , "--pdb", "--pdbcls=IPython.terminal.debugger:Pdb")
