@@ -1,5 +1,9 @@
 from .base_plot import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
-from .gui import scope
+
+try:
+    from .gui import scope
+except ImportError:
+    pass # Check if cleaner way of doing this
 from .widget_plot import (
     TsdFrameWidget,
     TsdTensorWidget,

@@ -35,6 +35,9 @@ include = ["pynaviz"]       # The specific package(s) to include in the distribu
 
 # Define optional dependencies for the project
 [project.optional-dependencies]
+qt = [
+    "pyqt6"
+]
 dev = [
     "pip-tools",                    # Dependency management
     "pytest",                       # Testing framework
