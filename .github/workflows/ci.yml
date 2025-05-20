@@ -33,7 +33,12 @@ jobs:
       - name: Install llvmpipe and lavapipe for offscreen canvas
         run: |
           sudo apt-get update -y -qq
-          sudo apt-get install --no-install-recommends -y ffmpeg libegl1-mesa libgl1-mesa-dri libxcb-xfixes0-dev mesa-vulkan-drivers
+          sudo apt-get install --no-install-recommends -y \
+            ffmpeg \
+            libegl-mesa0 \
+            libgl1-mesa-dri \
+            libxcb-xfixes0-dev \
+            mesa-vulkan-drivers          
 
       - name: Install dependencies
         run: |
