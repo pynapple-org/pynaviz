@@ -44,7 +44,7 @@ dev = [
     "ruff",
     "isort",
 ]
-doc = [
+docs = [
     "matplotlib",
     "zarr",
     "seaborn",
