@@ -96,4 +96,16 @@ def get_popup_kwargs(popup_name: str, widget: QWidget) -> dict | None:
             ok_cancel_button=False,
             parent=widget,
         )
+    elif popup_name == "group_by":
+        metadata = getattr(widget, "metadata", None)
+        if metadata is None:
+            return
+        meta = _get_meta_combo(widget)
+        kwargs = dict(
+            widgets=OrderedDict(Metadata=meta),
+            title="Group by",
+            func=plot.group_by,
+            ok_cancel_button=True,
+            parent=widget,
+        )
     return kwargs

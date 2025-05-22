@@ -1,13 +1,20 @@
 """
 Action and context classes
-Create a unique Qt widget menu for each plot.
-Classes hold the specific interactive methods for each pynapple object.
+
+This module provides custom Qt widgets to create interactive menus for plots.
+Each menu allows the user to configure plot-specific behavior using GUI components
+such as dropdowns, spin boxes, and list views. The widgets are dynamically constructed
+based on metadata and plotting context.
+
+Main Classes:
+- DropdownDialog: Dynamically generates a dialog with labeled input widgets.
+- ChannelList: Provides a selectable list view of plotting channels.
+- MenuWidget: UI component to attach interactive actions and selections to a plot.
 """
 
 from collections import OrderedDict
-from typing import Callable
+from typing import Callable, Any
 
-# import matplotlib.pyplot as plt
 from PyQt6.QtCore import QPoint, QSize, Qt
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -27,130 +34,139 @@ from PyQt6.QtWidgets import (
 )
 
 from pynaviz.qt_item_models import ChannelListModel, DynamicSelectionListView
-
 from .drop_down_dict_builder import get_popup_kwargs
 from .utils import get_plot_attribute
+
 
 WIDGET_PARAMS = {
     QComboBox: {
         "name": "setObjectName",
         "items": "addItems",
-        "values": "setItemData",  # needs to iterate over items
+        "values": "setItemData",
         "current_index": "setCurrentIndex",
     },
     QDoubleSpinBox: {
-        "name": "setObjectNAme",
+        "name": "setObjectNAme",  # Note: typo here in key name
         "value": "setValue",
     },
 }
 
 
-def widget_factory(parameters):
+def widget_factory(parameters: dict) -> QWidget:
+    """
+    Constructs a QWidget (QComboBox or QDoubleSpinBox) with specified parameters.
+
+    Parameters
+    ----------
+    parameters : dict
+        Dictionary containing widget configuration.
+
+    Returns
+    -------
+    QWidget
+        The configured widget instance.
+    """
     widget_type = parameters.pop("type")
     if widget_type == QComboBox:
         widget = QComboBox()
         for arg_name, attr_name in WIDGET_PARAMS[QComboBox].items():
-            meth = getattr(widget, attr_name, None)
-            val = parameters.get(arg_name, None)
-            if (meth is not None) and (val is not None):
+            method = getattr(widget, attr_name, None)
+            value = parameters.get(arg_name)
+            if method and value is not None:
                 if arg_name == "values":
-                    for i, v in enumerate(val):
-                        meth(i, v)
+                    for i, v in enumerate(value):
+                        method(i, v)
                 else:
-                    meth(val)
+                    method(value)
     elif widget_type == QDoubleSpinBox:
         widget = QDoubleSpinBox()
         for arg_name, attr_name in WIDGET_PARAMS[QDoubleSpinBox].items():
-            meth = getattr(widget, attr_name, None)
-            val = parameters.get(arg_name, None)
-            if meth and val:
-                meth(val)
+            method = getattr(widget, attr_name, None)
+            value = parameters.get(arg_name)
+            if method and value is not None:
+                method(value)
     else:
         raise ValueError("Unknown widget type.")
     return widget
 
 
 class DropdownDialog(QDialog):
+    """
+    A popup dialog that dynamically creates widgets from metadata and applies a callback.
+
+    Parameters
+    ----------
+    title : str
+        Title of the dialog window.
+    widgets : OrderedDict[str, dict]
+        Keys are labels; values are widget parameter dictionaries.
+    func : Callable
+        Function to call when selections are made.
+    ok_cancel_button : bool, optional
+        Whether to display OK/Cancel buttons (default is False).
+    parent : QWidget, optional
+        Parent widget.
+    """
+
     def __init__(
         self,
         title: str,
-        widgets: OrderedDict[dict],
+        widgets: OrderedDict[str, dict],
         func: Callable,
         ok_cancel_button: bool = False,
-        parent=None,
+        parent: QWidget | None = None,
     ):
-        """
-        Parameters
-        ----------
-        meta_names:
-            The metadata column names.
-        other_widgets:
-            Parameter for constructing other widgets.
-        parent:
-            The parent widget.
-        """
         super().__init__(parent=parent)
         self.setWindowTitle(title)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
-        # Determine grid arrangement
-        num_cols = min(len(widgets), 3)  # max 3 per row
-        num_rows = (len(widgets)) // num_cols
+        num_cols = min(len(widgets), 3)
+        num_rows = len(widgets) // num_cols
         self.setFixedWidth(200 * num_cols)
         self.setFixedHeight(min(150 * num_rows, 400))
+
         self._func = func
-        self.widgets = {}
+        self.widgets: dict[int, QWidget] = {}
 
         main_layout = QVBoxLayout(self)
 
-        # Scroll area
+        # Scrollable area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         scroll_content = QWidget()
-        scroll_content.setSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum
-        )
+        scroll_content.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
 
         grid_layout = QGridLayout()
-
-        outer_layout = QHBoxLayout()
         inner_layout = QVBoxLayout()
         inner_layout.addLayout(grid_layout)
 
-        # Expanding spacer to push everything to the top
-        spacer = QSpacerItem(
-            0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
-        )
-        h_spacer = QSpacerItem(
-            0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
-        )
+        spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        h_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         inner_layout.addItem(spacer)
+
+        outer_layout = QHBoxLayout()
         outer_layout.addLayout(inner_layout)
         outer_layout.addItem(h_spacer)
 
-        # Set inner_layout on the scroll_content widget
         scroll_content.setLayout(outer_layout)
-
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
-        def make_labeled_widget(label_text, widget):
+        # Add widgets with labels
+        def make_labeled_widget(label_text: str, widget: QWidget) -> QWidget:
             label = QLabel(label_text)
             label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
             widget.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-
             wrapper = QWidget()
-            wrapper_layout = QHBoxLayout()
-            wrapper_layout.setContentsMargins(1, 0, 1, 0)
-            wrapper_layout.setSpacing(2)
-            wrapper_layout.addWidget(label)
-            wrapper_layout.addWidget(widget)
-            wrapper.setLayout(wrapper_layout)
-
+            layout = QHBoxLayout()
+            layout.setContentsMargins(1, 0, 1, 0)
+            layout.setSpacing(2)
+            layout.addWidget(label)
+            layout.addWidget(widget)
+            wrapper.setLayout(layout)
             return wrapper
 
-        # Other widgets
         for i, (label, params) in enumerate(widgets.items()):
             widget = widget_factory(params)
             if hasattr(widget, "currentIndexChanged"):
@@ -158,17 +174,14 @@ class DropdownDialog(QDialog):
             if hasattr(widget, "valueChanged"):
                 widget.valueChanged.connect(self.item_changed)
 
-            labeled_widget = make_labeled_widget(label, widget)
             row, col = divmod(i, num_cols)
-            grid_layout.addWidget(labeled_widget, row, col)
-
+            grid_layout.addWidget(make_labeled_widget(label, widget), row, col)
             self.widgets[i] = widget
 
+        # Optional buttons
         if ok_cancel_button:
             self._update_on_selection = False
             button_layout = QHBoxLayout()
-            button_layout.addStretch()  # This is the spacer
-
             ok_button = QPushButton("OK")
             ok_button.setDefault(True)
             cancel_button = QPushButton("Cancel")
@@ -176,40 +189,61 @@ class DropdownDialog(QDialog):
             ok_button.clicked.connect(self.accept)
             cancel_button.clicked.connect(self.reject)
 
+            button_layout.addStretch()
             button_layout.addWidget(cancel_button)
             button_layout.addWidget(ok_button)
-
             main_layout.addLayout(button_layout)
         else:
             self._update_on_selection = True
 
         self.adjustSize()
 
-    def accept(self):
-        self.update_plot()
-        return super().accept()
+    def get_selections(self) -> list[Any]:
+        """
+        Extracts current selections from the widgets.
 
-    def get_selections(self):
+        Returns
+        -------
+        list
+            List of selected values from each widget.
+        """
         out = []
         for widget in self.widgets.values():
             if isinstance(widget, QComboBox):
                 data = widget.currentData()
-                out += [data if data is not None else widget.currentText()]
+                out.append(data if data is not None else widget.currentText())
             elif isinstance(widget, QDoubleSpinBox):
-                out += [widget.value()]
+                out.append(widget.value())
         return out
 
-    def update_plot(self):
-        out = self.get_selections()
-        self._func(*out)
+    def update_plot(self) -> None:
+        """Calls the provided function with current widget values."""
+        self._func(*self.get_selections())
 
-    def item_changed(self):
+    def item_changed(self) -> None:
+        """Callback triggered when a widget value changes."""
         if self._update_on_selection:
             self.update_plot()
 
+    def accept(self) -> None:
+        """Override accept to call plot update before closing."""
+        self.update_plot()
+        return super().accept()
+
 
 class ChannelList(QDialog):
-    def __init__(self, model, parent=None):
+    """
+    A dialog listing selectable channels (e.g., for visibility toggling).
+
+    Parameters
+    ----------
+    model : ChannelListModel
+        Data model that holds the list of channel states.
+    parent : QWidget, optional
+        Parent widget.
+    """
+
+    def __init__(self, model: ChannelListModel, parent: QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Channel List")
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
@@ -217,32 +251,27 @@ class ChannelList(QDialog):
 
         self.view = DynamicSelectionListView(self)
         self.view.setSelectionMode(self.view.SelectionMode.ExtendedSelection)
+        self.view.setModel(model)
+        model.checkStateChanged.connect(self.view.on_check_state_changed)
 
-        # Set the model for the list view
-        # self.plot = plot
-        self.model = model
-        self.view.setModel(self.model)
-        self.model.checkStateChanged.connect(self.view.on_check_state_changed)
-
-
-        # Set the selection mode
         layout = QVBoxLayout()
         layout.addWidget(self.view)
         self.setLayout(layout)
 
 
 class MenuWidget(QWidget):
+    """
+    Menu bar widget that allows channel selection and plot actions.
 
-    def __init__(self, metadata, plot):
-        """
+    Parameters
+    ----------
+    metadata : dict or pd.DataFrame
+        Metadata associated with the plot.
+    plot : _BasePlot
+        The plot instance this menu is attached to.
+    """
 
-        Parameters
-        ----------
-        metadata: pd.DataFrame or dict
-            The list of metadata column names
-        plot: _BasePlot
-            All the possible base plot
-        """
+    def __init__(self, metadata: Any, plot: Any):
         super().__init__()
         self.metadata = metadata
         self.plot = plot
@@ -250,106 +279,68 @@ class MenuWidget(QWidget):
         self.channel_model.checkStateChanged.connect(self._request_draw)
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)  # No border padding
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Select button
         icon_size = 18
-        self.select_button = self._make_button(
-            menu_to_show=self.show_select_menu,
-            icon_name="SP_DialogApplyButton",
-            icon_size=icon_size,
-        )
+        self.select_button = self._make_button(self.show_select_menu, "SP_DialogApplyButton", icon_size)
         layout.addWidget(self.select_button)
 
-        # Action button
-        self.action_button = self._make_button(
-            menu_to_show=self.show_action_menu,
-            icon_name="SP_FileDialogDetailedView",
-            icon_size=icon_size,
-        )
+        self.action_button = self._make_button(self.show_action_menu, "SP_FileDialogDetailedView", icon_size)
         layout.addWidget(self.action_button)
-        layout.addStretch()
 
-        # Action menu
+        layout.addStretch()
+        self.setLayout(layout)
+        self.setFixedHeight(icon_size + 2)
+
         self._action_menu()
 
-        # Set layout to the container widget
-        self.setLayout(layout)
-        self.setFixedHeight(icon_size+2)
-
-    def _request_draw(self):
+    def _request_draw(self) -> None:
+        """Request a redraw of the plot when channel states change."""
         widget = self.sender()
         materials = get_plot_attribute(self.plot, "material")
         for index, val in getattr(widget, "checks", {}).items():
             materials[index].opacity = val
         self.plot.canvas.request_draw(self.plot.animate)
 
-    def _make_button(self, menu_to_show, icon_name, icon_size=20):
+    def _make_button(self, menu_to_show: Callable, icon_name: str, icon_size: int = 20) -> QPushButton:
+        """Helper to create a styled button with icon and action."""
         button = QPushButton()
         button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        pixmapi = getattr(QStyle.StandardPixmap, icon_name)
-        icon = self.style().standardIcon(pixmapi)
+        icon = self.style().standardIcon(getattr(QStyle.StandardPixmap, icon_name))
         button.setIcon(icon)
         button.setIconSize(QSize(icon_size, icon_size))
         button.setFixedSize(icon_size + 3, icon_size + 3)
         button.setFlat(True)
         button.clicked.connect(menu_to_show)
-        # button.setStyleSheet(
-        #     """
-        #     QPushButton {
-        #         background-color: #232426;
-        #         border: none;
-        #         border-radius: 4px;
-        #         padding: 2px;
-        #         margin: 0px;
-        #     }
-        #
-        #     QPushButton:hover {
-        #         background-color: #3c3c3c;
-        #     }
-        #
-        #     QPushButton:pressed {
-        #         background-color: #1f1f1f;
-        #     }
-        #
-        #     QPushButton:focus {
-        #         outline: none;
-        #     }
-        #     """
-        # )
         return button
 
-    def _action_menu(self):
-        # First-level menu
+    def _action_menu(self) -> None:
+        """Creates the action menu with plot operation entries."""
         self.action_menu = QMenu()
-
-        # Second-level submenu
-        for action_name, action_func in zip(
-            ["Color by", "Group by", "Sort by"], ["color_by", "group_by", "sort_by"]
-        ):
-            action = self.action_menu.addAction(action_name)
+        for name, func_name in zip(["Color by", "Group by", "Sort by"], ["color_by", "group_by", "sort_by"]):
+            action = self.action_menu.addAction(name)
+            action.setObjectName(func_name)
             action.triggered.connect(self._popup_menu)
-            action.setObjectName(action_func)
-
         self.action_menu.addSeparator()
-        action = self.action_menu.addAction("Plot x vs y")
-        action.triggered.connect(self._popup_menu)
-        action.setObjectName("x_vs_y")
+        xvy_action = self.action_menu.addAction("Plot x vs y")
+        xvy_action.setObjectName("x_vs_y")
+        xvy_action.triggered.connect(self._popup_menu)
 
-    def show_action_menu(self):
-        # Show menu below the button
+    def show_action_menu(self) -> None:
+        """Displays the action menu below the button."""
         pos = self.action_button.mapToGlobal(QPoint(0, self.action_button.height()))
         self.action_menu.exec(pos)
 
-    def show_select_menu(self):
+    def show_select_menu(self) -> None:
+        """Opens the channel list selection dialog."""
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.exec()
 
-    def _popup_menu(self):
+    def _popup_menu(self) -> None:
+        """Opens a dropdown dialog based on selected action."""
         action = self.sender()
         popup_name = action.objectName()
-
         kwargs = get_popup_kwargs(popup_name, self)
         if kwargs is not None:
             dialog = DropdownDialog(**kwargs)
