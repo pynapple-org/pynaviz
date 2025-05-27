@@ -2,6 +2,7 @@
 Test script
 """
 import numpy as np
+import os
 import pynapple as nap
 from PyQt6.QtWidgets import QApplication
 import pynaviz as viz

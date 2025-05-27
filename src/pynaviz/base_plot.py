@@ -330,6 +330,7 @@ class PlotTsd(_BasePlot):
 
         # By default showing only the first second.
         # Weirdly rulers don't show if show_rect is not called
+        # in the init
         self.camera.show_rect(0, 1, data.min(), data.max())
 
         # Request an initial draw of the scene
@@ -404,9 +405,18 @@ class PlotTsdFrame(_BasePlot):
         self.renderer.add_event_handler(self._rescale, "key_down")
         self.renderer.add_event_handler(self._reset, "key_down")
 
-        # Set the final view
-        self.controller.set_view(xmin=0, xmax=1, ymin=data.min(), ymax=data.max())
+        # By default showing only the first second.
+        self.camera.show_rect(0, 1, 0, 1)
+        # self.controller.set_view(
+        #     xmin=0,
+        #     xmax=1,
+        #     ymin=-1.5,
+        #     ymax=1.5
+        #     # ymin=float(np.min(data)),
+        #     # ymax=float(np.max(data)),
+        # )
 
+        # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
 
     def _rescale(self, event):
@@ -419,7 +429,7 @@ class PlotTsdFrame(_BasePlot):
                 self._manager.rescale(factor=0.5)
                 self._update()
             if event.key == "d":
-                self._manager.rescale(factor=0.5)
+                self._manager.rescale(factor=-0.5)
                 self._update()
 
     def _reset(self, event):
@@ -430,6 +440,7 @@ class PlotTsdFrame(_BasePlot):
             if event.key == "r":
                 self._manager.reset()
                 self._update()
+                self.controller.set_ylim(self.data.min(), self.data.max())
 
     def _update(self):
         """
@@ -447,9 +458,7 @@ class PlotTsdFrame(_BasePlot):
             geometries[c].positions.update_full()
 
         # Update camera to fit the full y range
-        max_y = np.max(self._manager.offset) + 1
-        self.camera.height = max_y
-        self.camera.local.y = max_y/2 # TODO update the set_ylim
+        self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
 
         self.canvas.request_draw(self.animate)
 

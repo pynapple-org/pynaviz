@@ -169,15 +169,7 @@ class CustomController(PanZoomController):
 
     def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
         """Set the visible X and Y ranges for an OrthographicCamera."""
-        width = xmax - xmin
-        height = ymax - ymin
-        x_center = (xmax + xmin) / 2
-        y_center = (ymax + ymin) / 2
-
-        self.camera.width = width
-        self.camera.height = height
-        self.camera.local.x = x_center
-        self.camera.local.y = y_center
+        self.camera.show_rect(xmin, xmax, ymin, ymax)
 
 class SpanController(CustomController):
     """
