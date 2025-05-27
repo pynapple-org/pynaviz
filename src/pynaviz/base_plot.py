@@ -92,10 +92,10 @@ class _BasePlot(IntervalSetInterface):
         self.scene = gfx.Scene()
 
         # Add a horizontal ruler (x-axis) with ticks on the right
-        self.ruler_x = gfx.Ruler(tick_side="right")
+        self.ruler_x = gfx.Ruler(tick_side="right")#, start_pos=(0, 0, 0), end_pos=(1, 0, 0))
 
         # Add a vertical ruler (y-axis) with ticks on the left and minimum spacing
-        self.ruler_y = gfx.Ruler(tick_side="left", min_tick_distance=40)
+        self.ruler_y = gfx.Ruler(tick_side="left")#, start_pos=(0, -1, 0), end_pos=(0, 1, 0))
 
         # A vertical reference line, for the center time point
         self.ruler_ref_time = gfx.Line(
@@ -405,16 +405,9 @@ class PlotTsdFrame(_BasePlot):
         self.renderer.add_event_handler(self._rescale, "key_down")
         self.renderer.add_event_handler(self._reset, "key_down")
 
-        # By default showing only the first second.
-        self.camera.show_rect(0, 1, 0, 1)
-        # self.controller.set_view(
-        #     xmin=0,
-        #     xmax=1,
-        #     ymin=-1.5,
-        #     ymax=1.5
-        #     # ymin=float(np.min(data)),
-        #     # ymax=float(np.max(data)),
-        # )
+        # By default, showing only the first second.
+        self.camera.show_rect(0, 1, np.min(data), np.max(data))
+        # self.controller.set_view(xmin=0, xmax=1, ymin=-10, ymax=10)
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
@@ -436,6 +429,7 @@ class PlotTsdFrame(_BasePlot):
         """
         "r" key reset the plot manager to initial values
         """
+        #TODO set the reset for the get controller
         if event.type == "key_down":
             if event.key == "r":
                 self._manager.reset()
@@ -591,11 +585,11 @@ class PlotTsdFrame(_BasePlot):
         self.controller = get_controller
 
         # Update camera to fit the full x-y range
-        self.camera.show_rect(
-            left=np.min(self.data.loc[x_label]),
-            right=np.max(self.data.loc[x_label]),
-            bottom=np.min(self.data.loc[y_label]),
-            top=np.max(self.data.loc[y_label]),
+        self.controller.set_view(
+            xmin=np.min(self.data.loc[x_label]),
+            xmax=np.max(self.data.loc[x_label]),
+            ymin=np.min(self.data.loc[y_label]),
+            ymax=np.max(self.data.loc[y_label]),
         )
 
         self.canvas.request_draw(self.animate)

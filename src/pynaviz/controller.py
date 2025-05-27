@@ -40,7 +40,7 @@ class ControllerGroup:
             for i, plt in enumerate(plots):
                 plt.controller._controller_id = i
                 self._add_update_handler(plt.renderer)
-                plt.controller.show_interval(*interval)
+                plt.controller.set_xlim(*interval)
 
         self.interval = interval
         self.plots = plots
@@ -169,7 +169,10 @@ class CustomController(PanZoomController):
 
     def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
         """Set the visible X and Y ranges for an OrthographicCamera."""
-        self.camera.show_rect(xmin, xmax, ymin, ymax)
+        # self.camera.show_rect(xmin, xmax, ymin, ymax)
+        self.set_xlim(xmin, xmax)
+        self.set_ylim(ymin, ymax)
+
 
 class SpanController(CustomController):
     """
