@@ -5,7 +5,6 @@ Create a unique canvas/renderer for each class
 
 import threading
 import warnings
-from abc import ABC, abstractmethod
 from typing import Any, Optional, Union
 
 import matplotlib.pyplot as plt
@@ -33,9 +32,9 @@ dict_sync_funcs = {
 }
 
 
-class _BasePlot(ABC, IntervalSetInterface):
+class _BasePlot(IntervalSetInterface):
     """
-    Abstract base class for time-aligned visualizations using pygfx.
+    Base class for time-aligned visualizations using pygfx.
 
     This class sets up the rendering infrastructure, including a canvas, scene,
     camera, rulers, and rendering thread. It is intended to be subclassed by specific
@@ -62,9 +61,9 @@ class _BasePlot(ABC, IntervalSetInterface):
         The WGPU renderer responsible for drawing the scene.
     scene : gfx.Scene
         The scene graph containing all graphical objects.
-    rulerx : gfx.Ruler
+    ruler_x : gfx.Ruler
         Horizontal axis ruler with ticks shown on the right.
-    rulery : gfx.Ruler
+    ruler_y : gfx.Ruler
         Vertical axis ruler with ticks on the left and minimum spacing.
     ruler_ref_time : gfx.Line
         A vertical line indicating a reference time point (e.g., center).
@@ -93,10 +92,10 @@ class _BasePlot(ABC, IntervalSetInterface):
         self.scene = gfx.Scene()
 
         # Add a horizontal ruler (x-axis) with ticks on the right
-        self.rulerx = gfx.Ruler(tick_side="right")
+        self.ruler_x = gfx.Ruler(tick_side="right")
 
         # Add a vertical ruler (y-axis) with ticks on the left and minimum spacing
-        self.rulery = gfx.Ruler(tick_side="left", min_tick_distance=40)
+        self.ruler_y = gfx.Ruler(tick_side="left", min_tick_distance=40)
 
         # A vertical reference line, for the center time point
         self.ruler_ref_time = gfx.Line(
@@ -172,16 +171,16 @@ class _BasePlot(ABC, IntervalSetInterface):
         world_xmin, world_xmax, world_ymin, world_ymax = get_plot_min_max(self)
 
         # X axis
-        self.rulerx.start_pos = world_xmin, 0, -1000
-        self.rulerx.end_pos = world_xmax, 0, -1000
-        self.rulerx.start_value = self.rulerx.start_pos[0]
-        self.rulerx.update(self.camera, self.canvas.get_logical_size())
+        self.ruler_x.start_pos = world_xmin, 0, -1000
+        self.ruler_x.end_pos = world_xmax, 0, -1000
+        self.ruler_x.start_value = self.ruler_x.start_pos[0]
+        self.ruler_x.update(self.camera, self.canvas.get_logical_size())
 
         # Y axis
-        self.rulery.start_pos = 0, world_ymin, -1000
-        self.rulery.end_pos = 0, world_ymax, -1000
-        self.rulery.start_value = self.rulery.start_pos[1]
-        self.rulery.update(self.camera, self.canvas.get_logical_size())
+        self.ruler_y.start_pos = 0, world_ymin, -1000
+        self.ruler_y.end_pos = 0, world_ymax, -1000
+        self.ruler_y.start_value = self.ruler_y.start_pos[1]
+        self.ruler_y.update(self.camera, self.canvas.get_logical_size())
 
         # Center time Ref axis
         self.ruler_ref_time.geometry.positions.data[:, 0] = (
@@ -277,12 +276,10 @@ class _BasePlot(ABC, IntervalSetInterface):
                 # Request a redraw of the canvas to reflect the new colors
                 self.canvas.request_draw(self.animate)
 
-    @abstractmethod
-    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         pass
 
-    @abstractmethod
-    def group_by(self, metadata_name: str, spacing: Optional = None):
+    def group_by(self, metadata_name: str):
         pass
 
 
@@ -316,8 +313,7 @@ class PlotTsd(_BasePlot):
 
         # Create a controller for span-based interaction, syncing, and user inputs
         self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
-                                         dict_sync_funcs=dict_sync_funcs, min=np.min(data), max=np.max(data),
-                                         plot_updates=[])
+                                         dict_sync_funcs=dict_sync_funcs, plot_updates=[])
 
         # Prepare geometry: stack time, data, and zeros (Z=0) into (N, 3) float32 positions
         positions = np.stack((data.t, data.d, np.zeros_like(data))).T
@@ -330,18 +326,14 @@ class PlotTsd(_BasePlot):
         )
 
         # Add rulers and line to the scene
-        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time, self.line)
+        self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time, self.line)
+
+        # By default showing only the first second.
+        # Weirdly rulers don't show if show_rect is not called
+        self.camera.show_rect(0, 1, data.min(), data.max())
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
-
-        # self.controller.show_interval(start=0, end=1)
-
-    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
-        pass
-
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        pass
 
 class PlotTsdFrame(_BasePlot):
     """
@@ -405,7 +397,7 @@ class PlotTsdFrame(_BasePlot):
 
         # Add elements to the scene for rendering
         self.scene.add(
-            self.rulerx, self.rulery, self.ruler_ref_time, *self.graphic.values()
+            self.ruler_x, self.ruler_y, self.ruler_ref_time, *self.graphic.values()
         )
 
         # Connect specific event handler for TsdFrame
@@ -461,7 +453,7 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
-    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending") -> None:
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
         """
         Sort the plotted time series lines vertically by a metadata field.
 
@@ -469,7 +461,7 @@ class PlotTsdFrame(_BasePlot):
         ----------
         metadata_name : str
             Metadata key to sort by.
-        order : str, optional
+        mode : str, optional
             "ascending" (default) or "descending".
         """
         # The current controller should be a span controller.
@@ -485,7 +477,7 @@ class PlotTsdFrame(_BasePlot):
         if len(values):
 
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
-            self._manager.sort_by(values, order)
+            self._manager.sort_by(values, mode)
 
             # By default, this action reset the scale of each line
             self._manager.scale = 1 / np.array([
@@ -619,10 +611,10 @@ class PlotTsGroup(_BasePlot):
                 gfx.PointsMaterial(size=5, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)], opacity=1),
             )
 
-        self.scene.add(self.rulerx, self.rulery, *list(self.graphic.values()))
+        self.scene.add(self.ruler_x, self.ruler_y, *list(self.graphic.values()))
         self.canvas.request_draw(self.animate)
 
-    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         """
         Sort by metadata entry.
 
@@ -630,7 +622,7 @@ class PlotTsGroup(_BasePlot):
         ----------
         metadata_name : str
             Metadata columns to sort lines
-        order : str, optional
+        mode : str, optional
             Options are ["ascending"[default], "descending"]
         """
         # Grabbing the material object
@@ -645,7 +637,7 @@ class PlotTsGroup(_BasePlot):
         # If metadata found
         if len(values):
             values = pd.Series(values)
-            idx_sorted = values.sort_values(ascending=(order == "ascending"))
+            idx_sorted = values.sort_values(ascending=(mode == "ascending"))
             idx_map = {idx: i for i, idx in enumerate(idx_sorted.index)}
 
             for c in geometries:
@@ -698,7 +690,7 @@ class PlotTsdTensor(_BasePlot):
             draw_function=lambda: self.renderer.render(self.scene, self.camera)
         )
 
-    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         pass
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
@@ -713,7 +705,7 @@ class PlotTs(_BasePlot):
         self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
                                          dict_sync_funcs=dict_sync_funcs)
 
-    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         pass
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
