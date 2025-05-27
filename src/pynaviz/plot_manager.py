@@ -33,7 +33,7 @@ class _PlotManager:
             index=index,
             data={
                 "groups": np.zeros(len(index), dtype=int),
-                "order": np.arange(0, len(index)),
+                "order": np.zeros(len(index), dtype=int),
                 "visible": np.ones(len(index), dtype=bool),
                 "offset": np.zeros(len(index)),
                 "scale": np.ones(len(index)),
@@ -75,27 +75,30 @@ class _PlotManager:
     def scale(self, values: np.ndarray) -> None:
         self.data['scale'] = values
 
-    def sort_by(self, values: dict, order: str) -> None:
+    def sort_by(self, values: dict, mode: str) -> None:
         """
-        Updates the offset based on sorted group values.
+        Updates the offset based on sorted group values. First row should always be at 1.
+        Items that are unselected do not occupy a row.
 
         Parameters
         ----------
         values : dict
             Mapping from index to sortable values (e.g., a metric or label).
-        order : str
+        mode : str
             Sort direction; either 'ascending' or 'descending'.
         """
+        # Sorting items
         tmp = np.array(list(values.values()))
         unique, inverse = np.unique(tmp, return_inverse=True)
         y_order = np.argsort(unique)
-        offset = y_order[inverse] + 1
-        if order == "descending":
-            offset = offset[::-1]
-        self.offset += offset
+        order = y_order[inverse]
+        if mode == "descending":
+            order = order[::-1]
+        self.data['order'] = order
+        self.offset = order + self.data['groups'] + 1
         self._sorted = True
 
-    def group_by(self, values: dict, spacing: int) -> None:
+    def group_by(self, values: dict) -> None:
         """
         Updates the offset to separate elements into visual groups.
 
@@ -103,13 +106,12 @@ class _PlotManager:
         ----------
         values : dict
             Mapping from index to group identifiers.
-        spacing : int
-            Unused parameter (reserved for future logic).
         """
         tmp = np.array(list(values.values()))
         unique, inverse = np.unique(tmp, return_inverse=True)
-        offset = np.arange(1, len(unique) + 1)[inverse]
-        self.offset += offset
+        groups = np.arange(len(unique))[inverse]
+        self.data['groups'] = groups
+        self.offset = groups + self.data['order'] + 1
         self._grouped = True
 
     def rescale(self, factor: float) -> None:

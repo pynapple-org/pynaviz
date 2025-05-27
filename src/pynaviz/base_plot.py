@@ -39,7 +39,7 @@ class _BasePlot(ABC, IntervalSetInterface):
 
     This class sets up the rendering infrastructure, including a canvas, scene,
     camera, rulers, and rendering thread. It is intended to be subclassed by specific
-    plot implementations that display data aligned to time intervals.
+    plot implementations that display time series or intervals data.
 
     Parameters
     ----------
@@ -301,7 +301,7 @@ class PlotTsd(_BasePlot):
     index : Optional[int], default=None
         Controller index used for synchronized interaction (e.g., panning across multiple plots).
     parent : Optional[Any], default=None
-        Optional parent widget (e.g., in a Qt or IPython GUI context).
+        Optional parent widget (e.g., in a Qt context).
 
     Attributes
     ----------
@@ -374,8 +374,12 @@ class PlotTsdFrame(_BasePlot):
 
         # Controllers for different interaction styles
         self._controllers = {
-            "span": SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
-                                   dict_sync_funcs=dict_sync_funcs, min=np.min(data), max=np.max(data)),
+            "span": SpanController(
+                camera=self.camera,
+                renderer=self.renderer,
+                controller_id=index,
+                dict_sync_funcs=dict_sync_funcs
+            ),
             "get": GetController(
                 camera=self.camera,
                 renderer=self.renderer,
@@ -404,16 +408,19 @@ class PlotTsdFrame(_BasePlot):
             self.rulerx, self.rulery, self.ruler_ref_time, *self.graphic.values()
         )
 
-        # Connect event handler for TsdFrame
+        # Connect specific event handler for TsdFrame
         self.renderer.add_event_handler(self._rescale, "key_down")
         self.renderer.add_event_handler(self._reset, "key_down")
+
+        # Set the final view
+        self.controller.set_view(xmin=0, xmax=1, ymin=data.min(), ymax=data.max())
 
         self.canvas.request_draw(self.animate)
 
     def _rescale(self, event):
         """
-        "i" key increase the scale by 10%.
-        "d" key decrease the scale by 10%
+        "i" key increase the scale by 50%.
+        "d" key decrease the scale by 50%
         """
         if event.type == "key_down":
             if event.key == "i":
@@ -447,13 +454,74 @@ class PlotTsdFrame(_BasePlot):
 
             geometries[c].positions.update_full()
 
-        # Need to update cameras in the y-axis
-        self.controller.set_ylim(
-            np.min(self._manager.offset) - 1,
-            np.max(self._manager.offset) + 1
-        )
+        # Update camera to fit the full y range
+        max_y = np.max(self._manager.offset) + 1
+        self.camera.height = max_y
+        self.camera.local.y = max_y/2 # TODO update the set_ylim
 
         self.canvas.request_draw(self.animate)
+
+    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending") -> None:
+        """
+        Sort the plotted time series lines vertically by a metadata field.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata key to sort by.
+        order : str, optional
+            "ascending" (default) or "descending".
+        """
+        # The current controller should be a span controller.
+
+        # Grabbing the metadata
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
+
+        # If metadata found
+        if len(values):
+
+            # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
+            self._manager.sort_by(values, order)
+
+            # By default, this action reset the scale of each line
+            self._manager.scale = 1 / np.array([
+                np.max(self.data.loc[c])-np.min(self.data.loc[c])
+                for c in self._manager.index])
+
+            self._update()
+
+    def group_by(self, metadata_name: str, **kwargs):
+        """
+        Group the plotted time series lines vertically by a metadata field.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata key to group by.
+        """
+        # Grabbing the metadata
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
+
+        # If metadata found
+        if len(values):
+
+            # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
+            self._manager.group_by(values)
+
+            # This action reset the scale of each line only if scale is 1
+            self._manager.scale = 1 / np.array([
+                np.max(self.data.loc[c])-np.min(self.data.loc[c])
+                for c in self._manager.index])
+
+            self._update()
 
     def plot_x_vs_y(
         self,
@@ -530,69 +598,6 @@ class PlotTsdFrame(_BasePlot):
         )
 
         self.canvas.request_draw(self.animate)
-
-    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending") -> None:
-        """
-        Sort the plotted time series lines vertically by a metadata field.
-
-        Parameters
-        ----------
-        metadata_name : str
-            Metadata key to sort by.
-        order : str, optional
-            "ascending" (default) or "descending".
-        """
-        # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
-
-        # If metadata found
-        if len(values):
-
-            # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
-            self._manager.sort_by(values, order)
-
-            # By default, this action reset the scale of each line
-            self._manager.scale = 1 / np.array([
-                np.max(self.data.loc[c])-np.min(self.data.loc[c])
-                for c in self._manager.index])
-
-            self._update()
-
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        """
-        Group the plotted time series lines vertically by a metadata field.
-
-        Parameters
-        ----------
-        metadata_name : str
-            Metadata key to group by.
-        spacing : int, optional
-            amount of spacing between groups
-        """
-        # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
-
-        # If metadata found
-        if len(values):
-
-            # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
-            self._manager.group_by(values, spacing)
-
-            # This action reset the scale of each line only if scale is 1
-            self._manager.scale = 1 / np.array([
-                np.max(self.data.loc[c])-np.min(self.data.loc[c])
-                for c in self._manager.index])
-
-            self._update()
-
 
 class PlotTsGroup(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
