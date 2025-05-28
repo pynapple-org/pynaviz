@@ -23,9 +23,10 @@ classifiers = [
 dependencies = [    
     "pygfx>=0.10.0",
     "pynapple>=0.9.0",
-    "glfw"
+    "glfw",
+    "matplotlib",
+    "numpy"
 ]
-
 
 # Configure package discovery for setuptools
 [tool.setuptools.packages.find]

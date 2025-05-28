@@ -177,7 +177,7 @@ class IntervalSetInterface:
         color = pygfx.Color(*pygfx.Color(color).rgb, transparency)
         height = ymax - ymin
         mesh_dict = dict()
-        ruler = getattr(self, "rulerx", None)
+        ruler = getattr(self, "ruler_x", None)
         if ruler is not None:
             # plot rect behind ruler.
             depth = ruler.start_pos[-1] - 1

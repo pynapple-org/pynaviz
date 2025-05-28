@@ -9,7 +9,6 @@ if TYPE_CHECKING:
 from pylinalg import vec_transform, vec_unproject
 
 GRADED_COLOR_LIST = [
-    "midnightblue",
     "navy",
     "blue",
     "royalblue",

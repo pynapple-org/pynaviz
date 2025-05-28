@@ -5,10 +5,11 @@ This module contains test fixtures required to set up and verify the functionali
 in the pynaviz library.
 """
 
-import pytest
 import numpy as np
-from pynaviz.events import SyncEvent
 import pynapple as nap
+import pytest
+
+from pynaviz.events import SyncEvent
 
 
 @pytest.fixture

@@ -11,7 +11,7 @@ import pynapple as nap
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 
 from .events import SyncEvent
-from .utils import _get_event_handle, map_screen_to_world
+from .utils import _get_event_handle
 
 
 class ControllerGroup:
@@ -40,7 +40,7 @@ class ControllerGroup:
             for i, plt in enumerate(plots):
                 plt.controller._controller_id = i
                 self._add_update_handler(plt.renderer)
-                plt.controller.show_interval(*interval)
+                plt.controller.set_xlim(*interval)
 
         self.interval = interval
         self.plots = plots
@@ -153,8 +153,27 @@ class CustomController(PanZoomController):
     def sync(self, event):
         pass
 
-    def show_interval(self, start, end):
-        pass
+    def set_xlim(self, xmin: float, xmax: float):
+        """Set the visible X range for an OrthographicCamera.
+            #TODO THIS SHOULD DEPEND ON THE CURRENT SYNC STATUS
+        """
+        width = xmax - xmin
+        x_center = (xmax + xmin) / 2
+        self.camera.width = width
+        self.camera.local.x = x_center
+
+    def set_ylim(self, ymin: float, ymax: float):
+        """Set the visible Y range for an OrthographicCamera."""
+        height = ymax - ymin
+        y_center = (ymax + ymin) / 2
+        self.camera.height = height
+        self.camera.local.y = y_center
+
+    def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
+        """Set the visible X and Y ranges for an OrthographicCamera."""
+        # self.camera.show_rect(xmin, xmax, ymin, ymax)
+        self.set_xlim(xmin, xmax)
+        self.set_ylim(ymin, ymax)
 
 
 class SpanController(CustomController):
@@ -172,8 +191,6 @@ class SpanController(CustomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
-        min=0,
-        max=1,
         plot_updates=None,
     ):
         super().__init__(
@@ -187,10 +204,6 @@ class SpanController(CustomController):
             plot_updates=None,
         )
         self.plot_updates = plot_updates if plot_updates is not None else []
-        self._min = min
-
-        self._max = max
-        self.show_interval(0, 1)
 
     def _update_plots(self):
         for update_func in self.plot_updates:
@@ -246,31 +259,6 @@ class SpanController(CustomController):
         self._set_camera_state(state_update)
         self._update_cameras()
         self.renderer_request_draw()
-
-    def show_interval(self, start, end):
-        self.camera.show_rect(  # Uses world coordinates
-            left=start, right=end, top=self._min, bottom=self._max
-        )
-        self._update_cameras()
-        self.renderer_request_draw()
-
-    def set_ylim(self, bottom, top):
-        """
-        Set the ylim of the canvas
-        TODO
-        """
-        viewport_size = self.renderer.logical_size
-        xmin, ymin = 0, self.renderer.logical_size[1]
-        xmax, ymax = self.renderer.logical_size[0], 0
-        world_xmin, world_ymin, _ = map_screen_to_world(
-            self.camera, (xmin, ymin), viewport_size
-        )
-        world_xmax, world_ymax, _ = map_screen_to_world(
-            self.camera, (xmax, ymax), viewport_size
-        )
-        self._min = bottom
-        self._max = top
-        self.show_interval(start=world_xmin, end=world_xmax)
 
 
 class GetController(CustomController):
@@ -368,20 +356,3 @@ class GetController(CustomController):
 
         self.renderer_request_draw()
 
-    def show_interval(self, start, end):
-        t = start + (end - start) / 2
-        self.frame_index = self.data.get_slice(t).start
-        # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
-        if (
-            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
-        ):  # assume single point
-            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
-                "float32"
-            )
-        else:
-            self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
-
-        self.buffer.update_full()
-        if self.time_text:
-            self.time_text.set_text(str(self.data.t[self.frame_index]))
-        self.renderer_request_draw()
