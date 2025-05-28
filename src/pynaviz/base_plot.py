@@ -15,8 +15,9 @@ import pynapple as nap
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
 from wgpu.gui.auto import (
-    WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
+    WgpuCanvas, run # Should use auto here or be able to select qt if parent passed
 )
+from wgpu.gui.glfw import GlfwWgpuCanvas
 
 from .controller import GetController, SpanController
 from .interval_set import IntervalSetInterface
@@ -85,9 +86,6 @@ class _BasePlot(IntervalSetInterface):
         else: # Default to glfw for single canvas
             self.canvas = WgpuCanvas()
 
-        # Initialize a separate thread to handle metadata-to-color mapping
-        self.color_mapping_thread = MetadataMappingThread(data)
-
         # Create a WGPU-based renderer attached to the canvas
         self.renderer = gfx.WgpuRenderer(self.canvas)
 
@@ -109,6 +107,9 @@ class _BasePlot(IntervalSetInterface):
         # Use an orthographic camera to preserve scale without perspective distortion
         self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
 
+        # Initialize a separate thread to handle metadata-to-color mapping
+        self.color_mapping_thread = MetadataMappingThread(data)
+
         # Set default colormap for rendering
         self._cmap = "viridis"
 
@@ -120,7 +121,6 @@ class _BasePlot(IntervalSetInterface):
         else:
             index=[]
         self._manager = _PlotManager(index=index)
-
 
     @property
     def data(self):
@@ -195,6 +195,11 @@ class _BasePlot(IntervalSetInterface):
         self.ruler_ref_time.geometry.positions.update_full()
 
         self.renderer.render(self.scene, self.camera)
+
+    def show(self):
+        """To show the canvas in case of GLFW context used"""
+        if isinstance(self.canvas, GlfwWgpuCanvas):
+            run()
 
     def color_by(self,
             metadata_name: str,
