@@ -13,7 +13,7 @@ Main Classes:
 """
 
 from collections import OrderedDict
-from typing import Callable, Any
+from typing import Any, Callable
 
 from PyQt6.QtCore import QPoint, QSize, Qt
 from PyQt6.QtWidgets import (
@@ -34,9 +34,9 @@ from PyQt6.QtWidgets import (
 )
 
 from pynaviz.qt_item_models import ChannelListModel, DynamicSelectionListView
+
 from .drop_down_dict_builder import get_popup_kwargs
 from .utils import get_plot_attribute
-
 
 WIDGET_PARAMS = {
     QComboBox: {

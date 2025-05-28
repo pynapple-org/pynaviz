@@ -11,7 +11,7 @@ import pynapple as nap
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 
 from .events import SyncEvent
-from .utils import _get_event_handle, map_screen_to_world
+from .utils import _get_event_handle
 
 
 class ControllerGroup:

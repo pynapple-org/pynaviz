@@ -1,12 +1,13 @@
-import pytest
-from PyQt6.QtWidgets import QApplication, QComboBox, QDoubleSpinBox
-from pynaviz.widget_menu import (
-    widget_factory, DropdownDialog, ChannelList, MenuWidget
-)
-from pynaviz.qt_item_models import ChannelListModel
+import sys
 from collections import OrderedDict
 from unittest.mock import MagicMock
-import sys
+
+import pytest
+from PyQt6.QtWidgets import QApplication, QComboBox, QDoubleSpinBox
+
+from pynaviz.qt_item_models import ChannelListModel
+from pynaviz.widget_menu import ChannelList, DropdownDialog, MenuWidget, widget_factory
+
 
 # Initialize QApplication once per test session
 @pytest.fixture(scope="session")

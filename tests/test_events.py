@@ -1,4 +1,3 @@
-import pytest
 import pynaviz.events as events
 
 

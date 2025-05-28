@@ -1,6 +1,8 @@
-from wgpu.gui.offscreen import WgpuCanvas
-from pygfx import renderers
 from typing import Callable
+
+from pygfx import renderers
+from wgpu.gui.offscreen import WgpuCanvas
+
 
 def test_get_event_handle():
     from pynaviz.utils import _get_event_handle

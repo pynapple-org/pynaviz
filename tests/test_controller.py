@@ -1,11 +1,13 @@
+from contextlib import nullcontext as does_not_raise
+
 import numpy as np
 import pygfx
-from pygfx import controllers, cameras, renderers
+import pytest
+from pygfx import cameras, controllers, renderers
+from wgpu.gui.offscreen import WgpuCanvas
+
 from pynaviz.controller import SpanController
 from pynaviz.synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
-from wgpu.gui.offscreen import WgpuCanvas
-import pytest
-from contextlib import nullcontext as does_not_raise
 
 
 def test_controller_state_dict():

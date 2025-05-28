@@ -15,7 +15,8 @@ import pynapple as nap
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
 from wgpu.gui.auto import (
-    WgpuCanvas, run # Should use auto here or be able to select qt if parent passed
+    WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
+    run,
 )
 from wgpu.gui.glfw import GlfwWgpuCanvas
 

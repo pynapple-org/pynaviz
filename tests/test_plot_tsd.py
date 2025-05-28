@@ -2,10 +2,14 @@
 Test for PlotTsd.
 """
 
-import pytest
+import os
+
 import numpy as np
-import pynapple as nap
 import pygfx as gfx
+import pynapple as nap
+import pytest
+from PIL import Image
+
 import pynaviz as viz
 
 
@@ -21,3 +25,12 @@ def test_plot_tsd_init(dummy_tsd):
     assert isinstance(v.line, gfx.Line)
 
 
+def test_plot_tsd(dummy_tsd):
+    v = viz.PlotTsd(dummy_tsd)
+    v.animate()
+    image_data = v.renderer.snapshot()
+
+    image = Image.open(
+        os.path.expanduser("~/pynaviz/tests/screenshots/test_plot_tsd.png")
+    ).convert("RGBA")
+    np.allclose(np.array(image), image_data)
