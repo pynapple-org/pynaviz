@@ -30,7 +30,13 @@ def test_plot_tsd(dummy_tsd):
     v.animate()
     image_data = v.renderer.snapshot()
 
-    image = Image.open(
-        os.path.expanduser("~/pynaviz/tests/screenshots/test_plot_tsd.png")
-    ).convert("RGBA")
+    try:
+        image = Image.open(
+            os.path.expanduser("tests/screenshots/test_plot_tsd.png")
+        ).convert("RGBA")
+    except:
+        image = Image.open(
+            os.path.expanduser("screenshots/test_plot_tsd.png")
+        ).convert("RGBA")
+
     np.allclose(np.array(image), image_data)
