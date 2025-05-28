@@ -80,7 +80,10 @@ class _BasePlot(IntervalSetInterface):
         self._data = data
 
         # Create a GPU-accelerated canvas for rendering, optionally with a parent widget
-        self.canvas = WgpuCanvas(parent=parent)
+        if parent: # Assuming it's a Qt background
+            self.canvas = WgpuCanvas(parent=parent)
+        else: # Default to glfw for single canvas
+            self.canvas = WgpuCanvas()
 
         # Initialize a separate thread to handle metadata-to-color mapping
         self.color_mapping_thread = MetadataMappingThread(data)
@@ -92,10 +95,10 @@ class _BasePlot(IntervalSetInterface):
         self.scene = gfx.Scene()
 
         # Add a horizontal ruler (x-axis) with ticks on the right
-        self.ruler_x = gfx.Ruler(tick_side="right")#, start_pos=(0, 0, 0), end_pos=(1, 0, 0))
+        self.ruler_x = gfx.Ruler(tick_side="right")
 
         # Add a vertical ruler (y-axis) with ticks on the left and minimum spacing
-        self.ruler_y = gfx.Ruler(tick_side="left")#, start_pos=(0, -1, 0), end_pos=(0, 1, 0))
+        self.ruler_y = gfx.Ruler(tick_side="left")
 
         # A vertical reference line, for the center time point
         self.ruler_ref_time = gfx.Line(
@@ -171,14 +174,14 @@ class _BasePlot(IntervalSetInterface):
         world_xmin, world_xmax, world_ymin, world_ymax = get_plot_min_max(self)
 
         # X axis
-        self.ruler_x.start_pos = world_xmin, 0, -1000
-        self.ruler_x.end_pos = world_xmax, 0, -1000
+        self.ruler_x.start_pos = world_xmin, 0, 0
+        self.ruler_x.end_pos = world_xmax, 0, 0
         self.ruler_x.start_value = self.ruler_x.start_pos[0]
         self.ruler_x.update(self.camera, self.canvas.get_logical_size())
 
         # Y axis
-        self.ruler_y.start_pos = 0, world_ymin, -1000
-        self.ruler_y.end_pos = 0, world_ymax, -1000
+        self.ruler_y.start_pos = 0, world_ymin, 0
+        self.ruler_y.end_pos = 0, world_ymax, 0
         self.ruler_y.start_value = self.ruler_y.start_pos[1]
         self.ruler_y.update(self.camera, self.canvas.get_logical_size())
 
@@ -406,8 +409,7 @@ class PlotTsdFrame(_BasePlot):
         self.renderer.add_event_handler(self._reset, "key_down")
 
         # By default, showing only the first second.
-        self.camera.show_rect(0, 1, np.min(data), np.max(data))
-        # self.controller.set_view(xmin=0, xmax=1, ymin=-10, ymax=10)
+        self.controller.set_view(0, 1, np.min(data), np.max(data))
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
@@ -427,7 +429,7 @@ class PlotTsdFrame(_BasePlot):
 
     def _reset(self, event):
         """
-        "r" key reset the plot manager to initial values
+        "r" key reset the plot manager to initial view
         """
         #TODO set the reset for the get controller
         if event.type == "key_down":

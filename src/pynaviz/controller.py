@@ -154,7 +154,9 @@ class CustomController(PanZoomController):
         pass
 
     def set_xlim(self, xmin: float, xmax: float):
-        """Set the visible X range for an OrthographicCamera."""
+        """Set the visible X range for an OrthographicCamera.
+            #TODO THIS SHOULD DEPEND ON THE CURRENT SYNC STATUS
+        """
         width = xmax - xmin
         x_center = (xmax + xmin) / 2
         self.camera.width = width
