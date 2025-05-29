@@ -3,6 +3,7 @@ The controller class.
 """
 
 import threading
+from abc import ABC, abstractmethod
 from typing import Callable, List, Optional, Union
 
 import pygfx
@@ -14,54 +15,7 @@ from .events import SyncEvent
 from .utils import _get_event_handle
 
 
-class ControllerGroup:
-    """
-
-    Parameters
-    ----------
-    controllers_and_renderers : list or None
-        controllers and renderers. Can be empty.
-    interval : tuple of float or int
-        The start and end of the epoch to show when initializing.
-
-    """
-
-    def __init__(self, plots=None, interval=(0, 10)):
-        if not isinstance(interval, (tuple, list)):
-            raise ValueError("interval should be tuple or list")
-        if not len(interval) == 2 and not all(
-            [isinstance(x, (float, int)) for x in interval]
-        ):
-            raise ValueError("interval should be a 2-tuple of float/int")
-        if interval[0] > interval[1]:
-            raise RuntimeError("interval start should precede interval end")
-
-        if plots is not None:
-            for i, plt in enumerate(plots):
-                plt.controller._controller_id = i
-                self._add_update_handler(plt.renderer)
-                plt.controller.set_xlim(*interval)
-
-        self.interval = interval
-        self.plots = plots
-
-    def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
-        viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
-        viewport.renderer.add_event_handler(self.sync_controllers, "sync")
-
-    def sync_controllers(self, event):
-        """Sync controllers according to their rule."""
-        # print(event)
-        # self._update_controller_group()
-        for plt in self.plots:
-            if (
-                event.controller_id != plt.controller.controller_id
-                and plt.controller.enabled
-            ):
-                plt.controller.sync(event)
-
-
-class CustomController(PanZoomController):
+class CustomController(ABC, PanZoomController):
     """"""
 
     def __init__(
@@ -150,9 +104,6 @@ class CustomController(PanZoomController):
                 )
             )
 
-    def sync(self, event):
-        pass
-
     def set_xlim(self, xmin: float, xmax: float):
         """Set the visible X range for an OrthographicCamera.
             #TODO THIS SHOULD DEPEND ON THE CURRENT SYNC STATUS
@@ -174,6 +125,10 @@ class CustomController(PanZoomController):
         # self.camera.show_rect(xmin, xmax, ymin, ymax)
         self.set_xlim(xmin, xmax)
         self.set_ylim(ymin, ymax)
+
+    @abstractmethod
+    def sync(self, event):
+        pass
 
 
 class SpanController(CustomController):

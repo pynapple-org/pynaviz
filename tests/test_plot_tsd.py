@@ -34,7 +34,7 @@ def test_plot_tsd(dummy_tsd):
         image = Image.open(
             os.path.expanduser("tests/screenshots/test_plot_tsd.png")
         ).convert("RGBA")
-    except:
+    except Exception:
         image = Image.open(
             os.path.expanduser("screenshots/test_plot_tsd.png")
         ).convert("RGBA")

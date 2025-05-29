@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .controller import ControllerGroup
+from .controller_group import ControllerGroup
 from .widget_plot import (
     TsdFrameWidget,
     TsdTensorWidget,
@@ -149,7 +149,7 @@ class ListDock(QDockWidget):
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
         # Adding controller and render to control group
-        self.ctrl_group.add(widget.plot.controller, widget.plot.renderer, index)
+        self.ctrl_group.add(widget.plot, index)
         self._n_dock_open += 1
 
     def _create_title_bar(self):

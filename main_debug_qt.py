@@ -7,7 +7,7 @@ import pynapple as nap
 from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton
 import pynaviz as viz
 import sys
-from pynaviz.controller import ControllerGroup
+from pynaviz.controller_group import ControllerGroup
 
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
@@ -36,9 +36,9 @@ viz2 = viz.TsdTensorWidget(tsdtensor, set_parent=True)
 
 arg = [viz1.plot, viz2.plot]
 
-ctrl_group = ControllerGroup(arg)
-# ctrl_group.add(viz1.plot.controller, viz1.plot.renderer, 0)
-# ctrl_group.add(viz2.plot.controller, viz2.plot.renderer, 1)
+ctrl_group = ControllerGroup()
+ctrl_group.add(viz1, 0)
+ctrl_group.add(viz2, 1)
 
 layout.addWidget(viz1)
 layout.addWidget(viz2)

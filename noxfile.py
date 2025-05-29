@@ -1,13 +1,9 @@
-import os
-import shutil
-from pathlib import Path
-
 import nox
 
 
 # nox --no-venv -s linters
 # nox --no-venv -s tests
-
+# WGPU_FORCE_OFFSCREEN=1 nox
 
 @nox.session(name="linters")
 def linters(session):
