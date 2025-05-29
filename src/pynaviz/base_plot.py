@@ -175,14 +175,14 @@ class _BasePlot(IntervalSetInterface):
         world_xmin, world_xmax, world_ymin, world_ymax = get_plot_min_max(self)
 
         # X axis
-        self.ruler_x.start_pos = world_xmin, 0, 0
-        self.ruler_x.end_pos = world_xmax, 0, 0
+        self.ruler_x.start_pos = world_xmin, 0, -10
+        self.ruler_x.end_pos = world_xmax, 0, -10
         self.ruler_x.start_value = self.ruler_x.start_pos[0]
         self.ruler_x.update(self.camera, self.canvas.get_logical_size())
 
         # Y axis
-        self.ruler_y.start_pos = 0, world_ymin, 0
-        self.ruler_y.end_pos = 0, world_ymax, 0
+        self.ruler_y.start_pos = 0, world_ymin, -10
+        self.ruler_y.end_pos = 0, world_ymax, -10
         self.ruler_y.start_value = self.ruler_y.start_pos[1]
         self.ruler_y.update(self.camera, self.canvas.get_logical_size())
 
