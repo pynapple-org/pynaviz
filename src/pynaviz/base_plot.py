@@ -396,8 +396,19 @@ class PlotTsdFrame(_BasePlot):
 
         # Initialize lines for each column in the TsdFrame
         self.graphic: dict[str, gfx.Line] = {}
+
+        # Create underlying array for streaming
+        slice_ = data.get_slice(0, 1)
+        max_n = slice_.stop - slice_.start
+        self._array = np.empty(shape=(data.shape[1], max_n), dtype=data.values.dtype)
+        self._time = data.t[slice_]
+        for i in range(self.data.shape[1]):
+            self._array[i] = data.values[slice_,i]
+
+        # Create pygfx objects
         for i, c in enumerate(self.data.columns):
-            positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T.astype("float32")
+            positions = np.stack((self._time, self._array[i], np.zeros(max_n))).T.astype("float32")
+            print(positions.shape)
             self.graphic[c] = gfx.Line(
                 gfx.Geometry(positions=positions),
                 gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
