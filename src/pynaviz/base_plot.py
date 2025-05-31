@@ -24,6 +24,7 @@ from .controller import GetController, SpanController
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
+from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 
@@ -373,6 +374,7 @@ class PlotTsdFrame(_BasePlot):
     """
     def __init__(self, data: nap.TsdFrame, index: Optional[int] = None, parent: Optional[Any] = None):
         super().__init__(data=data, parent=parent)
+        self.data = data
 
         # Controllers for different interaction styles
         self._controllers = {
@@ -397,20 +399,13 @@ class PlotTsdFrame(_BasePlot):
         # Initialize lines for each column in the TsdFrame
         self.graphic: dict[str, gfx.Line] = {}
 
-        # Create underlying array for streaming
-        slice_ = data.get_slice(0, 1)
-        max_n = slice_.stop - slice_.start
-        self._array = np.empty(shape=(data.shape[1], max_n), dtype=data.values.dtype)
-        self._time = data.t[slice_]
-        for i in range(self.data.shape[1]):
-            self._array[i] = data.values[slice_,i]
+        # To stream data
+        self._stream = TsdFrameStreaming(data)
 
         # Create pygfx objects
         for i, c in enumerate(self.data.columns):
-            positions = np.stack((self._time, self._array[i], np.zeros(max_n))).T.astype("float32")
-            print(positions.shape)
             self.graphic[c] = gfx.Line(
-                gfx.Geometry(positions=positions),
+                gfx.Geometry(positions=self._stream[i]),
                 gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
             )
 

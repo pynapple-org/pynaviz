@@ -10,9 +10,16 @@ class TsdFrameStreaming:
     def __init__(self, data: nap.TsdFrame):
         self.data = data
 
-    def __getitem__(self, key):
-        """Should yield a 3D array of float32 for each line object"""
-        pass
+        # Create underlying array for streaming
+        slice_ = data.get_slice(0, 1)
+        self._max_n = slice_.stop - slice_.start
+        self._array = np.empty(shape=(data.shape[1], self._max_n), dtype=data.values.dtype)
+        self._time = data.t[slice_]
+        for i in range(self.data.shape[1]):
+            self._array[i] = data.values[slice_,i]
+
+    def __getitem__(self, i):
+        return np.stack((self._time, self._array[i], np.zeros(self._max_n))).T.astype("float32")
 
 class DataStreamingThread:
 
