@@ -15,9 +15,9 @@ tsdframe = nap.misc.load_eeg(
     n_channels=16,
     frequency=20000
     )
-# tsdframe.group = np.hstack((np.zeros(10), np.ones(6)))
-# tsdframe.channel = np.hstack((np.arange(10), np.arange(10,16)))
-# tsdframe.random = np.random.randn(16)
+tsdframe.group = np.hstack((np.zeros(10), np.ones(6)))
+tsdframe.channel = np.hstack((np.arange(10), np.arange(10,16)))
+tsdframe.random = np.random.randn(16)
 
 
 a = tsdframe.get(0, 10)
@@ -27,7 +27,7 @@ app = QApplication([])
 
 v = viz.TsdFrameWidget(tsdframe)
 # v.plot.group_by("group")
-# v.plot.sort_by("channel")#, order="descending")
+v.plot.sort_by("channel")#, order="descending")
 #
 #
 v.show()

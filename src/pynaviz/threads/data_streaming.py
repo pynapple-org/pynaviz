@@ -19,7 +19,7 @@ class TsdFrameStreaming:
             self._array[i] = data.values[slice_,i]
 
     def __getitem__(self, i):
-        return np.stack((self._time, self._array[i], np.zeros(self._max_n))).T.astype("float32")
+        return np.stack((self._time, self._array[i])).T
 
 class DataStreamingThread:
 

@@ -404,8 +404,9 @@ class PlotTsdFrame(_BasePlot):
 
         # Create pygfx objects
         for i, c in enumerate(self.data.columns):
+            values = self._stream[i]
             self.graphic[c] = gfx.Line(
-                gfx.Geometry(positions=self._stream[i]),
+                gfx.Geometry(positions=np.hstack((values, np.zeros((len(values),1)))).astype("float32")),
                 gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
             )
 
@@ -457,12 +458,10 @@ class PlotTsdFrame(_BasePlot):
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
 
-        for c in geometries:
-            geometries[c].positions.data[:, 1] = (
-                    self.data.loc[c].values * self._manager.data.loc[c]['scale']
-                    + self._manager.data.loc[c]['offset']
-            ).astype("float32")
-
+        for i, c in enumerate(self.data.columns):
+            values = self._stream[i]
+            values[:,1] = values[:,1] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
+            geometries[c].positions.data[:, 0:2] = values.astype("float32")
             geometries[c].positions.update_full()
 
         # Update camera to fit the full y range
