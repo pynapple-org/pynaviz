@@ -323,7 +323,7 @@ class PlotTsd(_BasePlot):
 
         # Create a controller for span-based interaction, syncing, and user inputs
         self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
-                                         dict_sync_funcs=dict_sync_funcs, plot_updates=[])
+                                         dict_sync_funcs=dict_sync_funcs, plot_callbacks=[])
 
         # Prepare geometry: stack time, data, and zeros (Z=0) into (N, 3) float32 positions
         positions = np.stack((data.t, data.d, np.zeros_like(data))).T
@@ -376,37 +376,21 @@ class PlotTsdFrame(_BasePlot):
         super().__init__(data=data, parent=parent)
         self.data = data
 
-        # Controllers for different interaction styles
-        self._controllers = {
-            "span": SpanController(
-                camera=self.camera,
-                renderer=self.renderer,
-                controller_id=index,
-                dict_sync_funcs=dict_sync_funcs
-            ),
-            "get": GetController(
-                camera=self.camera,
-                renderer=self.renderer,
-                data=None,
-                buffer=None,
-                enabled=False,
-            ),
-        }
-
-        # Use span controller by default
-        self.controller = self._controllers["span"]
-
         # Initialize lines for each column in the TsdFrame
         self.graphic: dict[str, gfx.Line] = {}
 
         # To stream data
-        self._stream = TsdFrameStreaming(data)
+        self._stream = TsdFrameStreaming(data, callback=self._update)
 
         # Create pygfx objects
         for i, c in enumerate(self.data.columns):
-            values = self._stream[i]
+            values = np.stack((
+                self._stream.time,
+                self._stream.array[i],
+                np.zeros((len(self._stream)))
+            )).T.astype("float32")
             self.graphic[c] = gfx.Line(
-                gfx.Geometry(positions=np.hstack((values, np.zeros((len(values),1)))).astype("float32")),
+                gfx.Geometry(positions=values),
                 gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
             )
 
@@ -420,6 +404,27 @@ class PlotTsdFrame(_BasePlot):
         # Connect specific event handler for TsdFrame
         self.renderer.add_event_handler(self._rescale, "key_down")
         self.renderer.add_event_handler(self._reset, "key_down")
+
+        # Controllers for different interaction styles
+        self._controllers = {
+            "span": SpanController(
+                camera=self.camera,
+                renderer=self.renderer,
+                controller_id=index,
+                dict_sync_funcs=dict_sync_funcs,
+                plot_callbacks=[self._stream.stream]
+            ),
+            "get": GetController(
+                camera=self.camera,
+                renderer=self.renderer,
+                data=None,
+                buffer=None,
+                enabled=False,
+            ),
+        }
+
+        # Use span controller by default
+        self.controller = self._controllers["span"]
 
         # By default, showing only the first second.
         self.controller.set_view(0, 1, np.min(data), np.max(data))
@@ -453,15 +458,16 @@ class PlotTsdFrame(_BasePlot):
 
     def _update(self):
         """
-        Update function for sort_by, group_by and rescaling
+        Update function for sort_by, group_by, rescaling and streaming
         """
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
 
         for i, c in enumerate(self.data.columns):
-            values = self._stream[i]
-            values[:,1] = values[:,1] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
-            geometries[c].positions.data[:, 0:2] = values.astype("float32")
+            geometries[c].positions.data[:,0] = self._stream.time[:]
+            geometries[c].positions.data[:,1] = (
+                self._stream.array[i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
+            ).astype("float32")
             geometries[c].positions.update_full()
 
         # Update camera to fit the full y range

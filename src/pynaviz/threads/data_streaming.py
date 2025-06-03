@@ -1,25 +1,45 @@
 import concurrent.futures
 import threading
 from numbers import Number
+from typing import Callable
+
 import pynapple as nap
 import numpy as np
 
 
 class TsdFrameStreaming:
 
-    def __init__(self, data: nap.TsdFrame):
+    def __init__(self, data: nap.TsdFrame, callback: Callable):
         self.data = data
+        self._callback = callback
 
         # Create underlying array for streaming
         slice_ = data.get_slice(0, 1)
         self._max_n = slice_.stop - slice_.start
-        self._array = np.empty(shape=(data.shape[1], self._max_n), dtype=data.values.dtype)
-        self._time = data.t[slice_]
-        for i in range(self.data.shape[1]):
-            self._array[i] = data.values[slice_,i]
+        self.array = np.empty(shape=(data.shape[1], self._max_n), dtype=data.values.dtype)
+        self.time = data.t[slice_]
+        for i in range(data.shape[1]):
+            self.array[i] = data.values[slice_,i]
 
-    def __getitem__(self, i):
-        return np.stack((self._time, self._array[i])).T
+    def stream(self, position, width, **kwargs) -> None:
+        slice_ = self.data.get_slice(
+            position[0] - width/2, position[0] + width/2
+        )
+        n = slice_.stop - slice_.start
+
+        if n < self._max_n: #padding at the end
+            slice_ = slice(slice_.start, slice_.stop+self._max_n-n)
+
+        self.time = self.data.t[slice_]
+        for i in range(self.data.shape[1]):
+            self.array[i] = self.data.values[slice_,i]
+
+        # Calling PlotTsdFrame _update to make sure the lines data is updated
+        self._callback()
+
+    def __len__(self):
+        return self._max_n
+
 
 class DataStreamingThread:
 

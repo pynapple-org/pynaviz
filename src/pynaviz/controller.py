@@ -28,7 +28,6 @@ class CustomController(ABC, PanZoomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
-        plot_updates: Optional[List[Callable]] = None,
     ):
         super().__init__(
             camera=camera,
@@ -138,31 +137,27 @@ class SpanController(CustomController):
 
     def __init__(
         self,
-        camera: Optional[Camera] = None,
+            camera: Optional[Camera] = None,
         *,
-        enabled=True,
-        damping: int = 0,
-        auto_update: bool = True,
-        renderer: Optional[Union[Viewport, Renderer]] = None,
-        controller_id: Optional[int] = None,
-        dict_sync_funcs: Optional[dict[Callable]] = None,
-        plot_updates=None,
-    ):
-        super().__init__(
-            camera=camera,
-            enabled=enabled,
-            damping=damping,
-            auto_update=auto_update,
-            renderer=renderer,
-            controller_id=controller_id,
-            dict_sync_funcs=dict_sync_funcs,
-            plot_updates=None,
-        )
-        self.plot_updates = plot_updates if plot_updates is not None else []
+            enabled: object = True,
+            damping: int = 0,
+            auto_update: bool = True,
+            renderer: Optional[Union[Viewport, Renderer]] = None,
+            controller_id: Optional[int] = None,
+            dict_sync_funcs: Optional[dict[Callable]] = None,
+            plot_callbacks: Optional[dict[Callable]] = None
+    ) -> None:
+        super().__init__(camera=camera, enabled=enabled, damping=damping, auto_update=auto_update, renderer=renderer,
+                         controller_id=controller_id, dict_sync_funcs=dict_sync_funcs)
+        self._plot_callbacks = plot_callbacks if plot_callbacks is not None else []
+
+    def _add_callback(self, func):
+        if isinstance(func, Callable):
+            self._plot_callbacks.append(func)
 
     def _update_plots(self):
-        for update_func in self.plot_updates:
-            update_func()
+        for update_func in self._plot_callbacks:
+            update_func(**self.camera.get_state())
 
     def _update_pan(self, delta, *, vecx, vecy):
         super()._update_pan(delta, vecx=vecx, vecy=vecy)
@@ -233,13 +228,8 @@ class GetController(CustomController):
         buffer: pygfx.Buffer = None,
         time_text: gfx.Text = None,
     ):
-        super().__init__(
-            camera=camera,
-            enabled=enabled,
-            auto_update=auto_update,
-            renderer=renderer,
-            controller_id=controller_id,
-        )
+        super().__init__(camera=camera, enabled=enabled, auto_update=auto_update, renderer=renderer,
+                         controller_id=controller_id)
         self.data = data
         if self.data:
             self.n_frames = data.shape[0]
