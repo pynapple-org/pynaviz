@@ -380,7 +380,7 @@ class PlotTsdFrame(_BasePlot):
         self.graphic: dict[str, gfx.Line] = {}
 
         # To stream data
-        self._stream = TsdFrameStreaming(data, callback=self._update)
+        self._stream = TsdFrameStreaming(data, callback=self._flush)
 
         # Create pygfx objects
         for i, c in enumerate(self.data.columns):
@@ -456,9 +456,9 @@ class PlotTsdFrame(_BasePlot):
                 self._update()
                 self.controller.set_ylim(self.data.min(), self.data.max())
 
-    def _update(self):
+    def _flush(self):
         """
-        Update function for sort_by, group_by, rescaling and streaming
+        Flush the data stream
         """
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
@@ -469,6 +469,13 @@ class PlotTsdFrame(_BasePlot):
                 self._stream.array[i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
             ).astype("float32")
             geometries[c].positions.update_full()
+
+    def _update(self):
+        """
+        Update function for sort_by, group_by, rescaling
+        """
+        # Flush the data
+        self._flush()
 
         # Update camera to fit the full y range
         self.controller.set_ylim(0, np.max(self._manager.offset) + 1)

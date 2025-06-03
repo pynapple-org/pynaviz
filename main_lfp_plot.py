@@ -6,7 +6,6 @@ import os
 import pynapple as nap
 from PyQt6.QtWidgets import QApplication
 import pynaviz as viz
-from pynaviz.threads.data_streaming import DataStreamingThread
 
 
 
