@@ -28,6 +28,8 @@ from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 
+from line_profiler import profile
+
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
     "zoom": _match_zoom_on_x_axis,
@@ -346,6 +348,7 @@ class PlotTsd(_BasePlot):
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
 
+
 class PlotTsdFrame(_BasePlot):
     """
     A GPU-accelerated visualization of a multi-columns time series (nap.TsdFrame).
@@ -372,6 +375,7 @@ class PlotTsdFrame(_BasePlot):
     time_point : Optional[gfx.Points]
         A marker showing the selected time point (used in x-vs-y plotting).
     """
+
     def __init__(self, data: nap.TsdFrame, index: Optional[int] = None, parent: Optional[Any] = None):
         super().__init__(data=data, parent=parent)
         self.data = data
@@ -440,10 +444,10 @@ class PlotTsdFrame(_BasePlot):
         if event.type == "key_down":
             if event.key == "i":
                 self._manager.rescale(factor=0.5)
-                self._update()
+                self._update(update_ylim=False)
             if event.key == "d":
                 self._manager.rescale(factor=-0.5)
-                self._update()
+                self._update(update_ylim=False)
 
     def _reset(self, event):
         """
@@ -470,7 +474,7 @@ class PlotTsdFrame(_BasePlot):
             ).astype("float32")
             geometries[c].positions.update_full()
 
-    def _update(self):
+    def _update(self, update_ylim=True):
         """
         Update function for sort_by, group_by, rescaling
         """
@@ -478,10 +482,12 @@ class PlotTsdFrame(_BasePlot):
         self._flush()
 
         # Update camera to fit the full y range
-        self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+        if update_ylim:
+            self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
 
         self.canvas.request_draw(self.animate)
 
+    @profile
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
         """
         Sort the plotted time series lines vertically by a metadata field.
@@ -509,9 +515,7 @@ class PlotTsdFrame(_BasePlot):
             self._manager.sort_by(values, mode)
 
             # By default, this action reset the scale of each line
-            self._manager.scale = 1 / np.array([
-                np.max(self.data.loc[c])-np.min(self.data.loc[c])
-                for c in self._manager.index])
+            self._manager.scale = 1 / (self._stream.max - self._stream.min)
 
             self._update()
 
