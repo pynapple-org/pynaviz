@@ -2,18 +2,18 @@ from typing import Callable
 
 import pynapple as nap
 import numpy as np
-
+from line_profiler import profile
 
 class TsdFrameStreaming:
 
     def __init__(self, data: nap.TsdFrame, callback: Callable):
         self.data = data
         self._callback = callback
-        self.max = np.max(data, axis=0)
-        self.min = np.min(data, axis=0)
+        self.max = np.max(data.values[0:20000], axis=0)
+        self.min = np.min(data.values[0:20000], axis=0)
 
         # Create underlying array for streaming
-        slice_ = data._get_slice(-10, 11)
+        slice_ = data._get_slice(-5, 6)
         self._max_n = slice_.stop - slice_.start
         self.array = np.empty(shape=(data.shape[1], self._max_n), dtype=data.values.dtype)
         self.time = data.t[slice_]

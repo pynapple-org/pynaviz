@@ -28,7 +28,7 @@ from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 
-from line_profiler import profile
+# from line_profiler import profile
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -431,7 +431,7 @@ class PlotTsdFrame(_BasePlot):
         self.controller = self._controllers["span"]
 
         # By default, showing only the first second.
-        self.controller.set_view(0, 1, np.min(data), np.max(data))
+        self.controller.set_view(0, 1, np.min(self._stream.min), np.max(self._stream.max))
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
@@ -487,7 +487,7 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
-    @profile
+    # @profile
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
         """
         Sort the plotted time series lines vertically by a metadata field.
@@ -543,8 +543,8 @@ class PlotTsdFrame(_BasePlot):
 
             # This action reset the scale of each line only if scale is 1
             self._manager.scale = 1 / np.array([
-                np.max(self.data.loc[c])-np.min(self.data.loc[c])
-                for c in self._manager.index])
+                self._stream.max[i]-self._stream.min[i]
+                for i in range(len(self._manager.index))])
 
             self._update()
 
