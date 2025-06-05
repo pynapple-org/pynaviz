@@ -4,8 +4,12 @@ import pynapple as nap
 import numpy as np
 from line_profiler import profile
 
+from line_profiler import profile
+
+
 class TsdFrameStreaming:
 
+    @profile
     def __init__(self, data: nap.TsdFrame, callback: Callable):
         self.data = data
         self._callback = callback
@@ -23,7 +27,7 @@ class TsdFrameStreaming:
     def _flush(self, slice_):
         self.time = self.data.t[slice_]
         for i in range(self.data.shape[1]):
-            self.array[i] = self.data.values[slice_, i]
+            self.array[i] = self.data.values[slice_, i]   # 99.1% of th __init__ call when running `large_nwb_main`
         self._callback()
 
     def stream(self, position, width, **kwargs) -> None:

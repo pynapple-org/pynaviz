@@ -28,7 +28,8 @@ from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 
-# from line_profiler import profile
+
+from line_profiler import profile
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -91,7 +92,7 @@ class _BasePlot(IntervalSetInterface):
             self.canvas = WgpuCanvas()
 
         # Create a WGPU-based renderer attached to the canvas
-        self.renderer = gfx.WgpuRenderer(self.canvas)
+        self.renderer = gfx.WgpuRenderer(self.canvas)  ## 97% time of super.__init__(...) when running `large_nwb_main.py`
 
         # Create a new scene to hold and manage objects
         self.scene = gfx.Scene()
@@ -376,6 +377,7 @@ class PlotTsdFrame(_BasePlot):
         A marker showing the selected time point (used in x-vs-y plotting).
     """
 
+    @profile
     def __init__(self, data: nap.TsdFrame, index: Optional[int] = None, parent: Optional[Any] = None):
         super().__init__(data=data, parent=parent)
         self.data = data
