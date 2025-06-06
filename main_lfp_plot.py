@@ -79,9 +79,11 @@ tsdframe.group = gr
 app = QApplication([])
 
 v = viz.TsdFrameWidget(tsdframe)
-v.plot.group_by("group")
-v.plot.sort_by("channel")#, order="descending")
-v.plot.color_by("group")
+# v.plot.group_by("group")
+# v.plot.sort_by("channel", mode="descending")
+#
+#
+# v.plot.color_by("group")
 
 v.show()
 

@@ -78,7 +78,6 @@ class _PlotManager:
     def sort_by(self, values: dict, mode: str) -> None:
         """
         Updates the offset based on sorted group values. First row should always be at 1.
-        Items that are unselected do not occupy a row.
 
         Parameters
         ----------
@@ -91,11 +90,18 @@ class _PlotManager:
         tmp = np.array(list(values.values()))
         unique, inverse = np.unique(tmp, return_inverse=True)
         y_order = np.argsort(unique)
-        order = y_order[inverse]
+
         if mode == "descending":
-            order = order[::-1]
+            y_order = y_order[::-1]
+            # self.data['groups'] = self.data['groups'][::-1]
+
+        order = y_order[inverse]
         self.data['order'] = order
-        self.offset = order + self.data['groups'] + 1
+
+        if self._grouped    :
+            self.offset = order + 1 + self.data['groups']
+        else:
+            self.offset = order + 1
         self._sorted = True
 
     def group_by(self, values: dict) -> None:

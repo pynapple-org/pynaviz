@@ -377,7 +377,6 @@ class PlotTsdFrame(_BasePlot):
         A marker showing the selected time point (used in x-vs-y plotting).
     """
 
-    @profile
     def __init__(self, data: nap.TsdFrame, index: Optional[int] = None, parent: Optional[Any] = None):
         super().__init__(data=data, parent=parent)
         self.data = data
@@ -386,21 +385,20 @@ class PlotTsdFrame(_BasePlot):
         self.graphic: dict[str, gfx.Line] = {}
 
         # To stream data
-        self._stream = TsdFrameStreaming(data, callback=self._flush)
+        self._stream = TsdFrameStreaming(data, callback=self._flush, window_size = 3) # seconds
 
         # Create pygfx objects
         for i, c in enumerate(self.data.columns):
-            values = np.stack((
-                self._stream.time,
-                self._stream.array[i],
-                np.zeros((len(self._stream)))
-            )).T.astype("float32")
+            positions = np.zeros(
+                (len(self._stream), 3), dtype="float32"
+            )
             self.graphic[c] = gfx.Line(
-                gfx.Geometry(positions=values),
+                gfx.Geometry(positions=positions),
                 gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
             )
 
-        self.time_point = None  # Used later in x-vs-y plotting
+        # Stream the first batch of data
+        self._flush(self._stream.get_slice(start=0, end=1))
 
         # Add elements to the scene for rendering
         self.scene.add(
@@ -432,11 +430,39 @@ class PlotTsdFrame(_BasePlot):
         # Use span controller by default
         self.controller = self._controllers["span"]
 
+        # Used later in x-vs-y plotting
+        self.time_point = None
+
         # By default, showing only the first second.
-        self.controller.set_view(0, 1, np.min(self._stream.min), np.max(self._stream.max))
+        minmax = self._get_min_max()
+        self.controller.set_view(0, 1, np.min(minmax[:,0]), np.max(minmax[:,1]))
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
+
+    def _flush(self, slice_):
+        """
+        Flush the data stream from slice_ argument
+        """
+        # Grabbing the material object
+        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+
+        time = self.data.t[slice_]
+        n = time.shape[0]
+
+        for i, c in enumerate(self.data.columns):
+            geometries[c].positions.data[-n:,0] = time.astype("float32")
+            geometries[c].positions.data[-n:,1] = (
+                self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
+            ).astype("float32")
+            geometries[c].positions.update_full()
+
+    def _get_min_max(self):
+        geometries = get_plot_attribute(self, "geometry")
+        return np.array([[
+                geometries[c].positions.data.min(),
+                geometries[c].positions.data.max()
+                ] for c in geometries])
 
     def _rescale(self, event):
         """
@@ -462,20 +488,6 @@ class PlotTsdFrame(_BasePlot):
                 self._update()
                 self.controller.set_ylim(self.data.min(), self.data.max())
 
-    def _flush(self):
-        """
-        Flush the data stream
-        """
-        # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
-
-        for i, c in enumerate(self.data.columns):
-            geometries[c].positions.data[:,0] = self._stream.time[:]
-            geometries[c].positions.data[:,1] = (
-                self._stream.array[i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
-            ).astype("float32")
-            geometries[c].positions.update_full()
-
     def _update(self, update_ylim=True):
         """
         Update function for sort_by, group_by, rescaling
@@ -489,7 +501,6 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
-    # @profile
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
         """
         Sort the plotted time series lines vertically by a metadata field.
@@ -517,7 +528,7 @@ class PlotTsdFrame(_BasePlot):
             self._manager.sort_by(values, mode)
 
             # By default, this action reset the scale of each line
-            self._manager.scale = 1 / (self._stream.max - self._stream.min)
+            self._manager.scale = 1 / (np.max(self._stream.array, 0) - np.min(self._stream.array, 0))
 
             self._update()
 
@@ -544,9 +555,7 @@ class PlotTsdFrame(_BasePlot):
             self._manager.group_by(values)
 
             # This action reset the scale of each line only if scale is 1
-            self._manager.scale = 1 / np.array([
-                self._stream.max[i]-self._stream.min[i]
-                for i in range(len(self._manager.index))])
+            self._manager.scale = 1 / (np.max(self._stream.array, 0) - np.min(self._stream.array, 0))
 
             self._update()
 
