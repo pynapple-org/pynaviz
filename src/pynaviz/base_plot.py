@@ -440,28 +440,33 @@ class PlotTsdFrame(_BasePlot):
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
 
-    def _flush(self, slice_):
+    def _flush(self, slice_: slice = None):
         """
         Flush the data stream from slice_ argument
         """
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
 
-        time = self.data.t[slice_]
-        n = time.shape[0]
+        if slice_:
+            time = self.data.t[slice_]
+            n = time.shape[0]
 
-        for i, c in enumerate(self.data.columns):
-            geometries[c].positions.data[-n:,0] = time.astype("float32")
-            geometries[c].positions.data[-n:,1] = (
-                self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
-            ).astype("float32")
-            geometries[c].positions.update_full()
+            for i, c in enumerate(self.data.columns):
+                geometries[c].positions.data[-n:,0] = time.astype("float32")
+                geometries[c].positions.data[-n:,1] = (
+                    self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
+                ).astype("float32")
+                geometries[c].positions.update_full()
+        else:
+            for i, c in enumerate(self.data.columns):
+                geometries[c].positions.data[:, 1] = geometries[c].positions.data[:, 1] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
+                geometries[c].positions.update_full()
 
     def _get_min_max(self):
         geometries = get_plot_attribute(self, "geometry")
         return np.array([[
-                geometries[c].positions.data.min(),
-                geometries[c].positions.data.max()
+                geometries[c].positions.data[:,1].min(),
+                geometries[c].positions.data[:,1].max()
                 ] for c in geometries])
 
     def _rescale(self, event):
@@ -528,7 +533,7 @@ class PlotTsdFrame(_BasePlot):
             self._manager.sort_by(values, mode)
 
             # By default, this action reset the scale of each line
-            self._manager.scale = 1 / (np.max(self._stream.array, 0) - np.min(self._stream.array, 0))
+            self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
 
             self._update()
 
