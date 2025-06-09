@@ -4,7 +4,7 @@ The controller class.
 
 import threading
 from abc import ABC, abstractmethod
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import pygfx
 import pygfx as gfx

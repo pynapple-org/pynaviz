@@ -28,9 +28,6 @@ from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 
-
-from line_profiler import profile
-
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
     "zoom": _match_zoom_on_x_axis,
@@ -398,6 +395,7 @@ class PlotTsdFrame(_BasePlot):
             )
 
         # Stream the first batch of data
+        self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
         self._flush(self._stream.get_slice(start=0, end=1))
 
         # Add elements to the scene for rendering
@@ -444,30 +442,22 @@ class PlotTsdFrame(_BasePlot):
         """
         Flush the data stream from slice_ argument
         """
-        # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
-
         if slice_:
             time = self.data.t[slice_]
             n = time.shape[0]
 
-            for i, c in enumerate(self.data.columns):
-                geometries[c].positions.data[-n:,0] = time.astype("float32")
-                geometries[c].positions.data[-n:,1] = (
+            for i, c in enumerate(self._buffers):
+                self._buffers[c].data[-n:,0] = time.astype("float32")
+                self._buffers[c].data[-n:,1] = (
                     self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
                 ).astype("float32")
-                geometries[c].positions.update_full()
-        else:
-            for i, c in enumerate(self.data.columns):
-                geometries[c].positions.data[:, 1] = geometries[c].positions.data[:, 1] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
-                geometries[c].positions.update_full()
+                self._buffers[c].update_full()
 
     def _get_min_max(self):
-        geometries = get_plot_attribute(self, "geometry")
         return np.array([[
-                geometries[c].positions.data[:,1].min(),
-                geometries[c].positions.data[:,1].max()
-                ] for c in geometries])
+                self._buffers[c].data[:,1].min(),
+                self._buffers[c].data[:,1].max()
+                ] for c in self._buffers])
 
     def _rescale(self, event):
         """
@@ -475,12 +465,21 @@ class PlotTsdFrame(_BasePlot):
         "d" key decrease the scale by 50%
         """
         if event.type == "key_down":
-            if event.key == "i":
-                self._manager.rescale(factor=0.5)
-                self._update(update_ylim=False)
-            if event.key == "d":
-                self._manager.rescale(factor=-0.5)
-                self._update(update_ylim=False)
+            if event.key == "i" or event.key == "d":
+                factor = {"i":0.5, "d":-0.5}[event.key]
+
+                # Update the scale of the PlotManager
+                self._manager.rescale(factor=factor)
+
+                # Update the current buffers
+                for i, c in enumerate(self._buffers):
+                    self._buffers[c].data[:, 1] = (
+                            self._buffers[c].data[:, 1] * self._manager.data.loc[c]['scale'] +
+                            self._manager.data.loc[c]['offset']
+                    ).astype("float32")
+                    self._buffers[c].update_full()
+
+                self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
         """
@@ -495,10 +494,15 @@ class PlotTsdFrame(_BasePlot):
 
     def _update(self, update_ylim=True):
         """
-        Update function for sort_by, group_by, rescaling
+        Update function for sort_by and group_by. Contrary to flush, this
+        function operates directly on the buffer.
         """
-        # Flush the data
-        self._flush()
+        for i, c in enumerate(self._buffers):
+            self._buffers[c].data[:, 1] = (
+                    self._buffers[c].data[:, 1] * self._manager.data.loc[c]['scale'] +
+                    self._manager.data.loc[c]['offset']
+            ).astype("float32")
+            self._buffers[c].update_full()
 
         # Update camera to fit the full y range
         if update_ylim:
@@ -560,7 +564,7 @@ class PlotTsdFrame(_BasePlot):
             self._manager.group_by(values)
 
             # This action reset the scale of each line only if scale is 1
-            self._manager.scale = 1 / (np.max(self._stream.array, 0) - np.min(self._stream.array, 0))
+            self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
 
             self._update()
 

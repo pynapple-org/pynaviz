@@ -1,4 +1,5 @@
 from typing import Callable
+
 import pynapple as nap
 
 
