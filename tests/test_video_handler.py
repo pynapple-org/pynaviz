@@ -37,7 +37,7 @@ def test_video_handler(video_info, requested_frame_ts, expected_frame_id):
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
 def test_extract_keyframe_indices_and_pts_with_fixture(video_info):
     frame_pts, expected_keyframe_pts, video_path = video_info
-    keyframe_indices, keyframe_pts = video_handling.extract_keyframe_indices_and_points(video_path)
+    keyframe_indices, keyframe_pts = video_handling.extract_keyframe_times_and_points(video_path)
 
     assert isinstance(keyframe_indices, np.ndarray)
     assert isinstance(keyframe_pts, np.ndarray)
