@@ -21,11 +21,11 @@ tsd1 = nap.Tsd(t=np.arange(1000), d=np.sin(np.arange(1000) * 0.1))
 # tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
 
-v = viz.PlotTsd(tsd1)
-v.animate()
-image_data = v.renderer.snapshot()
-image = Image.fromarray(image_data, mode="RGBA")
-image.save(os.path.expanduser("~/pynaviz/tests/screenshots/test_plot_tsd.png"))
+# v = viz.PlotTsd(tsd1)
+# v.animate()
+# image_data = v.renderer.snapshot()
+# image = Image.fromarray(image_data, mode="RGBA")
+# image.save(os.path.expanduser("~/pynaviz/tests/screenshots/test_plot_tsd.png"))
 
 
 ep = nap.IntervalSet(
@@ -41,4 +41,6 @@ v = viz.PlotIntervalSet(ep)
 v.animate()
 image_data = v.renderer.snapshot()
 image = Image.fromarray(image_data, mode="RGBA")
-image.save(os.path.expanduser("~/pynaviz/tests/screenshots/test_plot_intervalset.png"))
+image.save(
+    os.path.expanduser("~/GitHub/pynaviz/tests/screenshots/test_plot_intervalset.png")
+)
