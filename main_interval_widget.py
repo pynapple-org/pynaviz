@@ -2,7 +2,7 @@ import numpy as np
 import pynapple as nap
 from PyQt6.QtWidgets import QApplication
 import pynaviz as viz
-from pynaviz.controller import ControllerGroup
+
 from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton
 
 
@@ -43,9 +43,11 @@ ep = [nap.IntervalSet(35, 50), nap.IntervalSet(30, 40)]
 # v.plot.add_interval_sets(
 #     nap.IntervalSet([10, 80], [20, 100]), colors="purple", alpha=0.3
 # )
+ep = nap.IntervalSet(
+    [0, 10, 20], [5, 15, 25], metadata={"label": ["a", "b", "c"], "choice": [0, 0, 1]}
+)
 
-
-v2 = viz.IntervalSetWidget(nap.IntervalSet(0, 10))
+v2 = viz.IntervalSetWidget(ep)
 
 # ctrl_group = ControllerGroup([v.plot, v2.plot])
 

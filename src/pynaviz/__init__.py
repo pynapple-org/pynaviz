@@ -10,6 +10,7 @@ try:
         TsdWidget,
         TsGroupWidget,
         TsWidget,
+        IntervalSetWidget,
     )
 
     __all__ += [

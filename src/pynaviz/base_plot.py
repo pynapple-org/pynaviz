@@ -803,12 +803,12 @@ class PlotIntervalSet(_BasePlot):
             renderer=self.renderer,
             controller_id=index,
             dict_sync_funcs=dict_sync_funcs,
-            min=0,
-            max=1,
         )
 
-        self._create_and_plot_rectangle(data, color="cyan", transparency=1)
-        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time)
+        self.graphic = self._create_and_plot_rectangle(
+            data, color="cyan", transparency=1
+        )
+        self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time)
         self.canvas.request_draw(self.animate)
 
     def sort_by(metadata_name: str, order: Optional[str] = "ascending"):

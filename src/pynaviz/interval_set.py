@@ -33,7 +33,16 @@ def is_in_view(screen_xmin, screen_xmax, width, rectangle):
 
 
 def get_max_interval_index(labels):
-    return max((-1, *(int(lab.split("_")[1]) for lab in labels if re.match(INTERVAL_PATTERN, lab))))
+    return max(
+        (
+            -1,
+            *(
+                int(lab.split("_")[1])
+                for lab in labels
+                if re.match(INTERVAL_PATTERN, lab)
+            ),
+        )
+    )
 
 
 class IntervalSetInterface:
@@ -185,7 +194,7 @@ class IntervalSetInterface:
             # hardcode a background level.
             depth = -1001.0
 
-        for ep in epoch:
+        for i, ep in enumerate(epoch):
             width = ep.end[0] - ep.start[0]
             geom = pygfx.plane_geometry(width, height)
             material = pygfx.MeshBasicMaterial(color=color, pick_write=True)
@@ -193,7 +202,8 @@ class IntervalSetInterface:
             mesh.local.position = np.array(
                 [ep.start[0] + width / 2, ymin + height / 2, depth], dtype=np.float32
             )
-            mesh_dict[ep.start[0], ep.end[0]] = mesh
+            # mesh_dict[ep.start[0], ep.end[0]] = mesh
+            mesh_dict[i] = mesh
 
         self.scene.add(*mesh_dict.values())
         self.canvas.request_draw(self.animate)

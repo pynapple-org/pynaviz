@@ -140,5 +140,5 @@ class IntervalSetWidget(QWidget):
         self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
 
         # Add overlay and canvas to layout
-        # layout.addWidget(self.button_container)
+        layout.addWidget(self.button_container)
         layout.addWidget(self.plot.canvas)
