@@ -442,16 +442,18 @@ class PlotTsdFrame(_BasePlot):
         """
         Flush the data stream from slice_ argument
         """
-        if slice_:
-            time = self.data.t[slice_]
-            n = time.shape[0]
+        if slice_ is None:
+            slice_ = self._stream.get_slice(*self.controller.get_xlim())
 
-            for i, c in enumerate(self._buffers):
-                self._buffers[c].data[-n:,0] = time.astype("float32")
-                self._buffers[c].data[-n:,1] = (
-                    self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
-                ).astype("float32")
-                self._buffers[c].update_full()
+        time = self.data.t[slice_]
+        n = time.shape[0]
+
+        for i, c in enumerate(self._buffers):
+            self._buffers[c].data[-n:,0] = time.astype("float32")
+            self._buffers[c].data[-n:,1] = (
+                self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
+            ).astype("float32")
+            self._buffers[c].update_full()
 
     def _get_min_max(self):
         return np.array([[
@@ -472,11 +474,8 @@ class PlotTsdFrame(_BasePlot):
                 self._manager.rescale(factor=factor)
 
                 # Update the current buffers
-                for i, c in enumerate(self._buffers):
-                    self._buffers[c].data[:, 1] = (
-                            self._buffers[c].data[:, 1] * self._manager.data.loc[c]['scale'] +
-                            self._manager.data.loc[c]['offset']
-                    ).astype("float32")
+                for c in self._buffers:
+                    self._buffers[c].data[:, 1] = self._buffers[c].data[:, 1] + factor * ( self._buffers[c].data[:, 1] - self._manager.data.loc[c]['offset'])
                     self._buffers[c].update_full()
 
                 self.canvas.request_draw(self.animate)
@@ -488,25 +487,27 @@ class PlotTsdFrame(_BasePlot):
         #TODO set the reset for the get controller
         if event.type == "key_down":
             if event.key == "r":
-                self._manager.reset()
-                self._update()
-                self.controller.set_ylim(self.data.min(), self.data.max())
+                if isinstance(self.controller, SpanController):
+                    self._manager.reset()
+                    self._flush()
 
-    def _update(self, update_ylim=True):
+                minmax = self._get_min_max()
+                self.controller.set_ylim(np.min(minmax[:,0]), np.max(minmax[:,1]))
+                self.canvas.request_draw(self.animate)
+
+    def _update(self, action_name):
         """
-        Update function for sort_by and group_by. Contrary to flush, this
-        function operates directly on the buffer.
+        Update function for sort_by and group_by. Because of mode of sort_by, it's not possible
+        to just update the buffer.
         """
-        for i, c in enumerate(self._buffers):
-            self._buffers[c].data[:, 1] = (
-                    self._buffers[c].data[:, 1] * self._manager.data.loc[c]['scale'] +
-                    self._manager.data.loc[c]['offset']
-            ).astype("float32")
-            self._buffers[c].update_full()
+        # Update the scale only if one action has been performed
+        if self._manager._sorted ^ self._manager._grouped:
+            self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
+
+        self._flush()
 
         # Update camera to fit the full y range
-        if update_ylim:
-            self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+        self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
 
         self.canvas.request_draw(self.animate)
 
@@ -536,10 +537,7 @@ class PlotTsdFrame(_BasePlot):
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
             self._manager.sort_by(values, mode)
 
-            # By default, this action reset the scale of each line
-            self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
-
-            self._update()
+            self._update("sort_by")
 
     def group_by(self, metadata_name: str, **kwargs):
         """
@@ -563,10 +561,7 @@ class PlotTsdFrame(_BasePlot):
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values)
 
-            # This action reset the scale of each line only if scale is 1
-            self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
-
-            self._update()
+            self._update("group_by")
 
     def plot_x_vs_y(
         self,

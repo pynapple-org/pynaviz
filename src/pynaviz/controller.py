@@ -125,6 +125,11 @@ class CustomController(ABC, PanZoomController):
         self.set_xlim(xmin, xmax)
         self.set_ylim(ymin, ymax)
 
+    def get_xlim(self):
+        """Return the current x boundaries"""
+        half_width = self.camera.width / 2
+        return self.camera.local.x - half_width, self.camera.local.x + half_width
+
     @abstractmethod
     def sync(self, event):
         pass
