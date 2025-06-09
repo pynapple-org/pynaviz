@@ -91,7 +91,7 @@ def ts_to_index(ts: float, time: NDArray) -> int:
 class VideoHandler:
     """Class for getting video frames."""
     def __init__(self, video_path: str | pathlib.Path, stream_index=0,  time: Optional[NDArray]=None) -> None:
-        self.video_path = video_path
+        self.video_path = pathlib.Path(video_path)
         self.container = av.open(video_path)
         self.stream = self.container.streams.video[stream_index]
 
@@ -103,7 +103,8 @@ class VideoHandler:
         else:
             self.time = np.asarray(time)
 
-        # initialize keyframe ts to empty array
+        # initialize keyframe ts decoding one packet only
+        # the rest done in thread
         self.keyframe_pts, self.keyframe_timestamp  = extract_keyframe_times_and_points(video_path, stream_index, True)
 
         # run a thread extracting the keyframe
@@ -111,14 +112,23 @@ class VideoHandler:
         threading.Timer(0.0001, self.extract_keyframe_indices_and_timestamps).start()
 
         # initialize decoded frame last index
+        # if sampling of other signals (LFP) is much denser, multiple times the frame
+        # is unchanged, so cache the idx
         self.last_idx = None
 
         # initialize current frame
         self.current_frame = None
-        self.current_packet_list = []
+
+        if self.video_path.suffix == ".mkv":
+            self.round_fn = lambda x: np.round(x, 3)
+        else:
+            self.round_fn = lambda x: x
 
 
     def extract_keyframe_indices_and_timestamps(self):
+        """
+        Loop over keypoints and extract their frame time stamp and presentation time stamp.
+        """
         keyframes, keyframe_timestamp = extract_keyframe_times_and_points(self.video_path)
         with self.keyframe_lock:
             self.keyframe_pts = keyframes
@@ -128,7 +138,7 @@ class VideoHandler:
     def seek(self, pts_keyframe):
         """Find the nearest keypoint frame``.
 
-        This function navigates to the nearest keypoint frame before ``ts`` and
+        This function navigates to the nearest keypoint frame ``pts_keyframe`` and
         defines an iterator for streaming from the keypoint onwards.
         Each frame must be decoded in sequence from the keypoint.
         """
@@ -138,6 +148,13 @@ class VideoHandler:
 
 
     def get(self, ts: float):
+        """Get the frame preceding ts.
+
+        Parameters
+        ----------
+        ts : float
+            Timestamp of the frame.
+        """
         idx = ts_to_index(ts, self.time)
 
         # if ts did not change frame, return current
@@ -145,7 +162,9 @@ class VideoHandler:
             return self.current_frame
 
         # current duration from ts
-        delta_t = float(idx / self.stream.base_rate)
+        # mkv rounds to 3 decimals, so apply here too otherwise
+        # search in mode ``closest`` may fail due to rounding errors.
+        delta_t = self.round_fn(float(idx / self.stream.base_rate))
 
         # calculate putative keypoint
         with self.keyframe_lock:
@@ -156,31 +175,23 @@ class VideoHandler:
             )
             self.seek(self.keyframe_pts[previous_keypoint_idx])
 
-        best_frame = None
-        last_diff = float('inf')
-        min_diff = float('inf')
-        best_frame = None
+        # Decode frames from keyframe forward until delta_t is exceeded
+        preceding_frame = None
 
         for packet in self.packet_iter:
             for frame in packet.decode():
-                diff = abs(frame.time - delta_t)
+                if frame.time is None:
+                    continue  # Skip bad frames
 
-                if diff < min_diff:
-                    best_frame = frame
-                    min_diff = diff
-
-                if diff > last_diff:
-                    # We're getting worse, so stop
+                if frame.time > delta_t:
+                    # Found a frame after target — return the preceding one
                     self.last_idx = idx
-                    self.current_frame = best_frame
-                    return best_frame
+                    self.current_frame = preceding_frame or frame
+                    return self.current_frame
 
-                last_diff = diff
+                preceding_frame = frame
 
-        # Fallback: return best frame seen if we reach the end
-        if best_frame is not None:
-            self.current_frame = best_frame
-            self.last_idx = idx
-            return self.current_frame
-
-        raise RuntimeError(f"No frame found close to ts={ts} (delta_t={delta_t})")
+        # Fallback: return last decoded frame (end of video)
+        self.last_idx = idx
+        self.current_frame = preceding_frame
+        return preceding_frame
