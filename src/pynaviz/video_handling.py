@@ -147,13 +147,19 @@ class VideoHandler:
         self.packet_iter = self.container.demux(self.stream)
 
 
-    def get(self, ts: float):
+    def get(self, ts: float) -> av.VideoFrame:
         """Get the frame preceding ts.
 
         Parameters
         ----------
         ts : float
             Timestamp of the frame.
+
+        Returns
+        -------
+        frame :
+            The frame. Call ``to_ndarray`` to retrieve array of the frame for the WGPU
+            buffer. Use ``format="yuv420p"`` for max efficiency.
         """
         idx = ts_to_index(ts, self.time)
 
