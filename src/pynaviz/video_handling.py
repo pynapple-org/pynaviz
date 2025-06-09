@@ -8,7 +8,7 @@ import threading
 
 
 def extract_keyframe_indices_and_points(
-        video_path: str | pathlib.Path, first_only=False
+        video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
 ) -> Tuple[NDArray, NDArray]:
     """
     Extract the indices and timestamps of keyframes from a video file.
@@ -31,6 +31,8 @@ def extract_keyframe_indices_and_points(
     ----------
     video_path : str or pathlib.Path
         The path to the video file.
+    stream_index:
+        The index of the video stream.
     first_only:
         If true, return the first keypoint only. Used at initialization.
 
@@ -47,7 +49,7 @@ def extract_keyframe_indices_and_points(
     keyframe_pts = []
 
     with av.open(video_path) as container:
-        stream = container.streams.video[0]
+        stream = container.streams.video[stream_index]
         stream.codec_context.skip_frame = "NONKEY"
 
         frame_index = 0  # absolute frame index in the full stream
@@ -103,7 +105,7 @@ class VideoHandler:
             self.time = np.asarray(time)
 
         # initialize keyframe ts to empty array
-        self.keyframe_pts, self.keyframe_indices = extract_keyframe_indices_and_points(video_path, True)
+        self.keyframe_pts, self.keyframe_indices = extract_keyframe_indices_and_points(video_path, stream_index, True)
 
         # run a thread extracting the keyframe
         self.keyframe_lock = threading.Lock()
@@ -181,7 +183,7 @@ class VideoHandler:
             self.current_frame = self.current_packet_list[n_frames_iter]
             self.last_idx = idx
             self.current_packet_list = self.current_packet_list[n_frames_iter + 1:]
-            return self.current_frame.to_ndarray(format="yuv420p")
+            return self.current_frame
 
         # if not, iterate over the following packets
         frame_counter = 0 if need_seek else len(self.current_packet_list)
@@ -193,6 +195,6 @@ class VideoHandler:
                     self.current_frame = frame
                     self.last_idx = idx
                     self.current_packet_list = self.current_packet_list[frame_in_packet_counter+1:]
-                    return self.current_frame.to_ndarray(format="yuv420p")
+                    return self.current_frame
                 frame_in_packet_counter += 1
                 frame_counter += 1
