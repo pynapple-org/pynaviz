@@ -773,26 +773,29 @@ class PlotTs(_BasePlot):
 
 
 class PlotIntervalSet(_BasePlot):
-    def __init__(self, data: nap.IntervalSet, index=None, parent=None):
-        super().__init__(data=data, parent=parent)
-        self.camera.maintain_aspect = False
+    """
+    A visualization of a set of non-overlapping epochs (nap.IntervalSet).
 
-        # Pynaviz specific controller
-        self.controller = SpanController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,
-        )
+    This class allows dynamic rendering of each interval in a `nap.IntervalSet`, with interactive
+    controls for span navigation. It supports coloring, grouping, and sorting of intervals based on metadata.
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
-        pass
+    Parameters
+    ----------
+    data : nap.IntervalSet
+        The set of intervals to be visualized, with optional metadata.
+    index : Optional[int], default=None
+        Unique ID for synchronizing with external controllers.
+    parent : Optional[Any], default=None
+        Optional GUI parent (e.g. QWidget in Qt).
 
-    def group_by(metadata_name: str, spacing: Optional = None):
-        pass
+    Attributes
+    ----------
+    controller : SpanController
+        Active interactive controller for zooming or selecting.
+    graphic : dict[str, gfx.Mesh] or gfx.Mesh
+        Dictionary of rectangle meshes for each interval.
+    """
 
-
-class PlotIntervalSet(_BasePlot):
     def __init__(self, data: nap.IntervalSet, index=None, parent=None):
         super().__init__(data=data, parent=parent)
         self.camera.maintain_aspect = False
@@ -817,7 +820,7 @@ class PlotIntervalSet(_BasePlot):
 
     def _update(self):
         """
-        Update function for sort_by, group_by and rescaling
+        Update function for sort_by and group_by
         """
         # Grabbing the material object
         geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
@@ -838,6 +841,15 @@ class PlotIntervalSet(_BasePlot):
         self.canvas.request_draw(self.animate)
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
+        """
+        Vertically sort the plotted intervals by a metadata field.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata key to sort by.
+        """
+
         values = (
             dict(self.data.get_info(metadata_name))
             if hasattr(self.data, "get_info")
@@ -852,7 +864,7 @@ class PlotIntervalSet(_BasePlot):
 
     def group_by(self, metadata_name: str, **kwargs):
         """
-        Group the plotted time series lines vertically by a metadata field.
+        Group the intervals vertically by a metadata field.
 
         Parameters
         ----------
