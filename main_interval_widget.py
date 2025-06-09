@@ -44,7 +44,13 @@ ep = [nap.IntervalSet(35, 50), nap.IntervalSet(30, 40)]
 #     nap.IntervalSet([10, 80], [20, 100]), colors="purple", alpha=0.3
 # )
 ep = nap.IntervalSet(
-    [0, 10, 20], [5, 15, 25], metadata={"label": ["a", "b", "c"], "choice": [0, 0, 1]}
+    [0, 5, 10, 15, 20],
+    [4.9, 9.9, 14.9, 19.9, 24.9],
+    metadata={
+        "label": ["a", "b", "c", "d", "e"],
+        "choice": [1, 0, 1, 1, 0],
+        "reward": [0, 0, 1, 0, 1],
+    },
 )
 
 v2 = viz.IntervalSetWidget(ep)

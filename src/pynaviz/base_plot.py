@@ -811,8 +811,60 @@ class PlotIntervalSet(_BasePlot):
         self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time)
         self.canvas.request_draw(self.animate)
 
-    def sort_by(metadata_name: str, order: Optional[str] = "ascending"):
-        pass
+    def _update(self):
+        """
+        Update function for sort_by, group_by and rescaling
+        """
+        # Grabbing the material object
+        geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
-    def group_by(metadata_name: str, spacing: Optional = None):
-        pass
+        for c in geometries:
+            geometries[c].positions.data[:2, 1] = (
+                self._manager.data.loc[c]["offset"].astype("float32") - 0.5
+            )
+            geometries[c].positions.data[2:, 1] = (
+                self._manager.data.loc[c]["offset"].astype("float32") + 0.5
+            )
+
+            geometries[c].positions.update_full()
+
+        # Update camera to fit the full y range
+        self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+
+        self.canvas.request_draw(self.animate)
+
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
+        # If metadata found
+        if len(values):
+
+            # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
+            self._manager.sort_by(values, mode)
+            self._update()
+
+    def group_by(self, metadata_name: str, **kwargs):
+        """
+        Group the plotted time series lines vertically by a metadata field.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata key to group by.
+        """
+        # Grabbing the metadata
+        values = (
+            dict(self.data.get_info(metadata_name))
+            if hasattr(self.data, "get_info")
+            else {}
+        )
+
+        # If metadata found
+        if len(values):
+
+            # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
+            self._manager.group_by(values)
+            self._update()
