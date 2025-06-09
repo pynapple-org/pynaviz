@@ -230,6 +230,7 @@ class PlotTsd(_BasePlot):
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
 
+
 class PlotTsdFrame(_BasePlot):
     def __init__(self, data: nap.TsdFrame, index=None, parent=None):
         super().__init__(data=data, parent=parent)
@@ -358,7 +359,7 @@ class PlotTsdFrame(_BasePlot):
             Options are ["ascending"[default], "descending"]
         """
         # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+        geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
         # Grabbing the metadata
         values = (
@@ -377,13 +378,14 @@ class PlotTsdFrame(_BasePlot):
 
             for c in geometries:
                 geometries[c].positions.data[:, 1] = (
-                        self.data.loc[c].values /  np.max(np.abs(self.data.loc[c]))
-                        + idx_map[c] + 1
-                    ).astype("float32")
+                    self.data.loc[c].values / np.max(np.abs(self.data.loc[c]))
+                    + idx_map[c]
+                    + 1
+                ).astype("float32")
                 geometries[c].positions.update_full()
 
             # Need to update cameras in the y-axis
-            self.controller.set_ylim(-1, len(idx_map)+1)
+            self.controller.set_ylim(-1, len(idx_map) + 1)
 
             self.canvas.request_draw(self.animate)
 
@@ -432,7 +434,7 @@ class PlotTsGroup(_BasePlot):
             Options are ["ascending"[default], "descending"]
         """
         # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+        geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
         # Grabbing the metadata
         values = (
@@ -454,6 +456,7 @@ class PlotTsGroup(_BasePlot):
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
+
 
 class PlotTsdTensor(_BasePlot):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
@@ -502,6 +505,7 @@ class PlotTsdTensor(_BasePlot):
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
 
+
 class PlotTs(_BasePlot):
     def __init__(self, data: nap.Ts, index=None, parent=None):
         super().__init__(parent=parent)
@@ -519,4 +523,30 @@ class PlotTs(_BasePlot):
         pass
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
+
+
+class PlotIntervalSet(_BasePlot):
+    def __init__(self, data: nap.IntervalSet, index=None, parent=None):
+        super().__init__(data=data, parent=parent)
+        self.camera.maintain_aspect = False
+
+        # Pynaviz specific controller
+        self.controller = SpanController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs,
+            min=0,
+            max=1,
+        )
+
+        self._create_and_plot_rectangle(data, color="cyan", transparency=1)
+        self.scene.add(self.rulerx, self.rulery, self.ruler_ref_time)
+        self.canvas.request_draw(self.animate)
+
+    def sort_by(metadata_name: str, order: Optional[str] = "ascending"):
+        pass
+
+    def group_by(metadata_name: str, spacing: Optional = None):
         pass

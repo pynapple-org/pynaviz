@@ -1,4 +1,11 @@
-from .base_plot import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
+from .base_plot import (
+    PlotTs,
+    PlotTsd,
+    PlotTsdFrame,
+    PlotTsdTensor,
+    PlotTsGroup,
+    PlotIntervalSet,
+)
 from .gui import scope
 from .widget_plot import (
     TsdFrameWidget,
@@ -6,13 +13,22 @@ from .widget_plot import (
     TsdWidget,
     TsGroupWidget,
     TsWidget,
+    IntervalSetWidget,
 )
 
 __version__ = "0.0.1"
 __all__ = [
-    "PlotTsd", "PlotTsdFrame", "PlotTsdTensor", "PlotTsGroup", "PlotTs",
-    "TsdFrameWidget", "TsdTensorWidget", "TsdWidget", "TsGroupWidget", "TsWidget",
-    "scope"
+    "PlotTsd",
+    "PlotTsdFrame",
+    "PlotTsdTensor",
+    "PlotTsGroup",
+    "PlotTs",
+    "TsdFrameWidget",
+    "TsdTensorWidget",
+    "TsdWidget",
+    "TsGroupWidget",
+    "TsWidget",
+    "scope",
 ]
 
 
