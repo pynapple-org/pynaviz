@@ -16,11 +16,12 @@ EXTENSION_TO_CODEC = {
 
 
 def generate_numbered_video(output_path="test_video/numbered_video.mp4", num_frames=100, fps=30, width=640, height=480):
-    output_path = pathlib.Path(output_path)
+    output_path = pathlib.Path(__file__).resolve().parent / output_path
     output_path.parent.mkdir(exist_ok=True)
     # Set up container and stream
     container = av.open(output_path, mode='w')
-    stream = container.add_stream('mpeg4', rate=fps)
+    codec = EXTENSION_TO_CODEC[output_path.suffix]
+    stream = container.add_stream(codec, rate=fps)
     stream.width = width
     stream.height = height
     stream.pix_fmt = 'yuv420p'
