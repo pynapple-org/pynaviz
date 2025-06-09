@@ -39,7 +39,7 @@ def _match_pan_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
 
 def _match_zoom_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
     """
-    Calculate an update that match zoom by stretching the x-axis only,
+    Calculate an update that match zoom by stretching the x-axis only.
 
     Parameters
     ----------
