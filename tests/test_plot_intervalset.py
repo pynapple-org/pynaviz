@@ -31,4 +31,23 @@ def test_plot_iset_init(dummy_iset):
     v = viz.PlotIntervalSet(dummy_iset)
 
     assert isinstance(v.controller, viz.controller.SpanController)
-    assert isinstance(v.line, gfx.Line)
+    assert isinstance(v.graphic, dict)
+    for k, v in v.graphic.items():
+        assert isinstance(v, gfx.Mesh)
+
+
+def test_plot_iset(dummy_iset):
+    v = viz.PlotIntervalSet(dummy_iset)
+    v.animate()
+    image_data = v.renderer.snapshot()
+
+    try:
+        image = Image.open(
+            os.path.expanduser("tests/screenshots/test_plot_intervalset.png")
+        ).convert("RGBA")
+    except Exception:
+        image = Image.open(
+            os.path.expanduser("screenshots/test_plot_intervalset.png")
+        ).convert("RGBA")
+
+    np.allclose(np.array(image), image_data)
