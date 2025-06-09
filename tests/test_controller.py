@@ -1,19 +1,20 @@
+from contextlib import nullcontext as does_not_raise
+
 import numpy as np
 import pygfx
-from pygfx import controllers, cameras, renderers
+import pytest
+from pygfx import cameras, controllers, renderers
+from wgpu.gui.offscreen import WgpuCanvas
+
 from pynaviz.controller import SpanController
 from pynaviz.synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
-from wgpu.gui.auto import WgpuCanvas
-import pytest
-from contextlib import nullcontext as does_not_raise
-from typing import Callable
 
 
 def test_controller_state_dict():
     """Test that the pygfx state dictionary API is maintained."""
     ctrl = controllers.PanZoomController(camera=cameras.PerspectiveCamera())
     cam_state = ctrl._get_camera_state()
-    assert tuple(cam_state.keys()) == ('position', 'rotation', 'scale', 'reference_up', 'fov', 'width', 'height', 'zoom', 'maintain_aspect', 'depth_range')
+    assert tuple(cam_state.keys()) == ('position', 'rotation', 'scale', 'reference_up', 'fov', 'width', 'height', 'depth', 'zoom', 'maintain_aspect', 'depth_range')
     assert isinstance(cam_state["position"], np.ndarray)
     assert cam_state["position"].ndim == 1
     assert cam_state["position"].shape[0] == 3
@@ -90,14 +91,6 @@ class TestPynaVizController:
         finally:
             canvas.close()
 
-    def test_get_event_handle(self):
-        canvas = WgpuCanvas()
-        renderer = renderers.WgpuRenderer(canvas)
-        try:
-            func = SpanController._get_event_handle(renderer)
-            assert isinstance(func, Callable)
-        finally:
-            canvas.close()
 
     @pytest.mark.parametrize("auto_update", [True, False])
     def test_request_draw(self, auto_update):
@@ -125,7 +118,7 @@ class TestPynaVizController:
         try:
             ctrl = SpanController(camera, renderer=renderer)
             state = ctrl._get_camera_state()
-            ctrl._update_event(update_type=update_type, cam_state=state, **kwargs)
+            ctrl._send_sync_event(update_type=update_type, cam_state=state, **kwargs)
         finally:
             canvas.close()
 

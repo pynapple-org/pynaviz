@@ -1,13 +1,9 @@
-import os
-import shutil
-from pathlib import Path
-
 import nox
 
 
 # nox --no-venv -s linters
 # nox --no-venv -s tests
-
+# WGPU_FORCE_OFFSCREEN=1 nox
 
 @nox.session(name="linters")
 def linters(session):
@@ -15,7 +11,7 @@ def linters(session):
     session.run("ruff", "check", "src", "--ignore", "D")
 
 
-# @nox.session(name="tests")
-# def tests(session):
-#     """Run the test suite."""
-#     session.run("pytest")  # , "--pdb", "--pdbcls=IPython.terminal.debugger:Pdb")
+@nox.session(name="tests")
+def tests(session):
+    """Run the test suite."""
+    session.run("pytest")  # , "--pdb", "--pdbcls=IPython.terminal.debugger:Pdb")

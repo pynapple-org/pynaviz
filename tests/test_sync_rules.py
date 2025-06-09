@@ -1,6 +1,8 @@
-import pytest
-import pynaviz.synchronization_rules as sync_rules
 from contextlib import nullcontext as does_not_raise
+
+import pytest
+
+import pynaviz.synchronization_rules as sync_rules
 
 
 class TestMatchPanOnXAxis:
