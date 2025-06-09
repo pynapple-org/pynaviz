@@ -75,8 +75,8 @@ class IntervalSetInterface:
         self._epochs.update(new_intervals)
         self._plot_intervals(labels, colors, alpha)
         # append the control action if available
-        if all(f != self._update_all_isets for f in self.controller.plot_updates):
-            self.controller.plot_updates.append(self._update_all_isets)
+        if all(f != self._update_all_isets for f in self.controller._plot_callbacks):
+            self.controller._plot_callbacks.append(self._update_all_isets)
 
     def _plot_intervals(
         self,

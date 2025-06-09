@@ -24,6 +24,7 @@ from .controller import GetController, SpanController
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
+from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 
@@ -88,7 +89,7 @@ class _BasePlot(IntervalSetInterface):
             self.canvas = WgpuCanvas()
 
         # Create a WGPU-based renderer attached to the canvas
-        self.renderer = gfx.WgpuRenderer(self.canvas)
+        self.renderer = gfx.WgpuRenderer(self.canvas)  ## 97% time of super.__init__(...) when running `large_nwb_main.py`
 
         # Create a new scene to hold and manage objects
         self.scene = gfx.Scene()
@@ -322,7 +323,7 @@ class PlotTsd(_BasePlot):
 
         # Create a controller for span-based interaction, syncing, and user inputs
         self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
-                                         dict_sync_funcs=dict_sync_funcs, plot_updates=[])
+                                         dict_sync_funcs=dict_sync_funcs, plot_callbacks=[])
 
         # Prepare geometry: stack time, data, and zeros (Z=0) into (N, 3) float32 positions
         positions = np.stack((data.t, data.d, np.zeros_like(data))).T
@@ -344,6 +345,7 @@ class PlotTsd(_BasePlot):
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
+
 
 class PlotTsdFrame(_BasePlot):
     """
@@ -371,8 +373,39 @@ class PlotTsdFrame(_BasePlot):
     time_point : Optional[gfx.Points]
         A marker showing the selected time point (used in x-vs-y plotting).
     """
+
     def __init__(self, data: nap.TsdFrame, index: Optional[int] = None, parent: Optional[Any] = None):
         super().__init__(data=data, parent=parent)
+        self.data = data
+
+        # Initialize lines for each column in the TsdFrame
+        self.graphic: dict[str, gfx.Line] = {}
+
+        # To stream data
+        self._stream = TsdFrameStreaming(data, callback=self._flush, window_size = 3) # seconds
+
+        # Create pygfx objects
+        for i, c in enumerate(self.data.columns):
+            positions = np.zeros(
+                (len(self._stream), 3), dtype="float32"
+            )
+            self.graphic[c] = gfx.Line(
+                gfx.Geometry(positions=positions),
+                gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
+            )
+
+        # Stream the first batch of data
+        self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
+        self._flush(self._stream.get_slice(start=0, end=1))
+
+        # Add elements to the scene for rendering
+        self.scene.add(
+            self.ruler_x, self.ruler_y, self.ruler_ref_time, *self.graphic.values()
+        )
+
+        # Connect specific event handler for TsdFrame
+        self.renderer.add_event_handler(self._rescale, "key_down")
+        self.renderer.add_event_handler(self._reset, "key_down")
 
         # Controllers for different interaction styles
         self._controllers = {
@@ -380,7 +413,8 @@ class PlotTsdFrame(_BasePlot):
                 camera=self.camera,
                 renderer=self.renderer,
                 controller_id=index,
-                dict_sync_funcs=dict_sync_funcs
+                dict_sync_funcs=dict_sync_funcs,
+                plot_callbacks=[self._stream.stream]
             ),
             "get": GetController(
                 camera=self.camera,
@@ -394,31 +428,38 @@ class PlotTsdFrame(_BasePlot):
         # Use span controller by default
         self.controller = self._controllers["span"]
 
-        # Initialize lines for each column in the TsdFrame
-        self.graphic: dict[str, gfx.Line] = {}
-        for i, c in enumerate(self.data.columns):
-            positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T.astype("float32")
-            self.graphic[c] = gfx.Line(
-                gfx.Geometry(positions=positions),
-                gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
-            )
-
-        self.time_point = None  # Used later in x-vs-y plotting
-
-        # Add elements to the scene for rendering
-        self.scene.add(
-            self.ruler_x, self.ruler_y, self.ruler_ref_time, *self.graphic.values()
-        )
-
-        # Connect specific event handler for TsdFrame
-        self.renderer.add_event_handler(self._rescale, "key_down")
-        self.renderer.add_event_handler(self._reset, "key_down")
+        # Used later in x-vs-y plotting
+        self.time_point = None
 
         # By default, showing only the first second.
-        self.controller.set_view(0, 1, np.min(data), np.max(data))
+        minmax = self._get_min_max()
+        self.controller.set_view(0, 1, np.min(minmax[:,0]), np.max(minmax[:,1]))
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
+
+    def _flush(self, slice_: slice = None):
+        """
+        Flush the data stream from slice_ argument
+        """
+        if slice_ is None:
+            slice_ = self._stream.get_slice(*self.controller.get_xlim())
+
+        time = self.data.t[slice_]
+        n = time.shape[0]
+
+        for i, c in enumerate(self._buffers):
+            self._buffers[c].data[-n:,0] = time.astype("float32")
+            self._buffers[c].data[-n:,1] = (
+                self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
+            ).astype("float32")
+            self._buffers[c].update_full()
+
+    def _get_min_max(self):
+        return np.array([[
+                self._buffers[c].data[:,1].min(),
+                self._buffers[c].data[:,1].max()
+                ] for c in self._buffers])
 
     def _rescale(self, event):
         """
@@ -426,12 +467,18 @@ class PlotTsdFrame(_BasePlot):
         "d" key decrease the scale by 50%
         """
         if event.type == "key_down":
-            if event.key == "i":
-                self._manager.rescale(factor=0.5)
-                self._update()
-            if event.key == "d":
-                self._manager.rescale(factor=-0.5)
-                self._update()
+            if event.key == "i" or event.key == "d":
+                factor = {"i":0.5, "d":-0.5}[event.key]
+
+                # Update the scale of the PlotManager
+                self._manager.rescale(factor=factor)
+
+                # Update the current buffers
+                for c in self._buffers:
+                    self._buffers[c].data[:, 1] = self._buffers[c].data[:, 1] + factor * ( self._buffers[c].data[:, 1] - self._manager.data.loc[c]['offset'])
+                    self._buffers[c].update_full()
+
+                self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
         """
@@ -440,24 +487,24 @@ class PlotTsdFrame(_BasePlot):
         #TODO set the reset for the get controller
         if event.type == "key_down":
             if event.key == "r":
-                self._manager.reset()
-                self._update()
-                self.controller.set_ylim(self.data.min(), self.data.max())
+                if isinstance(self.controller, SpanController):
+                    self._manager.reset()
+                    self._flush()
 
-    def _update(self):
+                minmax = self._get_min_max()
+                self.controller.set_ylim(np.min(minmax[:,0]), np.max(minmax[:,1]))
+                self.canvas.request_draw(self.animate)
+
+    def _update(self, action_name):
         """
-        Update function for sort_by, group_by and rescaling
+        Update function for sort_by and group_by. Because of mode of sort_by, it's not possible
+        to just update the buffer.
         """
-        # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+        # Update the scale only if one action has been performed
+        if self._manager._sorted ^ self._manager._grouped:
+            self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
 
-        for c in geometries:
-            geometries[c].positions.data[:, 1] = (
-                    self.data.loc[c].values * self._manager.data.loc[c]['scale']
-                    + self._manager.data.loc[c]['offset']
-            ).astype("float32")
-
-            geometries[c].positions.update_full()
+        self._flush()
 
         # Update camera to fit the full y range
         self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
@@ -490,12 +537,7 @@ class PlotTsdFrame(_BasePlot):
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
             self._manager.sort_by(values, mode)
 
-            # By default, this action reset the scale of each line
-            self._manager.scale = 1 / np.array([
-                np.max(self.data.loc[c])-np.min(self.data.loc[c])
-                for c in self._manager.index])
-
-            self._update()
+            self._update("sort_by")
 
     def group_by(self, metadata_name: str, **kwargs):
         """
@@ -519,12 +561,7 @@ class PlotTsdFrame(_BasePlot):
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values)
 
-            # This action reset the scale of each line only if scale is 1
-            self._manager.scale = 1 / np.array([
-                np.max(self.data.loc[c])-np.min(self.data.loc[c])
-                for c in self._manager.index])
-
-            self._update()
+            self._update("group_by")
 
     def plot_x_vs_y(
         self,
