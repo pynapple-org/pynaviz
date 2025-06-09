@@ -809,6 +809,10 @@ class PlotIntervalSet(_BasePlot):
             data, color="cyan", transparency=1
         )
         self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time)
+
+        # By default, showing only the first second.
+        self.controller.set_view(0, 1, -0.5, 0.5)
+
         self.canvas.request_draw(self.animate)
 
     def _update(self):
