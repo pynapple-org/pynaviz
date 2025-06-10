@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 import av
 import numpy as np
 from numpy.typing import NDArray
+from line_profiler import profile
 import time
 
 def extract_keyframe_times_and_points(
@@ -90,12 +91,12 @@ def ts_to_index(ts: float, time: NDArray) -> int:
 
 class VideoHandler:
     """Class for getting video frames."""
-    def __init__(self, video_path: str | pathlib.Path, stream_index=0,  time: Optional[NDArray]=None, flush_every=10) -> None:
+    def __init__(self, video_path: str | pathlib.Path, stream_index=0, time: Optional[NDArray]=None, return_frame_array=True) -> None:
         self.video_path = pathlib.Path(video_path)
         self.container = av.open(video_path)
         self.stream = self.container.streams.video[stream_index]
         self.stream_index = stream_index
-        self.flush_every = 10
+        self.return_frame_array = return_frame_array
 
         # default to linspace
         if time is None:
@@ -166,7 +167,7 @@ class VideoHandler:
                 for frame in packet.decode():
                     if frame.pts is not None:
                         pts_list.append(frame.pts)
-                        if current_index % flush_every == 0:
+                        if current_index % flush_every == 1:
                             with self._lock:
                                 self.all_pts = pts_list
                                 self._i = current_index
@@ -186,12 +187,12 @@ class VideoHandler:
         self.container.seek(int(pts_keyframe), backward=True, any_frame=False, stream=self.stream)
         self.packet_iter = self.container.demux(self.stream)
 
-
+    @profile
     def get(self, ts: float) -> av.VideoFrame:
         idx = ts_to_index(ts, self.time)
 
         if idx == self.last_idx:
-            return self.current_frame
+            return self.current_frame.to_ndarray(format="yuv420p") if self.return_frame_array else self.current_frame
 
         # Wait until enough index is available
         # Estimate pts from index (using filled index if available)
@@ -212,23 +213,68 @@ class VideoHandler:
                 # Linear extrapolation from available pts (use last 10 steps for an estimate)
                 start, stop = max(self._i - 10, 0), self._i
                 avg_step = np.mean(np.diff(self.all_pts[start:stop]))
-                target_pts = int(self.all_pts[-1] + avg_step * (idx - (self._i - 1)))
+                target_pts = int(self.all_pts[0] + avg_step * idx)
                 use_time = True
 
         self.seek(target_pts)
 
         # Decode forward from the keypoint until the frame just before (or equal to) target_pts
-        preceding_frame = None
+        packet = self._get_preceding_packet_without_decoding(target_pts)
+        last_idx, preceding_frame = self._decode_and_check_frames(packet, use_time, target_pts, idx)
+
+        if preceding_frame is not None:
+            self.last_idx = idx
+            self.current_frame = preceding_frame
+
+        return preceding_frame.to_ndarray(format="yuv420p") if self.return_frame_array else preceding_frame
+
+
+    def _get_preceding_packet_without_decoding(self, target_pts):
+        preceding_packet = None
         for packet in self.packet_iter:
+            if packet is None:
+                continue
+            if packet.pts is None:
+                # end of the video stream
+                return preceding_packet
+            #print("packet", packet)
+            if packet.pts > target_pts:
+                return preceding_packet
+            preceding_packet = packet
+        return preceding_packet
+
+    @profile
+    def _decode_and_check_frames(self, packet, use_time: bool, target_pts: int, idx: int):
+        if packet is None:
+            return self.last_idx, None
+
+        # print(packet.pts)
+        self.seek(packet.pts)
+
+        preceding_frame = None
+        last_idx = self.last_idx
+
+        #print("packet pts", packet.pts)
+        for packet in self.packet_iter:
+            if packet is None:
+                continue
+            time_threshold =  self.round_fn(float(idx / self.stream.base_rate))
             for frame in packet.decode():
                 if frame.pts is None:
                     continue
-                if (not use_time and frame.pts > target_pts) or (use_time and frame.time > self.round_fn(float(idx / self.stream.base_rate))):
-                    self.last_idx = idx
-                    self.current_frame = preceding_frame or frame
-                    return self.current_frame
+                #print("frame pts", frame.pts)
+                if (not use_time and frame.pts > target_pts) or (
+                        use_time and frame.time > time_threshold
+                ):
+                    last_idx = idx
+                    current_frame = preceding_frame or frame
+                    return last_idx, current_frame
+                elif (not use_time and frame.pts == target_pts) or (
+                        use_time and frame.time == time_threshold
+                ):
+                    last_idx = idx
+                    current_frame = frame
+                    return last_idx, current_frame
                 preceding_frame = frame
+        return last_idx, preceding_frame
 
-        self.last_idx = idx
-        self.current_frame = preceding_frame
-        return preceding_frame
