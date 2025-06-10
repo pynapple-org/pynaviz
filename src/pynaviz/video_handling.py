@@ -195,9 +195,13 @@ class VideoHandler:
                 # the pts for this timestamp has been filled
                 target_pts = self.all_pts[idx]
                 use_time = False
+            elif self._i > 1:
+                # Linear extrapolation from available pts
+                avg_step = (self.all_pts[self._i - 1] - self.all_pts[0]) / (self._i - 1)
+                target_pts = int(self.all_pts[-1] + avg_step * (idx - (self._i - 1)))
             else:
-                # No index built yet — fallback to estimation via frame rate
-                target_pts = int(round(idx / self.stream.base_rate))
+                # Fallback
+                target_pts = max(0, idx - 1)
                 use_time = True
 
         self.seek(target_pts)
@@ -208,6 +212,7 @@ class VideoHandler:
             for frame in packet.decode():
                 if frame.pts is None:
                     continue
+                print(target_pts, frame.time)
                 if (not use_time and frame.pts > target_pts) or (use_time and frame.time > self.round_fn(float(idx / self.stream.base_rate))):
                     self.last_idx = idx
                     self.current_frame = preceding_frame or frame
