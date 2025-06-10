@@ -1,5 +1,6 @@
 import pathlib
 import threading
+import warnings
 from typing import Optional, Tuple
 
 import av
@@ -100,10 +101,12 @@ class VideoHandler:
 
         # default to linspace
         if time is None:
+            self._time_provided = False
             n_frames = self.stream.frames
             frame_duration = 1 / float(self.stream.average_rate)
             self.time = np.linspace(0, frame_duration * n_frames - frame_duration, n_frames)
         else:
+            self._time_provided = True
             self.time = np.asarray(time)
 
         # initialize decoded frame last index
@@ -277,4 +280,16 @@ class VideoHandler:
                     return last_idx, current_frame
                 preceding_frame = frame
         return last_idx, preceding_frame
+
+
+    @property
+    def shape(self):
+        if self._time_provided:
+            return (len(self.time), )
+        has_frames = hasattr(self.stream, "frames") and self.stream.frames > 0
+        is_done_unpacking = self._index_ready.is_set()
+        if not has_frames and not is_done_unpacking:
+            warnings.warn(message="Video ``shape``, which corresponds to the number of frames, is being "
+                                  "calculated runtime and will be updated.")
+        return (len(self.time), ) if has_frames else (len(self.all_pts), )
 
