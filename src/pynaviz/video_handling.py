@@ -221,7 +221,6 @@ class VideoHandler:
             for frame in packet.decode():
                 if frame.pts is None:
                     continue
-                print(target_pts, frame.time)
                 if (not use_time and frame.pts > target_pts) or (use_time and frame.time > self.round_fn(float(idx / self.stream.base_rate))):
                     self.last_idx = idx
                     self.current_frame = preceding_frame or frame
