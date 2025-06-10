@@ -192,6 +192,7 @@ class VideoHandler:
         # Estimate pts from index (using filled index if available)
         with self._lock:
             if self._i > idx:
+                # the pts for this timestamp has been filled
                 target_pts = self.all_pts[idx]
                 use_time = False
             else:
