@@ -3,6 +3,7 @@ Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
 
+import pathlib
 import threading
 import warnings
 from typing import Any, Optional, Union
@@ -14,8 +15,11 @@ import pygfx as gfx
 import pynapple as nap
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
+from numpy.typing import NDArray
 from wgpu.gui.auto import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
+)
+from wgpu.gui.auto import (
     run,
 )
 from wgpu.gui.glfw import GlfwWgpuCanvas
@@ -26,6 +30,7 @@ from .plot_manager import _PlotManager
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
+from .video_handling import VideoHandler
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -82,9 +87,9 @@ class _BasePlot(IntervalSetInterface):
         self._data = data
 
         # Create a GPU-accelerated canvas for rendering, optionally with a parent widget
-        if parent: # Assuming it's a Qt background
+        if parent:  # Assuming it's a Qt background
             self.canvas = WgpuCanvas(parent=parent)
-        else: # Default to glfw for single canvas
+        else:  # Default to glfw for single canvas
             self.canvas = WgpuCanvas()
 
         # Create a WGPU-based renderer attached to the canvas
@@ -116,11 +121,11 @@ class _BasePlot(IntervalSetInterface):
 
         # Set the plot manager that store past actions only for data with metadata class
         if isinstance(data, (nap.TsGroup, nap.IntervalSet)):
-            index=data.index
+            index = data.index
         elif isinstance(data, nap.TsdFrame):
-            index=data.columns
+            index = data.columns
         else:
-            index=[]
+            index = []
         self._manager = _PlotManager(index=index)
 
     @property
@@ -202,11 +207,12 @@ class _BasePlot(IntervalSetInterface):
         if isinstance(self.canvas, GlfwWgpuCanvas):
             run()
 
-    def color_by(self,
-            metadata_name: str,
-            cmap_name: str = "viridis",
-            vmin: float = 0.0,
-            vmax: float = 100.0,
+    def color_by(
+        self,
+        metadata_name: str,
+        cmap_name: str = "viridis",
+        vmin: float = 0.0,
+        vmax: float = 100.0,
     ) -> None:
         """
         Applies color mapping to plot elements based on a metadata field.
@@ -317,12 +323,19 @@ class PlotTsd(_BasePlot):
         The main line plot showing the time series.
     """
 
-    def __init__(self, data: nap.Tsd, index: Optional[int] = None, parent: Optional[Any] = None) -> None:
+    def __init__(
+        self, data: nap.Tsd, index: Optional[int] = None, parent: Optional[Any] = None
+    ) -> None:
         super().__init__(data=data, parent=parent)
 
         # Create a controller for span-based interaction, syncing, and user inputs
-        self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
-                                         dict_sync_funcs=dict_sync_funcs, plot_updates=[])
+        self.controller = SpanController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs,
+            plot_updates=[],
+        )
 
         # Prepare geometry: stack time, data, and zeros (Z=0) into (N, 3) float32 positions
         positions = np.stack((data.t, data.d, np.zeros_like(data))).T
@@ -344,6 +357,7 @@ class PlotTsd(_BasePlot):
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
+
 
 class PlotTsdFrame(_BasePlot):
     """
@@ -371,7 +385,13 @@ class PlotTsdFrame(_BasePlot):
     time_point : Optional[gfx.Points]
         A marker showing the selected time point (used in x-vs-y plotting).
     """
-    def __init__(self, data: nap.TsdFrame, index: Optional[int] = None, parent: Optional[Any] = None):
+
+    def __init__(
+        self,
+        data: nap.TsdFrame,
+        index: Optional[int] = None,
+        parent: Optional[Any] = None,
+    ):
         super().__init__(data=data, parent=parent)
 
         # Controllers for different interaction styles
@@ -380,7 +400,7 @@ class PlotTsdFrame(_BasePlot):
                 camera=self.camera,
                 renderer=self.renderer,
                 controller_id=index,
-                dict_sync_funcs=dict_sync_funcs
+                dict_sync_funcs=dict_sync_funcs,
             ),
             "get": GetController(
                 camera=self.camera,
@@ -397,10 +417,14 @@ class PlotTsdFrame(_BasePlot):
         # Initialize lines for each column in the TsdFrame
         self.graphic: dict[str, gfx.Line] = {}
         for i, c in enumerate(self.data.columns):
-            positions = np.stack((data.t, data.d[:, i], np.zeros(data.shape[0]))).T.astype("float32")
+            positions = np.stack(
+                (data.t, data.d[:, i], np.zeros(data.shape[0]))
+            ).T.astype("float32")
             self.graphic[c] = gfx.Line(
                 gfx.Geometry(positions=positions),
-                gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
+                gfx.LineMaterial(
+                    thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]
+                ),
             )
 
         self.time_point = None  # Used later in x-vs-y plotting
@@ -437,7 +461,7 @@ class PlotTsdFrame(_BasePlot):
         """
         "r" key reset the plot manager to initial view
         """
-        #TODO set the reset for the get controller
+        # TODO set the reset for the get controller
         if event.type == "key_down":
             if event.key == "r":
                 self._manager.reset()
@@ -449,12 +473,12 @@ class PlotTsdFrame(_BasePlot):
         Update function for sort_by, group_by and rescaling
         """
         # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+        geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
         for c in geometries:
             geometries[c].positions.data[:, 1] = (
-                    self.data.loc[c].values * self._manager.data.loc[c]['scale']
-                    + self._manager.data.loc[c]['offset']
+                self.data.loc[c].values * self._manager.data.loc[c]["scale"]
+                + self._manager.data.loc[c]["offset"]
             ).astype("float32")
 
             geometries[c].positions.update_full()
@@ -491,9 +515,12 @@ class PlotTsdFrame(_BasePlot):
             self._manager.sort_by(values, mode)
 
             # By default, this action reset the scale of each line
-            self._manager.scale = 1 / np.array([
-                np.max(self.data.loc[c])-np.min(self.data.loc[c])
-                for c in self._manager.index])
+            self._manager.scale = 1 / np.array(
+                [
+                    np.max(self.data.loc[c]) - np.min(self.data.loc[c])
+                    for c in self._manager.index
+                ]
+            )
 
             self._update()
 
@@ -520,9 +547,12 @@ class PlotTsdFrame(_BasePlot):
             self._manager.group_by(values)
 
             # This action reset the scale of each line only if scale is 1
-            self._manager.scale = 1 / np.array([
-                np.max(self.data.loc[c])-np.min(self.data.loc[c])
-                for c in self._manager.index])
+            self._manager.scale = 1 / np.array(
+                [
+                    np.max(self.data.loc[c]) - np.min(self.data.loc[c])
+                    for c in self._manager.index
+                ]
+            )
 
             self._update()
 
@@ -602,13 +632,20 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
+
 class PlotTsGroup(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
         super().__init__(data=data, parent=parent)
 
         # Pynaviz specific controller
-        self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
-                                         dict_sync_funcs=dict_sync_funcs, min=0, max=len(data) + 1)
+        self.controller = SpanController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs,
+            min=0,
+            max=len(data) + 1,
+        )
 
         self.graphic = {}
         for i, n in enumerate(data.keys()):
@@ -619,7 +656,11 @@ class PlotTsGroup(_BasePlot):
 
             self.graphic[n] = gfx.Points(
                 gfx.Geometry(positions=positions),
-                gfx.PointsMaterial(size=5, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)], opacity=1),
+                gfx.PointsMaterial(
+                    size=5,
+                    color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)],
+                    opacity=1,
+                ),
             )
 
         self.scene.add(self.ruler_x, self.ruler_y, *list(self.graphic.values()))
@@ -637,7 +678,7 @@ class PlotTsGroup(_BasePlot):
             Options are ["ascending"[default], "descending"]
         """
         # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry") # Dict index -> geometry
+        geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
         # Grabbing the metadata
         values = (
@@ -659,6 +700,7 @@ class PlotTsGroup(_BasePlot):
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
+
 
 class PlotTsdTensor(_BasePlot):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
@@ -707,14 +749,102 @@ class PlotTsdTensor(_BasePlot):
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
 
+
 class PlotTs(_BasePlot):
     def __init__(self, data: nap.Ts, index=None, parent=None):
         super().__init__(parent=parent)
         self.data = data
 
         # Pynaviz specific controller
-        self.controller = SpanController(camera=self.camera, renderer=self.renderer, controller_id=index,
-                                         dict_sync_funcs=dict_sync_funcs)
+        self.controller = SpanController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs,
+        )
+
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
+        pass
+
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
+
+
+class PlotVideo(_BasePlot):
+    def __init__(
+        self,
+        video_path: str | pathlib.Path,
+        time: Optional[NDArray] = None,
+        stream_index: int = 0,
+        index=None,
+        parent=None,
+    ):
+        """
+        Video index.
+
+        Parameters
+        ----------
+        video_path:
+            Path to the video.
+        time:
+            Time of each frame, if available. Otherwise, it will be extracted from the video metadata.
+        stream_index:
+            Index of the video stream. Usually, each file contains a single video stream, but there
+            are formats that may contain multiple streams.
+        index:
+            The controller group index.
+        parent:
+            Parent object.
+        """
+        data = VideoHandler(video_path, time=time, stream_index=index)
+        super().__init__(data, parent=parent, maintain_aspect=True)
+
+        # Image
+        texture = gfx.Texture(self.data.values[0].astype("float32"), dim=2)
+        self.image = gfx.Image(
+            gfx.Geometry(grid=texture),
+            gfx.ImageBasicMaterial(clim=(0, 1)),
+        )
+        # Text of the current time
+        self.time_text = gfx.Text(
+            text="0.0",
+            font_size=0.5,
+            anchor="bottom-left",
+            material=gfx.TextMaterial(
+                color="#B4F8C8", outline_color="#000", outline_thickness=0.15
+            ),
+        )
+
+        self.time_text.geometry.anchor = "bottom-left"
+
+        self.scene.add(self.image, self.time_text)
+        self.camera.show_object(self.scene)  # , view_dir=(0, 0, -1))
+
+        # # Pynaviz specific controller
+        self.controller = GetController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            data=data,
+            buffer=texture,
+            time_text=self.time_text,
+        )
+
+        # In the draw event, the draw function is called
+        # This assign the function draw_frame of WgpuCanvasBase
+        self.canvas.request_draw(
+            draw_function=lambda: self.renderer.render(self.scene, self.camera)
+        )
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        raise ValueError(
+            "Cannot set data for ``PlotVideo``. Data must be a fixed video stream."
+        )
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         pass
