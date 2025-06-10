@@ -98,6 +98,7 @@ class VideoHandler:
         self.stream = self.container.streams.video[stream_index]
         self.stream_index = stream_index
         self.return_frame_array = return_frame_array
+        self._running = True
 
         # default to linspace
         if time is None:
@@ -195,7 +196,7 @@ class VideoHandler:
         idx = ts_to_index(ts, self.time)
 
         if idx == self.last_idx:
-            return self.current_frame.to_ndarray(format="yuv420p") if self.return_frame_array else self.current_frame
+            return self.current_frame.to_ndarray(format="rgb24")[::-1] / 255. if self.return_frame_array else self.current_frame
 
         # Wait until enough index is available
         # Estimate pts from index (using filled index if available)
@@ -229,7 +230,7 @@ class VideoHandler:
             self.last_idx = idx
             self.current_frame = preceding_frame
 
-        return preceding_frame.to_ndarray(format="yuv420p") if self.return_frame_array else preceding_frame
+        return self.current_frame.to_ndarray(format="rgb24")[::-1] / 255. if self.return_frame_array else self.current_frame
 
 
     def _get_preceding_packet_without_decoding(self, target_pts):
@@ -285,11 +286,37 @@ class VideoHandler:
     @property
     def shape(self):
         if self._time_provided:
-            return (len(self.time), )
+            return len(self.time), self.stream.width, self.stream.height
         has_frames = hasattr(self.stream, "frames") and self.stream.frames > 0
         is_done_unpacking = self._index_ready.is_set()
         if not has_frames and not is_done_unpacking:
             warnings.warn(message="Video ``shape``, which corresponds to the number of frames, is being "
                                   "calculated runtime and will be updated.")
-        return (len(self.time), ) if has_frames else (len(self.all_pts), )
+        return (len(self.time), self.stream.width, self.stream.height) if has_frames else (len(self.all_pts), self.stream.width, self.stream.height)
 
+
+    @property
+    def index(self):
+        if self._time_provided:
+            return self.time
+        else:
+            has_frames = hasattr(self.stream, "frames") and self.stream.frames > 0
+            is_done_unpacking = self._index_ready.is_set()
+            if not has_frames and not is_done_unpacking:
+                warnings.warn(message="Video ``shape``, which corresponds to the number of frames, is being "
+                                      "calculated runtime and will be updated.")
+            return self.time
+
+    @property
+    def t(self):
+        return self.time
+
+    def close(self):
+        """Close the video stream."""
+        self._running = False
+        if self._index_thread.is_alive():
+            self._index_thread.join(timeout=1)  # Be conservative, don’t block forever
+        try:
+            self.container.close()
+        except Exception:
+            pass
