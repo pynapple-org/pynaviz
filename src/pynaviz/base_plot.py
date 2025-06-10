@@ -796,11 +796,12 @@ class PlotVideo(_BasePlot):
         parent:
             Parent object.
         """
-        data = VideoHandler(video_path, time=time, stream_index=index)
+        data = VideoHandler(video_path, time=time, stream_index=stream_index)
         super().__init__(data, parent=parent, maintain_aspect=True)
 
         # Image
-        texture = gfx.Texture(self.data.values[0].astype("float32"), dim=2)
+        img = self.data.get(self.data.time[0])
+        texture = gfx.Texture(img.astype("float32"), dim=2)
         self.image = gfx.Image(
             gfx.Geometry(grid=texture),
             gfx.ImageBasicMaterial(clim=(0, 1)),
@@ -851,3 +852,9 @@ class PlotVideo(_BasePlot):
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
+
+    def close(self):
+        try:
+            self._data.close()
+        except Exception:
+            pass
