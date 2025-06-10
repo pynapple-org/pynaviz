@@ -28,7 +28,7 @@ def video_info(request):
 @pytest.mark.parametrize("requested_frame_ts, expected_frame_id", [(0, 0), (0.1, 0), (1., 1), (1.1, 1), (1.6, 1), (99, 99), (99.6, 99), (111, 99)])
 def test_video_handler(video_info, requested_frame_ts, expected_frame_id):
     frame_pts_ref, _, video = video_info
-    handler = video_handling.VideoHandler(video, time=np.arange(100))
+    handler = video_handling.VideoHandler(video, time=np.arange(100), return_frame_array=False)
     frame = handler.get(requested_frame_ts)
     expected_pts = frame_pts_ref[expected_frame_id]
     assert frame.pts == expected_pts
