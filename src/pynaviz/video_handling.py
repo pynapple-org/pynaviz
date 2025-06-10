@@ -1,12 +1,11 @@
 import pathlib
 import threading
-from math import floor
 from typing import Optional, Tuple
 
 import av
 import numpy as np
 from numpy.typing import NDArray
-
+import time
 
 def extract_keyframe_times_and_points(
         video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
@@ -148,8 +147,9 @@ class VideoHandler:
                 for frame in packet.decode():
                     if self._i >= n_frames:
                         break
-                    self.all_pts[self._i] = frame.pts
-                    self._i += 1
+                    with self._lock:
+                        self.all_pts[self._i] = frame.pts
+                        self._i += 1
 
             self._index_ready.set()
 
@@ -158,14 +158,17 @@ class VideoHandler:
             stream = container.streams.video[self.stream_index]
             pts_list = []
 
+            current_index = 0
+            flush_every = 10  # number of frames over which flushing to all points
             for packet in container.demux(stream):
                 for frame in packet.decode():
                     if frame.pts is not None:
                         pts_list.append(frame.pts)
-
-            with self._lock:
-                self.all_pts = np.array(pts_list, dtype=np.int64)
-                self._i = len(self.all_pts)
+                        if current_index % flush_every == 0:
+                            with self._lock:
+                                self.all_pts = pts_list
+                                self._i = current_index
+                        current_index += 1
 
             self._index_ready.set()
 
@@ -190,18 +193,22 @@ class VideoHandler:
 
         # Wait until enough index is available
         # Estimate pts from index (using filled index if available)
-        with self._lock:
-            if self._i > idx:
-                # the pts for this timestamp has been filled
+        if self._i > idx:
+            # the pts for this timestamp has been filled
+            with self._lock:
                 target_pts = self.all_pts[idx]
-                use_time = False
-            elif self._i > 1:
-                # Linear extrapolation from available pts
-                avg_step = (self.all_pts[self._i - 1] - self.all_pts[0]) / (self._i - 1)
+            use_time = False
+        else:
+            while True:
+                with self._lock:
+                    if self._i > 1:
+                        break
+                time.sleep(0.001)
+            with self._lock:
+                # Linear extrapolation from available pts (use last 10 steps for an estimate)
+                start, stop = max(self._i - 10, 0), self._i
+                avg_step = np.mean(np.diff(self.all_pts[start:stop]))
                 target_pts = int(self.all_pts[-1] + avg_step * (idx - (self._i - 1)))
-            else:
-                # Fallback
-                target_pts = max(0, idx - 1)
                 use_time = True
 
         self.seek(target_pts)
