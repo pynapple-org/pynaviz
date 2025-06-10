@@ -1,5 +1,6 @@
 import pathlib
 import threading
+from math import floor
 from typing import Optional, Tuple
 
 import av
@@ -90,10 +91,12 @@ def ts_to_index(ts: float, time: NDArray) -> int:
 
 class VideoHandler:
     """Class for getting video frames."""
-    def __init__(self, video_path: str | pathlib.Path, stream_index=0,  time: Optional[NDArray]=None) -> None:
+    def __init__(self, video_path: str | pathlib.Path, stream_index=0,  time: Optional[NDArray]=None, flush_every=10) -> None:
         self.video_path = pathlib.Path(video_path)
         self.container = av.open(video_path)
         self.stream = self.container.streams.video[stream_index]
+        self.stream_index = stream_index
+        self.flush_every = 10
 
         # default to linspace
         if time is None:
@@ -102,14 +105,6 @@ class VideoHandler:
             self.time = np.linspace(0, frame_duration * n_frames - frame_duration, n_frames)
         else:
             self.time = np.asarray(time)
-
-        # initialize keyframe ts decoding one packet only
-        # the rest done in thread
-        self.keyframe_pts, self.keyframe_timestamp  = extract_keyframe_times_and_points(video_path, stream_index, True)
-
-        # run a thread extracting the keyframe
-        self.keyframe_lock = threading.Lock()
-        threading.Timer(0.0001, self.extract_keyframe_indices_and_timestamps).start()
 
         # initialize decoded frame last index
         # if sampling of other signals (LFP) is much denser, multiple times the frame
@@ -124,15 +119,62 @@ class VideoHandler:
         else:
             self.round_fn = lambda x: x
 
+        # These will be initialized in the thread once n_frames is known
+        self.all_pts = None
+        self.all_times = None
+        self.key_mask = None
 
-    def extract_keyframe_indices_and_timestamps(self):
-        """
-        Loop over keypoints and extract their frame time stamp and presentation time stamp.
-        """
-        keyframes, keyframe_timestamp = extract_keyframe_times_and_points(self.video_path)
-        with self.keyframe_lock:
-            self.keyframe_pts = keyframes
-            self.keyframe_timestamp = keyframe_timestamp
+        self._i = 0  # write position
+        self._lock = threading.Lock()
+        if self.stream.frames and self.stream.frames > 0:
+            self._index_thread = threading.Thread(target=self._build_index_fixed_size, daemon=True)
+        else:
+            self._index_thread = threading.Thread(target=self._build_index_dynamic, daemon=True)
+        self._index_thread.start()
+        self._index_ready = threading.Event()
+
+    def _build_index_fixed_size(self):
+        with av.open(self.video_path) as container:
+            stream = container.streams.video[self.stream_index]
+            n_frames = stream.frames
+
+            if not n_frames or n_frames <= 0:
+                raise ValueError("Cannot determine total number of frames in stream.")
+
+            self.all_pts = np.empty(n_frames, dtype=np.int64)
+            self._i = 0  # Number of valid entries
+
+            for packet in container.demux(stream):
+                for frame in packet.decode():
+                    if self._i >= n_frames:
+                        break
+                    self.all_pts[self._i] = frame.pts
+                    self._i += 1
+
+            self._index_ready.set()
+
+    def _build_index_dynamic(self):
+        with av.open(self.video_path) as container:
+            stream = container.streams.video[self.stream_index]
+            pts_list = []
+
+            for packet in container.demux(stream):
+                for frame in packet.decode():
+                    if frame.pts is not None:
+                        pts_list.append(frame.pts)
+
+            with self._lock:
+                self.all_pts = np.array(pts_list, dtype=np.int64)
+                self._i = len(self.all_pts)
+
+            self._index_ready.set()
+
+            self._index_ready.set()
+
+    def get_index_snapshot(self):
+        """Return a snapshot of current index arrays up to the latest written index."""
+        with self._lock:
+            return self.all_pts[:self._i]
 
 
     def seek(self, pts_keyframe):
@@ -146,58 +188,37 @@ class VideoHandler:
         self.container.seek(int(pts_keyframe), backward=True, any_frame=False, stream=self.stream)
         self.packet_iter = self.container.demux(self.stream)
 
-
     def get(self, ts: float) -> av.VideoFrame:
-        """Get the frame preceding ts.
-
-        Parameters
-        ----------
-        ts : float
-            Timestamp of the frame.
-
-        Returns
-        -------
-        frame :
-            The frame. Call ``to_ndarray`` to retrieve array of the frame for the WGPU
-            buffer. Use ``format="yuv420p"`` for max efficiency.
-        """
         idx = ts_to_index(ts, self.time)
 
-        # if ts did not change frame, return current
         if idx == self.last_idx:
             return self.current_frame
 
-        # current duration from ts
-        # mkv rounds to 3 decimals, so apply here too otherwise
-        # search in mode ``closest`` may fail due to rounding errors.
-        delta_t = self.round_fn(float(idx / self.stream.base_rate))
+        # Wait until enough index is available
+        # Estimate pts from index (using filled index if available)
+        with self._lock:
+            if self._i > idx:
+                target_pts = self.all_pts[idx]
+                use_time = False
+            else:
+                # No index built yet — fallback to estimation via frame rate
+                target_pts = int(round(idx / self.stream.base_rate))
+                use_time = True
 
-        # calculate putative keypoint
-        with self.keyframe_lock:
-            previous_keypoint_idx = np.clip(
-                np.searchsorted(self.keyframe_timestamp, delta_t, side="right") - 1,
-                0,
-                len(self.keyframe_pts) - 1
-            )
-            self.seek(self.keyframe_pts[previous_keypoint_idx])
+        self.seek(target_pts)
 
-        # Decode frames from keyframe forward until delta_t is exceeded
+        # Decode forward from the keypoint until the frame just before (or equal to) target_pts
         preceding_frame = None
-
         for packet in self.packet_iter:
             for frame in packet.decode():
-                if frame.time is None:
-                    continue  # Skip bad frames
-
-                if frame.time > delta_t:
-                    # Found a frame after target — return the preceding one
+                if frame.pts is None:
+                    continue
+                if (not use_time and frame.pts > target_pts) or (use_time and frame.time > self.round_fn(float(idx / self.stream.base_rate))):
                     self.last_idx = idx
                     self.current_frame = preceding_frame or frame
                     return self.current_frame
-
                 preceding_frame = frame
 
-        # Fallback: return last decoded frame (end of video)
         self.last_idx = idx
         self.current_frame = preceding_frame
         return preceding_frame
