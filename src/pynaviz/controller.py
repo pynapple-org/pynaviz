@@ -13,6 +13,7 @@ from pygfx import Camera, PanZoomController, Renderer, Viewport
 
 from .events import SyncEvent
 from .utils import _get_event_handle
+from .video_handling import VideoHandler
 
 
 class CustomController(ABC, PanZoomController):
@@ -229,7 +230,7 @@ class GetController(CustomController):
         auto_update: bool = True,
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
-        data: Optional[Union[nap.TsdFrame, nap.TsdTensor]] = None,
+        data: Optional[Union[nap.TsdFrame, nap.TsdTensor, VideoHandler]] = None,
         buffer: pygfx.Buffer = None,
         time_text: gfx.Text = None,
     ):
@@ -242,7 +243,6 @@ class GetController(CustomController):
         )
         self.data = data
         if self.data:
-            self.n_frames = data.shape[0]
             self.frame_index = 0
         self.buffer = buffer
         self.time_text = time_text
@@ -253,7 +253,8 @@ class GetController(CustomController):
 
     @frame_index.setter
     def frame_index(self, value):
-        self._frame_index = max(min(value, self.n_frames), 0)
+        n_frames = self.data.shape[0]
+        self._frame_index = max(min(value, n_frames), 0)
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         """Should convert the jump of time to camera position
