@@ -199,11 +199,13 @@ class VideoHandler:
                 target_pts = self.all_pts[idx]
             use_time = False
         else:
+            # keep going until at least two frames have been decoded by the thread
             while True:
                 with self._lock:
                     if self._i > 1:
                         break
                 time.sleep(0.001)
+            # use recent history to get the step estimate
             with self._lock:
                 # Linear extrapolation from available pts (use last 10 steps for an estimate)
                 start, stop = max(self._i - 10, 0), self._i
