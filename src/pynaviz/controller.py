@@ -256,17 +256,26 @@ class GetController(CustomController):
         n_frames = self.data.shape[0]
         self._frame_index = max(min(value, n_frames), 0)
 
+    def _get_current_time(self):
+        if hasattr(self.data.index, "values"):
+            return self.data.index.values[self.frame_index]
+        else:
+            return self.data.index[self.frame_index]
+
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         """Should convert the jump of time to camera position
         before emitting the sync event.
         Does not propagate to the original PanZoomController
         """
-        current_t = self.data.index.values[self.frame_index]
+        current_t = self._get_current_time()
         if delta > 0:
             self.frame_index += 1
         else:
             self.frame_index -= 1
-        delta_t = self.data.index.values[self.frame_index] - current_t
+
+        self.frame_index = min(max(self.frame_index, 0), self.data.shape[0] - 1)
+
+        delta_t = self._get_current_time() - current_t
 
         if (
             self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
@@ -275,7 +284,11 @@ class GetController(CustomController):
                 "float32"
             )
         else:
-            self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+            img_array = (
+                self.data.values[self.frame_index] if hasattr(self.data, "values") else
+                self.data.get(self.data.time[self.frame_index])
+            )
+            self.buffer.data[:] = img_array.astype("float32")
         self.buffer.update_full()
 
         if self.time_text:
