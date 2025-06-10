@@ -169,13 +169,6 @@ class VideoHandler:
 
             self._index_ready.set()
 
-            self._index_ready.set()
-
-    def get_index_snapshot(self):
-        """Return a snapshot of current index arrays up to the latest written index."""
-        with self._lock:
-            return self.all_pts[:self._i]
-
 
     def seek(self, pts_keyframe):
         """Find the nearest keypoint frame``.
@@ -187,6 +180,7 @@ class VideoHandler:
         # calculate the number of points
         self.container.seek(int(pts_keyframe), backward=True, any_frame=False, stream=self.stream)
         self.packet_iter = self.container.demux(self.stream)
+
 
     def get(self, ts: float) -> av.VideoFrame:
         idx = ts_to_index(ts, self.time)
