@@ -6,7 +6,6 @@ from typing import Optional, Tuple
 import av
 import numpy as np
 from numpy.typing import NDArray
-from line_profiler import profile
 import time
 
 def extract_keyframe_times_and_points(
@@ -95,7 +94,7 @@ def extract_keyframe_pts(video_path: str | pathlib.Path) -> NDArray:
     with av.open(video_path) as container:
         stream = container.streams.video[0]
         keyframe_pts = [packet.pts for packet in container.demux(stream) if packet.is_keyframe]
-    return np.array(keyframe_pts, int, copy=False)
+    return np.array(keyframe_pts, int)
 
 
 class VideoHandler:
@@ -216,7 +215,6 @@ class VideoHandler:
         return closest_keypoint_pts > current_frame_pts
 
 
-    @profile
     def get(self, ts: float) -> av.VideoFrame:
         idx = ts_to_index(ts, self.time)
 
@@ -258,7 +256,6 @@ class VideoHandler:
         return self.current_frame.to_ndarray(format="rgb24")[::-1] / 255. if self.return_frame_array else self.current_frame
 
 
-    @profile
     def _decode_and_check_frames(self, use_time: bool, target_pts: int, idx: int):
         """Decode from stream."""
         preceding_frame = None
