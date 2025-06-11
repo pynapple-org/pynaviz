@@ -90,6 +90,14 @@ def ts_to_index(ts: float, time: NDArray) -> int:
     return np.clip(idx, 0, len(time) - 1)
 
 
+def extract_keyframe_pts(video_path: str | pathlib.Path) -> NDArray:
+    """Extract keyframe presentation time without decoding."""
+    with av.open(video_path) as container:
+        stream = container.streams.video[0]
+        keyframe_pts = [packet.pts for packet in container.demux(stream) if packet.is_keyframe]
+    return np.array(keyframe_pts, int, copy=False)
+
+
 class VideoHandler:
     """Class for getting video frames."""
     def __init__(self, video_path: str | pathlib.Path, stream_index=0, time: Optional[NDArray]=None, return_frame_array=True) -> None:
@@ -116,7 +124,7 @@ class VideoHandler:
         self.last_idx = None
 
         # initialize current frame
-        self.current_frame = None
+        self.current_frame: Optional[av.VideoFrame] = None
 
         if self.video_path.suffix == ".mkv":
             # mkv time is rounded to 3 digits, at least in the example video
@@ -136,8 +144,18 @@ class VideoHandler:
             self._index_thread = threading.Thread(target=self._build_index_fixed_size, daemon=True)
         else:
             self._index_thread = threading.Thread(target=self._build_index_dynamic, daemon=True)
+
         self._index_thread.start()
         self._index_ready = threading.Event()
+        self._pts_keypoint_ready = threading.Event()
+        self._keypoint_thread = threading.Thread(target=lambda: self._extract_keypoints_pts(video_path), daemon=True)
+        self._keypoint_thread.start()
+
+
+    def _extract_keypoints_pts(self, video_path: str | pathlib.Path):
+        self._keypoint_pts = extract_keyframe_pts(video_path)
+        self._pts_keypoint_ready.set()
+
 
     def _build_index_fixed_size(self):
         with av.open(self.video_path) as container:
@@ -179,17 +197,24 @@ class VideoHandler:
 
             self._index_ready.set()
 
+    def _need_seek_call(self, current_frame_pts, target_frame_pts):
+        if not self._pts_keypoint_ready.is_set() or len(self._keypoint_pts) == 0:
+            return True
 
-    def seek(self, pts_keyframe):
-        """Find the nearest keypoint frame``.
+        # roll back the stream if video is scrolled backwards
+        if current_frame_pts > target_frame_pts:
+            return True
 
-        This function navigates to the nearest keypoint frame ``pts_keyframe`` and
-        defines an iterator for streaming from the keypoint onwards.
-        Each frame must be decoded in sequence from the keypoint.
-        """
-        # calculate the number of points
-        self.container.seek(int(pts_keyframe), backward=True, any_frame=False, stream=self.stream)
-        self.packet_iter = self.container.demux(self.stream)
+        # find the closest keypoint pts before a given frame
+        idx = np.searchsorted(self._keypoint_pts, target_frame_pts, side="right")
+        closest_keypoint_pts = self._keypoint_pts[max(0, idx - 1)]
+
+        # if target_frame_pts is larger than current (and if code
+        # arrives here, it is, see second return statement),
+        # then seek forward if there is a future keypoint closest
+        # to the target.
+        return closest_keypoint_pts > current_frame_pts
+
 
     @profile
     def get(self, ts: float) -> av.VideoFrame:
@@ -220,11 +245,11 @@ class VideoHandler:
                 target_pts = int(self.all_pts[0] + avg_step * idx)
                 use_time = True
 
-        self.seek(target_pts)
+        if not hasattr(self.current_frame, "pts") or self._need_seek_call(self.current_frame.pts, target_pts):
+            self.container.seek(int(target_pts), backward=True, any_frame=False, stream=self.stream)
 
         # Decode forward from the keypoint until the frame just before (or equal to) target_pts
-        packet = self._get_preceding_packet_without_decoding(target_pts)
-        last_idx, preceding_frame = self._decode_and_check_frames(packet, use_time, target_pts, idx)
+        last_idx, preceding_frame = self._decode_and_check_frames(use_time, target_pts, idx)
 
         if preceding_frame is not None:
             self.last_idx = idx
@@ -233,40 +258,20 @@ class VideoHandler:
         return self.current_frame.to_ndarray(format="rgb24")[::-1] / 255. if self.return_frame_array else self.current_frame
 
 
-    def _get_preceding_packet_without_decoding(self, target_pts):
-        preceding_packet = None
-        for packet in self.packet_iter:
-            if packet is None:
-                continue
-            if packet.pts is None:
-                # end of the video stream
-                return preceding_packet
-            #print("packet", packet)
-            if packet.pts > target_pts:
-                return preceding_packet
-            preceding_packet = packet
-        return preceding_packet
-
     @profile
-    def _decode_and_check_frames(self, packet, use_time: bool, target_pts: int, idx: int):
-        if packet is None:
-            return self.last_idx, None
-
-        # print(packet.pts)
-        self.seek(packet.pts)
-
+    def _decode_and_check_frames(self, use_time: bool, target_pts: int, idx: int):
+        """Decode from stream."""
         preceding_frame = None
         last_idx = self.last_idx
+        frame_duration = 1 / float(self.stream.average_rate)
+        time_threshold = self.round_fn(idx * frame_duration)
 
-        #print("packet pts", packet.pts)
-        for packet in self.packet_iter:
+        for packet in self.container.demux(self.stream):
             if packet is None:
                 continue
-            time_threshold =  self.round_fn(float(idx / self.stream.base_rate))
             for frame in packet.decode():
                 if frame.pts is None:
                     continue
-                #print("frame pts", frame.pts)
                 if (not use_time and frame.pts > target_pts) or (
                         use_time and frame.time > time_threshold
                 ):
@@ -320,3 +325,12 @@ class VideoHandler:
             self.container.close()
         except Exception:
             pass
+
+    def wait_for_index(self, timeout=2.0):
+        """Wait up to timeout.
+
+        For debugging purposes, or testing, make sure that the
+        threads are completed.
+        """
+        self._index_ready.wait(timeout)
+        self._pts_keypoint_ready.wait(timeout)
