@@ -6,11 +6,11 @@ import threading
 from abc import ABC, abstractmethod
 from typing import Callable, List, Optional, Union
 
+import numpy as np
 import pygfx
 import pygfx as gfx
 import pynapple as nap
 from pygfx import Camera, PanZoomController, Renderer, Viewport
-import numpy as np
 
 from .events import SyncEvent
 from .utils import _get_event_handle

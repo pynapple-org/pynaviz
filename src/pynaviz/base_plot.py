@@ -3,11 +3,10 @@ Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
 
-from abc import ABC, abstractmethod
-
 import pathlib
 import threading
 import warnings
+from abc import ABC, abstractmethod
 from typing import Any, Optional, Union
 
 import matplotlib.pyplot as plt
@@ -20,8 +19,6 @@ from matplotlib.pyplot import colormaps
 from numpy.typing import NDArray
 from wgpu.gui.auto import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
-)
-from wgpu.gui.auto import (
     run,
 )
 from wgpu.gui.glfw import GlfwWgpuCanvas

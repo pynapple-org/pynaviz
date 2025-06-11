@@ -1,15 +1,16 @@
 import pathlib
 import threading
+import time
 import warnings
 from typing import Optional, Tuple
 
 import av
 import numpy as np
 from numpy.typing import NDArray
-import time
+
 
 def extract_keyframe_times_and_points(
-        video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
+    video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
 ) -> Tuple[NDArray, NDArray]:
     """
     Extract the indices and timestamps of keyframes from a video file.
@@ -60,7 +61,7 @@ def extract_keyframe_times_and_points(
                 break
             frame_index += 1
 
-    return np.asarray(keyframe_pts), np.asarray(keyframe_timestamp,dtype=float)
+    return np.asarray(keyframe_pts), np.asarray(keyframe_timestamp, dtype=float)
 
 
 def ts_to_index(ts: float, time: NDArray) -> int:
@@ -85,7 +86,7 @@ def ts_to_index(ts: float, time: NDArray) -> int:
     - If `ts` is smaller than all values in `time`, returns 0.
     - If `ts` is greater than all values in `time`, returns `len(time) - 1`.
     """
-    idx = np.searchsorted(time, ts, side='right') - 1
+    idx = np.searchsorted(time, ts, side="right") - 1
     return np.clip(idx, 0, len(time) - 1)
 
 
@@ -93,13 +94,22 @@ def extract_keyframe_pts(video_path: str | pathlib.Path) -> NDArray:
     """Extract keyframe presentation time without decoding."""
     with av.open(video_path) as container:
         stream = container.streams.video[0]
-        keyframe_pts = [packet.pts for packet in container.demux(stream) if packet.is_keyframe]
+        keyframe_pts = [
+            packet.pts for packet in container.demux(stream) if packet.is_keyframe
+        ]
     return np.array(keyframe_pts, int)
 
 
 class VideoHandler:
     """Class for getting video frames."""
-    def __init__(self, video_path: str | pathlib.Path, stream_index=0, time: Optional[NDArray]=None, return_frame_array=True) -> None:
+
+    def __init__(
+        self,
+        video_path: str | pathlib.Path,
+        stream_index=0,
+        time: Optional[NDArray] = None,
+        return_frame_array=True,
+    ) -> None:
         self.video_path = pathlib.Path(video_path)
         self.container = av.open(video_path)
         self.stream = self.container.streams.video[stream_index]
@@ -112,7 +122,9 @@ class VideoHandler:
             self._time_provided = False
             n_frames = self.stream.frames
             frame_duration = 1 / float(self.stream.average_rate)
-            self.time = np.linspace(0, frame_duration * n_frames - frame_duration, n_frames)
+            self.time = np.linspace(
+                0, frame_duration * n_frames - frame_duration, n_frames
+            )
         else:
             self._time_provided = True
             self.time = np.asarray(time)
@@ -140,21 +152,25 @@ class VideoHandler:
         self._i = 0  # write position
         self._lock = threading.Lock()
         if self.stream.frames and self.stream.frames > 0:
-            self._index_thread = threading.Thread(target=self._build_index_fixed_size, daemon=True)
+            self._index_thread = threading.Thread(
+                target=self._build_index_fixed_size, daemon=True
+            )
         else:
-            self._index_thread = threading.Thread(target=self._build_index_dynamic, daemon=True)
+            self._index_thread = threading.Thread(
+                target=self._build_index_dynamic, daemon=True
+            )
 
         self._index_thread.start()
         self._index_ready = threading.Event()
         self._pts_keypoint_ready = threading.Event()
-        self._keypoint_thread = threading.Thread(target=lambda: self._extract_keypoints_pts(video_path), daemon=True)
+        self._keypoint_thread = threading.Thread(
+            target=lambda: self._extract_keypoints_pts(video_path), daemon=True
+        )
         self._keypoint_thread.start()
-
 
     def _extract_keypoints_pts(self, video_path: str | pathlib.Path):
         self._keypoint_pts = extract_keyframe_pts(video_path)
         self._pts_keypoint_ready.set()
-
 
     def _build_index_fixed_size(self):
         with av.open(self.video_path) as container:
@@ -214,12 +230,15 @@ class VideoHandler:
         # to the target.
         return closest_keypoint_pts > current_frame_pts
 
-
     def get(self, ts: float) -> av.VideoFrame:
         idx = ts_to_index(ts, self.time)
 
         if idx == self.last_idx:
-            return self.current_frame.to_ndarray(format="rgb24")[::-1] / 255. if self.return_frame_array else self.current_frame
+            return (
+                self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
+                if self.return_frame_array
+                else self.current_frame
+            )
 
         # Wait until enough index is available
         # Estimate pts from index (using filled index if available)
@@ -243,18 +262,27 @@ class VideoHandler:
                 target_pts = int(self.all_pts[0] + avg_step * idx)
                 use_time = True
 
-        if not hasattr(self.current_frame, "pts") or self._need_seek_call(self.current_frame.pts, target_pts):
-            self.container.seek(int(target_pts), backward=True, any_frame=False, stream=self.stream)
+        if not hasattr(self.current_frame, "pts") or self._need_seek_call(
+            self.current_frame.pts, target_pts
+        ):
+            self.container.seek(
+                int(target_pts), backward=True, any_frame=False, stream=self.stream
+            )
 
         # Decode forward from the keypoint until the frame just before (or equal to) target_pts
-        last_idx, preceding_frame = self._decode_and_check_frames(use_time, target_pts, idx)
+        last_idx, preceding_frame = self._decode_and_check_frames(
+            use_time, target_pts, idx
+        )
 
         if preceding_frame is not None:
             self.last_idx = idx
             self.current_frame = preceding_frame
 
-        return self.current_frame.to_ndarray(format="rgb24")[::-1] / 255. if self.return_frame_array else self.current_frame
-
+        return (
+            self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
+            if self.return_frame_array
+            else self.current_frame
+        )
 
     def _decode_and_check_frames(self, use_time: bool, target_pts: int, idx: int):
         """Decode from stream."""
@@ -270,20 +298,19 @@ class VideoHandler:
                 if frame.pts is None:
                     continue
                 if (not use_time and frame.pts > target_pts) or (
-                        use_time and frame.time > time_threshold
+                    use_time and frame.time > time_threshold
                 ):
                     last_idx = idx
                     current_frame = preceding_frame or frame
                     return last_idx, current_frame
                 elif (not use_time and frame.pts == target_pts) or (
-                        use_time and frame.time == time_threshold
+                    use_time and frame.time == time_threshold
                 ):
                     last_idx = idx
                     current_frame = frame
                     return last_idx, current_frame
                 preceding_frame = frame
         return last_idx, preceding_frame
-
 
     @property
     def shape(self):
@@ -292,10 +319,16 @@ class VideoHandler:
         has_frames = hasattr(self.stream, "frames") and self.stream.frames > 0
         is_done_unpacking = self._index_ready.is_set()
         if not has_frames and not is_done_unpacking:
-            warnings.warn(message="Video ``shape``, which corresponds to the number of frames, is being "
-                                  "calculated runtime and will be updated.")
-        return (len(self.time), self.stream.width, self.stream.height) if has_frames else (len(self.all_pts), self.stream.width, self.stream.height)
-
+            warnings.warn(
+                message="Video ``shape``, which corresponds to the number of frames, is being "
+                "calculated runtime and will be updated.",
+                stacklevel=2,
+            )
+        return (
+            (len(self.time), self.stream.width, self.stream.height)
+            if has_frames
+            else (len(self.all_pts), self.stream.width, self.stream.height)
+        )
 
     @property
     def index(self):
@@ -305,8 +338,11 @@ class VideoHandler:
             has_frames = hasattr(self.stream, "frames") and self.stream.frames > 0
             is_done_unpacking = self._index_ready.is_set()
             if not has_frames and not is_done_unpacking:
-                warnings.warn(message="Video ``shape``, which corresponds to the number of frames, is being "
-                                      "calculated runtime and will be updated.")
+                warnings.warn(
+                    message="Video ``shape``, which corresponds to the number of frames, is being "
+                    "calculated runtime and will be updated.",
+                    stacklevel=2,
+                )
             return self.time
 
     @property
