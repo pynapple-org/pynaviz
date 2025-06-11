@@ -49,6 +49,8 @@ dev = [
     "nox",
     "ruff",
     "isort",
+    "click",
+    "imageio",
 ]
 docs = [
     "matplotlib",
