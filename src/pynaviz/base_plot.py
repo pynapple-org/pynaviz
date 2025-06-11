@@ -3,6 +3,8 @@ Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
 
+from abc import ABC, abstractmethod
+
 import pathlib
 import threading
 import warnings
@@ -702,54 +704,6 @@ class PlotTsGroup(_BasePlot):
         pass
 
 
-class PlotTsdTensor(_BasePlot):
-    def __init__(self, data: nap.TsdTensor, index=None, parent=None):
-        super().__init__(data, parent=parent, maintain_aspect=True)
-
-        # Image
-        texture = gfx.Texture(self.data.values[0].astype("float32"), dim=2)
-        self.image = gfx.Image(
-            gfx.Geometry(grid=texture),
-            gfx.ImageBasicMaterial(clim=(0, 1)),
-        )
-        # Text of the current time
-        self.time_text = gfx.Text(
-            text="0.0",
-            font_size=0.5,
-            anchor="bottom-left",
-            material=gfx.TextMaterial(
-                color="#B4F8C8", outline_color="#000", outline_thickness=0.15
-            ),
-        )
-
-        self.time_text.geometry.anchor = "bottom-left"
-
-        self.scene.add(self.image, self.time_text)
-        self.camera.show_object(self.scene)  # , view_dir=(0, 0, -1))
-
-        # # Pynaviz specific controller
-        self.controller = GetController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            data=data,
-            buffer=texture,
-            time_text=self.time_text,
-        )
-
-        # In the draw event, the draw function is called
-        # This assign the function draw_frame of WgpuCanvasBase
-        self.canvas.request_draw(
-            draw_function=lambda: self.renderer.render(self.scene, self.camera)
-        )
-
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
-        pass
-
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        pass
-
-
 class PlotTs(_BasePlot):
     def __init__(self, data: nap.Ts, index=None, parent=None):
         super().__init__(parent=parent)
@@ -770,43 +724,24 @@ class PlotTs(_BasePlot):
         pass
 
 
-class PlotVideo(_BasePlot):
+class PlotBaseVideoTensor(_BasePlot, ABC):
     def __init__(
         self,
-        video_path: str | pathlib.Path,
-        time: Optional[NDArray] = None,
-        stream_index: int = 0,
-        index=None,
-        parent=None,
-    ):
-        """
-        Video index.
-
-        Parameters
-        ----------
-        video_path:
-            Path to the video.
-        time:
-            Time of each frame, if available. Otherwise, it will be extracted from the video metadata.
-        stream_index:
-            Index of the video stream. Usually, each file contains a single video stream, but there
-            are formats that may contain multiple streams.
-        index:
-            The controller group index.
-        parent:
-            Parent object.
-        """
-        data = VideoHandler(video_path, time=time, stream_index=stream_index)
+        data: Any,
+        index: Optional[int] = None,
+        parent: Optional[Any] = None
+    ) -> None:
         super().__init__(data, parent=parent, maintain_aspect=True)
 
-        # Image
-        img = self.data.get(self.data.time[0])
-        texture = gfx.Texture(img.astype("float32"), dim=2)
+        # Image texture (subclass provides the texture data)
+        texture_data = self._get_initial_texture_data()
+        self.texture = gfx.Texture(texture_data.astype("float32"), dim=2)
         self.image = gfx.Image(
-            gfx.Geometry(grid=texture),
+            gfx.Geometry(grid=self.texture),
             gfx.ImageBasicMaterial(clim=(0, 1)),
         )
-        # Text of the current time
+
+        # Time display
         self.time_text = gfx.Text(
             text="0.0",
             font_size=0.5,
@@ -815,27 +750,75 @@ class PlotVideo(_BasePlot):
                 color="#B4F8C8", outline_color="#000", outline_thickness=0.15
             ),
         )
-
         self.time_text.geometry.anchor = "bottom-left"
 
         self.scene.add(self.image, self.time_text)
-        self.camera.show_object(self.scene)  # , view_dir=(0, 0, -1))
+        self.camera.show_object(self.scene)
 
-        # # Pynaviz specific controller
         self.controller = GetController(
             camera=self.camera,
             renderer=self.renderer,
             controller_id=index,
-            data=data,
-            buffer=texture,
+            data=self._data,
+            buffer=self.texture,
             time_text=self.time_text,
         )
 
-        # In the draw event, the draw function is called
-        # This assign the function draw_frame of WgpuCanvasBase
         self.canvas.request_draw(
             draw_function=lambda: self.renderer.render(self.scene, self.camera)
         )
+
+    @abstractmethod
+    def _get_initial_texture_data(self) -> np.ndarray:
+        """Subclasses must return a 2D ndarray to initialize the texture."""
+        pass
+
+    def set_frame(self, target_time: float):
+        """
+        Display the video frame closest to the given time.
+
+        Updates the current video display to show the frame corresponding
+        to the specified time. This can be used to navigate to a specific
+        moment in the video.
+
+        Parameters
+        ----------
+        target_time : float
+            The time (in seconds) to display.
+        """
+        self.controller.set_frame(target_time)
+
+
+class PlotTsdTensor(PlotBaseVideoTensor):
+    def __init__(self, data: nap.TsdTensor, index=None, parent=None):
+        self._data = data
+        super().__init__(data, index=index, parent=parent)
+
+    def _get_initial_texture_data(self):
+        return self._data.values[0]
+
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
+        pass
+
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
+
+
+class PlotVideo(PlotBaseVideoTensor):
+    def __init__(
+        self,
+        video_path: str | pathlib.Path,
+        time: Optional[NDArray] = None,
+        stream_index: int = 0,
+        index=None,
+        parent=None,
+    ):
+        data = VideoHandler(video_path, time=time, stream_index=stream_index)
+        self._data = data
+        super().__init__(data, index=index, parent=parent)
+
+    def _get_initial_texture_data(self):
+        return self._data.get(self._data.time[0])
 
     @property
     def data(self):
