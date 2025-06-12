@@ -243,20 +243,23 @@ class VideoHandler:
         # to the target.
         return closest_keypoint_pts > current_frame_pts
 
-    def get(self, ts: float) -> av.VideoFrame:
+    def _get_target_frame_pts(self, idx: int):
+        """
+        Get the target frame presentation time stamp from frame index.
 
-        if not self.__class__._get_from_index:
-            idx = ts_to_index(ts, self.time)
-        else:
-            idx = ts
+        Parameters
+        ----------
+        idx:
+            The frame index.
 
-        if idx == self.last_idx:
-            return (
-                self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
-                if self.return_frame_array
-                else self.current_frame
-            )
+        Returns
+        -------
+        target_pts:
+            The target frame presentation time stamp corresponding to the frame index.
+        use_time:
+            If true, search using presentation time in seconds, otherwise use pts.
 
+        """
         # Wait until enough index is available
         # Estimate pts from index (using filled index if available)
         if self._i > idx:
@@ -278,6 +281,23 @@ class VideoHandler:
                 avg_step = np.mean(np.diff(self.all_pts[start:stop]))
                 target_pts = int(self.all_pts[0] + avg_step * idx)
                 use_time = True
+        return target_pts, use_time
+
+    def get(self, ts: float) -> av.VideoFrame:
+
+        if not self.__class__._get_from_index:
+            idx = ts_to_index(ts, self.time)
+        else:
+            idx = ts
+
+        if idx == self.last_idx:
+            return (
+                self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
+                if self.return_frame_array
+                else self.current_frame
+            )
+
+        target_pts, use_time = self._get_target_frame_pts(idx)
 
         if not hasattr(self.current_frame, "pts") or self._need_seek_call(
             self.current_frame.pts, target_pts
@@ -389,6 +409,61 @@ class VideoHandler:
         idx = ts_to_index(ts, self.time)
         return slice(idx, idx + 1)
 
+    def _decode_multiple(self, target_pts, idx_start: int, idx_end: int, step: int = 1,  use_time: bool=False):
+        """Decode frames from idx_start to idx_end (exclusive) with optional step.
+
+        Starts at the first frame that satisfies the time/PTS condition,
+        then collects every `step`-th frame afterward.
+        """
+        frame_duration = 1 / float(self.stream.average_rate)
+        effective_end = min(idx_end, self.shape[0])
+        indices = np.arange(idx_start, effective_end, step)
+        num_frames = len(indices)
+
+        # Threshold for the first frame
+        time_threshold = self.round_fn(indices[0] * frame_duration)
+
+        # initialize frame container
+        if self.return_frame_array:
+            frames = np.empty((num_frames, self.shape[2], self.shape[1], 3), dtype=np.float32)
+        else:
+            frames = []
+        collecting = False
+        preceding_frame = None
+        step_counter = 0  # Counts decoded frames after starting
+
+        for packet in self.container.demux(self.stream):
+            if packet is None:
+                continue
+            for frame in packet.decode():
+                if frame.pts is None:
+                    continue
+
+                if not collecting:
+                    # Wait until the first frame that meets the threshold
+                    condition = (frame.pts >= target_pts) if not use_time else (frame.time >= time_threshold)
+                    if condition:
+                        if self.return_frame_array:
+                            frames[step_counter] = frame.to_ndarray(format="rgb24")[::-1] / 255.0
+                        else:
+                            frames.append(preceding_frame or frame)
+                        collecting = True
+                        step_counter = 1  # we just got the first frame
+                else:
+                    if step_counter % step == 0:
+                        if self.return_frame_array:
+                            frames[step_counter // step] = frame.to_ndarray(format="rgb24")[::-1] / 255.0
+                        else:
+                            frames.append(preceding_frame or frame)
+                    step_counter += 1
+
+                    if len(frames) == num_frames:
+                        return indices[0] + len(frames) * step, frames
+
+                preceding_frame = frame
+
+        return indices[0] + len(frames) * step, frames
+
     def __getitem__(self, idx: slice | int):
         """
         Get item for video frame.
@@ -408,7 +483,35 @@ class VideoHandler:
 
         """
         if isinstance(idx, slice):
-            idx = slice.start
+            # Fill in missing slice components
+            start = idx.start or 0
+            stop = idx.stop if idx.stop is not None else self.shape[0]
+            step = idx.step if idx.step is not None else 1
+            idx = slice(start, stop, step)
+
+            if (idx.stop - idx.start) // idx.step > 1:
+                target_pts, use_time = self._get_target_frame_pts(idx.start)
+
+                if not hasattr(self.current_frame, "pts") or self._need_seek_call(
+                        self.current_frame.pts, target_pts
+                ):
+                    self.container.seek(
+                        int(target_pts), backward=True, any_frame=False, stream=self.stream
+                    )
+
+                frame_idx, frames = self._decode_multiple(
+                    target_pts, idx.start, idx.stop, use_time=use_time, step=idx.step
+                )
+                # update current decoded frame
+                if len(frames):
+                    self.last_idx = frame_idx
+                    self.current_frame = frames[-1]
+                return frames
+            else:
+                idx = idx.start  # fallback to single-index logic
+
+        # Default case: single index
         with self._set_get_from_index(True):
             frame = self.get(idx)
+
         return frame
