@@ -506,11 +506,11 @@ class VideoHandler:
                     self.last_idx = frame_idx
                     self.current_frame = frames[-1]
                 return frames
-            else:
-                idx = idx.start  # fallback to single-index logic
 
         # Default case: single index
         with self._set_get_from_index(True):
-            frame = self.get(idx)
+            frame = self.get(idx if not hasattr(idx, "start") else idx.start)
+            if isinstance(idx, slice):
+                frame = np.expand_dims(frame, axis=0)
 
         return frame
