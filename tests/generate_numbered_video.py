@@ -15,7 +15,7 @@ EXTENSION_TO_CODEC = {
 }
 
 
-def generate_numbered_video(output_path="test_video/numbered_video.mp4", num_frames=100, fps=30, width=640, height=480):
+def generate_numbered_video(output_path: str | pathlib.Path="test_video/numbered_video.mp4", num_frames=100, fps=30, width=640, height=480):
     output_path = pathlib.Path(__file__).resolve().parent / output_path
     output_path.parent.mkdir(exist_ok=True)
     # Set up container and stream
