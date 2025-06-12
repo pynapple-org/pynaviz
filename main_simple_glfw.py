@@ -42,5 +42,4 @@ ControllerGroup([v, v2.plot])
 v.show()
 v2.show()
 app.exit(app.exec())
-v.close()  # Ensure clean shutdown
-sys.exit(0)
+# v.close()  # Ensure clean shutdown

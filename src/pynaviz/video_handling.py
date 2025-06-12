@@ -2,6 +2,7 @@ import pathlib
 import threading
 import time
 import warnings
+from contextlib import contextmanager
 from typing import Optional, Tuple
 
 import av
@@ -103,6 +104,8 @@ def extract_keyframe_pts(video_path: str | pathlib.Path) -> NDArray:
 class VideoHandler:
     """Class for getting video frames."""
 
+    _get_from_index = False
+
     def __init__(
         self,
         video_path: str | pathlib.Path,
@@ -168,6 +171,16 @@ class VideoHandler:
         )
         self._keypoint_thread.start()
 
+    @contextmanager
+    def _set_get_from_index(self, value):
+        """Context manager for setting the shallow copy flag in a thread safe way."""
+        old_value = self.__class__._get_from_index
+        self.__class__._get_from_index = value
+        try:
+            yield
+        finally:
+            self.__class__._get_from_index = old_value
+
     def _extract_keypoints_pts(self, video_path: str | pathlib.Path):
         self._keypoint_pts = extract_keyframe_pts(video_path)
         self._pts_keypoint_ready.set()
@@ -231,7 +244,11 @@ class VideoHandler:
         return closest_keypoint_pts > current_frame_pts
 
     def get(self, ts: float) -> av.VideoFrame:
-        idx = ts_to_index(ts, self.time)
+
+        if not self.__class__._get_from_index:
+            idx = ts_to_index(ts, self.time)
+        else:
+            idx = ts
 
         if idx == self.last_idx:
             return (
@@ -371,3 +388,27 @@ class VideoHandler:
     def get_slice(self, ts: float):
         idx = ts_to_index(ts, self.time)
         return slice(idx, idx + 1)
+
+    def __getitem__(self, idx: slice | int):
+        """
+        Get item for video frame.
+
+        Get a single frame from the video, if a `slice` is provided, it gets
+         `slice.start`.
+
+        Parameters
+        ----------
+        idx:
+            The index for slicing.
+
+        Returns
+        -------
+        frame:
+            A video frame.
+
+        """
+        if isinstance(idx, slice):
+            idx = slice.start
+        with self._set_get_from_index(True):
+            frame = self.get(idx)
+        return frame
