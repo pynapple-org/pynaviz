@@ -523,8 +523,21 @@ class VideoHandler:
         if isinstance(idx, slice):
             # Fill in missing slice components
             start = idx.start or 0
+            if start >= self.shape[0]:
+                if self.return_frame_array:
+                    return np.empty((0, self.shape[2], self.shape[1], 3))
+                else:
+                    return []
             stop = idx.stop if idx.stop is not None else self.shape[0]
             step = idx.step if idx.step is not None else 1
+
+            # convert negative vals
+            start = start if start >= 0 else self.shape[0] + start
+            stop = stop if stop is not None else self.shape[0] + stop
+            # revert slice if negative step
+            revert = step < 0
+            step = abs(step)
+
             idx = slice(start, stop, step)
 
             if (idx.stop - idx.start) // idx.step > 1:
@@ -544,10 +557,11 @@ class VideoHandler:
                 if len(frames):
                     self.last_idx = frame_idx
                     self.current_frame = last_frame
-                return frames
+                return frames if not revert else frames[::-1]
 
         # Default case: single index
         with self._set_get_from_index(True):
+            idx = idx if idx >= 0 else self.shape[0] + idx
             frame = self.get(idx if not hasattr(idx, "start") else idx.start)
             if isinstance(idx, slice):
                 frame = np.expand_dims(frame, axis=0)
