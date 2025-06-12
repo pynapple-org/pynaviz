@@ -130,3 +130,13 @@ def test_getitem_slice_matches_expected(video_info, start, stop, step):
             np.testing.assert_array_equal(video_obj.data.current_frame.to_ndarray(), frame.to_ndarray())
 
 
+@pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+def test_getitem_multiple_times(video_info):
+    _, _, video = video_info
+    video = pathlib.Path(video)
+    video_obj = PlotVideo(video, time=np.arange(100))
+    print("first_slice")
+    frames = video_obj.data[1:12:2]
+    print("second_slice")
+    frames2 = video_obj.data[1:12:2]
+    np.testing.assert_array_equal(frames, frames2)

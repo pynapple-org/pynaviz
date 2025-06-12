@@ -447,11 +447,20 @@ class VideoHandler:
             if (
                     collected == 0
                     and hasattr(self.current_frame, "pts")
-                    and self.current_frame.pts == target_pts
             ):
-                self._append_frame(frames, collected, self.current_frame)
-                collected = 1
-                continue
+                    if self.current_frame.pts == target_pts:
+                        self._append_frame(frames, collected, self.current_frame)
+                        collected = 1
+                        continue
+                    elif self.current_frame.pts > target_pts:
+                        self.current_frame = None
+                        self.container.seek(
+                            int(target_pts),
+                            backward=True,
+                            any_frame=False,
+                            stream=self.stream,
+                        )
+                        go_to_next_packet = True
 
             if not go_to_next_packet and self._need_seek_call(preceding_frame.pts, target_pts):
                 self.container.seek(
