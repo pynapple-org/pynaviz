@@ -468,8 +468,7 @@ class VideoHandler:
         """
         Get item for video frame.
 
-        Get a single frame from the video, if a `slice` is provided, it gets
-         `slice.start`.
+        Gets one or more frames from a video.
 
         Parameters
         ----------
