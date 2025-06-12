@@ -367,3 +367,7 @@ class VideoHandler:
         """
         self._index_ready.wait(timeout)
         self._pts_keypoint_ready.wait(timeout)
+
+    def get_slice(self, ts: float):
+        idx = ts_to_index(ts, self.time)
+        return slice(idx, idx + 1)

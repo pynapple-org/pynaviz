@@ -276,6 +276,10 @@ class GetController(CustomController):
             )
             self.buffer.data[:] = img_array.astype("float32")
         self.buffer.update_full()
+
+        if self.time_text:
+            self.time_text.set_text(str(self.data.t[self.frame_index]))
+
         self.renderer_request_draw()
 
 
@@ -344,12 +348,5 @@ class GetController(CustomController):
                 "float32"
             )
         else:
-            self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
-
-        self.buffer.update_full()
-
-        if self.time_text:
-            self.time_text.set_text(str(self.data.t[self.frame_index]))
-
-        self.renderer_request_draw()
+            self._update_buffer() #self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
 
