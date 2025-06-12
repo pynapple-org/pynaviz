@@ -532,16 +532,17 @@ class VideoHandler:
             step = idx.step if idx.step is not None else 1
 
             # convert negative vals
-            start = start if start >= 0 else self.shape[0] + start
-            stop = stop if stop is not None else self.shape[0] + stop
+            start = start if start >= 0 else start + self.shape[0]
+            start = max(0, min(start, self.shape[0]))
+            stop = stop + self.shape[0] if stop < 0 else stop
+            stop = max(0, min(stop, self.shape[0]))
+
             # revert slice if negative step
             revert = step < 0
             step = abs(step)
 
-            idx = slice(start, stop, step)
-
-            if (idx.stop - idx.start) // idx.step > 1:
-                target_pts, use_time = self._get_target_frame_pts(idx.start)
+            if (stop - start) // step > 1:
+                target_pts, use_time = self._get_target_frame_pts(start)
 
                 if not hasattr(self.current_frame, "pts") or self._need_seek_call(
                         self.current_frame.pts, target_pts
@@ -551,7 +552,7 @@ class VideoHandler:
                     )
 
                 frame_idx, frames, last_frame = self._decode_multiple(
-                    target_pts, idx.start, idx.stop, step=idx.step
+                    target_pts, start, stop, step=step
                 )
                 # update current decoded frame
                 if len(frames):
@@ -561,6 +562,7 @@ class VideoHandler:
 
         # Default case: single index
         with self._set_get_from_index(True):
+            idx = idx if not hasattr(idx, "start") else idx.start
             idx = idx if idx >= 0 else self.shape[0] + idx
             frame = self.get(idx if not hasattr(idx, "start") else idx.start)
             if isinstance(idx, slice):

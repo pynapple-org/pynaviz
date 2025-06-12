@@ -166,3 +166,17 @@ def test_getitem_multiple_times(video_info):
     frames = video_obj.data[1:12:2]
     frames2 = video_obj.data[1:12:2]
     np.testing.assert_array_equal(frames, frames2)
+
+
+# @pytest.mark.parametrize(
+#     "start, stop, step",
+#     [
+#         (0, 5, 1),
+#         (10, 20, 2),
+#         (95, 100, 1),
+#         (99, 100, 1),
+#         (0, 100, 25),
+#     ],
+# )
+# @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+# def test_getitem_negative_slicing_step(video_info):
