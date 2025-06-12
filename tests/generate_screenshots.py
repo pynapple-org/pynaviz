@@ -35,12 +35,15 @@ def snapshot_tsd(path=DEFAULT_SCREENSHOT_PATH / "test_plot_tsd.png"):
     image.save(path)
 
 
-def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_VIDEO_DIR):
+def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_VIDEO_DIR, frames=None):
+    if frames is None:
+        frames = [0, 1, 2, 99]
+
     for extension in ["mkv", "mp4", "avi"]:
         video_path = pathlib.Path(path_video) / f"numbered_video.{extension}"
         v = viz.PlotVideo(video_path, time=np.arange(100))
 
-        for frame in [0, 1, 2, 99]:
+        for frame in frames:
             path_frame = (
                 pathlib.Path(path) / f"numbered_video_{extension}_frame_{frame}.png"
             )
@@ -64,12 +67,18 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
     help="Output directory for snapshots.",
 )
 @click.option(
+    "--frames",
+    type=str,
+    default=None,
+    help="Comma-separated list of frame indices to render (e.g. 0,1,2,99). Only applies to video.",
+)
+@click.option(
     "--video-dir",
     type=click.Path(),
     default=str(DEFAULT_VIDEO_DIR),
     help="Directory containing numbered videos.",
 )
-def main(types, path, video_dir):
+def main(types, path, video_dir, frames):
     """Generate TSD or video frame snapshots."""
     path = pathlib.Path(path)
     path.mkdir(parents=True, exist_ok=True)
@@ -78,13 +87,17 @@ def main(types, path, video_dir):
         click.echo("Please specify at least one --type (tsd or video).")
         return
 
+    frame_list = None
+    if frames:
+        frame_list = [int(f.strip()) for f in frames.split(",") if f.strip().isdigit()]
+
     if "tsd" in types or "all" in types:
         click.echo("Generating Tsd snapshot...")
         snapshot_tsd(path=path / "test_plot_tsd.png")
 
     if "video" in types or "all" in types:
         click.echo("Generating video snapshots...")
-        snapshots_numbered_movies(path=path, path_video=video_dir)
+        snapshots_numbered_movies(path=path, path_video=video_dir, frames=frame_list)
 
     click.echo("Done.")
 

@@ -243,7 +243,7 @@ class VideoHandler:
         # to the target.
         return closest_keypoint_pts > current_frame_pts
 
-    def _get_target_frame_pts(self, idx: int):
+    def _get_target_frame_pts(self, idx: int) -> Tuple[int, bool]:
         """
         Get the target frame presentation time stamp from frame index.
 
@@ -409,60 +409,90 @@ class VideoHandler:
         idx = ts_to_index(ts, self.time)
         return slice(idx, idx + 1)
 
-    def _decode_multiple(self, target_pts, idx_start: int, idx_end: int, step: int = 1,  use_time: bool=False):
-        """Decode frames from idx_start to idx_end (exclusive) with optional step.
+    def _append_frame(self, frames, idx, frame):
+        if self.return_frame_array:
+            frames[idx] = frame.to_ndarray(format="rgb24")[::-1] / 255.0
+        else:
+            frames.append(frame)
 
-        Starts at the first frame that satisfies the time/PTS condition,
-        then collects every `step`-th frame afterward.
-        """
-        frame_duration = 1 / float(self.stream.average_rate)
+    def _decode_multiple(
+            self,
+            target_pts,
+            idx_start: int,
+            idx_end: int,
+            step: int = 1,
+    ):
         effective_end = min(idx_end, self.shape[0])
         indices = np.arange(idx_start, effective_end, step)
         num_frames = len(indices)
+        time_threshold_all = self.round_fn(indices)
 
-        # Threshold for the first frame
-        time_threshold = self.round_fn(indices[0] * frame_duration)
-
-        # initialize frame container
         if self.return_frame_array:
-            frames = np.empty((num_frames, self.shape[2], self.shape[1], 3), dtype=np.float32)
+            frames = np.empty(
+                (num_frames, self.shape[2], self.shape[1], 3),
+                dtype=np.float32,
+            )
         else:
             frames = []
-        collecting = False
-        preceding_frame = None
-        step_counter = 0  # Counts decoded frames after starting
 
-        for packet in self.container.demux(self.stream):
-            if packet is None:
+        collected = 0
+        preceding_frame = self.current_frame
+        go_to_next_packet = False
+
+        while collected < num_frames:
+            if not go_to_next_packet:
+                target_pts, use_time = self._get_target_frame_pts(indices[collected])
+
+            # First frame shortcut
+            if (
+                    collected == 0
+                    and hasattr(self.current_frame, "pts")
+                    and self.current_frame.pts == target_pts
+            ):
+                self._append_frame(frames, collected, self.current_frame)
+                collected = 1
                 continue
-            for frame in packet.decode():
+
+            if not go_to_next_packet and self._need_seek_call(preceding_frame.pts, target_pts):
+                self.container.seek(
+                    int(target_pts),
+                    backward=True,
+                    any_frame=False,
+                    stream=self.stream,
+                )
+
+            packet = next(self.container.demux(self.stream))
+
+            try:
+                decoded = packet.decode()
+            except av.error.EOFError:
+                # end of the video
+                break
+
+            for frame in decoded:
                 if frame.pts is None:
                     continue
 
-                if not collecting:
-                    # Wait until the first frame that meets the threshold
-                    condition = (frame.pts >= target_pts) if not use_time else (frame.time >= time_threshold)
-                    if condition:
-                        if self.return_frame_array:
-                            frames[step_counter] = frame.to_ndarray(format="rgb24")[::-1] / 255.0
-                        else:
-                            frames.append(preceding_frame or frame)
-                        collecting = True
-                        step_counter = 1  # we just got the first frame
-                else:
-                    if step_counter % step == 0:
-                        if self.return_frame_array:
-                            frames[step_counter // step] = frame.to_ndarray(format="rgb24")[::-1] / 255.0
-                        else:
-                            frames.append(preceding_frame or frame)
-                    step_counter += 1
+                time_threshold = time_threshold_all[collected]
+                found_next = (frame.pts > target_pts) if not use_time else (frame.time > time_threshold)
+                found_current = (frame.pts == target_pts) if not use_time else (frame.time == time_threshold)
 
-                    if len(frames) == num_frames:
-                        return indices[0] + len(frames) * step, frames
+                if found_next:
+                    self._append_frame(frames, collected, preceding_frame)
+                    collected += 1
+                    go_to_next_packet = False
+
+                elif found_current:
+                    self._append_frame(frames, collected, frame)
+                    collected += 1
+                    go_to_next_packet = False
+
+                else:
+                    go_to_next_packet = True
 
                 preceding_frame = frame
 
-        return indices[0] + len(frames) * step, frames
+        return indices[-1], frames
 
     def __getitem__(self, idx: slice | int):
         """
@@ -499,7 +529,7 @@ class VideoHandler:
                     )
 
                 frame_idx, frames = self._decode_multiple(
-                    target_pts, idx.start, idx.stop, use_time=use_time, step=idx.step
+                    target_pts, idx.start, idx.stop, step=idx.step
                 )
                 # update current decoded frame
                 if len(frames):
