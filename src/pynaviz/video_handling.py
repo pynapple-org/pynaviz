@@ -3,7 +3,7 @@ import threading
 import time
 import warnings
 from contextlib import contextmanager
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import av
 import numpy as np
@@ -421,7 +421,7 @@ class VideoHandler:
             idx_start: int,
             idx_end: int,
             step: int = 1,
-    ):
+    ) -> Tuple[int, List[av.VideoFrame] | NDArray, av.VideoFrame]:
         effective_end = min(idx_end, self.shape[0])
         indices = np.arange(idx_start, effective_end, step)
         num_frames = len(indices)
@@ -492,7 +492,7 @@ class VideoHandler:
 
                 preceding_frame = frame
 
-        return indices[-1], frames
+        return indices[-1], frames, frame
 
     def __getitem__(self, idx: slice | int):
         """
@@ -528,13 +528,13 @@ class VideoHandler:
                         int(target_pts), backward=True, any_frame=False, stream=self.stream
                     )
 
-                frame_idx, frames = self._decode_multiple(
+                frame_idx, frames, last_frame = self._decode_multiple(
                     target_pts, idx.start, idx.stop, step=idx.step
                 )
                 # update current decoded frame
                 if len(frames):
                     self.last_idx = frame_idx
-                    self.current_frame = frames[-1]
+                    self.current_frame = last_frame
                 return frames
 
         # Default case: single index
