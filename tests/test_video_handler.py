@@ -1,10 +1,12 @@
 import pathlib
 
-import pytest
 import av
-import numpy as np
-from pynaviz import PlotVideo, video_handling
 import imageio.v3 as iio
+import numpy as np
+import pytest
+
+from pynaviz import PlotVideo, video_handling
+
 
 @pytest.fixture()
 def video_info(request):
@@ -27,21 +29,34 @@ def video_info(request):
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
-@pytest.mark.parametrize("requested_frame_ts, expected_frame_id", [(0, 0), (0.1, 0), (1., 1), (1.1, 1), (1.6, 1), (99, 99), (99.6, 99), (111, 99)])
+@pytest.mark.parametrize(
+    "requested_frame_ts, expected_frame_id",
+    [(0, 0), (0.1, 0), (1.0, 1), (1.1, 1), (1.6, 1), (99, 99), (99.6, 99), (111, 99)],
+)
 def test_video_handler(video_info, requested_frame_ts, expected_frame_id):
     frame_pts_ref, _, video = video_info
-    handler = video_handling.VideoHandler(video, time=np.arange(100), return_frame_array=False)
+    handler = video_handling.VideoHandler(
+        video, time=np.arange(100), return_frame_array=False
+    )
     frame = handler.get(requested_frame_ts)
     expected_pts = frame_pts_ref[expected_frame_id]
     assert frame.pts == expected_pts
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
-@pytest.mark.parametrize("requested_frame_ts, expected_frame_id", [(0, 0), (0.1, 0), (1., 1), (1.1, 1), (1.6, 2), (99, 99), (99.6, 99), (111, 99)])
-def test_video_handler_get_frame_snapshots(video_info, requested_frame_ts, expected_frame_id):
+@pytest.mark.parametrize(
+    "requested_frame_ts, expected_frame_id",
+    [(0, 0), (0.1, 0), (1.0, 1), (1.1, 1), (1.6, 2), (99, 99), (99.6, 99), (111, 99)],
+)
+def test_video_handler_get_frame_snapshots(
+    video_info, requested_frame_ts, expected_frame_id
+):
     _, _, video = video_info
     extension = pathlib.Path(video).suffix[1:]
-    path = pathlib.Path(__file__).parent / f"screenshots/numbered_video_{extension}_frame_{expected_frame_id}.png"
+    path = (
+        pathlib.Path(__file__).parent
+        / f"screenshots/numbered_video_{extension}_frame_{expected_frame_id}.png"
+    )
     stored_img = iio.imread(path)
     v = PlotVideo(video, time=np.arange(100))
     v.set_frame(requested_frame_ts)
@@ -56,7 +71,9 @@ def test_video_handler_get_frame_snapshots(video_info, requested_frame_ts, expec
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
 def test_getitem_single_index_return_frame(video_info):
     _, _, video_path = video_info
-    video = video_handling.VideoHandler(video_path, time=np.arange(100), return_frame_array=False)
+    video = video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=False
+    )
     idx = 7
     frame = video[idx]
     assert isinstance(frame, av.VideoFrame), "Single frame should be a single frame"
@@ -65,17 +82,19 @@ def test_getitem_single_index_return_frame(video_info):
 @pytest.mark.parametrize(
     "start, stop, step",
     [
-        (0, 5, 1),       # simple forward slice
-        (10, 20, 2),     # skip frames
-        (25, None, 3),   # slice to end with step
-        (None, 10, 1),   # from beginning
-        (None, None, 5), # full range with step
-    ]
+        (0, 5, 1),  # simple forward slice
+        (10, 20, 2),  # skip frames
+        (25, None, 3),  # slice to end with step
+        (None, 10, 1),  # from beginning
+        (None, None, 5),  # full range with step
+    ],
 )
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
 def test_getitem_slice_return_frame(video_info, start, stop, step):
     _, _, video_path = video_info
-    video = video_handling.VideoHandler(video_path, time=np.arange(100), return_frame_array=True)
+    video = video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=True
+    )
     idx = slice(start, stop, step)
     frames = video[idx]
 
@@ -87,14 +106,18 @@ def test_getitem_slice_return_frame(video_info, start, stop, step):
 
     assert isinstance(frames, np.ndarray), "Sliced result should be a list of frames"
     assert np.isdtype(np.float32, frames.dtype)
-    assert len(frames) == expected_len, f"Expected {expected_len} frames but got {len(frames)}"
+    assert (
+        len(frames) == expected_len
+    ), f"Expected {expected_len} frames but got {len(frames)}"
     assert all(fi.shape == (video.shape[2], video.shape[1], 3) for fi in frames)
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
 def test_getitem_single_index_return_frame(video_info):
     _, _, video_path = video_info
-    video = video_handling.VideoHandler(video_path, time=np.arange(100), return_frame_array=True)
+    video = video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=True
+    )
     idx = 7
     frame = video[idx]
     assert isinstance(frame, np.ndarray)
@@ -102,13 +125,16 @@ def test_getitem_single_index_return_frame(video_info):
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
-@pytest.mark.parametrize("start, stop, step", [
-    (0, 5, 1),
-    (10, 20, 2),
-    (95, 100, 1),
-    (99, 100, 1),
-    (0, 100, 25),
-])
+@pytest.mark.parametrize(
+    "start, stop, step",
+    [
+        (0, 5, 1),
+        (10, 20, 2),
+        (95, 100, 1),
+        (99, 100, 1),
+        (0, 100, 25),
+    ],
+)
 def test_getitem_slice_matches_expected(video_info, start, stop, step):
     _, _, video = video_info
     video = pathlib.Path(video)
@@ -127,7 +153,9 @@ def test_getitem_slice_matches_expected(video_info, start, stop, step):
             # check if the decoding was correct
             # (assuming current frame is decoded correctly, which is tested above in
             # test_video_handler_get_frame_snapshots)
-            np.testing.assert_array_equal(video_obj.data.current_frame.to_ndarray(), frame.to_ndarray())
+            np.testing.assert_array_equal(
+                video_obj.data.current_frame.to_ndarray(), frame.to_ndarray()
+            )
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
@@ -135,8 +163,6 @@ def test_getitem_multiple_times(video_info):
     _, _, video = video_info
     video = pathlib.Path(video)
     video_obj = PlotVideo(video, time=np.arange(100))
-    print("first_slice")
     frames = video_obj.data[1:12:2]
-    print("second_slice")
     frames2 = video_obj.data[1:12:2]
     np.testing.assert_array_equal(frames, frames2)
