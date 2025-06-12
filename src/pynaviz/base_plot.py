@@ -785,6 +785,11 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         """
         self.controller.set_frame(target_time)
 
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
+        pass
+
+    def group_by(self, metadata_name: str, spacing: Optional = None):
+        pass
 
 class PlotTsdTensor(PlotBaseVideoTensor):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
@@ -794,27 +799,21 @@ class PlotTsdTensor(PlotBaseVideoTensor):
     def _get_initial_texture_data(self):
         return self._data.values[0]
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
-        pass
-
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        pass
-
-
 class PlotVideo(PlotBaseVideoTensor):
     def __init__(
         self,
         video_path: str | pathlib.Path,
-        time: Optional[NDArray] = None,
+        t: Optional[NDArray] = None,
         stream_index: int = 0,
         index=None,
         parent=None,
     ):
-        data = VideoHandler(video_path, time=time, stream_index=stream_index)
+        data = VideoHandler(video_path, time=t, stream_index=stream_index)
         self._data = data
         super().__init__(data, index=index, parent=parent)
 
     def _get_initial_texture_data(self):
+        # TODO: Get the current time from the controller
         return self._data.get(self._data.time[0])
 
     @property
@@ -826,12 +825,6 @@ class PlotVideo(PlotBaseVideoTensor):
         raise ValueError(
             "Cannot set data for ``PlotVideo``. Data must be a fixed video stream."
         )
-
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
-        pass
-
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        pass
 
     def close(self):
         try:

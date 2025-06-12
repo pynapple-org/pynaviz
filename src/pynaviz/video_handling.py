@@ -92,7 +92,7 @@ def ts_to_index(ts: float, time: NDArray) -> int:
 
 
 def extract_keyframe_pts(video_path: str | pathlib.Path) -> NDArray:
-    """Extract keyframe presentation time without decoding."""
+    """Extract keyframe presentation timestamps index without decoding."""
     with av.open(video_path) as container:
         stream = container.streams.video[0]
         keyframe_pts = [
@@ -109,9 +109,9 @@ class VideoHandler:
     def __init__(
         self,
         video_path: str | pathlib.Path,
-        stream_index=0,
+        stream_index: int = 0,
         time: Optional[NDArray] = None,
-        return_frame_array=True,
+        return_frame_array: bool = True,
     ) -> None:
         self.video_path = pathlib.Path(video_path)
         self.container = av.open(video_path)
@@ -121,6 +121,7 @@ class VideoHandler:
         self._running = True
 
         # default to linspace
+        # TODO : what if number of frames is 0.
         if time is None:
             self._time_provided = False
             n_frames = self.stream.frames
@@ -129,13 +130,14 @@ class VideoHandler:
                 0, frame_duration * n_frames - frame_duration, n_frames
             )
         else:
+            # TODO : check that number of time point matches number of frames
             self._time_provided = True
             self.time = np.asarray(time)
 
-        # initialize decoded frame last index
+        # initialize index for last decoded frame
         # if sampling of other signals (LFP) is much denser, multiple times the frame
         # is unchanged, so cache the idx
-        self.last_idx = None
+        self.last_loaded_idx = None
 
         # initialize current frame
         self.current_frame: Optional[av.VideoFrame] = None
@@ -163,11 +165,11 @@ class VideoHandler:
                 target=self._build_index_dynamic, daemon=True
             )
 
-        self._index_thread.start()
         self._index_ready = threading.Event()
+        self._index_thread.start()
         self._pts_keypoint_ready = threading.Event()
         self._keypoint_thread = threading.Thread(
-            target=lambda: self._extract_keypoints_pts(video_path), daemon=True
+            target=self._extract_keypoints_pts, daemon=True
         )
         self._keypoint_thread.start()
 
@@ -181,8 +183,8 @@ class VideoHandler:
         finally:
             self.__class__._get_from_index = old_value
 
-    def _extract_keypoints_pts(self, video_path: str | pathlib.Path):
-        self._keypoint_pts = extract_keyframe_pts(video_path)
+    def _extract_keypoints_pts(self):
+        self._keypoint_pts = extract_keyframe_pts(self.video_path)
         self._pts_keypoint_ready.set()
 
     def _build_index_fixed_size(self):
@@ -262,10 +264,11 @@ class VideoHandler:
         """
         # Wait until enough index is available
         # Estimate pts from index (using filled index if available)
-        if self._i > idx:
+        with self._lock:
+            done = self._i > idx
+        if done:
             # the pts for this timestamp has been filled
-            with self._lock:
-                target_pts = self.all_pts[idx]
+            target_pts = self.all_pts[idx]
             use_time = False
         else:
             # keep going until at least two frames have been decoded by the thread
@@ -283,14 +286,13 @@ class VideoHandler:
                 use_time = True
         return target_pts, use_time
 
-    def get(self, ts: float) -> av.VideoFrame:
-
+    def get(self, ts: float) -> av.VideoFrame | NDArray:
         if not self.__class__._get_from_index:
             idx = ts_to_index(ts, self.time)
         else:
             idx = ts
 
-        if idx == self.last_idx:
+        if idx == self.last_loaded_idx:
             return (
                 self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
                 if self.return_frame_array
@@ -312,7 +314,7 @@ class VideoHandler:
         )
 
         if preceding_frame is not None:
-            self.last_idx = idx
+            self.last_loaded_idx = idx
             self.current_frame = preceding_frame
 
         return (
@@ -324,7 +326,7 @@ class VideoHandler:
     def _decode_and_check_frames(self, use_time: bool, target_pts: int, idx: int):
         """Decode from stream."""
         preceding_frame = None
-        last_idx = self.last_idx
+        last_idx = self.last_loaded_idx
         frame_duration = 1 / float(self.stream.average_rate)
         time_threshold = self.round_fn(idx * frame_duration)
 
@@ -351,7 +353,7 @@ class VideoHandler:
 
     @property
     def shape(self):
-        if self._time_provided:
+        if self._time_provided: # TODO maybe check what is the actual number of frames decoded and throw a warning
             return len(self.time), self.stream.width, self.stream.height
         has_frames = hasattr(self.stream, "frames") and self.stream.frames > 0
         is_done_unpacking = self._index_ready.is_set()
@@ -396,7 +398,7 @@ class VideoHandler:
         except Exception:
             pass
 
-    def wait_for_index(self, timeout=2.0):
+    def _wait_for_index(self, timeout=2.0):
         """Wait up to timeout.
 
         For debugging purposes, or testing, make sure that the
@@ -405,9 +407,14 @@ class VideoHandler:
         self._index_ready.wait(timeout)
         self._pts_keypoint_ready.wait(timeout)
 
-    def get_slice(self, ts: float):
-        idx = ts_to_index(ts, self.time)
-        return slice(idx, idx + 1)
+    def get_slice(self, start:float, end: float = None):
+        # TODO check start and end are sorted
+        start = ts_to_index(start, self.time)
+        if end:
+            end = ts_to_index(end, self.time)
+            return slice(start, end)
+        else:
+            return slice(start, start + 1)
 
     def _append_frame(self, frames, idx, frame):
         if self.return_frame_array:
@@ -556,16 +563,20 @@ class VideoHandler:
                 )
                 # update current decoded frame
                 if len(frames):
-                    self.last_idx = frame_idx
+                    self.last_loaded_idx = frame_idx
                     self.current_frame = last_frame
                 return frames if not revert else frames[::-1]
 
         # Default case: single index
         with self._set_get_from_index(True):
-            idx = idx if not hasattr(idx, "start") else idx.start
-            idx = idx if idx >= 0 else self.shape[0] + idx
-            frame = self.get(idx if not hasattr(idx, "start") else idx.start)
+            # TODO CHeck borders
+            idx_start = idx if not hasattr(idx, "start") else idx.start
+            idx_start = idx_start if idx_start >= 0 else self.shape[0] + idx_start
+            frame = self.get(idx_start)
             if isinstance(idx, slice):
                 frame = np.expand_dims(frame, axis=0)
 
         return frame
+
+    def __len__(self):
+        return self.shape[0]
