@@ -12,6 +12,8 @@ def linters(session):
 @nox.session(name="tests")
 def tests(session):
     """Run the test suite."""
+    session.log("install")
+    session.install(".[dev]")
     video_dir = pathlib.Path(__file__).parent.resolve() / "tests/test_video"
     video_dir.mkdir(exist_ok=True)
     generated_video = [f"numbered_video{ext}" for ext in [".mp4", ".avi", ".mkv"]]
@@ -21,7 +23,7 @@ def tests(session):
         session.log("Generating numbered videos...")
         session.run(
             "python",
-            f"{video_dir.parent / 'generate_numbered_videos.py'}"
+            f"{video_dir.parent / 'generate_numbered_video.py'}"
         )
     session.run(
         "pytest",

@@ -11,7 +11,7 @@ import pynaviz as viz
 
 # import os
 
-# from pynaviz.controller_group import ControllerGroup
+from pynaviz.controller_group import ControllerGroup
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.sin(np.arange(1000) * 0.1))
 tsg = nap.TsGroup({
@@ -23,8 +23,8 @@ tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
 # video_path = "tests/test_video/numbered_video.mp4"
 # video_path = "/Users/ebalzani/Downloads/20250404_171446-compressed.mp4"
-# video_path = "/Users/ebalzani/Downloads/WhatsApp Video 2025-06-11 at 11.08.16 PM.mp4"
-video_path = os.path.expanduser("~/Dropbox/Miniscope/Take 2022-12-13 11.33.25 AM-Camera 5 (#378042) Sofia.avi")
+video_path = "/Users/ebalzani/Downloads/WhatsApp Video 2025-06-11 at 11.08.16 PM.mp4"
+# video_path = os.path.expanduser("~/Dropbox/Miniscope/Take 2022-12-13 11.33.25 AM-Camera 5 (#378042) Sofia.avi")
 app = QApplication([])
 
 # v = viz.PlotTsd(tsd1)
@@ -38,8 +38,8 @@ v.data[20000]
 # # v.show()
 # # v = viz.TsGroupWidget(tsg)
 # # v.show()
-# v2 = viz.PlotTsdFrame(tsdframe)
-# ControllerGroup([v, v2])
+v2 = viz.PlotTsdFrame(tsdframe)
+ControllerGroup([v, v2])
 v.show()
 # v2.show()
 
