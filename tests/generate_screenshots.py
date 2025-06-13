@@ -37,11 +37,11 @@ def snapshot_tsd(path=DEFAULT_SCREENSHOT_PATH / "test_plot_tsd.png"):
 
 def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_VIDEO_DIR, frames=None):
     if frames is None:
-        frames = [0, 1, 2, 99]
+        frames = [0, 1, 2, 3, 4,10, 12, 14, 16, 18, 25, 50, 75, 95, 96, 97, 98, 99]
 
     for extension in ["mkv", "mp4", "avi"]:
         video_path = pathlib.Path(path_video) / f"numbered_video.{extension}"
-        v = viz.PlotVideo(video_path, time=np.arange(100))
+        v = viz.PlotVideo(video_path, t=np.arange(100))
 
         for frame in frames:
             path_frame = (

@@ -323,6 +323,29 @@ class VideoHandler:
             else self.current_frame
         )
 
+
+    def _frame_iterator(self, fall_back_pts: int | None):
+        """
+        Safe frame iterator.
+
+        Iterate frames from current stream location. If End-of-File error is
+        hit, seek to pts and iterate over frames from there.
+        """
+        try:
+            for packet in self.container.demux(self.stream):
+                if packet is None:
+                    continue
+                for frame in packet.decode():
+                    if frame.pts is None:
+                        continue
+                    yield frame
+        except av.error.EOFError as e:
+            if fall_back_pts is None:
+                raise e
+            self.container.seek(int(fall_back_pts), backward=True, any_frame=False, stream=self.stream)
+            yield from self._frame_iterator(None)
+
+
     def _decode_and_check_frames(self, use_time: bool, target_pts: int, idx: int):
         """Decode from stream."""
         preceding_frame = None
@@ -330,25 +353,22 @@ class VideoHandler:
         frame_duration = 1 / float(self.stream.average_rate)
         time_threshold = self.round_fn(idx * frame_duration)
 
-        for packet in self.container.demux(self.stream):
-            if packet is None:
+        for frame in self._frame_iterator(target_pts):
+            if frame.pts is None:
                 continue
-            for frame in packet.decode():
-                if frame.pts is None:
-                    continue
-                if (not use_time and frame.pts > target_pts) or (
-                    use_time and frame.time > time_threshold
-                ):
-                    last_idx = idx
-                    current_frame = preceding_frame or frame
-                    return last_idx, current_frame
-                elif (not use_time and frame.pts == target_pts) or (
-                    use_time and frame.time == time_threshold
-                ):
-                    last_idx = idx
-                    current_frame = frame
-                    return last_idx, current_frame
-                preceding_frame = frame
+            if (not use_time and frame.pts > target_pts) or (
+                use_time and frame.time > time_threshold
+            ):
+                last_idx = idx
+                current_frame = preceding_frame or frame
+                return last_idx, current_frame
+            elif (not use_time and frame.pts == target_pts) or (
+                use_time and frame.time == time_threshold
+            ):
+                last_idx = idx
+                current_frame = frame
+                return last_idx, current_frame
+            preceding_frame = frame
         return last_idx, preceding_frame
 
     @property
@@ -487,7 +507,7 @@ class VideoHandler:
             try:
                 decoded = packet.decode()
             except av.error.EOFError:
-                # end of the video
+                # end of the video, rewind
                 break
 
             for frame in decoded:
