@@ -16,6 +16,7 @@ tsg = nap.TsGroup({
     i:nap.Ts(
         t=np.sort(np.random.uniform(0, 1000, 100*(  i+1)))
     ) for i in range(10)
+
 })
 tsdframe = nap.TsdFrame(
     t=np.arange(1000),

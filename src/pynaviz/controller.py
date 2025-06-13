@@ -4,7 +4,7 @@ The controller class.
 
 import threading
 from abc import ABC, abstractmethod
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pygfx
@@ -30,7 +30,6 @@ class CustomController(ABC, PanZoomController):
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
-        plot_updates: Optional[List[Callable]] = None,
     ):
         super().__init__(
             camera=camera,
@@ -128,6 +127,11 @@ class CustomController(ABC, PanZoomController):
         self.set_xlim(xmin, xmax)
         self.set_ylim(ymin, ymax)
 
+    def get_xlim(self):
+        """Return the current x boundaries"""
+        half_width = self.camera.width / 2
+        return self.camera.local.x - half_width, self.camera.local.x + half_width
+
     @abstractmethod
     def sync(self, event):
         pass
@@ -140,31 +144,27 @@ class SpanController(CustomController):
 
     def __init__(
         self,
-        camera: Optional[Camera] = None,
+            camera: Optional[Camera] = None,
         *,
-        enabled=True,
-        damping: int = 0,
-        auto_update: bool = True,
-        renderer: Optional[Union[Viewport, Renderer]] = None,
-        controller_id: Optional[int] = None,
-        dict_sync_funcs: Optional[dict[Callable]] = None,
-        plot_updates=None,
-    ):
-        super().__init__(
-            camera=camera,
-            enabled=enabled,
-            damping=damping,
-            auto_update=auto_update,
-            renderer=renderer,
-            controller_id=controller_id,
-            dict_sync_funcs=dict_sync_funcs,
-            plot_updates=None,
-        )
-        self.plot_updates = plot_updates if plot_updates is not None else []
+            enabled: object = True,
+            damping: int = 0,
+            auto_update: bool = True,
+            renderer: Optional[Union[Viewport, Renderer]] = None,
+            controller_id: Optional[int] = None,
+            dict_sync_funcs: Optional[dict[Callable]] = None,
+            plot_callbacks: Optional[dict[Callable]] = None
+    ) -> None:
+        super().__init__(camera=camera, enabled=enabled, damping=damping, auto_update=auto_update, renderer=renderer,
+                         controller_id=controller_id, dict_sync_funcs=dict_sync_funcs)
+        self._plot_callbacks = plot_callbacks if plot_callbacks is not None else []
+
+    def _add_callback(self, func):
+        if isinstance(func, Callable):
+            self._plot_callbacks.append(func)
 
     def _update_plots(self):
-        for update_func in self.plot_updates:
-            update_func()
+        for update_func in self._plot_callbacks:
+            update_func(**self.camera.get_state())
 
     def _update_pan(self, delta, *, vecx, vecy):
         super()._update_pan(delta, vecx=vecx, vecy=vecy)
@@ -235,13 +235,8 @@ class GetController(CustomController):
         buffer: pygfx.Buffer = None,
         time_text: gfx.Text = None,
     ):
-        super().__init__(
-            camera=camera,
-            enabled=enabled,
-            auto_update=auto_update,
-            renderer=renderer,
-            controller_id=controller_id,
-        )
+        super().__init__(camera=camera, enabled=enabled, auto_update=auto_update, renderer=renderer,
+                         controller_id=controller_id)
         self.data = data
         if self.data:
             self.frame_index = 0
