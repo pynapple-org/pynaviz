@@ -443,6 +443,11 @@ class VideoHandler:
             frames = []
 
         collected = 0
+
+        # initialize current frame
+        if self.current_frame is None:
+            self.get(0)
+
         preceding_frame = self.current_frame
         go_to_next_packet = False
 
