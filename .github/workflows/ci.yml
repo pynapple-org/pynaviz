@@ -47,6 +47,9 @@ jobs:
       - name: Generate videos
         run: |
           python tests/generate_numbered_video.py
+      - name: Generate Screenshots
+        run: |
+          python python generate_screenshots.py --type all --path tests/screenshots
       - name: Run nox
         run: |
           nox --no-venv -s linters
