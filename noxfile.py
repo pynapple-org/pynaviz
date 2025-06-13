@@ -32,7 +32,7 @@ def tests(session):
     session.run(
         "python",
         gen_screenshot_script.as_posix(),
-        "--type", "video",
+        "--type", "all",
         "--path", "tests/screenshots",
     )
     session.log(f"Run Tests...")
