@@ -642,8 +642,6 @@ class PlotTsGroup(_BasePlot):
             renderer=self.renderer,
             controller_id=index,
             dict_sync_funcs=dict_sync_funcs,
-            min=0,
-            max=len(data) + 1,
         )
 
         self.graphic = {}
