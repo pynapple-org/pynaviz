@@ -2,7 +2,7 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
-
+import abc
 import pathlib
 import threading
 import warnings
@@ -31,6 +31,8 @@ from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 from .video_handling import VideoHandler
+from .video_worker import video_worker_main
+from multiprocessing import shared_memory, Queue, Event, Process
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -443,6 +445,7 @@ class PlotTsdFrame(_BasePlot):
                 data=None,
                 buffer=None,
                 enabled=False,
+                callback=self._update_buffer,
             ),
         }
 
@@ -458,6 +461,12 @@ class PlotTsdFrame(_BasePlot):
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
+
+
+    def _update_buffer(self, frame_index: int):
+        _update_buffer(self, frame_index=frame_index)
+        self.controller.renderer_request_draw()
+
 
     def _flush(self, slice_: slice = None):
         """
@@ -788,7 +797,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
             controller_id=index,
             data=self._data,
             buffer=self.texture,
-            time_text=self.time_text,
+            callback=self._update_buffer,
         )
 
         self.canvas.request_draw(
@@ -799,6 +808,10 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     def _get_initial_texture_data(self) -> np.ndarray:
         """Subclasses must return a 2D ndarray to initialize the texture."""
         pass
+
+    def _set_time_text(self, frame_index: int):
+        if self.time_text:
+            self.time_text.set_text(str(self.data.t[frame_index]))
 
     def set_frame(self, target_time: float):
         """
@@ -821,6 +834,9 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
 
+    @abc.abstractmethod
+    def _update_buffer(self, frame_index: int):
+        pass
 
 class PlotTsdTensor(PlotBaseVideoTensor):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
@@ -830,6 +846,9 @@ class PlotTsdTensor(PlotBaseVideoTensor):
     def _get_initial_texture_data(self):
         return self._data.values[0]
 
+    def _update_buffer(self, frame_index):
+        _update_buffer(self, frame_index)
+        self.controller.renderer_request_draw()
 
 class PlotVideo(PlotBaseVideoTensor):
     def __init__(
@@ -843,6 +862,23 @@ class PlotVideo(PlotBaseVideoTensor):
         data = VideoHandler(video_path, time=t, stream_index=stream_index)
         self._data = data
         super().__init__(data, index=index, parent=parent)
+
+        # Shared memory and comms
+        self.shape = self.texture.data.shape
+        # multiply by 4 because float 32 have 4 bytes
+        self.shm = shared_memory.SharedMemory(create=True, size=np.prod(self.shape) * 4)
+        self.shared_array = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm.buf)
+        self.request_queue = Queue()
+        self.frame_ready = Event()
+
+        # Start worker
+        self._worker = Process(
+            target=video_worker_main,
+            args=(video_path, self.shape, self.shm.name, self.request_queue, self.frame_ready),
+            daemon=True,
+        )
+        self._worker.start()
+
 
     def _get_initial_texture_data(self):
         # TODO: Get the current time from the controller
@@ -861,5 +897,39 @@ class PlotVideo(PlotBaseVideoTensor):
     def close(self):
         try:
             self._data.close()
+            self.request_queue.put(None)
+            self._worker.join(timeout=2)
+            self.shm.close()
+            self.shm.unlink()
         except Exception:
             pass
+
+    def _update_buffer(self, frame_index):
+        print("update buffer called")
+        self.frame_ready.clear()
+        self.request_queue.put(frame_index)
+        self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
+        print("frame ready wait passed")
+        # Copy the decoded frame into the texture buffer
+        self.texture.data[:] = self.shared_array
+
+        print(self.shared_array[0,0,0])
+        self._set_time_text(frame_index)
+        self.controller.renderer_request_draw()
+        self.texture.update_full()
+        self._set_time_text(frame_index)
+
+
+def _update_buffer(plot_object: PlotTsdTensor | PlotTsdFrame, frame_index: int):
+    if (
+            plot_object.texture.data.shape[0] == 1 and plot_object.texture.data.shape[1] == 3
+    ):  # assume single point
+        plot_object.texture.data[0, 0:2] = plot_object.data.values[frame_index].astype(
+            "float32"
+        )
+    else:
+        img_array = plot_object.data.values[frame_index]
+        plot_object.texture.data[:] = img_array.astype("float32")
+    plot_object.texture.update_full()
+    plot_object._set_time_text(frame_index)
+    return

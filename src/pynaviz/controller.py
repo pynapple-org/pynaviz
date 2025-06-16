@@ -233,7 +233,7 @@ class GetController(CustomController):
         controller_id: Optional[int] = None,
         data: Optional[Union[nap.TsdFrame, nap.TsdTensor, VideoHandler]] = None,
         buffer: pygfx.Buffer = None,
-        time_text: gfx.Text = None,
+        callback: Optional[Callable] = None,
     ):
         super().__init__(camera=camera, enabled=enabled, auto_update=auto_update, renderer=renderer,
                          controller_id=controller_id)
@@ -241,7 +241,7 @@ class GetController(CustomController):
         if self.data:
             self.frame_index = 0
         self.buffer = buffer
-        self.time_text = time_text
+        self.callback = callback
 
     @property
     def frame_index(self):
@@ -249,34 +249,18 @@ class GetController(CustomController):
 
     @frame_index.setter
     def frame_index(self, value):
-        n_frames = self.data.shape[0]
-        self._frame_index = max(min(value, n_frames), 0)
+        if self.data:
+            n_frames = self.data.shape[0]
+            self._frame_index = max(min(value, n_frames), 0)
+        else:
+            self._frame_index = 0
 
     def _get_current_time(self):
         time_array = getattr(self.data.index, "values", self.data.index)
         return time_array[self.frame_index]
 
-
     def _update_buffer(self):
-        if (
-            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
-        ):  # assume single point
-            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
-                "float32"
-            )
-        else:
-            img_array = (
-                self.data.values[self.frame_index] if hasattr(self.data, "values") else
-                self.data.get(self.data.time[self.frame_index])
-            )
-            self.buffer.data[:] = img_array.astype("float32")
-        self.buffer.update_full()
-
-        if self.time_text:
-            self.time_text.set_text(str(self.data.t[self.frame_index]))
-
-        self.renderer_request_draw()
-
+        self.callback(self.frame_index)
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         """Should convert the jump of time to camera position
@@ -293,12 +277,10 @@ class GetController(CustomController):
 
         self._update_buffer()
 
-        if self.time_text:
-            self.time_text.set_text(str(self.data.t[self.frame_index]))
-
         # Sending the sync event
         delta_t = self._get_current_time() - current_t
         self._send_sync_event(update_type="pan", delta_t=delta_t)
+
 
     def set_frame(self, target_time: float):
         """
@@ -335,13 +317,4 @@ class GetController(CustomController):
             new_t = self.data.t[self.frame_index] + delta_t
 
         self.frame_index = self.data.get_slice(new_t).start
-
-        if (
-            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
-        ):  # assume single point
-            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
-                "float32"
-            )
-        else:
-            self._update_buffer() #self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
-
+        self._update_buffer() #self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
