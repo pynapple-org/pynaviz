@@ -665,7 +665,7 @@ class PlotTsGroup(_BasePlot):
         return dist * size;
         """
         for i, n in enumerate(data.keys()):
-            positions = np.stack((data[n].t, np.ones(len(data[n])), np.ones(len(data[n])))).T
+            positions = np.stack((data[n].t, np.ones(len(data[n])) * i, np.ones(len(data[n])))).T
             positions = positions.astype("float32")
 
             self.graphic[n] = gfx.Points(
@@ -681,16 +681,19 @@ class PlotTsGroup(_BasePlot):
 
         # Stream the first batch of data
         self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
+        self._manager.data["offset"] = self.data.index
         self._flush()
 
         # Add elements to the scene for rendering
-        self.scene.add(self.ruler_x, self.ruler_y, *list(self.graphic.values()))
+        self.scene.add(
+            self.ruler_x, self.ruler_y, self.ruler_ref_time, *list(self.graphic.values())
+        )
 
         # Connect specific event handler for TsGroup
         self.renderer.add_event_handler(self._reset, "key_down")
 
         # By default, showing only the first second.
-        self.controller.set_view(0, 1, 0, 1)
+        self.controller.set_view(0, 1, 0, np.max(self._manager.offset) + 1)
 
         # Request drawing of the scene
         self.canvas.request_draw(self.animate)
@@ -718,6 +721,7 @@ class PlotTsGroup(_BasePlot):
             if event.key == "r":
                 if isinstance(self.controller, SpanController):
                     self._manager.reset()
+                    self._manager.data["offset"] = self.data.index
                     self._flush()
 
                 self.controller.set_ylim(0, np.max(self._manager.offset) + 1)

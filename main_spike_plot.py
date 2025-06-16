@@ -16,19 +16,17 @@ app = QApplication([])
 tsgroup = nap.load_file(
     "/home/wolf/Documents/spatial-manifolds/data/sessions/M25/D25/VR/sub-25_day-25_ses-VR_srt-kilosort4_clusters.npz"
 )
-v = viz.TsGroupWidget(tsgroup)
-# v.plot.group_by("group")
-# v.plot.sort_by("channel")#, order="descending")
+behaviour = nap.load_file(
+    "/home/wolf/Documents/spatial-manifolds/data/sessions/M25/D25/VR/sub-25_day-25_ses-VR_beh.nwb",
+    lazy_loading=False,
+)["P"]
+v1 = viz.TsGroupWidget(tsgroup)
+v1.show()
 
-# v.plot.sort_by("channel")
-# v.plot.sort_by("channel")
-# for i in range(4):
-#     print(i)
-#     print(v.plot._manager.data['offset'])
-#     v.plot.sort_by("channel")
-#     v.plot.group_by("group")
-
-v.show()
+#v2 = viz.TsdWidget(behaviour)
+#group = viz.controller_group.ControllerGroup([v1.plot, v2.plot])
+#v1.show()
+#v2.show()
 
 one = ONE()
 eid = "ebce500b-c530-47de-8cb1-963c552703ea"
