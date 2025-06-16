@@ -73,7 +73,7 @@ app = QApplication([])
 v = viz.TsdFrameWidget(tsdframe)
 
 
-v.plot.sort_by("channel")#, mode="descending")
+# v.plot.sort_by("channel")#, mode="descending")
 # v.plot.group_by("group")
 # v.plot.color_by("group")
 

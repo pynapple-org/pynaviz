@@ -27,12 +27,14 @@ from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
+from line_profiler import profile
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
     "zoom": _match_zoom_on_x_axis,
     "zoom_to_point": _match_zoom_on_x_axis,
 }
+
 
 
 class _BasePlot(IntervalSetInterface):
@@ -450,6 +452,7 @@ class PlotTsdFrame(_BasePlot):
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
 
+    @profile
     def _flush(self, slice_: slice = None):
         """
         Flush the data stream from slice_ argument
@@ -471,9 +474,11 @@ class PlotTsdFrame(_BasePlot):
             sl = self._buffer_slices[i]
             sl = slice(sl.start+left_offset, sl.stop+right_offset)
             self.graphic.geometry.positions.data[sl,0] = time
-            self.graphic.geometry.positions.data[sl,1] = (
-                self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
-            ).astype("float32")
+            buffer_read = np.array(self.data.values[slice_, i], dtype="float32")
+            buffer_read *= self._manager.data.loc[c]['scale']
+            buffer_read += self._manager.data.loc[c]['offset']
+            buffer_read = buffer_read.astype("float32")
+            self.graphic.geometry.positions.data[sl,1] = buffer_read
 
             # self._buffers[c].data[-n:,0] = time.astype("float32")
             # self._buffers[c].data[-n:,1] = (
