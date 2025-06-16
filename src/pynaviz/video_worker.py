@@ -1,9 +1,8 @@
 from multiprocessing import shared_memory, Event, Queue
 import numpy as np
-import time
 from .video_handling import VideoHandler  # Replace with actual path
 
-def video_worker_main(
+def video_worker_process(
     video_path: str,
     shape: tuple,
     shm_name: str,

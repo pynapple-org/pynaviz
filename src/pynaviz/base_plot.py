@@ -31,7 +31,7 @@ from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 from .video_handling import VideoHandler
-from .video_worker import video_worker_main
+from .video_worker import video_worker_process
 from multiprocessing import shared_memory, Queue, Event, Process
 
 dict_sync_funcs = {
@@ -873,7 +873,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
         # Start worker
         self._worker = Process(
-            target=video_worker_main,
+            target=video_worker_process,
             args=(video_path, self.shape, self.shm.name, self.request_queue, self.frame_ready),
             daemon=True,
         )
