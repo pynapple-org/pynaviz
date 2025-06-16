@@ -654,9 +654,7 @@ class PlotTsGroup(_BasePlot):
             dict_sync_funcs=dict_sync_funcs,
         )
 
-        # Connect specific event handler for TsGroup
-        self.renderer.add_event_handler(self._reset, "key_down")
-
+        # Create pygfx objects
         self.graphic = {}
         spike_sdf = """
         // Normalize coordinates relative to size
@@ -667,7 +665,7 @@ class PlotTsGroup(_BasePlot):
         return dist * size;
         """
         for i, n in enumerate(data.keys()):
-            positions = np.stack((data[n].t, np.ones(len(data[n])) * i, np.zeros(len(data[n])))).T
+            positions = np.stack((data[n].t, np.ones(len(data[n])), np.ones(len(data[n])))).T
             positions = positions.astype("float32")
 
             self.graphic[n] = gfx.Points(
@@ -681,10 +679,18 @@ class PlotTsGroup(_BasePlot):
                 ),
             )
 
+        # Stream the first batch of data
+        self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
+        self._flush()
+
+        # Add elements to the scene for rendering
         self.scene.add(self.ruler_x, self.ruler_y, *list(self.graphic.values()))
 
+        # Connect specific event handler for TsGroup
+        self.renderer.add_event_handler(self._reset, "key_down")
+
         # By default, showing only the first second.
-        self.controller.set_view(0, 1, 0, len(self.data) + 1)
+        self.controller.set_view(0, 1, 0, 1)
 
         # Request drawing of the scene
         self.canvas.request_draw(self.animate)
@@ -696,14 +702,12 @@ class PlotTsGroup(_BasePlot):
         # if slice_ is None:
         #    slice_ = self._stream.get_slice(*self.controller.get_xlim())
 
-        time = self.data.t[slice_]
-        n = time.shape[0]
+        # time = self.data.t[slice_]
+        # n = time.shape[0]
 
-        for i, c in enumerate(self._buffers):
-            self._buffers[c].data[-n:, 0] = time.astype("float32")
-            self._buffers[c].data[-n:, 1] = (
-                self.data.values[slice_, i] + self._manager.data.loc[c]["offset"]
-            ).astype("float32")
+        for c in self._buffers:
+            # self._buffers[c].data[-n:, 0] = time.astype("float32")
+            self._buffers[c].data[:, 1] = self._manager.data.loc[c]["offset"].astype("float32")
             self._buffers[c].update_full()
 
     def _reset(self, event):
@@ -714,9 +718,9 @@ class PlotTsGroup(_BasePlot):
             if event.key == "r":
                 if isinstance(self.controller, SpanController):
                     self._manager.reset()
-                    # self._flush()
+                    self._flush()
 
-                self.controller.set_ylim(0, len(self.data) + 1)
+                self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
                 self.canvas.request_draw(self.animate)
 
     def _update(self, action_name):
