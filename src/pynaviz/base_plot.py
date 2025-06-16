@@ -3,6 +3,7 @@ Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
 
+from importlib.metadata import metadata
 import threading
 import warnings
 from typing import Any, Optional, Union
@@ -654,7 +655,6 @@ class PlotTsGroup(_BasePlot):
         )
 
         # Connect specific event handler for TsGroup
-        self.renderer.add_event_handler(self._rescale, "key_down")
         self.renderer.add_event_handler(self._reset, "key_down")
 
         self.graphic = {}
@@ -689,6 +689,23 @@ class PlotTsGroup(_BasePlot):
         # Request drawing of the scene
         self.canvas.request_draw(self.animate)
 
+    def _flush(self, slice_: slice = None):
+        """
+        Flush the data stream from slice_ argument
+        """
+        # if slice_ is None:
+        #    slice_ = self._stream.get_slice(*self.controller.get_xlim())
+
+        time = self.data.t[slice_]
+        n = time.shape[0]
+
+        for i, c in enumerate(self._buffers):
+            self._buffers[c].data[-n:, 0] = time.astype("float32")
+            self._buffers[c].data[-n:, 1] = (
+                self.data.values[slice_, i] + self._manager.data.loc[c]["offset"]
+            ).astype("float32")
+            self._buffers[c].update_full()
+
     def _reset(self, event):
         """
         "r" key reset the plot manager to initial view
@@ -707,11 +724,7 @@ class PlotTsGroup(_BasePlot):
         Update function for sort_by and group_by. Because of mode of sort_by, it's not possible
         to just update the buffer.
         """
-        # Update the scale only if one action has been performed
-        # if self._manager._sorted ^ self._manager._grouped:
-        #    self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
-
-        # self._flush()
+        self._flush()
 
         # Update camera to fit the full y range
         self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
@@ -720,7 +733,7 @@ class PlotTsGroup(_BasePlot):
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
         """
-        Sort the plotted time series lines vertically by a metadata field.
+        Sort the plotted unit raster vertically by a metadata field.
 
         Parameters
         ----------
