@@ -379,28 +379,40 @@ class PlotTsdFrame(_BasePlot):
         self.data = data
 
         # Initialize lines for each column in the TsdFrame
-        self.graphic: dict[str, gfx.Line] = {}
+        # self.graphic: dict[str, gfx.Line] = {}
 
         # To stream data
         self._stream = TsdFrameStreaming(data, callback=self._flush, window_size = 3) # seconds
 
         # Create pygfx objects
-        for i, c in enumerate(self.data.columns):
-            positions = np.zeros(
-                (len(self._stream), 3), dtype="float32"
+        positions = np.full(
+            ((self._stream._max_n+1)*self.data.shape[1], 3), np.nan, dtype="float32"
             )
-            self.graphic[c] = gfx.Line(
-                gfx.Geometry(positions=positions),
-                gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
-            )
+        positions[:,2] = 0.0
+
+        self._buffer_slices = [slice(s, s+self._stream._max_n) for s in range(0, len(positions)-self._stream._max_n + 1, self._stream._max_n+1)]
+
+        self.graphic = gfx.Line(
+            gfx.Geometry(positions=positions),
+            gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
+        )
+
+        # for i, c in enumerate(self.data.columns):
+        #     positions = np.zeros(
+        #         (len(self._stream), 3), dtype="float32"
+        #     )
+        #     self.graphic[c] = gfx.Line(
+        #         gfx.Geometry(positions=positions),
+        #         gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
+        #     )
 
         # Stream the first batch of data
-        self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
+        # self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
         self._flush(self._stream.get_slice(start=0, end=1))
 
         # Add elements to the scene for rendering
         self.scene.add(
-            self.ruler_x, self.ruler_y, self.ruler_ref_time, *self.graphic.values()
+            self.ruler_x, self.ruler_y, self.ruler_ref_time, self.graphic
         )
 
         # Connect specific event handler for TsdFrame
@@ -445,21 +457,35 @@ class PlotTsdFrame(_BasePlot):
         if slice_ is None:
             slice_ = self._stream.get_slice(*self.controller.get_xlim())
 
-        time = self.data.t[slice_]
-        n = time.shape[0]
+        time = self.data.t[slice_].astype("float32")
 
-        for i, c in enumerate(self._buffers):
-            self._buffers[c].data[-n:,0] = time.astype("float32")
-            self._buffers[c].data[-n:,1] = (
+        left_offset = 0
+        right_offset = 0
+        if time.shape[0] < self._stream._max_n:
+            if slice_.start == 0:
+                left_offset = self._stream._max_n-time.shape[0]
+            else:
+                right_offset = time.shape[0] - self._stream._max_n
+
+        for i, c in enumerate(self.data.columns):
+            sl = self._buffer_slices[i]
+            sl = slice(sl.start+left_offset, sl.stop+right_offset)
+            self.graphic.geometry.positions.data[sl,0] = time
+            self.graphic.geometry.positions.data[sl,1] = (
                 self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
             ).astype("float32")
-            self._buffers[c].update_full()
+
+            # self._buffers[c].data[-n:,0] = time.astype("float32")
+            # self._buffers[c].data[-n:,1] = (
+            #     self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
+            # ).astype("float32")
+            # self._buffers[c].update_full()
+
+        self.graphic.geometry.positions.update_full()
 
     def _get_min_max(self):
-        return np.array([[
-                self._buffers[c].data[:,1].min(),
-                self._buffers[c].data[:,1].max()
-                ] for c in self._buffers])
+        return np.array([[np.nanmin(self.graphic.geometry.positions.data[sl, 1]),
+          np.nanmax(self.graphic.geometry.positions.data[sl, 1])] for sl in self._buffer_slices])
 
     def _rescale(self, event):
         """
