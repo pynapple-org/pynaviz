@@ -8,6 +8,7 @@ import threading
 import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Union
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,7 +33,15 @@ from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 from .video_handling import VideoHandler
 from .video_worker import video_worker_process
-from multiprocessing import shared_memory, Queue, Event, Process
+from multiprocessing import shared_memory, Queue, Event, Process, set_start_method
+
+
+if sys.platform != "win32":
+    try:
+        set_start_method("fork", force=True)
+    except RuntimeError:
+        pass
+
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -905,15 +914,12 @@ class PlotVideo(PlotBaseVideoTensor):
             pass
 
     def _update_buffer(self, frame_index):
-        print("update buffer called")
         self.frame_ready.clear()
         self.request_queue.put(frame_index)
         self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
-        print("frame ready wait passed")
         # Copy the decoded frame into the texture buffer
         self.texture.data[:] = self.shared_array
 
-        print(self.shared_array[0,0,0])
         self._set_time_text(frame_index)
         self.controller.renderer_request_draw()
         self.texture.update_full()
