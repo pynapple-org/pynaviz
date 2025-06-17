@@ -48,8 +48,12 @@ class DynamicSelectionListView(QListView):
             if modifiers & Qt.KeyboardModifier.ShiftModifier:
                 return super().selectionCommand(index, event)  # allow range selection
 
-            if modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier):
-                return QItemSelectionModel.SelectionFlag.Toggle  # Cmd/Ctrl + click → toggle
+            if modifiers & (
+                Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier
+            ):
+                return (
+                    QItemSelectionModel.SelectionFlag.Toggle
+                )  # Cmd/Ctrl + click → toggle
 
             # Regular click
             if self.selectionModel().isSelected(index):
@@ -71,6 +75,8 @@ class ChannelListModel(QAbstractListModel):
             self.checks = {i: True for i in plot.data.keys()}
         elif isinstance(plot.data, nap.TsdFrame):
             self.checks = {i: True for i in plot.data.columns}
+        elif isinstance(plot.data, nap.IntervalSet):
+            self.checks = {i: True for i in plot.data.index}
 
     def rowCount(self, parent=None):
         return len(self.checks.keys())
@@ -164,7 +170,6 @@ if __name__ == "__main__":
     import numpy as np
     import pynapple as nap
     from PyQt6.QtWidgets import QApplication, QListView
-
 
     my_tsdframe = nap.TsdFrame(
         t=np.arange(10),

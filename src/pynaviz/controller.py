@@ -105,7 +105,7 @@ class CustomController(ABC, PanZoomController):
 
     def set_xlim(self, xmin: float, xmax: float):
         """Set the visible X range for an OrthographicCamera.
-            #TODO THIS SHOULD DEPEND ON THE CURRENT SYNC STATUS
+        #TODO THIS SHOULD DEPEND ON THE CURRENT SYNC STATUS
         """
         width = xmax - xmin
         x_center = (xmax + xmin) / 2
@@ -142,18 +142,25 @@ class SpanController(CustomController):
 
     def __init__(
         self,
-            camera: Optional[Camera] = None,
+        camera: Optional[Camera] = None,
         *,
-            enabled: object = True,
-            damping: int = 0,
-            auto_update: bool = True,
-            renderer: Optional[Union[Viewport, Renderer]] = None,
-            controller_id: Optional[int] = None,
-            dict_sync_funcs: Optional[dict[Callable]] = None,
-            plot_callbacks: Optional[dict[Callable]] = None
+        enabled: object = True,
+        damping: int = 0,
+        auto_update: bool = True,
+        renderer: Optional[Union[Viewport, Renderer]] = None,
+        controller_id: Optional[int] = None,
+        dict_sync_funcs: Optional[dict[Callable]] = None,
+        plot_callbacks: Optional[dict[Callable]] = None,
     ) -> None:
-        super().__init__(camera=camera, enabled=enabled, damping=damping, auto_update=auto_update, renderer=renderer,
-                         controller_id=controller_id, dict_sync_funcs=dict_sync_funcs)
+        super().__init__(
+            camera=camera,
+            enabled=enabled,
+            damping=damping,
+            auto_update=auto_update,
+            renderer=renderer,
+            controller_id=controller_id,
+            dict_sync_funcs=dict_sync_funcs,
+        )
         self._plot_callbacks = plot_callbacks if plot_callbacks is not None else []
 
     def _add_callback(self, func):
@@ -216,6 +223,44 @@ class SpanController(CustomController):
         self.renderer_request_draw()
 
 
+class SpanYLockController(SpanController):
+
+    def __init__(self, *args, **kwargs):
+        """
+        The class for horizontal time-panning and zooming, with the y-axis locked.
+        """
+        super().__init__(*args, **kwargs)
+
+    def _update_pan(self, delta, *, vecx, vecy):
+        """
+        Update pan in x axis only, forcing vecy to be 0.
+        """
+        super()._update_pan(delta, vecx=vecx, vecy=0)
+
+    def _update_zoom(self, delta):
+        """
+        Rewrite of _update_zoom since its inputs don't allow separation of fx and fy
+        """
+        if isinstance(delta, (int, float)):
+            delta = (delta, delta)
+        assert isinstance(delta, tuple) and len(delta) == 2
+
+        fx = 2 ** delta[0]
+        new_cam_state = self._zoom(fx, 1, self._get_camera_state())
+        self._set_camera_state(new_cam_state)
+
+        threading.Timer(0.01, self._update_plots).start()
+        self._send_sync_event(
+            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
+        )
+
+    def _zoom(self, fx, fy, cam_state):
+        """
+        Zoom in x axis only, enforcing fy to be 1.
+        """
+        return super()._zoom(fx, 1, cam_state)
+
+
 class GetController(CustomController):
     """
     The class for grabbing a single time point
@@ -233,8 +278,13 @@ class GetController(CustomController):
         buffer: pygfx.Buffer = None,
         time_text: gfx.Text = None,
     ):
-        super().__init__(camera=camera, enabled=enabled, auto_update=auto_update, renderer=renderer,
-                         controller_id=controller_id)
+        super().__init__(
+            camera=camera,
+            enabled=enabled,
+            auto_update=auto_update,
+            renderer=renderer,
+            controller_id=controller_id,
+        )
         self.data = data
         if self.data:
             self.n_frames = data.shape[0]
@@ -305,4 +355,3 @@ class GetController(CustomController):
             self.time_text.set_text(str(self.data.t[self.frame_index]))
 
         self.renderer_request_draw()
-

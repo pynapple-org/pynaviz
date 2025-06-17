@@ -20,7 +20,7 @@ from wgpu.gui.auto import (
 )
 from wgpu.gui.glfw import GlfwWgpuCanvas
 
-from .controller import GetController, SpanController
+from .controller import GetController, SpanController, SpanYLockController
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
@@ -838,7 +838,7 @@ class PlotIntervalSet(_BasePlot):
         self.camera.maintain_aspect = False
 
         # Pynaviz specific controller
-        self.controller = SpanController(
+        self.controller = SpanYLockController(
             camera=self.camera,
             renderer=self.renderer,
             controller_id=index,
@@ -873,7 +873,7 @@ class PlotIntervalSet(_BasePlot):
             geometries[c].positions.update_full()
 
         # Update camera to fit the full y range
-        self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+        self.controller.set_ylim(0.5, np.max(self._manager.offset) + 0.5)
 
         self.canvas.request_draw(self.animate)
 
