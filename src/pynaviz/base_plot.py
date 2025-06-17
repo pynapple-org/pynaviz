@@ -382,33 +382,25 @@ class PlotTsdFrame(_BasePlot):
         self.data = data
 
         # To stream data
+        # TODO: determine the windowsize based on the size of the data
         self._stream = TsdFrameStreaming(data, callback=self._flush, window_size = 3) # seconds
 
         # Create pygfx objects
-        positions = np.full(
+        self._positions = np.full(
             ((self._stream._max_n+1)*self.data.shape[1], 3), np.nan, dtype="float32"
             )
-        positions[:,2] = 0.0
+        self._positions[:,2] = 0.0
 
-        self._buffer_slices = [slice(s, s+self._stream._max_n) for s in range(0, len(positions)-self._stream._max_n + 1, self._stream._max_n+1)]
+        self._buffer_slices = {}
+        for c, s in zip(self.data.columns, range(0, len(self._positions)-self._stream._max_n + 1, self._stream._max_n+1)):
+            self._buffer_slices[c] = slice(s, s+self._stream._max_n)
+
+        colors = np.zeros((self._positions.shape[0], 4), dtype=np.float32)
 
         self.graphic = gfx.Line(
-            gfx.Geometry(positions=positions),
-            gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
+            gfx.Geometry(positions=self._positions, colors=colors),
+            gfx.LineMaterial(thickness=1.0)#, color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
         )
-
-        # for i, c in enumerate(self.data.columns):
-        #     positions = np.zeros(
-        #         (len(self._stream), 3), dtype="float32"
-        #     )
-        #     self.graphic[c] = gfx.Line(
-        #         gfx.Geometry(positions=positions),
-        #         gfx.LineMaterial(thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]),
-        #     )
-
-        # Stream the first batch of data
-        # self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
-        self._flush(self._stream.get_slice(start=0, end=1))
 
         # Add elements to the scene for rendering
         self.scene.add(
@@ -444,6 +436,7 @@ class PlotTsdFrame(_BasePlot):
         self.time_point = None
 
         # By default, showing only the first second.
+        self._flush(self._stream.get_slice(start=0, end=1))
         minmax = self._get_min_max()
         self.controller.set_view(0, 1, np.min(minmax[:,0]), np.max(minmax[:,1]))
 
@@ -468,31 +461,31 @@ class PlotTsdFrame(_BasePlot):
             else:
                 right_offset = time.shape[0] - self._stream._max_n
 
+        # Read
+        data = np.array(self.data.values[slice_,:])
+
+        # Copy the data
         for i, c in enumerate(self.data.columns):
-            sl = self._buffer_slices[i]
+            sl = self._buffer_slices[c]
             sl = slice(sl.start+left_offset, sl.stop+right_offset)
-            self.graphic.geometry.positions.data[sl,0] = time
-            buffer_read = np.array(self.data.values[slice_, i], dtype="float32")
-            buffer_read *= self._manager.data.loc[c]['scale']
-            buffer_read += self._manager.data.loc[c]['offset']
-            buffer_read = buffer_read.astype("float32")
-            self.graphic.geometry.positions.data[sl,1] = buffer_read
+            self._positions[sl,0] = time
+            self._positions[sl,1] = data[:,i]
+            self._positions[sl,1] *= self._manager.data.loc[c]['scale']
+            self._positions[sl,1] += self._manager.data.loc[c]['offset']
 
         # Put back some nans on the edges
         if left_offset:
-            for sl in self._buffer_slices:
-                self.graphic.geometry.positions.data[sl.start:sl.start+left_offset,0:2] = np.nan
-
-        # print(slice_, right_offset, len(time))
+            for sl in self._buffer_slices.values():
+                self._positions[sl.start:sl.start+left_offset,0:2] = np.nan
         if right_offset:
-            for sl in self._buffer_slices:
-                self.graphic.geometry.positions.data[sl.stop-right_offset:sl.stop,0:2] = np.nan
+            for sl in self._buffer_slices.values():
+                self._positions[sl.stop+right_offset:sl.stop,0:2] = np.nan
 
-        self.graphic.geometry.positions.update_full()
+        self.graphic.geometry.positions.set_data(self._positions)
 
     def _get_min_max(self):
-        return np.array([[np.nanmin(self.graphic.geometry.positions.data[sl, 1]),
-          np.nanmax(self.graphic.geometry.positions.data[sl, 1])] for sl in self._buffer_slices])
+        return np.array([[np.nanmin(self._positions[sl, 1]),
+          np.nanmax(self._positions[sl, 1])] for sl in self._buffer_slices.values()])
 
     def _rescale(self, event):
         """
@@ -506,11 +499,13 @@ class PlotTsdFrame(_BasePlot):
                 # Update the scale of the PlotManager
                 self._manager.rescale(factor=factor)
 
-                # Update the current buffers
-                for c in self._buffers:
-                    self._buffers[c].data[:, 1] = self._buffers[c].data[:, 1] + factor * ( self._buffers[c].data[:, 1] - self._manager.data.loc[c]['offset'])
-                    self._buffers[c].update_full()
+                # Update the current buffers to avoid re-reading from disk
+                for c, sl in self._buffer_slices.items():
+                    self._positions[sl,1] += factor * (self._positions[sl,1] - self._manager.data.loc[c]['offset'])
 
+                # Update the gpu data
+                self.graphic.geometry.positions.data[:] = self._positions[:]
+                self.graphic.geometry.positions.update_full()
                 self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
@@ -595,6 +590,89 @@ class PlotTsdFrame(_BasePlot):
             self._manager.group_by(values)
 
             self._update("group_by")
+
+    def color_by(self,
+            metadata_name: str,
+            cmap_name: str = "viridis",
+            vmin: float = 0.0,
+            vmax: float = 100.0,
+    ) -> None:
+        """
+        Applies color mapping to plot elements based on a metadata field.
+
+        This method retrieves values from the given metadata field and maps them
+        to colors using the specified colormap and value range. The mapped colors
+        are applied to each plot element's material. If color mappings are still
+        being computed in a background thread, the function retries after a short delay.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Name of the metadata field used for color mapping.
+        cmap_name : str, default="viridis"
+            Name of the colormap to apply (e.g., "jet", "plasma", "viridis").
+        vmin : float, default=0.0
+            Minimum value for the colormap normalization.
+        vmax : float, default=100.0
+            Maximum value for the colormap normalization.
+
+        Notes
+        -----
+        - If the `color_mapping_thread` is still running, the method defers execution
+          by 25 milliseconds and retries automatically.
+        - If no appropriate color map is found for the metadata, a warning is issued.
+        - Requires `self.data` to support `get_info()` for metadata retrieval.
+        - Triggers a canvas redraw by calling `self.animate()` after updating colors.
+
+        Warnings
+        --------
+        UserWarning
+            Raised when the specified metadata field has no associated color mapping.
+        """
+        # If the color mapping thread is still processing, retry in 25 milliseconds
+        if self.color_mapping_thread.is_running():
+            slot = lambda: self.color_by(
+                metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
+            )
+            threading.Timer(0.025, slot).start()
+            return
+
+        # Set the current colormap
+        self.cmap = cmap_name
+
+        # Get the metadata-to-color mapping function for the given metadata field
+        map_to_colors = self.color_mapping_thread.color_maps.get(metadata_name, None)
+
+        # Warn the user if the color map is missing
+        if map_to_colors is None:
+            warnings.warn(
+                message=f"Cannot find appropriate color mapping for {metadata_name} metadata.",
+                category=UserWarning,
+                stacklevel=2,
+            )
+
+        # Prepare keyword arguments for the color mapping function
+        map_kwargs = trim_kwargs(
+            map_to_colors, dict(cmap=colormaps[self.cmap], vmin=vmin, vmax=vmax)
+        )
+
+        # # Get the material objects that will have their colors updated
+        # materials = get_plot_attribute(self, "material")
+
+        # Get the metadata values for each plotted element
+        values = (
+            self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
+        )
+
+        # If metadata is found and mapping works, update the material colors
+        if len(values):
+            map_color = map_to_colors(values, **map_kwargs)
+            if map_color:
+                for c, sl in self._buffer_slices.items():
+                    self.graphic.geometry.colors.data[sl,:] = map_color[values[c]]
+                    # self.graphic.material.color = map_color[values[c]]
+                # Request a redraw of the canvas to reflect the new colors
+                self.canvas.request_draw(self.animate)
 
     def plot_x_vs_y(
         self,

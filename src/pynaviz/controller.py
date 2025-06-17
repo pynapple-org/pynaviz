@@ -166,8 +166,7 @@ class SpanController(CustomController):
 
     def _update_pan(self, delta, *, vecx, vecy):
         super()._update_pan(delta, vecx=vecx, vecy=vecy)
-        # trigger after 10ms, most likely that the pan action is completed
-        threading.Timer(0.01, self._update_plots).start()
+        self._update_plots()
         self._send_sync_event(
             update_type="pan",
             cam_state=self._get_camera_state(),
@@ -178,15 +177,14 @@ class SpanController(CustomController):
 
     def _update_zoom(self, delta):
         super()._update_zoom(delta)
-        threading.Timer(0.01, self._update_plots).start()
+        self._update_plots()
         self._send_sync_event(
             update_type="zoom", cam_state=self._get_camera_state(), delta=delta
         )
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
-        # trigger after 10ms, most likely that the pan action is completed
-        threading.Timer(0.01, self._update_plots).start()
+        self._update_plots()
         self._send_sync_event(
             update_type="zoom_to_point",
             cam_state=self._get_camera_state(),
