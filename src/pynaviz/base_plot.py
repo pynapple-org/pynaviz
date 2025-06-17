@@ -914,6 +914,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
         # add to registry of active plot video
         # guarantees close at exit.
+        self._closed = False
         _active_plot_videos.add(self)
 
 
@@ -932,15 +933,18 @@ class PlotVideo(PlotBaseVideoTensor):
         )
 
     def close(self):
-        try:
-            self._data.close()
-            self.request_queue.put(None)
-            self._worker.join(timeout=2)
-            self.shm.close()
-            self.shm.unlink()
-            _active_plot_videos.discard(self)
-        except Exception:
-            pass
+        if not self._closed:
+            try:
+                self._data.close()
+                self.request_queue.put(None)
+                self._worker.join(timeout=2)
+                self.shm.close()
+                self.shm.unlink()
+            except Exception:
+                pass
+            finally:
+                _active_plot_videos.discard(self)
+                self._closed = True
 
     def _update_buffer(self, frame_index):
         self.frame_ready.clear()
