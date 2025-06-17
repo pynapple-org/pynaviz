@@ -702,6 +702,8 @@ class PlotTsGroup(_BasePlot):
         """
         Flush the data stream from slice_ argument
         """
+        # TODO: Handle slice_ argument properly, updating buffers
+
         # if slice_ is None:
         #    slice_ = self._stream.get_slice(*self.controller.get_xlim())
 
