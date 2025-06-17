@@ -85,7 +85,8 @@ class TsdFrameStreaming:
         """
         slice_ = self.get_slice(position[0] - width / 2, position[0] + width / 2)
 
-        # print(slice_, slice_.stop - slice_.start, self._max_n, "\n")
+        print(position[0] - width / 2, position[0] + width / 2)
+        print(slice_, slice_.stop - slice_.start, self._max_n, "\n")
 
         # Edge cases
         if slice_.start == 0 or slice_.stop == self.data.shape[0]:

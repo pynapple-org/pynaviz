@@ -6,6 +6,7 @@ Create a unique canvas/renderer for each class
 import threading
 import warnings
 from typing import Any, Optional, Union
+from unittest.mock import right
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -380,9 +381,6 @@ class PlotTsdFrame(_BasePlot):
         super().__init__(data=data, parent=parent)
         self.data = data
 
-        # Initialize lines for each column in the TsdFrame
-        # self.graphic: dict[str, gfx.Line] = {}
-
         # To stream data
         self._stream = TsdFrameStreaming(data, callback=self._flush, window_size = 3) # seconds
 
@@ -480,11 +478,15 @@ class PlotTsdFrame(_BasePlot):
             buffer_read = buffer_read.astype("float32")
             self.graphic.geometry.positions.data[sl,1] = buffer_read
 
-            # self._buffers[c].data[-n:,0] = time.astype("float32")
-            # self._buffers[c].data[-n:,1] = (
-            #     self.data.values[slice_, i] * self._manager.data.loc[c]['scale'] + self._manager.data.loc[c]['offset']
-            # ).astype("float32")
-            # self._buffers[c].update_full()
+        # Put back some nans on the edges
+        if left_offset:
+            for sl in self._buffer_slices:
+                self.graphic.geometry.positions.data[sl.start:sl.start+left_offset,0:2] = np.nan
+
+        # print(slice_, right_offset, len(time))
+        if right_offset:
+            for sl in self._buffer_slices:
+                self.graphic.geometry.positions.data[sl.stop-right_offset:sl.stop,0:2] = np.nan
 
         self.graphic.geometry.positions.update_full()
 
