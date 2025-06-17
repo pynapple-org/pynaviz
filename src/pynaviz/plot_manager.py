@@ -42,6 +42,7 @@ class _PlotManager:
         # To keep track of past actions
         self._sorted = False
         self._grouped = False
+        self._sorting_mode = "ascending"
 
     @property
     def offset(self) -> np.ndarray:
@@ -78,7 +79,6 @@ class _PlotManager:
     def sort_by(self, values: dict, mode: str) -> None:
         """
         Updates the offset based on sorted group values. First row should always be at 1.
-        Items that are unselected do not occupy a row.
 
         Parameters
         ----------
@@ -87,15 +87,22 @@ class _PlotManager:
         mode : str
             Sort direction; either 'ascending' or 'descending'.
         """
+        self._sorting_mode = mode
+
         # Sorting items
         tmp = np.array(list(values.values()))
         unique, inverse = np.unique(tmp, return_inverse=True)
         y_order = np.argsort(unique)
+
+        if self._sorting_mode == "descending":
+            y_order = len(unique) - y_order - 1
+
+            if self._grouped: # Need to reverse group order
+                self.data['groups'] = len(np.unique(self.data['groups'])) - self.data['groups'] - 1
+
         order = y_order[inverse]
-        if mode == "descending":
-            order = order[::-1]
         self.data['order'] = order
-        self.offset = order + self.data['groups'] + 1
+        self.offset = self.data['order'] + self.data['groups'] + 1
         self._sorted = True
 
     def group_by(self, values: dict) -> None:
@@ -110,8 +117,12 @@ class _PlotManager:
         tmp = np.array(list(values.values()))
         unique, inverse = np.unique(tmp, return_inverse=True)
         groups = np.arange(len(unique))[inverse]
+
+        if self._sorted and self._sorting_mode=="descending":
+            groups = len(unique) - groups - 1
+
         self.data['groups'] = groups
-        self.offset = groups + self.data['order'] + 1
+        self.offset = self.data['groups'] + self.data['order'] + 1
         self._grouped = True
 
     def rescale(self, factor: float) -> None:
