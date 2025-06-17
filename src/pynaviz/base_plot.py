@@ -3,14 +3,12 @@ Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
 
-from importlib.metadata import metadata
 import threading
 import warnings
 from typing import Any, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import pygfx as gfx
 import pynapple as nap
 from matplotlib.colors import Colormap
@@ -679,6 +677,7 @@ class PlotTsGroup(_BasePlot):
                 ),
             )
 
+        # TODO: properly setup streams
         # Stream the first batch of data
         self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
         self._manager.data["offset"] = self.data.index
