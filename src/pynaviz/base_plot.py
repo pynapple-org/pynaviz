@@ -2,6 +2,7 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
+
 import abc
 import pathlib
 import threading
@@ -31,7 +32,7 @@ from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
-from .video_handling import VideoHandler
+from .video_handling import VideoHandler, ts_to_index
 from .video_worker import video_worker_process
 from multiprocessing import shared_memory, Queue, Event, Process, set_start_method
 import queue
@@ -262,9 +263,7 @@ class _BasePlot(IntervalSetInterface):
         """
         # If the color mapping thread is still processing, retry in 25 milliseconds
         if self.color_mapping_thread.is_running():
-            slot = lambda: self.color_by(
-                metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
-            )
+            slot = lambda: self.color_by(metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
             threading.Timer(0.025, slot).start()
             return
 
@@ -291,9 +290,7 @@ class _BasePlot(IntervalSetInterface):
         materials = get_plot_attribute(self, "material")
 
         # Get the metadata values for each plotted element
-        values = (
-            self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
-        )
+        values = self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
 
         # If metadata is found and mapping works, update the material colors
         if len(values):
@@ -413,9 +410,7 @@ class PlotTsdFrame(_BasePlot):
         self.graphic: dict[str, gfx.Line] = {}
 
         # To stream data
-        self._stream = TsdFrameStreaming(
-            data, callback=self._flush, window_size=3
-        )  # seconds
+        self._stream = TsdFrameStreaming(data, callback=self._flush, window_size=3)  # seconds
 
         # Create pygfx objects
         for i, c in enumerate(self.data.columns):
@@ -432,9 +427,7 @@ class PlotTsdFrame(_BasePlot):
         self._flush(self._stream.get_slice(start=0, end=1))
 
         # Add elements to the scene for rendering
-        self.scene.add(
-            self.ruler_x, self.ruler_y, self.ruler_ref_time, *self.graphic.values()
-        )
+        self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time, *self.graphic.values())
 
         # Connect specific event handler for TsdFrame
         self.renderer.add_event_handler(self._rescale, "key_down")
@@ -472,11 +465,9 @@ class PlotTsdFrame(_BasePlot):
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
 
-
     def _update_buffer(self, frame_index: int):
         _update_buffer(self, frame_index=frame_index)
         self.controller.renderer_request_draw()
-
 
     def _flush(self, slice_: slice = None):
         """
@@ -518,11 +509,8 @@ class PlotTsdFrame(_BasePlot):
 
                 # Update the current buffers
                 for c in self._buffers:
-                    self._buffers[c].data[:, 1] = self._buffers[c].data[
-                        :, 1
-                    ] + factor * (
-                        self._buffers[c].data[:, 1]
-                        - self._manager.data.loc[c]["offset"]
+                    self._buffers[c].data[:, 1] = self._buffers[c].data[:, 1] + factor * (
+                        self._buffers[c].data[:, 1] - self._manager.data.loc[c]["offset"]
                     )
                     self._buffers[c].update_full()
 
@@ -573,15 +561,10 @@ class PlotTsdFrame(_BasePlot):
         # The current controller should be a span controller.
 
         # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
 
         # If metadata found
         if len(values):
-
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
             self._manager.sort_by(values, mode)
             self._update("sort_by")
@@ -596,15 +579,10 @@ class PlotTsdFrame(_BasePlot):
             Metadata key to group by.
         """
         # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
 
         # If metadata found
         if len(values):
-
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values)
             self._update("group_by")
@@ -700,9 +678,7 @@ class PlotTsGroup(_BasePlot):
 
         self.graphic = {}
         for i, n in enumerate(data.keys()):
-            positions = np.stack(
-                (data[n].t, np.ones(len(data[n])) * i, np.zeros(len(data[n])))
-            ).T
+            positions = np.stack((data[n].t, np.ones(len(data[n])) * i, np.zeros(len(data[n])))).T
             positions = positions.astype("float32")
 
             self.graphic[n] = gfx.Points(
@@ -732,11 +708,7 @@ class PlotTsGroup(_BasePlot):
         geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
         # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
         # If metadata found
         if len(values):
             values = pd.Series(values)
@@ -848,6 +820,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     def _update_buffer(self, frame_index: int):
         pass
 
+
 class PlotTsdTensor(PlotBaseVideoTensor):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
         self._data = data
@@ -859,6 +832,7 @@ class PlotTsdTensor(PlotBaseVideoTensor):
     def _update_buffer(self, frame_index):
         _update_buffer(self, frame_index)
         self.controller.renderer_request_draw()
+
 
 class PlotVideo(PlotBaseVideoTensor):
     def __init__(
@@ -881,6 +855,9 @@ class PlotVideo(PlotBaseVideoTensor):
         self.request_queue = Queue()
         self.frame_ready = Event()
 
+        # Connect movement event handlers for video
+        # self.renderer.add_event_handler(self._move_key_frame, "key_down")
+
         # Start worker
         self._worker = Process(
             target=video_worker_process,
@@ -888,7 +865,6 @@ class PlotVideo(PlotBaseVideoTensor):
             daemon=True,
         )
         self._worker.start()
-
 
     def _get_initial_texture_data(self):
         # TODO: Get the current time from the controller
@@ -900,9 +876,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
     @data.setter
     def data(self, value):
-        raise ValueError(
-            "Cannot set data for ``PlotVideo``. Data must be a fixed video stream."
-        )
+        raise ValueError("Cannot set data for ``PlotVideo``. Data must be a fixed video stream.")
 
     def close(self):
         try:
@@ -914,6 +888,42 @@ class PlotVideo(PlotBaseVideoTensor):
         except Exception:
             pass
 
+    def _move_key_frame(self, event, delta=1):
+        """
+        "ArrowUp"/"ArrowDown" key moves one normal frame
+        """
+        if event.type == "key_down":
+            if event.key == "ArrowRight" or event.key == "ArrowLeft":
+                current_frame_pts = self._data._get_target_frame_pts(self.controller.frame_index)[
+                    0
+                ]
+                print(self._data.all_pts)
+                print(current_frame_pts)
+                print(self._data._keypoint_pts)
+                print(len(self._data._keypoint_pts))
+                idx = np.searchsorted(self._data._keypoint_pts, current_frame_pts, side="right")
+                print(idx)
+                frame_index = ts_to_index(self._data._keypoint_pts[idx] + 1, self._data.time)
+                print(frame_index)
+                self.frame_ready.clear()
+                while not self.request_queue.empty():
+                    try:
+                        self.request_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                self.request_queue.put((frame_index, event.key == "ArrowRight"))
+                self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
+                # Copy the decoded frame into the texture buffer
+                self.texture.data[:] = self.shared_array
+
+                # self._set_time_text(frame_index)
+                self.controller.renderer_request_draw()
+                self.texture.update_full()
+                # self._set_time_text(frame_index)
+
+                # Update controller to match
+                self.controller.frame_index = frame_index
+
     def _update_buffer(self, frame_index):
         self.frame_ready.clear()
         while not self.request_queue.empty():
@@ -921,8 +931,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.request_queue.get_nowait()
             except queue.Empty:
                 break
-        print(f"adding {frame_index} to queue")
-        self.request_queue.put(frame_index)
+        self.request_queue.put((frame_index, None))
         self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
         # Copy the decoded frame into the texture buffer
         self.texture.data[:] = self.shared_array
@@ -930,16 +939,13 @@ class PlotVideo(PlotBaseVideoTensor):
         self._set_time_text(frame_index)
         self.controller.renderer_request_draw()
         self.texture.update_full()
-        self._set_time_text(frame_index)
 
 
 def _update_buffer(plot_object: PlotTsdTensor | PlotTsdFrame, frame_index: int):
     if (
-            plot_object.texture.data.shape[0] == 1 and plot_object.texture.data.shape[1] == 3
+        plot_object.texture.data.shape[0] == 1 and plot_object.texture.data.shape[1] == 3
     ):  # assume single point
-        plot_object.texture.data[0, 0:2] = plot_object.data.values[frame_index].astype(
-            "float32"
-        )
+        plot_object.texture.data[0, 0:2] = plot_object.data.values[frame_index].astype("float32")
     else:
         img_array = plot_object.data.values[frame_index]
         plot_object.texture.data[:] = img_array.astype("float32")

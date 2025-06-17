@@ -14,7 +14,7 @@ def video_worker_process(
     frame_buffer = np.ndarray(shape, dtype=np.float32, buffer=shm.buf)
 
     while True:
-        idx = request_queue.get()
+        idx, is_key_frame = request_queue.get()
         if idx is None:
             break  # Graceful shutdown
 
