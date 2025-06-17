@@ -2,13 +2,37 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
+import atexit
+import signal
+import sys
+import weakref
+
+# WeakSet to avoid keeping dead references
+_active_plot_videos = weakref.WeakSet()
+
+def _cleanup_all_plot_videos():
+    for video in list(_active_plot_videos):
+        try:
+            video.close()
+        except Exception:
+            pass
+    _active_plot_videos.clear()
+
+# Register cleanup at process exit
+atexit.register(_cleanup_all_plot_videos)
+signal.signal(signal.SIGINT, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
+signal.signal(signal.SIGTERM, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
+
+
 import abc
 import pathlib
+import queue
+import sys
 import threading
 import warnings
 from abc import ABC, abstractmethod
+from multiprocessing import Event, Process, Queue, set_start_method, shared_memory
 from typing import Any, Optional, Union
-import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,6 +44,8 @@ from matplotlib.pyplot import colormaps
 from numpy.typing import NDArray
 from wgpu.gui.auto import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
+)
+from wgpu.gui.auto import (
     run,
 )
 from wgpu.gui.glfw import GlfwWgpuCanvas
@@ -33,9 +59,6 @@ from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 from .video_handling import VideoHandler
 from .video_worker import video_worker_process
-from multiprocessing import shared_memory, Queue, Event, Process, set_start_method
-import queue
-
 
 if sys.platform != "win32":
     try:
@@ -889,6 +912,10 @@ class PlotVideo(PlotBaseVideoTensor):
         )
         self._worker.start()
 
+        # add to registry of active plot video
+        # guarantees close at exit.
+        _active_plot_videos.add(self)
+
 
     def _get_initial_texture_data(self):
         # TODO: Get the current time from the controller
@@ -911,6 +938,7 @@ class PlotVideo(PlotBaseVideoTensor):
             self._worker.join(timeout=2)
             self.shm.close()
             self.shm.unlink()
+            _active_plot_videos.discard(self)
         except Exception:
             pass
 
