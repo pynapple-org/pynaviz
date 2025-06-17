@@ -964,6 +964,8 @@ class PlotVideo(PlotBaseVideoTensor):
         self.texture.update_full()
         self._set_time_text(frame_index)
 
+    def __del__(self):
+        self.close()
 
 def _update_buffer(plot_object: PlotTsdTensor | PlotTsdFrame, frame_index: int):
     if (
