@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 import av
 import numpy as np
 from numpy.typing import NDArray
-
+from line_profiler import profile
 
 def extract_keyframe_times_and_points(
     video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
@@ -89,16 +89,6 @@ def ts_to_index(ts: float, time: NDArray) -> int:
     """
     idx = np.searchsorted(time, ts, side="right") - 1
     return np.clip(idx, 0, len(time) - 1)
-
-
-def extract_keyframe_pts(video_path: str | pathlib.Path) -> NDArray:
-    """Extract keyframe presentation timestamps index without decoding."""
-    with av.open(video_path) as container:
-        stream = container.streams.video[0]
-        keyframe_pts = [
-            packet.pts for packet in container.demux(stream) if packet.is_keyframe
-        ]
-    return np.array(keyframe_pts, int)
 
 
 class VideoHandler:
@@ -184,7 +174,14 @@ class VideoHandler:
             self.__class__._get_from_index = old_value
 
     def _extract_keypoints_pts(self):
-        self._keypoint_pts = extract_keyframe_pts(self.video_path)
+        self._keypoint_pts = []
+        with av.open(self.video_path) as container:
+            stream = container.streams.video[0]
+            for packet in container.demux(stream):
+                if packet.is_keyframe:
+                    with self._lock:
+                        self._keypoint_pts.append(packet.pts)
+
         self._pts_keypoint_ready.set()
 
     def _build_index_fixed_size(self):
@@ -228,8 +225,9 @@ class VideoHandler:
             self._index_ready.set()
 
     def _need_seek_call(self, current_frame_pts, target_frame_pts):
-        if not self._pts_keypoint_ready.is_set() or len(self._keypoint_pts) == 0:
-            return True
+        with self._lock:
+            if len(self._keypoint_pts) == 0  or self._keypoint_pts[-1] < target_frame_pts:
+                return True
 
         # roll back the stream if video is scrolled backwards
         if current_frame_pts > target_frame_pts:
@@ -323,7 +321,7 @@ class VideoHandler:
             else self.current_frame
         )
 
-
+    @profile
     def _frame_iterator(self, fall_back_pts: int | None):
         """
         Safe frame iterator.
@@ -345,7 +343,7 @@ class VideoHandler:
             self.container.seek(int(fall_back_pts), backward=True, any_frame=False, stream=self.stream)
             yield from self._frame_iterator(None)
 
-
+    @profile
     def _decode_and_check_frames(self, use_time: bool, target_pts: int, idx: int):
         """Decode from stream."""
         preceding_frame = None
