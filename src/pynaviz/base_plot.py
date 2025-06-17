@@ -34,6 +34,7 @@ from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim
 from .video_handling import VideoHandler
 from .video_worker import video_worker_process
 from multiprocessing import shared_memory, Queue, Event, Process, set_start_method
+import queue
 
 
 if sys.platform != "win32":
@@ -915,6 +916,12 @@ class PlotVideo(PlotBaseVideoTensor):
 
     def _update_buffer(self, frame_index):
         self.frame_ready.clear()
+        while not self.request_queue.empty():
+            try:
+                self.request_queue.get_nowait()
+            except queue.Empty:
+                break
+        print(f"adding {frame_index} to queue")
         self.request_queue.put(frame_index)
         self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
         # Copy the decoded frame into the texture buffer
