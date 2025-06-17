@@ -24,4 +24,5 @@ v2 = viz.PlotTsdFrame(tsdframe)
 ControllerGroup([v, v2])
 
 run()
+v.close()
 print("done")
