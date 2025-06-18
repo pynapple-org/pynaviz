@@ -83,6 +83,12 @@ class TsdFrameWidget(QWidget):
         # Top level menu container
         self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
 
+        # Add custom menu items
+        self.button_container.action_menu.addSeparator()
+        xvy_action = self.button_container.action_menu.addAction("Plot x vs y")
+        xvy_action.setObjectName("x_vs_y")
+        xvy_action.triggered.connect(self.button_container._popup_menu)
+
         # Add overlay and canvas to layout
         layout.addWidget(self.button_container)
         layout.addWidget(self.plot.canvas)

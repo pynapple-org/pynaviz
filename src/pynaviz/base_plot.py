@@ -873,7 +873,9 @@ class PlotIntervalSet(_BasePlot):
             geometries[c].positions.update_full()
 
         # Update camera to fit the full y range
-        self.controller.set_ylim(0.5, np.max(self._manager.offset) + 0.5)
+        self.controller.set_ylim(
+            np.min(self._manager.offset) - 0.5, np.max(self._manager.offset) + 0.5
+        )
 
         self.canvas.request_draw(self.animate)
 

@@ -37,7 +37,7 @@ class _PlotManager:
                 "visible": np.ones(len(index), dtype=bool),
                 "offset": np.zeros(len(index)),
                 "scale": np.ones(len(index)),
-            }
+            },
         )
         # To keep track of past actions
         self._sorted = False
@@ -54,11 +54,11 @@ class _PlotManager:
         np.ndarray
             Array of vertical offsets.
         """
-        return self.data['offset']
+        return self.data["offset"]
 
     @offset.setter
     def offset(self, values: np.ndarray) -> None:
-        self.data['offset'] = values
+        self.data["offset"] = values
 
     @property
     def scale(self) -> np.ndarray:
@@ -70,11 +70,11 @@ class _PlotManager:
         np.ndarray
             Array of scale multipliers.
         """
-        return self.data['scale']
+        return self.data["scale"]
 
     @scale.setter
     def scale(self, values: np.ndarray) -> None:
-        self.data['scale'] = values
+        self.data["scale"] = values
 
     def sort_by(self, values: dict, mode: str) -> None:
         """
@@ -97,12 +97,17 @@ class _PlotManager:
         if self._sorting_mode == "descending":
             y_order = len(unique) - y_order - 1
 
-            if self._grouped: # Need to reverse group order
-                self.data['groups'] = len(np.unique(self.data['groups'])) - self.data['groups'] - 1
+            if self._grouped:  # Need to reverse group order
+                self.data["groups"] = (
+                    len(np.unique(self.data["groups"])) - self.data["groups"] - 1
+                )
 
         order = y_order[inverse]
-        self.data['order'] = order
-        self.offset = self.data['order'] + self.data['groups'] + 1
+        self.data["order"] = order
+        if self._grouped:
+            self.get_offset()
+        else:
+            self.offset = order
         self._sorted = True
 
     def group_by(self, values: dict) -> None:
@@ -118,12 +123,23 @@ class _PlotManager:
         unique, inverse = np.unique(tmp, return_inverse=True)
         groups = np.arange(len(unique))[inverse]
 
-        if self._sorted and self._sorting_mode=="descending":
+        if self._sorted and self._sorting_mode == "descending":
             groups = len(unique) - groups - 1
 
-        self.data['groups'] = groups
-        self.offset = self.data['groups'] + self.data['order'] + 1
+        self.data["groups"] = groups
+        if self._sorted:
+            self.get_offset()
+        else:
+            self.offset = 2 * groups
         self._grouped = True
+
+    def get_offset(self) -> None:
+        order, groups = self.data["order"], self.data["groups"]
+        offset = (max(order) + 1) * groups + order
+        spacing = np.diff(np.hstack((-1, np.sort(offset))))
+        overflow = np.where(spacing > 1, spacing - 1, 0)
+        shift = np.cumsum(overflow)[offset.argsort().argsort()]
+        self.offset = offset - shift + groups
 
     def rescale(self, factor: float) -> None:
         """
