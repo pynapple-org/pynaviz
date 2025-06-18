@@ -6,13 +6,13 @@ Create a unique canvas/renderer for each class
 import threading
 import warnings
 from typing import Any, Optional, Union
-from unittest.mock import right
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pygfx as gfx
 import pynapple as nap
+from line_profiler import profile
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
 from wgpu.gui.auto import (
@@ -28,7 +28,6 @@ from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
-from line_profiler import profile
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -399,7 +398,7 @@ class PlotTsdFrame(_BasePlot):
 
         self.graphic = gfx.Line(
             gfx.Geometry(positions=self._positions, colors=colors),
-            gfx.LineMaterial(thickness=1.0)#, color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
+            gfx.LineSegmentMaterial(thickness=1.0, color_mode="vertex")#, color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
         )
 
         # Add elements to the scene for rendering
@@ -504,8 +503,7 @@ class PlotTsdFrame(_BasePlot):
                     self._positions[sl,1] += factor * (self._positions[sl,1] - self._manager.data.loc[c]['offset'])
 
                 # Update the gpu data
-                self.graphic.geometry.positions.data[:] = self._positions[:]
-                self.graphic.geometry.positions.update_full()
+                self.graphic.geometry.positions.set_data(self._positions)
                 self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
@@ -671,6 +669,7 @@ class PlotTsdFrame(_BasePlot):
                 for c, sl in self._buffer_slices.items():
                     self.graphic.geometry.colors.data[sl,:] = map_color[values[c]]
                     # self.graphic.material.color = map_color[values[c]]
+                self.graphic.geometry.colors.update_full()
                 # Request a redraw of the canvas to reflect the new colors
                 self.canvas.request_draw(self.animate)
 

@@ -2,7 +2,6 @@
 The controller class.
 """
 
-import threading
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Union
 
