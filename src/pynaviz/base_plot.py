@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import pygfx as gfx
 import pynapple as nap
+
 # from line_profiler import profile
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
@@ -381,8 +382,12 @@ class PlotTsdFrame(_BasePlot):
         self.data = data
 
         # To stream data
-        # TODO: determine the windowsize based on the size of the data
-        self._stream = TsdFrameStreaming(data, callback=self._flush, window_size = 10) # seconds
+        size = (256 * 1024 ** 2) // (data.shape[1] * 60)
+
+        self._stream = TsdFrameStreaming(data, callback=self._flush,
+                                         window_size = size/data.rate
+                                         ) # seconds
+        print(size, size/data.rate, self._stream._max_n)
 
         # Create pygfx objects
         self._positions = np.full(
