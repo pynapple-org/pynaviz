@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pygfx as gfx
 import pynapple as nap
-from line_profiler import profile
+# from line_profiler import profile
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
 from wgpu.gui.auto import (
@@ -442,7 +442,6 @@ class PlotTsdFrame(_BasePlot):
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
 
-    @profile
     def _flush(self, slice_: slice = None):
         """
         Flush the data stream from slice_ argument
