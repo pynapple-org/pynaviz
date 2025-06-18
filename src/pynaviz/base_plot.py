@@ -387,7 +387,7 @@ class PlotTsdFrame(_BasePlot):
         self._stream = TsdFrameStreaming(data, callback=self._flush,
                                          window_size = size/data.rate
                                          ) # seconds
-        print(size, size/data.rate, self._stream._max_n)
+        # print(size, size/data.rate, self._stream._max_n)
 
         # Create pygfx objects
         self._positions = np.full(
