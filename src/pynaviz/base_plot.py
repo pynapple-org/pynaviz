@@ -382,7 +382,7 @@ class PlotTsdFrame(_BasePlot):
 
         # To stream data
         # TODO: determine the windowsize based on the size of the data
-        self._stream = TsdFrameStreaming(data, callback=self._flush, window_size = 3) # seconds
+        self._stream = TsdFrameStreaming(data, callback=self._flush, window_size = 10) # seconds
 
         # Create pygfx objects
         self._positions = np.full(
@@ -394,11 +394,11 @@ class PlotTsdFrame(_BasePlot):
         for c, s in zip(self.data.columns, range(0, len(self._positions)-self._stream._max_n + 1, self._stream._max_n+1)):
             self._buffer_slices[c] = slice(s, s+self._stream._max_n)
 
-        colors = np.zeros((self._positions.shape[0], 4), dtype=np.float32)
+        colors = np.ones((self._positions.shape[0], 4), dtype=np.float32)
 
         self.graphic = gfx.Line(
             gfx.Geometry(positions=self._positions, colors=colors),
-            gfx.LineSegmentMaterial(thickness=1.0, color_mode="vertex")#, color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
+            gfx.LineMaterial(thickness=1.0, color_mode="vertex")#, color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
         )
 
         # Add elements to the scene for rendering

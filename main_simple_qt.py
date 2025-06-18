@@ -19,12 +19,13 @@ tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
 app = QApplication([])
 
-v = viz.TsdWidget(tsd1)
+# v = viz.TsdWidget(tsd1)
 # v = viz.TsdTensorWidget(tsdtensor)
 # v.show()
 # v = viz.TsGroupWidget(tsg)
 # v.show()
-# v = viz.TsdFrameWidget(tsdframe)
+v = viz.TsdFrameWidget(tsdframe)
+v.plot.color_by("label")
 v.show()
 
 if __name__ == "__main__":
