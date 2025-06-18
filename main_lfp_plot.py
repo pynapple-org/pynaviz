@@ -71,9 +71,9 @@ tsdframe.random = np.random.randn(16)
 app = QApplication([])
 
 v = viz.TsdFrameWidget(tsdframe)
-v.plot.sort_by("channel")#, mode="descending")
-v.plot.group_by("group")
-v.plot.color_by("channel")
+# v.plot.sort_by("channel")#, mode="descending")
+# v.plot.group_by("group")
+# v.plot.color_by("channel")
 v.show()
 
 if __name__ == "__main__":
