@@ -23,7 +23,6 @@ atexit.register(_cleanup_all_plot_videos)
 signal.signal(signal.SIGINT, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
 signal.signal(signal.SIGTERM, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
 
-
 import abc
 import pathlib
 import queue
@@ -285,9 +284,7 @@ class _BasePlot(IntervalSetInterface):
         """
         # If the color mapping thread is still processing, retry in 25 milliseconds
         if self.color_mapping_thread.is_running():
-            slot = lambda: self.color_by(
-                metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
-            )
+            slot = lambda: self.color_by(metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
             threading.Timer(0.025, slot).start()
             return
 
@@ -314,9 +311,7 @@ class _BasePlot(IntervalSetInterface):
         materials = get_plot_attribute(self, "material")
 
         # Get the metadata values for each plotted element
-        values = (
-            self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
-        )
+        values = self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
 
         # If metadata is found and mapping works, update the material colors
         if len(values):
@@ -436,9 +431,7 @@ class PlotTsdFrame(_BasePlot):
         self.graphic: dict[str, gfx.Line] = {}
 
         # To stream data
-        self._stream = TsdFrameStreaming(
-            data, callback=self._flush, window_size=3
-        )  # seconds
+        self._stream = TsdFrameStreaming(data, callback=self._flush, window_size=3)  # seconds
 
         # Create pygfx objects
         for i, c in enumerate(self.data.columns):
@@ -455,9 +448,7 @@ class PlotTsdFrame(_BasePlot):
         self._flush(self._stream.get_slice(start=0, end=1))
 
         # Add elements to the scene for rendering
-        self.scene.add(
-            self.ruler_x, self.ruler_y, self.ruler_ref_time, *self.graphic.values()
-        )
+        self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time, *self.graphic.values())
 
         # Connect specific event handler for TsdFrame
         self.renderer.add_event_handler(self._rescale, "key_down")
@@ -495,11 +486,9 @@ class PlotTsdFrame(_BasePlot):
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
 
-
     def _update_buffer(self, frame_index: int):
         _update_buffer(self, frame_index=frame_index)
         self.controller.renderer_request_draw()
-
 
     def _flush(self, slice_: slice = None):
         """
@@ -541,11 +530,8 @@ class PlotTsdFrame(_BasePlot):
 
                 # Update the current buffers
                 for c in self._buffers:
-                    self._buffers[c].data[:, 1] = self._buffers[c].data[
-                        :, 1
-                    ] + factor * (
-                        self._buffers[c].data[:, 1]
-                        - self._manager.data.loc[c]["offset"]
+                    self._buffers[c].data[:, 1] = self._buffers[c].data[:, 1] + factor * (
+                        self._buffers[c].data[:, 1] - self._manager.data.loc[c]["offset"]
                     )
                     self._buffers[c].update_full()
 
@@ -596,15 +582,10 @@ class PlotTsdFrame(_BasePlot):
         # The current controller should be a span controller.
 
         # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
 
         # If metadata found
         if len(values):
-
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
             self._manager.sort_by(values, mode)
             self._update("sort_by")
@@ -619,15 +600,10 @@ class PlotTsdFrame(_BasePlot):
             Metadata key to group by.
         """
         # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
 
         # If metadata found
         if len(values):
-
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values)
             self._update("group_by")
@@ -723,9 +699,7 @@ class PlotTsGroup(_BasePlot):
 
         self.graphic = {}
         for i, n in enumerate(data.keys()):
-            positions = np.stack(
-                (data[n].t, np.ones(len(data[n])) * i, np.zeros(len(data[n])))
-            ).T
+            positions = np.stack((data[n].t, np.ones(len(data[n])) * i, np.zeros(len(data[n])))).T
             positions = positions.astype("float32")
 
             self.graphic[n] = gfx.Points(
@@ -755,11 +729,7 @@ class PlotTsGroup(_BasePlot):
         geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
         # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
         # If metadata found
         if len(values):
             values = pd.Series(values)
@@ -871,6 +841,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     def _update_buffer(self, frame_index: int):
         pass
 
+
 class PlotTsdTensor(PlotBaseVideoTensor):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
         self._data = data
@@ -882,6 +853,7 @@ class PlotTsdTensor(PlotBaseVideoTensor):
     def _update_buffer(self, frame_index):
         _update_buffer(self, frame_index)
         self.controller.renderer_request_draw()
+
 
 class PlotVideo(PlotBaseVideoTensor):
     def __init__(
@@ -898,16 +870,29 @@ class PlotVideo(PlotBaseVideoTensor):
 
         # Shared memory and comms
         self.shape = self.texture.data.shape
-        # multiply by 4 because float 32 have 4 bytes
-        self.shm = shared_memory.SharedMemory(create=True, size=np.prod(self.shape) * 4)
-        self.shared_array = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm.buf)
+        self.shm_frame = shared_memory.SharedMemory(
+            create=True, size=np.prod(self.shape) * np.float32().nbytes
+        )
+        self.shm_index = shared_memory.SharedMemory(create=True, size=np.float32().nbytes)
+        self.shared_frame = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm_frame.buf)
+        self.shared_index = np.ndarray(shape=(1,), dtype=np.float32, buffer=self.shm_index.buf)
         self.request_queue = Queue()
         self.frame_ready = Event()
+
+        # Connect movement event handlers for video
+        self.renderer.add_event_handler(self._move_fast, "key_down")
 
         # Start worker
         self._worker = Process(
             target=video_worker_process,
-            args=(video_path, self.shape, self.shm.name, self.request_queue, self.frame_ready),
+            args=(
+                video_path,
+                self.shape,
+                self.shm_frame.name,
+                self.shm_index.name,
+                self.request_queue,
+                self.frame_ready,
+            ),
             daemon=True,
         )
         self._worker.start()
@@ -928,15 +913,13 @@ class PlotVideo(PlotBaseVideoTensor):
 
     @data.setter
     def data(self, value):
-        raise ValueError(
-            "Cannot set data for ``PlotVideo``. Data must be a fixed video stream."
-        )
+        raise ValueError("Cannot set data for ``PlotVideo``. Data must be a fixed video stream.")
 
     def close(self):
         if not self._closed:
             try:
                 self._data.close()
-                self.request_queue.put(None)
+                self.request_queue.put((None, None))
                 self._worker.join(timeout=2)
                 self.shm.close()
                 self.shm.unlink()
@@ -946,6 +929,46 @@ class PlotVideo(PlotBaseVideoTensor):
                 _active_plot_videos.discard(self)
                 self._closed = True
 
+    def _move_fast(self, event, delta=1):
+        """
+        "ArrowLeft"/"ArrowRight" key moves between keypoint frames
+        """
+        if event.type == "key_down":
+            if event.key == "ArrowRight" or event.key == "ArrowLeft":
+                # Clear the queue
+                self.frame_ready.clear()
+                while not self.request_queue.empty():
+                    try:
+                        self.request_queue.get_nowait()
+                    except queue.Empty:
+                        break
+
+                # Put the request for the next key frame in the queue
+                self.request_queue.put((False, event.key == "ArrowLeft"))
+                self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
+
+                # Copy the decoded frame into the texture buffer
+                self.texture.data[:] = self.shared_frame
+
+                # Copy the frame index into the controller
+                before_index = self.controller.frame_index
+                frame_index = int(self.shared_index[0])
+                self.controller.frame_index = frame_index
+
+                # Update the texture and time text
+                self._set_time_text(frame_index)
+                self.controller.renderer_request_draw()
+                self.texture.update_full()
+
+                # Sync
+                delta_t = self._data.t[frame_index] - self._data.t[before_index]
+                # threading.Timer(
+                #    0.01,
+                #    self.controller._send_sync_event,
+                #    kwargs={"update_type": "pan", "delta_t": delta_t},
+                # ).start()
+                self.controller._send_sync_event(update_type="pan", delta_t=delta_t)
+
     def _update_buffer(self, frame_index):
         self.frame_ready.clear()
         while not self.request_queue.empty():
@@ -953,27 +976,23 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.request_queue.get_nowait()
             except queue.Empty:
                 break
-        print(f"adding {frame_index} to queue")
-        self.request_queue.put(frame_index)
+        self.request_queue.put((frame_index, None))
         self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
         # Copy the decoded frame into the texture buffer
-        self.texture.data[:] = self.shared_array
+        self.texture.data[:] = self.shared_frame
 
         self._set_time_text(frame_index)
         self.controller.renderer_request_draw()
         self.texture.update_full()
-        self._set_time_text(frame_index)
 
     def __del__(self):
         self.close()
 
 def _update_buffer(plot_object: PlotTsdTensor | PlotTsdFrame, frame_index: int):
     if (
-            plot_object.texture.data.shape[0] == 1 and plot_object.texture.data.shape[1] == 3
+        plot_object.texture.data.shape[0] == 1 and plot_object.texture.data.shape[1] == 3
     ):  # assume single point
-        plot_object.texture.data[0, 0:2] = plot_object.data.values[frame_index].astype(
-            "float32"
-        )
+        plot_object.texture.data[0, 0:2] = plot_object.data.values[frame_index].astype("float32")
     else:
         img_array = plot_object.data.values[frame_index]
         plot_object.texture.data[:] = img_array.astype("float32")

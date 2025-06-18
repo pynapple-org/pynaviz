@@ -7,8 +7,9 @@ from typing import List, Optional, Tuple
 
 import av
 import numpy as np
-from numpy.typing import NDArray
 from line_profiler import profile
+from numpy.typing import NDArray
+
 
 def extract_keyframe_times_and_points(
     video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
@@ -116,9 +117,7 @@ class VideoHandler:
             self._time_provided = False
             n_frames = self.stream.frames
             frame_duration = 1 / float(self.stream.average_rate)
-            self.time = np.linspace(
-                0, frame_duration * n_frames - frame_duration, n_frames
-            )
+            self.time = np.linspace(0, frame_duration * n_frames - frame_duration, n_frames)
         else:
             # TODO : check that number of time point matches number of frames
             self._time_provided = True
@@ -147,20 +146,14 @@ class VideoHandler:
         self._i = 0  # write position
         self._lock = threading.Lock()
         if self.stream.frames and self.stream.frames > 0:
-            self._index_thread = threading.Thread(
-                target=self._build_index_fixed_size, daemon=True
-            )
+            self._index_thread = threading.Thread(target=self._build_index_fixed_size, daemon=True)
         else:
-            self._index_thread = threading.Thread(
-                target=self._build_index_dynamic, daemon=True
-            )
+            self._index_thread = threading.Thread(target=self._build_index_dynamic, daemon=True)
 
         self._index_ready = threading.Event()
         self._index_thread.start()
         self._pts_keypoint_ready = threading.Event()
-        self._keypoint_thread = threading.Thread(
-            target=self._extract_keypoints_pts, daemon=True
-        )
+        self._keypoint_thread = threading.Thread(target=self._extract_keypoints_pts, daemon=True)
         self._keypoint_thread.start()
 
     @contextmanager
@@ -226,7 +219,7 @@ class VideoHandler:
 
     def _need_seek_call(self, current_frame_pts, target_frame_pts):
         with self._lock:
-            if len(self._keypoint_pts) == 0  or self._keypoint_pts[-1] < target_frame_pts:
+            if len(self._keypoint_pts) == 0 or self._keypoint_pts[-1] < target_frame_pts:
                 return True
 
         # roll back the stream if video is scrolled backwards
@@ -242,6 +235,47 @@ class VideoHandler:
         # then seek forward if there is a future keypoint closest
         # to the target.
         return closest_keypoint_pts > current_frame_pts
+
+    def _get_frame_idx(self, pts: int) -> int:
+        """
+        Get the frame index from the presentation time stamp.
+
+        Parameters
+        ----------
+        pts:
+            The presentation time stamp of the frame.
+
+        Returns
+        -------
+        idx:
+            The frame index corresponding to the given pts.
+        use_time:
+            If true, search using presentation time in seconds, otherwise use pts.
+
+        """
+        # Wait until enough index is available
+        # Estimate pts from index (using filled index if available)
+        with self._lock:
+            done = self.all_pts[self._i] > pts
+        if done:
+            # the pts for this timestamp has been filled
+            idx = np.searchsorted(self.all_pts, pts, side="right")
+            use_time = False
+        else:
+            # keep going until at least two frames have been decoded by the thread
+            while True:
+                with self._lock:
+                    if self._i > 1:
+                        break
+                time.sleep(0.001)
+            # use recent history to get the step estimate
+            with self._lock:
+                # Linear extrapolation from available pts (use last 10 steps for an estimate)
+                start, stop = max(self._i - 10, 0), self._i
+                avg_step = np.mean(np.diff(self.all_pts[start:stop]))
+                idx = int((pts - self.all_pts[0]) / avg_step)
+                use_time = True
+        return idx, use_time
 
     def _get_target_frame_pts(self, idx: int) -> Tuple[int, bool]:
         """
@@ -284,6 +318,43 @@ class VideoHandler:
                 use_time = True
         return target_pts, use_time
 
+    def get_key_frame(self, backward) -> av.VideoFrame | NDArray:
+        # Get the pts of the last loaded index
+        target_pts, use_time = self._get_target_frame_pts(
+            self.last_loaded_idx if self.last_loaded_idx is not None else 1
+        )
+
+        # Seek the next or previous keyframe based on the direction
+        self.container.seek(
+            int(target_pts)
+            + (
+                -1 if backward else 1
+            ),  # if you're on top of a key frame, seek does not move no matter what
+            backward=backward,
+            any_frame=False,
+            stream=self.stream,
+        )
+
+        # Decode the next frame, which should be a keyframe
+        frame = next(
+            frame
+            for packet in self.container.demux(self.stream)
+            if packet is not None
+            for frame in packet.decode()
+        )
+        self.current_frame = frame
+
+        # Get the index of the key frame
+        self.last_loaded_idx = self._get_frame_idx(frame.pts)[0] - 1
+
+        # Return both
+        return (
+            self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
+            if self.return_frame_array
+            else self.current_frame,
+            self.last_loaded_idx,
+        )
+
     def get(self, ts: float) -> av.VideoFrame | NDArray:
         if not self.__class__._get_from_index:
             idx = ts_to_index(ts, self.time)
@@ -307,9 +378,7 @@ class VideoHandler:
             )
 
         # Decode forward from the keypoint until the frame just before (or equal to) target_pts
-        last_idx, preceding_frame = self._decode_and_check_frames(
-            use_time, target_pts, idx
-        )
+        last_idx, preceding_frame = self._decode_and_check_frames(use_time, target_pts, idx)
 
         if preceding_frame is not None:
             self.last_loaded_idx = idx
@@ -340,7 +409,9 @@ class VideoHandler:
         except av.error.EOFError as e:
             if fall_back_pts is None:
                 raise e
-            self.container.seek(int(fall_back_pts), backward=True, any_frame=False, stream=self.stream)
+            self.container.seek(
+                int(fall_back_pts), backward=True, any_frame=False, stream=self.stream
+            )
             yield from self._frame_iterator(None)
 
     @profile
@@ -371,7 +442,9 @@ class VideoHandler:
 
     @property
     def shape(self):
-        if self._time_provided: # TODO maybe check what is the actual number of frames decoded and throw a warning
+        if (
+            self._time_provided
+        ):  # TODO maybe check what is the actual number of frames decoded and throw a warning
             return len(self.time), self.stream.width, self.stream.height
         has_frames = hasattr(self.stream, "frames") and self.stream.frames > 0
         is_done_unpacking = self._index_ready.is_set()
@@ -425,7 +498,7 @@ class VideoHandler:
         self._index_ready.wait(timeout)
         self._pts_keypoint_ready.wait(timeout)
 
-    def get_slice(self, start:float, end: float = None):
+    def get_slice(self, start: float, end: float = None):
         # TODO check start and end are sorted
         start = ts_to_index(start, self.time)
         if end:
@@ -441,11 +514,11 @@ class VideoHandler:
             frames.append(frame)
 
     def _decode_multiple(
-            self,
-            target_pts,
-            idx_start: int,
-            idx_end: int,
-            step: int = 1,
+        self,
+        target_pts,
+        idx_start: int,
+        idx_end: int,
+        step: int = 1,
     ) -> Tuple[int, List[av.VideoFrame] | NDArray, av.VideoFrame]:
         effective_end = min(idx_end, self.shape[0])
         indices = np.arange(idx_start, effective_end, step)
@@ -474,23 +547,20 @@ class VideoHandler:
                 target_pts, use_time = self._get_target_frame_pts(indices[collected])
 
             # First frame shortcut
-            if (
-                    collected == 0
-                    and hasattr(self.current_frame, "pts")
-            ):
-                    if self.current_frame.pts == target_pts:
-                        self._append_frame(frames, collected, self.current_frame)
-                        collected = 1
-                        continue
-                    elif self.current_frame.pts > target_pts:
-                        self.current_frame = None
-                        self.container.seek(
-                            int(target_pts),
-                            backward=True,
-                            any_frame=False,
-                            stream=self.stream,
-                        )
-                        go_to_next_packet = True
+            if collected == 0 and hasattr(self.current_frame, "pts"):
+                if self.current_frame.pts == target_pts:
+                    self._append_frame(frames, collected, self.current_frame)
+                    collected = 1
+                    continue
+                elif self.current_frame.pts > target_pts:
+                    self.current_frame = None
+                    self.container.seek(
+                        int(target_pts),
+                        backward=True,
+                        any_frame=False,
+                        stream=self.stream,
+                    )
+                    go_to_next_packet = True
 
             if not go_to_next_packet and self._need_seek_call(preceding_frame.pts, target_pts):
                 self.container.seek(
@@ -513,8 +583,12 @@ class VideoHandler:
                     continue
 
                 time_threshold = time_threshold_all[collected]
-                found_next = (frame.pts > target_pts) if not use_time else (frame.time > time_threshold)
-                found_current = (frame.pts == target_pts) if not use_time else (frame.time == time_threshold)
+                found_next = (
+                    (frame.pts > target_pts) if not use_time else (frame.time > time_threshold)
+                )
+                found_current = (
+                    (frame.pts == target_pts) if not use_time else (frame.time == time_threshold)
+                )
 
                 if found_next:
                     self._append_frame(frames, collected, preceding_frame)
@@ -575,7 +649,7 @@ class VideoHandler:
                 target_pts, use_time = self._get_target_frame_pts(start)
 
                 if not hasattr(self.current_frame, "pts") or self._need_seek_call(
-                        self.current_frame.pts, target_pts
+                    self.current_frame.pts, target_pts
                 ):
                     self.container.seek(
                         int(target_pts), backward=True, any_frame=False, stream=self.stream

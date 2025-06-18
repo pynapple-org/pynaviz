@@ -21,7 +21,11 @@ class ControllerGroup:
         Must be a 2-tuple with start <= end.
     """
 
-    def __init__(self, plots: Optional[Sequence] = None, interval: tuple[Union[int, float], Union[int, float]] = (0, 10)):
+    def __init__(
+        self,
+        plots: Optional[Sequence] = None,
+        interval: tuple[Union[int, float], Union[int, float]] = (0, 10),
+    ):
         self._controller_group = dict()
 
         # Validate interval format
@@ -85,7 +89,11 @@ class ControllerGroup:
         if hasattr(plot, "controller") and hasattr(plot, "renderer"):
             controller = plot.controller
             renderer = plot.renderer
-        elif hasattr(plot, "plot") and hasattr(plot.plot, "controller") and hasattr(plot.plot, "renderer"):
+        elif (
+            hasattr(plot, "plot")
+            and hasattr(plot.plot, "controller")
+            and hasattr(plot.plot, "renderer")
+        ):
             controller = plot.plot.controller
             renderer = plot.plot.renderer
         else:
