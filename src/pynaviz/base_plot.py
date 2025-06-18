@@ -5,11 +5,13 @@ Create a unique canvas/renderer for each class
 
 import abc
 import pathlib
+import queue
+import sys
 import threading
 import warnings
 from abc import ABC, abstractmethod
+from multiprocessing import Event, Process, Queue, set_start_method, shared_memory
 from typing import Any, Optional, Union
-import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,11 +34,8 @@ from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
-from .video_handling import VideoHandler, ts_to_index
+from .video_handling import VideoHandler
 from .video_worker import video_worker_process
-from multiprocessing import shared_memory, Queue, Event, Process, set_start_method
-import queue
-
 
 if sys.platform != "win32":
     try:
@@ -849,19 +848,29 @@ class PlotVideo(PlotBaseVideoTensor):
 
         # Shared memory and comms
         self.shape = self.texture.data.shape
-        # multiply by 4 because float 32 have 4 bytes
-        self.shm = shared_memory.SharedMemory(create=True, size=np.prod(self.shape) * 4)
-        self.shared_array = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm.buf)
+        self.shm_frame = shared_memory.SharedMemory(
+            create=True, size=np.prod(self.shape) * np.float32().nbytes
+        )
+        self.shm_index = shared_memory.SharedMemory(create=True, size=np.float32().nbytes)
+        self.shared_frame = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm_frame.buf)
+        self.shared_index = np.ndarray(shape=(1,), dtype=np.float32, buffer=self.shm_index.buf)
         self.request_queue = Queue()
         self.frame_ready = Event()
 
         # Connect movement event handlers for video
-        # self.renderer.add_event_handler(self._move_key_frame, "key_down")
+        self.renderer.add_event_handler(self._move_fast, "key_down")
 
         # Start worker
         self._worker = Process(
             target=video_worker_process,
-            args=(video_path, self.shape, self.shm.name, self.request_queue, self.frame_ready),
+            args=(
+                video_path,
+                self.shape,
+                self.shm_frame.name,
+                self.shm_index.name,
+                self.request_queue,
+                self.frame_ready,
+            ),
             daemon=True,
         )
         self._worker.start()
@@ -888,41 +897,44 @@ class PlotVideo(PlotBaseVideoTensor):
         except Exception:
             pass
 
-    def _move_key_frame(self, event, delta=1):
+    def _move_fast(self, event, delta=1):
         """
-        "ArrowUp"/"ArrowDown" key moves one normal frame
+        "ArrowLeft"/"ArrowRight" key moves between keypoint frames
         """
         if event.type == "key_down":
             if event.key == "ArrowRight" or event.key == "ArrowLeft":
-                current_frame_pts = self._data._get_target_frame_pts(self.controller.frame_index)[
-                    0
-                ]
-                print(self._data.all_pts)
-                print(current_frame_pts)
-                print(self._data._keypoint_pts)
-                print(len(self._data._keypoint_pts))
-                idx = np.searchsorted(self._data._keypoint_pts, current_frame_pts, side="right")
-                print(idx)
-                frame_index = ts_to_index(self._data._keypoint_pts[idx] + 1, self._data.time)
-                print(frame_index)
+                # Clear the queue
                 self.frame_ready.clear()
                 while not self.request_queue.empty():
                     try:
                         self.request_queue.get_nowait()
                     except queue.Empty:
                         break
-                self.request_queue.put((frame_index, event.key == "ArrowRight"))
-                self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
-                # Copy the decoded frame into the texture buffer
-                self.texture.data[:] = self.shared_array
 
-                # self._set_time_text(frame_index)
+                # Put the request for the next key frame in the queue
+                self.request_queue.put((False, event.key == "ArrowLeft"))
+                self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
+
+                # Copy the decoded frame into the texture buffer
+                self.texture.data[:] = self.shared_frame
+
+                # Copy the frame index into the controller
+                before_index = self.controller.frame_index
+                frame_index = int(self.shared_index[0])
+                self.controller.frame_index = frame_index
+
+                # Update the texture and time text
+                self._set_time_text(frame_index)
                 self.controller.renderer_request_draw()
                 self.texture.update_full()
-                # self._set_time_text(frame_index)
 
-                # Update controller to match
-                self.controller.frame_index = frame_index
+                # Sync
+                delta_t = self._data.t[frame_index] - self._data.t[before_index]
+                threading.Thread(
+                    target=self.controller._send_sync_event,
+                    kwargs={"update_type": "pan", "delta_t": delta_t},
+                    daemon=True,
+                ).start()
 
     def _update_buffer(self, frame_index):
         self.frame_ready.clear()
@@ -934,7 +946,7 @@ class PlotVideo(PlotBaseVideoTensor):
         self.request_queue.put((frame_index, None))
         self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
         # Copy the decoded frame into the texture buffer
-        self.texture.data[:] = self.shared_array
+        self.texture.data[:] = self.shared_frame
 
         self._set_time_text(frame_index)
         self.controller.renderer_request_draw()

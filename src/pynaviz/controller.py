@@ -8,7 +8,6 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 import pygfx
-import pygfx as gfx
 import pynapple as nap
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 
@@ -44,17 +43,13 @@ class CustomController(ABC, PanZoomController):
                 f"If provided, `controller_id` must be of integer type. Type {type(controller_id)} provided instead!"
             )
         self._controller_id = controller_id
-        self.camera = (
-            camera  # Weirdly pygfx controller doesn't have it as direct attributes
-        )
+        self.camera = camera  # Weirdly pygfx controller doesn't have it as direct attributes
         self.renderer = renderer  # Nor renderer
         self.renderer_handle_event = None
         self.renderer_request_draw = lambda: True
 
         if renderer:
-            self.renderer_handle_event = _get_event_handle(
-                renderer
-            )  # renderer.handle_event
+            self.renderer_handle_event = _get_event_handle(renderer)  # renderer.handle_event
             self.renderer_request_draw = lambda: self._request_draw(
                 renderer
             )  # renderer.request_draw
@@ -70,9 +65,7 @@ class CustomController(ABC, PanZoomController):
                     )
             self._dict_sync_funcs = dict_sync_funcs
         else:
-            raise TypeError(
-                "When provided, `dict_sync_funcs` must be a dictionary of callables."
-            )
+            raise TypeError("When provided, `dict_sync_funcs` must be a dictionary of callables.")
 
     @property
     def controller_id(self):
@@ -107,7 +100,7 @@ class CustomController(ABC, PanZoomController):
 
     def set_xlim(self, xmin: float, xmax: float):
         """Set the visible X range for an OrthographicCamera.
-            #TODO THIS SHOULD DEPEND ON THE CURRENT SYNC STATUS
+        #TODO THIS SHOULD DEPEND ON THE CURRENT SYNC STATUS
         """
         width = xmax - xmin
         x_center = (xmax + xmin) / 2
@@ -144,18 +137,25 @@ class SpanController(CustomController):
 
     def __init__(
         self,
-            camera: Optional[Camera] = None,
+        camera: Optional[Camera] = None,
         *,
-            enabled: object = True,
-            damping: int = 0,
-            auto_update: bool = True,
-            renderer: Optional[Union[Viewport, Renderer]] = None,
-            controller_id: Optional[int] = None,
-            dict_sync_funcs: Optional[dict[Callable]] = None,
-            plot_callbacks: Optional[dict[Callable]] = None
+        enabled: object = True,
+        damping: int = 0,
+        auto_update: bool = True,
+        renderer: Optional[Union[Viewport, Renderer]] = None,
+        controller_id: Optional[int] = None,
+        dict_sync_funcs: Optional[dict[Callable]] = None,
+        plot_callbacks: Optional[dict[Callable]] = None,
     ) -> None:
-        super().__init__(camera=camera, enabled=enabled, damping=damping, auto_update=auto_update, renderer=renderer,
-                         controller_id=controller_id, dict_sync_funcs=dict_sync_funcs)
+        super().__init__(
+            camera=camera,
+            enabled=enabled,
+            damping=damping,
+            auto_update=auto_update,
+            renderer=renderer,
+            controller_id=controller_id,
+            dict_sync_funcs=dict_sync_funcs,
+        )
         self._plot_callbacks = plot_callbacks if plot_callbacks is not None else []
 
     def _add_callback(self, func):
@@ -181,9 +181,7 @@ class SpanController(CustomController):
     def _update_zoom(self, delta):
         super()._update_zoom(delta)
         threading.Timer(0.01, self._update_plots).start()
-        self._send_sync_event(
-            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
-        )
+        self._send_sync_event(update_type="zoom", cam_state=self._get_camera_state(), delta=delta)
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
@@ -235,8 +233,13 @@ class GetController(CustomController):
         buffer: pygfx.Buffer = None,
         callback: Optional[Callable] = None,
     ):
-        super().__init__(camera=camera, enabled=enabled, auto_update=auto_update, renderer=renderer,
-                         controller_id=controller_id)
+        super().__init__(
+            camera=camera,
+            enabled=enabled,
+            auto_update=auto_update,
+            renderer=renderer,
+            controller_id=controller_id,
+        )
         self.data = data
         if self.data:
             self.frame_index = 0
@@ -281,7 +284,6 @@ class GetController(CustomController):
         delta_t = self._get_current_time() - current_t
         self._send_sync_event(update_type="pan", delta_t=delta_t)
 
-
     def set_frame(self, target_time: float):
         """
         Set the frame to target time.
@@ -295,18 +297,21 @@ class GetController(CustomController):
         idx_before = np.searchsorted(time_array, target_time, side="right") - 1
         idx_before = np.clip(idx_before, 0, len(time_array) - 1)
         idx_after = min(idx_before + 1, len(self.data.time) - 1)
-        frame_index = idx_before if (time_array[idx_after] - target_time) > (target_time - time_array[idx_before]) else idx_after
+        frame_index = (
+            idx_before
+            if (time_array[idx_after] - target_time) > (target_time - time_array[idx_before])
+            else idx_after
+        )
         closest_t = time_array[frame_index]
         current_t = time_array[self.frame_index]
 
-       # update frame index
+        # update frame index
         self.frame_index = frame_index
         delta_t = closest_t - current_t
 
         # update buffer and sync
         self._update_buffer()
         self._send_sync_event(update_type="pan", delta_t=delta_t)
-
 
     def sync(self, event):
         """Get a new data point and update the texture"""
@@ -317,4 +322,4 @@ class GetController(CustomController):
             new_t = self.data.t[self.frame_index] + delta_t
 
         self.frame_index = self.data.get_slice(new_t).start
-        self._update_buffer() #self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+        self._update_buffer()  # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
