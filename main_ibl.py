@@ -1,18 +1,43 @@
 """Stress test: load 125GB NWB file with almost 2H recording and > 1000 units"""
 
+from pathlib import Path
+
+from one.api import ONE
 from PyQt6.QtWidgets import QApplication
 
 import pynaviz as viz
 
 app = QApplication([])
 
-# Load spikes
-# one = ONE()
-# eid = "ebce500b-c530-47de-8cb1-963c552703ea"
+# ------------------------------------------------------------------------------------
+# Load IBL session
+one = ONE()
+eid = "ebce500b-c530-47de-8cb1-963c552703ea"
+
+# Videos
+ibl_path = Path("/home/wolf/Downloads/ONE/")
+videos = {}
+for label in ["left", "body", "right"]:
+    video_path = (
+        ibl_path
+        / f"openalyx.internationalbrainlab.org/churchlandlab_ucla/Subjects/MFD_09/2023-10-19/001/raw_video_data/_iblrig_{label}Camera.raw.mp4"
+    )
+    if not video_path.exists():
+        one.load_dataset(eid, "*leftCamera.raw*", collection="raw_video_data")
+    times = one.load_object(eid, f"{label}Camera", collection="alf", attribute=["times*"])["times"]
+    videos[label] = (times, video_path)
+
+# import matplotlib.pyplot as plt
+# For times in videos.values():
+#    plt.plot(times[0], label=times[1].name)
+#
+# Plt.legend()
+# Plt.show()
+
+# Spikes
 # ssl = SpikeSortingLoader(eid=eid, one=one)
 # spikes, clusters, channels = ssl.load_spike_sorting()
 # clusters = ssl.merge_clusters(spikes, clusters, channels)
-#
 # tsgroup = nap.TsGroup(
 #    {
 #        cluster_id: nap.Ts(spikes["times"][spikes["clusters"] == cluster_id])
@@ -21,20 +46,15 @@ app = QApplication([])
 #    metadata={metadata_key: metadata_values for metadata_key, metadata_values in clusters.items()},
 # )
 # counts = tsgroup.count(0.02)
-# v0 = viz.base_plot.PlotTsdFrame(counts)
-#
-## Load videos
-# video_body = "/home/wolf/Downloads/ONE/openalyx.internationalbrainlab.org/churchlandlab_ucla/Subjects/MFD_09/2023-10-19/001/raw_video_data/_iblrig_bodyCamera.raw.mp4"
-# v1 = viz.base_plot.PlotVideo(video_body)
-#
-left_body = "/home/wolf/Downloads/ONE/openalyx.internationalbrainlab.org/churchlandlab_ucla/Subjects/MFD_09/2023-10-19/001/raw_video_data/_iblrig_leftCamera.raw.mp4"
-v2 = viz.base_plot.PlotVideo(left_body)
-#
-right_body = "/home/wolf/Downloads/ONE/openalyx.internationalbrainlab.org/churchlandlab_ucla/Subjects/MFD_09/2023-10-19/001/raw_video_data/_iblrig_rightCamera.raw.mp4"
-v3 = viz.base_plot.PlotVideo(right_body)
 
-# VISUALIZE
-group = viz.controller_group.ControllerGroup([v2, v3])
+# ------------------------------------------------------------------------------------
+# Visualize
+videos = [
+    viz.base_plot.PlotVideo(video_path=video_path, t=times)
+    for times, video_path in videos.values()
+]
+
+group = viz.controller_group.ControllerGroup(videos)
 
 if __name__ == "__main__":
     app.exit(app.exec())

@@ -930,11 +930,12 @@ class PlotVideo(PlotBaseVideoTensor):
 
                 # Sync
                 delta_t = self._data.t[frame_index] - self._data.t[before_index]
-                threading.Thread(
-                    target=self.controller._send_sync_event,
-                    kwargs={"update_type": "pan", "delta_t": delta_t},
-                    daemon=True,
-                ).start()
+                # threading.Timer(
+                #    0.01,
+                #    self.controller._send_sync_event,
+                #    kwargs={"update_type": "pan", "delta_t": delta_t},
+                # ).start()
+                self.controller._send_sync_event(update_type="pan", delta_t=delta_t)
 
     def _update_buffer(self, frame_index):
         self.frame_ready.clear()
