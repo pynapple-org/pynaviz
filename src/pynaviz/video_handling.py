@@ -338,23 +338,22 @@ class VideoHandler:
         target_pts, use_time = self._get_target_frame_pts(idx)
 
         # Seek the next or previous keyframe based on the direction
+        with self._lock:
+            delta = np.mean(np.diff(self._keypoint_pts[:10])) // 2
         try:
             self.container.seek(
-                int(target_pts)
-                + (
-                    -1 if backward else 1
-                ),  # if you're on top of a key frame, seek does not move no matter what
+                int(target_pts + (-delta if backward else delta)),  # if you're on top of a key frame, seek does not move no matter what
                 backward=backward,
                 any_frame=False,
                 stream=self.stream,
             )
         except av.error.PermissionError:
-            # seek forward at the end of the file
-            return  (
-                self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
-                if self.return_frame_array
-                else self.current_frame,
-                self.last_loaded_idx,
+            # seek backward at the end of the file
+            self.container.seek(
+                int(target_pts),
+                backward=True,
+                any_frame=False,
+                stream=self.stream,
             )
 
         # Decode the next frame, which should be a keyframe
