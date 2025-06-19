@@ -44,5 +44,6 @@ def video_worker_process(
         else:
             frame = handler[idx]  # shape: (H, W, 3) in RGB, float32
         np.copyto(frame_buffer, frame)  # write into shared buffer
-        done_event.set()  # notify main process
         response_queue.put((int(idx), request_type))  # send back both
+        done_event.set()  # notify main process
+
