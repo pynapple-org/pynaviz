@@ -20,7 +20,7 @@ video_path = "/Users/ebalzani/Downloads/WhatsApp Video 2025-06-11 at 11.08.16 PM
 
 # Your app setup
 v = viz.base_plot.PlotVideo(video_path)
-v2 = viz.PlotTsdFrame(tsdframe)
+v2 = viz.base_plot.PlotVideo(video_path)
 ControllerGroup([v, v2])
 
 run()

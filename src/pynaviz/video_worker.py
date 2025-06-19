@@ -30,7 +30,6 @@ def video_worker_process(
 
     while True:
         idx, move_key_frame, request_type = request_queue.get()
-        print("worker", idx, move_key_frame, request_type)
         if idx is None:
             break  # Graceful shutdown        if move_key_frame is not None:
 

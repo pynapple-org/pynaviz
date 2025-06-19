@@ -337,8 +337,6 @@ class VideoHandler:
         # Get the pts of the last loaded index
         target_pts, use_time = self._get_target_frame_pts(idx)
 
-        print(f"[get_key_frame] target_pts={target_pts}, backward={backward}")
-        print(self._keypoint_pts)
         # Seek the next or previous keyframe based on the direction
         try:
             self.container.seek(

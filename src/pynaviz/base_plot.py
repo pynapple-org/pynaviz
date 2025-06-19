@@ -1020,7 +1020,7 @@ class PlotVideo(PlotBaseVideoTensor):
         - Triggers renderer draw if required.
         - Optionally triggers synchronization if the update was initiated locally.
         """
-        updated = False
+        update = False
         try:
             # try to get the text label for the frame
             # and update texture if found
@@ -1029,16 +1029,15 @@ class PlotVideo(PlotBaseVideoTensor):
             self.texture.update_full()
             self.controller.frame_index = frame_index
             self.controller.renderer_request_draw()
-            updated = True
             if trigger_source == RenderTriggerSource.LOCAL_KEY and hasattr(self, "_last_jump_index"):
                 delta_t = self._data.t[frame_index] - self._data.t[self._last_jump_index]
                 self.controller._send_sync_event(update_type="pan", delta_t=delta_t)
                 del self._last_jump_index  # prevent repeat sync
         except queue.Empty:
-            pass
+           update = True
 
         # redraw in case text is found
-        if self._needs_redraw.is_set() or updated:
+        if self._needs_redraw.is_set() or update:
             self.renderer.render(self.scene, self.camera)
             self._needs_redraw.clear()
 
