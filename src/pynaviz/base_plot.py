@@ -1028,7 +1028,7 @@ class PlotVideo(PlotBaseVideoTensor):
             # try to get the text label for the frame
             # and update texture if found
             frame_index, trigger_source = self._pending_ui_update_queue.get_nowait()
-            print(trigger_source, self.controller.controller_id)
+            # print(trigger_source, self.controller.controller_id)
             self._set_time_text(frame_index)
             self.texture.update_full()
             self.controller.frame_index = frame_index
