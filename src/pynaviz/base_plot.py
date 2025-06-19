@@ -57,7 +57,7 @@ from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 from .video_handling import VideoHandler
-from .video_worker import video_worker_process
+from .video_worker import video_worker_process, RenderTriggerSource
 
 if sys.platform != "win32":
     try:
@@ -877,6 +877,7 @@ class PlotVideo(PlotBaseVideoTensor):
         self.shared_frame = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm_frame.buf)
         self.shared_index = np.ndarray(shape=(1,), dtype=np.float32, buffer=self.shm_index.buf)
         self.request_queue = Queue()
+        self.response_queue = Queue()
         self.frame_ready = Event()
 
         # Connect movement event handlers for video
@@ -892,6 +893,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.shm_index.name,
                 self.request_queue,
                 self.frame_ready,
+                self.response_queue,
             ),
             daemon=True,
         )
@@ -901,7 +903,24 @@ class PlotVideo(PlotBaseVideoTensor):
         # guarantees close at exit.
         self._closed = False
         _active_plot_videos.add(self)
+        self._pending_ui_update_queue = queue.Queue()
 
+        # Start background thread that updates buffers when ready
+        # shut thread event
+        self._stop_threads = threading.Event()
+        self._buffer_thread = threading.Thread(
+            target=self._update_buffer_thread, daemon=True
+        )
+        self._buffer_thread.start()
+
+        # event requesting a re-draw
+        self._needs_redraw = threading.Event()
+
+        # set a pygfx callback for the next draw
+        # when the painter draws next it will trigger this
+        self.canvas.request_draw(self._render_loop)
+        # draw first
+        self.request_queue.put((0, None, RenderTriggerSource.INITIALIZATION))
 
     def _get_initial_texture_data(self):
         # TODO: Get the current time from the controller
@@ -919,74 +938,113 @@ class PlotVideo(PlotBaseVideoTensor):
         if not self._closed:
             try:
                 self._data.close()
-                self.request_queue.put((None, None))
+                # stop update buffer loop
+                self._stop_threads.set()
+                # stop worker thread
+                self.request_queue.put((None, None, None))
                 self._worker.join(timeout=2)
+                # close shared memory
                 self.shm.close()
                 self.shm.unlink()
             except Exception:
                 pass
             finally:
+                # remove form weakref
                 _active_plot_videos.discard(self)
                 self._closed = True
 
     def _move_fast(self, event, delta=1):
         """
-        "ArrowLeft"/"ArrowRight" key moves between keypoint frames
+        "ArrowLeft"/"ArrowRight" key moves between keypoint frames.
+        Schedules a move and defers buffer updates to the worker and render loop.
         """
-        if event.type == "key_down":
-            if event.key == "ArrowRight" or event.key == "ArrowLeft":
-                # Clear the queue
-                self.frame_ready.clear()
-                while not self.request_queue.empty():
-                    try:
-                        self.request_queue.get_nowait()
-                    except queue.Empty:
-                        break
+        if event.type == "key_down" and event.key in ("ArrowRight", "ArrowLeft"):
+            self.frame_ready.clear()
+            while not self.request_queue.empty():
+                try:
+                    self.request_queue.get_nowait()
+                except queue.Empty:
+                    break
 
-                # Put the request for the next key frame in the queue
-                self.request_queue.put((False, event.key == "ArrowLeft"))
-                self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
+            # Request: (is_absolute, is_backward, event type)
+            self.request_queue.put((False, event.key == "ArrowLeft", RenderTriggerSource.LOCAL_KEY))
 
-                # Copy the decoded frame into the texture buffer
-                self.texture.data[:] = self.shared_frame
+            # NOTE: don't wait, don't update buffer or UI here — let the thread handle it
 
-                # Copy the frame index into the controller
-                before_index = self.controller.frame_index
-                frame_index = int(self.shared_index[0])
-                self.controller.frame_index = frame_index
+            # Save pre-jump index for sync
+            self._last_jump_index = self.controller.frame_index
 
-                # Update the texture and time text
-                self._set_time_text(frame_index)
-                self.controller.renderer_request_draw()
-                self.texture.update_full()
-
-                # Sync
-                delta_t = self._data.t[frame_index] - self._data.t[before_index]
-                # threading.Timer(
-                #    0.01,
-                #    self.controller._send_sync_event,
-                #    kwargs={"update_type": "pan", "delta_t": delta_t},
-                # ).start()
-                self.controller._send_sync_event(update_type="pan", delta_t=delta_t)
 
     def _update_buffer(self, frame_index):
+        """Update buffer in response to a sync event."""
         self.frame_ready.clear()
         while not self.request_queue.empty():
             try:
                 self.request_queue.get_nowait()
             except queue.Empty:
                 break
-        self.request_queue.put((frame_index, None))
-        self.frame_ready.wait(timeout=2.0)  # Blocks, OK for now
-        # Copy the decoded frame into the texture buffer
-        self.texture.data[:] = self.shared_frame
+        self.request_queue.put((frame_index, None, RenderTriggerSource.SYNC_EVENT))
+        # Track frame index text display which must happen
+        # after _update_buffer_thread changes the frame
+        # note: the text cannot be set in a thread (since pygfx is not thread
+        # safe for these operations) while the buffer can be written safely.
+        self._last_requested_frame_index = frame_index
 
-        self._set_time_text(frame_index)
-        self.controller.renderer_request_draw()
-        self.texture.update_full()
+    def _update_buffer_thread(self):
+        while not self._stop_threads.is_set():
+            # wait until ready then clear notifying the
+            # worker sub-process
+            self.frame_ready.wait()
+            self.frame_ready.clear()
+            # update the buffer (new frame will be displayed)
+            self.texture.data[:] = self.shared_frame
+            try:
+                frame_index, trigger_source = self.response_queue.get_nowait()
+                self._pending_ui_update_queue.put((frame_index, trigger_source))
+            except queue.Empty:
+                # fallback: assume it's from sync if nothing returned (optional)
+                frame_index = int(self.shared_index[0])
+                self._pending_ui_update_queue.put((frame_index, RenderTriggerSource.UNKNOWN))
+            # queue the update of the text
+            self._needs_redraw.set()  # Ask the main thread to draw
 
     def __del__(self):
         self.close()
+
+    def _render_loop(self):
+        """
+        Main render loop scheduled via canvas.request_draw().
+
+        - Polls pending frame updates with trigger metadata.
+        - Updates time text and texture in a GUI-safe way.
+        - Triggers renderer draw if required.
+        - Optionally triggers synchronization if the update was initiated locally.
+        """
+        updated = False
+        try:
+            # try to get the text label for the frame
+            # and update texture if found
+            frame_index, trigger_source = self._pending_ui_update_queue.get_nowait()
+            self._set_time_text(frame_index)
+            self.texture.update_full()
+            self.controller.frame_index = frame_index
+            self.controller.renderer_request_draw()
+            updated = True
+            if trigger_source == RenderTriggerSource.LOCAL_KEY and hasattr(self, "_last_jump_index"):
+                delta_t = self._data.t[frame_index] - self._data.t[self._last_jump_index]
+                self.controller._send_sync_event(update_type="pan", delta_t=delta_t)
+                del self._last_jump_index  # prevent repeat sync
+        except queue.Empty:
+            pass
+
+        # redraw in case text is found
+        if self._needs_redraw.is_set() or updated:
+            self.renderer.render(self.scene, self.camera)
+            self._needs_redraw.clear()
+
+        # set the callback for the next draw
+        self.canvas.request_draw(self._render_loop)
+
 
 def _update_buffer(plot_object: PlotTsdTensor | PlotTsdFrame, frame_index: int):
     if (

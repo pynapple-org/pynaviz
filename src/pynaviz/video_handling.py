@@ -219,7 +219,12 @@ class VideoHandler:
 
     def _need_seek_call(self, current_frame_pts, target_frame_pts):
         with self._lock:
-            if len(self._keypoint_pts) == 0 or self._keypoint_pts[-1] < target_frame_pts:
+            # return if empty list or empty array or not enough frmae
+            if (
+                    len(self._keypoint_pts) == 0 or
+                    getattr(self._keypoint_pts, "size", True) or
+                    self._keypoint_pts[-1] < target_frame_pts
+            ):
                 return True
 
         # roll back the stream if video is scrolled backwards
@@ -256,7 +261,7 @@ class VideoHandler:
         # Wait until enough index is available
         # Estimate pts from index (using filled index if available)
         with self._lock:
-            done = self.all_pts[self._i] > pts
+            done = self.all_pts[min(self._i, len(self.all_pts)-1)] > pts
         if done:
             # the pts for this timestamp has been filled
             idx = np.searchsorted(self.all_pts, pts, side="right")
@@ -319,21 +324,40 @@ class VideoHandler:
         return target_pts, use_time
 
     def get_key_frame(self, backward) -> av.VideoFrame | NDArray:
-        # Get the pts of the last loaded index
-        target_pts, use_time = self._get_target_frame_pts(
-            self.last_loaded_idx if self.last_loaded_idx is not None else 1
-        )
 
+        idx = self.last_loaded_idx
+        if idx is None:
+            # fallback to safe keypoint
+            self._pts_keypoint_ready.wait(2.0)
+            if len(self._keypoint_pts) > 0:
+                idx = self._get_frame_idx(self._keypoint_pts[0])[0]
+            else:
+                idx = 0  # safe fallback
+
+        # Get the pts of the last loaded index
+        target_pts, use_time = self._get_target_frame_pts(idx)
+
+        print(f"[get_key_frame] target_pts={target_pts}, backward={backward}")
+        print(self._keypoint_pts)
         # Seek the next or previous keyframe based on the direction
-        self.container.seek(
-            int(target_pts)
-            + (
-                -1 if backward else 1
-            ),  # if you're on top of a key frame, seek does not move no matter what
-            backward=backward,
-            any_frame=False,
-            stream=self.stream,
-        )
+        try:
+            self.container.seek(
+                int(target_pts)
+                + (
+                    -1 if backward else 1
+                ),  # if you're on top of a key frame, seek does not move no matter what
+                backward=backward,
+                any_frame=False,
+                stream=self.stream,
+            )
+        except av.error.PermissionError:
+            # seek forward at the end of the file
+            return  (
+                self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
+                if self.return_frame_array
+                else self.current_frame,
+                self.last_loaded_idx,
+            )
 
         # Decode the next frame, which should be a keyframe
         frame = next(
@@ -342,6 +366,7 @@ class VideoHandler:
             if packet is not None
             for frame in packet.decode()
         )
+
         self.current_frame = frame
 
         # Get the index of the key frame
