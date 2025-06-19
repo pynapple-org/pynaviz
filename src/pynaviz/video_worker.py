@@ -29,6 +29,7 @@ def video_worker_process(
     response_queue: Queue,
     stop_event: Event,
 ):
+    import time
     handler = VideoHandler(video_path)
     shm_frame = shared_memory.SharedMemory(name=shm_frame_name)
     shm_index = shared_memory.SharedMemory(name=shm_index_name)
@@ -37,18 +38,40 @@ def video_worker_process(
 
     while not stop_event.is_set():
         try:
-            idx, move_key_frame, request_type = request_queue.get(timeout=1.0)
+            # Wait for a new request
+            item = request_queue.get(timeout=1.0)
         except queue.Empty:
             continue
-        if idx is None:
-            break  # Graceful shutdown        if move_key_frame is not None:
 
-        elif request_type == RenderTriggerSource.LOCAL_KEY:
+        # If we received a shutdown signal
+        if item[0] is None:
+            break
+
+        # Drain queue for the most recent item
+        while True:
+            try:
+                latest = request_queue.get_nowait()
+                if latest[0] is None:
+                    # Shutdown signal received, break immediately
+                    item = latest
+                    break
+                item = latest
+            except queue.Empty:
+                break
+
+        idx, move_key_frame, request_type = item
+
+        if idx is None:
+            break  # Handle shutdown
+
+        if request_type == RenderTriggerSource.LOCAL_KEY:
             frame, idx = handler.get_key_frame(move_key_frame)
             np.copyto(index_buffer, idx)
         else:
             frame = handler[idx]  # shape: (H, W, 3) in RGB, float32
-        np.copyto(frame_buffer, frame)  # write into shared buffer
-        response_queue.put((int(idx), request_type))  # send back both
-        done_event.set()  # notify main process
+
+        np.copyto(frame_buffer, frame)
+        response_queue.put((int(idx), request_type))
+        done_event.set()
+
 
