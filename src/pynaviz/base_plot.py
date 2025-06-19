@@ -998,9 +998,9 @@ class PlotVideo(PlotBaseVideoTensor):
             # wait until ready then clear notifying the
             # worker sub-process
             self.frame_ready.wait()
-            self.frame_ready.clear()
             # update the buffer (new frame will be displayed)
             self.texture.data[:] = self.shared_frame
+            self.frame_ready.clear()
             try:
                 frame_index, trigger_source = self.response_queue.get_nowait()
                 self._pending_ui_update_queue.put((frame_index, trigger_source))
