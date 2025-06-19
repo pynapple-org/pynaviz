@@ -838,7 +838,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         pass
 
     @abc.abstractmethod
-    def _update_buffer(self, frame_index: int):
+    def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
         pass
 
 
@@ -850,7 +850,9 @@ class PlotTsdTensor(PlotBaseVideoTensor):
     def _get_initial_texture_data(self):
         return self._data.values[0]
 
-    def _update_buffer(self, frame_index):
+    def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
+        # this update is fast, do not need async rendering as in PlotVideo
+        # event_type is not used here
         _update_buffer(self, frame_index)
         self.controller.renderer_request_draw()
 
@@ -975,7 +977,7 @@ class PlotVideo(PlotBaseVideoTensor):
             self._last_jump_index = self.controller.frame_index
 
 
-    def _update_buffer(self, frame_index):
+    def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
         """Update buffer in response to a sync event."""
         self.frame_ready.clear()
         while not self.request_queue.empty():
@@ -983,7 +985,8 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.request_queue.get_nowait()
             except queue.Empty:
                 break
-        self.request_queue.put((frame_index, None, RenderTriggerSource.SYNC_EVENT))
+        event_type = event_type or RenderTriggerSource.UNKNOWN
+        self.request_queue.put((frame_index, None, event_type))
         # Track frame index text display which must happen
         # after _update_buffer_thread changes the frame
         # note: the text cannot be set in a thread (since pygfx is not thread
@@ -1025,14 +1028,23 @@ class PlotVideo(PlotBaseVideoTensor):
             # try to get the text label for the frame
             # and update texture if found
             frame_index, trigger_source = self._pending_ui_update_queue.get_nowait()
+            print(trigger_source, self.controller.controller_id)
             self._set_time_text(frame_index)
             self.texture.update_full()
             self.controller.frame_index = frame_index
             self.controller.renderer_request_draw()
+
+            # Sending the sync event
             if trigger_source == RenderTriggerSource.LOCAL_KEY and hasattr(self, "_last_jump_index"):
-                delta_t = self._data.t[frame_index] - self._data.t[self._last_jump_index]
-                self.controller._send_sync_event(update_type="pan", delta_t=delta_t)
+                current_time = self._data.t[frame_index]
                 del self._last_jump_index  # prevent repeat sync
+                self.controller._send_sync_event(update_type="pan", current_time=current_time)
+
+            elif trigger_source == RenderTriggerSource.ZOOM_TO_POINT:
+                current_time = self.controller._get_current_time()
+                self.controller._send_sync_event(update_type="pan", current_time=current_time)
+
+
         except queue.Empty:
            update = True
 
@@ -1043,6 +1055,8 @@ class PlotVideo(PlotBaseVideoTensor):
 
         # set the callback for the next draw
         self.canvas.request_draw(self._render_loop)
+
+
 
 
 def _update_buffer(plot_object: PlotTsdTensor | PlotTsdFrame, frame_index: int):

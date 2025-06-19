@@ -14,6 +14,7 @@ from pygfx import Camera, PanZoomController, Renderer, Viewport
 from .events import SyncEvent
 from .utils import _get_event_handle
 from .video_handling import VideoHandler
+from .video_worker import RenderTriggerSource
 
 
 class CustomController(ABC, PanZoomController):
@@ -262,15 +263,14 @@ class GetController(CustomController):
         time_array = getattr(self.data.index, "values", self.data.index)
         return time_array[self.frame_index]
 
-    def _update_buffer(self):
-        self.callback(self.frame_index)
+    def _update_buffer(self, event_type: Optional[RenderTriggerSource]=None):
+        self.callback(self.frame_index, event_type)
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         """Should convert the jump of time to camera position
         before emitting the sync event.
         Does not propagate to the original PanZoomController
         """
-        current_t = self._get_current_time()
         if delta > 0:
             self.frame_index += 1
         else:
@@ -278,11 +278,14 @@ class GetController(CustomController):
 
         self.frame_index = min(max(self.frame_index, 0), self.data.shape[0] - 1)
 
-        self._update_buffer()
+        self._update_buffer(event_type=RenderTriggerSource.ZOOM_TO_POINT)
 
-        # Sending the sync event
-        delta_t = self._get_current_time() - current_t
-        self._send_sync_event(update_type="pan", delta_t=delta_t)
+        # hack for finding out if data is pynapple
+        # TODO fix later
+        if hasattr(self.data.index, "values"):
+            # Sending the sync event (no concurrent logic)
+            current_t = self._get_current_time()
+            self._send_sync_event(update_type="pan", current_time=current_t)
 
     def set_frame(self, target_time: float):
         """
@@ -307,19 +310,19 @@ class GetController(CustomController):
 
         # update frame index
         self.frame_index = frame_index
-        delta_t = closest_t - current_t
 
         # update buffer and sync
         self._update_buffer()
-        self._send_sync_event(update_type="pan", delta_t=delta_t)
+        self._send_sync_event(update_type="pan", current_time=current_t)
 
     def sync(self, event):
         """Get a new data point and update the texture"""
         if "cam_state" in event.kwargs:
             new_t = event.kwargs["cam_state"]["position"][0]
         else:
-            delta_t = event.kwargs["delta_t"]
-            new_t = self.data.t[self.frame_index] + delta_t
+            current_time = event.kwargs["current_time"]
+            index = np.searchsorted(self.data.index, current_time, side="right") - 1
+            new_t = self.data.t[index]
 
         self.frame_index = self.data.get_slice(new_t).start
-        self._update_buffer()  # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+        self._update_buffer(RenderTriggerSource.SYNC_EVENT_RECEIVED)  # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")

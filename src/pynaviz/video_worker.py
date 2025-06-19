@@ -3,14 +3,19 @@ from multiprocessing import Event, Queue, shared_memory
 import numpy as np
 
 from .video_handling import VideoHandler  # Replace with actual path
+from enum import Enum
 
 
-class RenderTriggerSource:
+class RenderTriggerSource(Enum):
     """Enumeration of the renderer draw triggering source."""
     UNKNOWN = 0
     INITIALIZATION = 1
-    SYNC_EVENT = 2
-    LOCAL_KEY = 3
+    ZOOM_TO_POINT = 2
+    SYNC_EVENT_RECEIVED = 3
+    LOCAL_KEY = 4
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}.{self.name}"
 
 
 def video_worker_process(
