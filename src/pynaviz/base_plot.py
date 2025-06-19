@@ -14,8 +14,8 @@ def _cleanup_all_plot_videos():
     for video in list(_active_plot_videos):
         try:
             video.close()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[WARN] Error during close: {e}")
     _active_plot_videos.clear()
 
 # Register cleanup at process exit
@@ -867,6 +867,7 @@ class PlotVideo(PlotBaseVideoTensor):
         parent=None,
     ):
         data = VideoHandler(video_path, time=t, stream_index=stream_index)
+        self._closed = False
         self._data = data
         super().__init__(data, index=index, parent=parent)
 
@@ -881,6 +882,7 @@ class PlotVideo(PlotBaseVideoTensor):
         self.request_queue = Queue()
         self.response_queue = Queue()
         self.frame_ready = Event()
+        self.worker_stop_event = Event()
 
         # Connect movement event handlers for video
         self.renderer.add_event_handler(self._move_fast, "key_down")
@@ -896,6 +898,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.request_queue,
                 self.frame_ready,
                 self.response_queue,
+                self.worker_stop_event
             ),
             daemon=True,
         )
@@ -903,7 +906,6 @@ class PlotVideo(PlotBaseVideoTensor):
 
         # add to registry of active plot video
         # guarantees close at exit.
-        self._closed = False
         _active_plot_videos.add(self)
         self._pending_ui_update_queue = queue.Queue()
 
@@ -943,11 +945,13 @@ class PlotVideo(PlotBaseVideoTensor):
                 # stop update buffer loop
                 self._stop_threads.set()
                 # stop worker thread
-                self.request_queue.put((None, None, None))
+                self.worker_stop_event.set()
                 self._worker.join(timeout=2)
                 # close shared memory
-                self.shm.close()
-                self.shm.unlink()
+                self.shm_frame.close()
+                self.shm_frame.unlink()
+                self.shm_index.close()
+                self.shm_index.unlink()
             except Exception:
                 pass
             finally:
@@ -1037,6 +1041,7 @@ class PlotVideo(PlotBaseVideoTensor):
             # Sending the sync event
             if trigger_source == RenderTriggerSource.LOCAL_KEY and hasattr(self, "_last_jump_index"):
                 current_time = self._data.t[frame_index]
+                print("keypress", current_time, frame_index)
                 del self._last_jump_index  # prevent repeat sync
                 self.controller._send_sync_event(update_type="pan", current_time=current_time)
 
