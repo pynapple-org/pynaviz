@@ -1,3 +1,4 @@
+import queue
 from multiprocessing import Event, Queue, shared_memory
 
 import numpy as np
@@ -26,6 +27,7 @@ def video_worker_process(
     request_queue: Queue,
     done_event: Event,
     response_queue: Queue,
+    stop_event: Event,
 ):
     handler = VideoHandler(video_path)
     shm_frame = shared_memory.SharedMemory(name=shm_frame_name)
@@ -33,8 +35,11 @@ def video_worker_process(
     frame_buffer = np.ndarray(shape, dtype=np.float32, buffer=shm_frame.buf)
     index_buffer = np.ndarray((1,), dtype=np.float32, buffer=shm_index.buf)
 
-    while True:
-        idx, move_key_frame, request_type = request_queue.get()
+    while not stop_event.is_set():
+        try:
+            idx, move_key_frame, request_type = request_queue.get(timeout=1.0)
+        except queue.Empty:
+            continue
         if idx is None:
             break  # Graceful shutdown        if move_key_frame is not None:
 
