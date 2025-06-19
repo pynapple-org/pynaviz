@@ -966,11 +966,11 @@ class PlotVideo(PlotBaseVideoTensor):
         """
         if event.type == "key_down" and event.key in ("ArrowRight", "ArrowLeft"):
             self.frame_ready.clear()
-            # while not self.request_queue.empty():
-            #     try:
-            #         self.request_queue.get_nowait()
-            #     except queue.Empty:
-            #         break
+            while not self.request_queue.empty():
+                try:
+                    self.request_queue.get_nowait()
+                except queue.Empty:
+                    break
 
             # Request: (is_absolute, is_backward, event type)
             self.request_queue.put((False, event.key == "ArrowLeft", RenderTriggerSource.LOCAL_KEY))
@@ -984,11 +984,11 @@ class PlotVideo(PlotBaseVideoTensor):
     def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
         """Update buffer in response to a sync event."""
         self.frame_ready.clear()
-        # while not self.request_queue.empty():
-        #     try:
-        #         self.request_queue.get_nowait()
-        #     except queue.Empty:
-        #         break
+        while not self.request_queue.empty():
+            try:
+                self.request_queue.get_nowait()
+            except queue.Empty:
+                break
         event_type = event_type or RenderTriggerSource.UNKNOWN
         self.request_queue.put((frame_index, None, event_type))
         # Track frame index text display which must happen
