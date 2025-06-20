@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from multiprocessing import Event, Process, Queue, set_start_method, shared_memory
 from typing import Any, Optional, Union
 
+import av
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -872,6 +873,7 @@ class PlotVideo(PlotBaseVideoTensor):
     ):
         data = VideoHandler(video_path, time=t, stream_index=stream_index)
         self._closed = False
+        self._render_loop_is_running = False
         self._data = data
         super().__init__(data, index=index, parent=parent)
 
@@ -954,6 +956,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.shm_frame.unlink()
                 self.shm_index.close()
                 self.shm_index.unlink()
+                self._render_loop_is_running = False
             except Exception:
                 pass
             finally:
@@ -999,6 +1002,13 @@ class PlotVideo(PlotBaseVideoTensor):
         # note: the text cannot be set in a thread (since pygfx is not thread
         # safe for these operations) while the buffer can be written safely.
         self._last_requested_frame_index = frame_index
+        if not self._render_loop_is_running:
+            # no rendering loop is running, simply set current frame
+            # give more priority to request_queue
+            frame = self.data[frame_index]
+            if isinstance(frame, av.VideoFrame):
+                frame = frame.to_ndarray(format="rgb24")[::-1] / 255.0
+            self.texture.data[:] = frame
 
     def _update_buffer_thread(self):
         while not self._stop_threads.is_set():
@@ -1031,6 +1041,7 @@ class PlotVideo(PlotBaseVideoTensor):
         - Optionally triggers synchronization if the update was initiated locally.
         """
         update = False
+        self._render_loop_is_running = True
         try:
             # try to get the text label for the frame
             # and update texture if found
