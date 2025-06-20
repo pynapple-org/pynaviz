@@ -305,7 +305,7 @@ class GetController(CustomController):
             if (time_array[idx_after] - target_time) > (target_time - time_array[idx_before])
             else idx_after
         )
-        current_t = time_array[self.frame_index]
+        current_t = time_array[frame_index]
 
         # update frame index
         self.frame_index = frame_index
