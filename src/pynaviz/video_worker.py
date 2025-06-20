@@ -75,5 +75,10 @@ def video_worker_process(
         np.copyto(frame_buffer, frame)
         response_queue.put((int(idx), request_type))
         done_event.set()
+    try:
+        handler.close()
+    except Exception as e:
+        print(f"[video_worker_process] Failed to close handler: {e}")
+
 
 
