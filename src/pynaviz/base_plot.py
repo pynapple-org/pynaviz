@@ -871,8 +871,8 @@ class PlotVideo(PlotBaseVideoTensor):
         index=None,
         parent=None,
     ):
-        data = VideoHandler(video_path, time=t, stream_index=stream_index)
         self._closed = False
+        data = VideoHandler(video_path, time=t, stream_index=stream_index)
         self._render_loop_is_running = False
         self._data = data
         super().__init__(data, index=index, parent=parent)
@@ -989,20 +989,21 @@ class PlotVideo(PlotBaseVideoTensor):
 
     def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
         """Update buffer in response to a sync event."""
-        self.frame_ready.clear()
-        while not self.request_queue.empty():
-            try:
-                self.request_queue.get_nowait()
-            except queue.Empty:
-                break
-        event_type = event_type or RenderTriggerSource.UNKNOWN
-        self.request_queue.put((frame_index, None, event_type))
-        # Track frame index text display which must happen
-        # after _update_buffer_thread changes the frame
-        # note: the text cannot be set in a thread (since pygfx is not thread
-        # safe for these operations) while the buffer can be written safely.
-        self._last_requested_frame_index = frame_index
-        if not self._render_loop_is_running:
+        if self._render_loop_is_running:
+            self.frame_ready.clear()
+            while not self.request_queue.empty():
+                try:
+                    self.request_queue.get_nowait()
+                except queue.Empty:
+                    break
+            event_type = event_type or RenderTriggerSource.UNKNOWN
+            self.request_queue.put((frame_index, None, event_type))
+            # Track frame index text display which must happen
+            # after _update_buffer_thread changes the frame
+            # note: the text cannot be set in a thread (since pygfx is not thread
+            # safe for these operations) while the buffer can be written safely.
+            self._last_requested_frame_index = frame_index
+        else:
             # no rendering loop is running, simply set current frame
             # give more priority to request_queue
             frame = self.data[frame_index]
