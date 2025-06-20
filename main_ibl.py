@@ -15,7 +15,7 @@ one = ONE()
 eid = "ebce500b-c530-47de-8cb1-963c552703ea"
 
 # Videos
-ibl_path = Path("/Users/ebalzani/Code/pynaviz/")
+ibl_path = Path("/home/wolf/Downloads/ONE")
 videos = {}
 for label in ["left", "body", "right"]:
     video_path = (
@@ -26,13 +26,6 @@ for label in ["left", "body", "right"]:
         one.load_dataset(eid, "*leftCamera.raw*", collection="raw_video_data")
     times = one.load_object(eid, f"{label}Camera", collection="alf", attribute=["times*"])["times"]
     videos[label] = (times, video_path)
-
-# import matplotlib.pyplot as plt
-# For times in videos.values():
-#    plt.plot(times[0], label=times[1].name)
-#
-# Plt.legend()
-# Plt.show()
 
 # Spikes
 # ssl = SpikeSortingLoader(eid=eid, one=one)
@@ -53,7 +46,6 @@ videos = [
     viz.base_plot.PlotVideo(video_path=video_path, t=times)
     for times, video_path in videos.values()
 ]
-
 group = viz.controller_group.ControllerGroup(videos)
 
 if __name__ == "__main__":

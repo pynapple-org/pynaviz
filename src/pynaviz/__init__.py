@@ -1,4 +1,11 @@
-from .base_plot import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup, PlotVideo
+from .base_plot import (
+    PlotTs,
+    PlotTsd,
+    PlotTsdFrame,
+    PlotTsdTensor,
+    PlotTsGroup,
+    PlotVideo,
+)
 
 __all__ = ["PlotTsd", "PlotTsdFrame", "PlotTsdTensor", "PlotTsGroup", "PlotTs", "PlotVideo"]
 
