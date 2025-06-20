@@ -1001,7 +1001,7 @@ class PlotVideo(PlotBaseVideoTensor):
         while not self._stop_threads.is_set():
             # wait until ready then clear notifying the
             # worker sub-process
-            self.frame_ready.wait()
+            self.frame_ready.wait(timeout=0.1)
             # update the buffer (new frame will be displayed)
             self.texture.data[:] = self.shared_frame
             self.frame_ready.clear()
