@@ -1053,7 +1053,6 @@ class PlotIntervalSet(_BasePlot):
         )
         # set to default position
         self._update()
-        self.ruler_y.ticks = {0.5: ""}
         self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time)
 
         # Connect specific event handler for IntervalSet
@@ -1095,8 +1094,10 @@ class PlotIntervalSet(_BasePlot):
         self.controller.set_ylim(-0.05 * ymax, ymax)
 
         # if action_name == "sort_by":
-        if hasattr(self._manager, "y_ticks"):
+        if self._manager.y_ticks is not None:
             self.ruler_y.ticks = self._manager.y_ticks
+        else:
+            self.ruler_y.ticks = {0.5: ""}
 
         self.canvas.request_draw(self.animate)
 

@@ -43,6 +43,7 @@ class _PlotManager:
         self._sorted = False
         self._grouped = False
         self._sorting_mode = "ascending"
+        self.y_ticks = None
 
     @property
     def offset(self) -> np.ndarray:
@@ -98,7 +99,6 @@ class _PlotManager:
         if self._sorting_mode == "descending":
             y_order = len(unique) - y_order - 1
             y_labels = np.flip(y_labels)
-            tmp = np.flip(tmp)
 
             if self._grouped:  # Need to reverse group order
                 self.data["groups"] = (
@@ -109,6 +109,7 @@ class _PlotManager:
         self.data["order"] = order
         if self._grouped:
             self.get_offset()
+            # set y ticks to unique values within each group
             y_ticks, idx = np.unique(self.data["offset"], return_index=True)
             y_labels = tmp[idx]
             self.y_ticks = {
@@ -143,6 +144,7 @@ class _PlotManager:
         self.data["groups"] = groups
         if self._sorted:
             self.get_offset()
+            # set y ticks to middle of each group
             y_ticks = np.unique(self.data["offset"]) + 0.5
             y_ticks_groups = np.split(y_ticks, np.flatnonzero(np.diff(y_ticks) > 1) + 1)
             self.y_ticks = {
@@ -186,3 +188,4 @@ class _PlotManager:
         self.data["scale"] = np.ones(len(self.index))
         self._grouped = False
         self._sorted = False
+        self.y_ticks = None
