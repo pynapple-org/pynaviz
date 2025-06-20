@@ -699,7 +699,7 @@ class PlotTsdFrame(_BasePlot):
             Size of the time marker.
         """
         # Remove time series line graphics from the scene
-        self.scene.remove(*self.graphic.values())
+        self.scene.remove(self.graphic)
 
         # Get current time from the center reference line
         current_time = self.ruler_ref_time.geometry.positions.data[0][0]
@@ -719,7 +719,7 @@ class PlotTsdFrame(_BasePlot):
 
         # Create and add a point marker at the current time
         current_xy = self.data.loc[[x_label, y_label]].get(current_time)
-        xy = np.hstack((current_xy, 0), dtype="float32")[None, :]
+        xy = np.hstack((current_xy, 1), dtype="float32")[None, :]
         self.time_point = gfx.Points(
             gfx.Geometry(positions=xy),
             gfx.PointsMaterial(size=markersize, color="red", opacity=1),
