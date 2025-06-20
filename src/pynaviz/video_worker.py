@@ -38,31 +38,33 @@ def video_worker_process(
 
     while not stop_event.is_set():
         try:
-            # Wait for a new request
+            # wait for a new request
             item = request_queue.get(timeout=1.0)
         except queue.Empty:
             continue
 
-        # If we received a shutdown signal
+        # if we received a shutdown signal terminate
         if item[0] is None:
             break
 
-        # Drain queue for the most recent item
+        # empty the queue keeping the most recent item
         while True:
             try:
                 latest = request_queue.get_nowait()
                 if latest[0] is None:
-                    # Shutdown signal received, break immediately
+                    # shutdown signal received, break immediately
                     item = latest
                     break
                 item = latest
             except queue.Empty:
                 break
 
+        # unpack latest request
         idx, move_key_frame, request_type = item
 
+        # TODO: unsure if this can happen now that i have the event
         if idx is None:
-            break  # Handle shutdown
+            break
 
         if request_type == RenderTriggerSource.LOCAL_KEY:
             frame, idx = handler.get_key_frame(move_key_frame)

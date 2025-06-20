@@ -339,7 +339,7 @@ class VideoHandler:
 
         # Seek the next or previous keyframe based on the direction
         with self._lock:
-            delta = np.mean(np.diff(self._keypoint_pts[:10])) // 2
+            delta = max(np.mean(np.diff(self._keypoint_pts[:10])) // 2, 1)
         try:
             self.container.seek(
                 int(target_pts + (-delta if backward else delta)),  # if you're on top of a key frame, seek does not move no matter what
