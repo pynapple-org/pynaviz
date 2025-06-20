@@ -1005,13 +1005,15 @@ class PlotVideo(PlotBaseVideoTensor):
             # safe for these operations) while the buffer can be written safely.
             self._last_requested_frame_index = frame_index
         else:
-            # no rendering loop is running, simply set current frame
-            # give more priority to request_queue
+            # no rendering loop is running
+            # update buffer in a sync manner
             frame = self.data[frame_index]
             if isinstance(frame, av.VideoFrame):
                 frame = frame.to_ndarray(format="rgb24")[::-1] / 255.0
             with self.buffer_lock:
                 self.texture.data[:] = frame
+                self._set_time_text(frame_index)
+                self.texture.update_full()
 
     def _update_buffer_thread(self):
         while not self._stop_threads.is_set():
@@ -1051,8 +1053,8 @@ class PlotVideo(PlotBaseVideoTensor):
             frame_index, trigger_source = self._pending_ui_update_queue.get_nowait()
 
             # print(trigger_source, self.controller.controller_id)
-            self._set_time_text(frame_index)
             with self.buffer_lock:
+                self._set_time_text(frame_index)
                 self.texture.update_full()
             self.controller.frame_index = frame_index
             self.controller.renderer_request_draw()
