@@ -311,7 +311,7 @@ class GetController(CustomController):
         self.frame_index = frame_index
 
         # update buffer and sync
-        self._update_buffer()
+        self._update_buffer(event_type=RenderTriggerSource.SET_FRAME)
         self._send_sync_event(update_type="pan", current_time=current_t)
 
     def sync(self, event):
