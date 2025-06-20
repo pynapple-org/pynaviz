@@ -38,6 +38,7 @@ class _PlotManager:
                 "offset": np.zeros(len(index)),
                 "scale": np.ones(len(index)),
             },
+            },
         )
         # To keep track of past actions
         self._sorted = False
