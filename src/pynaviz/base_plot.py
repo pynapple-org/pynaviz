@@ -741,11 +741,13 @@ class PlotTsdFrame(_BasePlot):
         self.controller = get_controller
 
         # Update camera to fit the full x-y range
+        minmax = self._get_min_max()
+        # print(minmax)
         self.controller.set_view(
-            xmin=np.min(self.data.loc[x_label]),
-            xmax=np.max(self.data.loc[x_label]),
-            ymin=np.min(self.data.loc[y_label]),
-            ymax=np.max(self.data.loc[y_label]),
+            xmin=np.min(minmax[:, 0]),
+            xmax=np.max(minmax[:, 0]),
+            ymin=np.min(minmax[:, 1]),
+            ymax=np.max(minmax[:, 1]),
         )
 
         self.canvas.request_draw(self.animate)
