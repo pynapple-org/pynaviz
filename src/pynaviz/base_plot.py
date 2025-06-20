@@ -329,6 +329,8 @@ class _BasePlot(IntervalSetInterface):
     def group_by(self, metadata_name: str):
         pass
 
+    def close(self):
+        self.color_mapping_thread.shutdown()
 
 class PlotTsd(_BasePlot):
     """
