@@ -873,7 +873,6 @@ class PlotVideo(PlotBaseVideoTensor):
     ):
         self._closed = False
         data = VideoHandler(video_path, time=t, stream_index=stream_index)
-        self._render_loop_is_running = False
         self._data = data
         super().__init__(data, index=index, parent=parent)
 
@@ -956,7 +955,6 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.shm_frame.unlink()
                 self.shm_index.close()
                 self.shm_index.unlink()
-                self._render_loop_is_running = False
             except Exception:
                 pass
             finally:
@@ -989,7 +987,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
     def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
         """Update buffer in response to a sync event."""
-        if self._render_loop_is_running:
+        if event_type != RenderTriggerSource.SET_FRAME:
             self.frame_ready.clear()
             while not self.request_queue.empty():
                 try:
@@ -1042,7 +1040,6 @@ class PlotVideo(PlotBaseVideoTensor):
         - Optionally triggers synchronization if the update was initiated locally.
         """
         update = False
-        self._render_loop_is_running = True
         try:
             # try to get the text label for the frame
             # and update texture if found

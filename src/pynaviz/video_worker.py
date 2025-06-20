@@ -15,6 +15,7 @@ class RenderTriggerSource(Enum):
     ZOOM_TO_POINT = 2
     SYNC_EVENT_RECEIVED = 3
     LOCAL_KEY = 4
+    SET_FRAME = 5
 
     def __repr__(self):
         return f"{self.__class__.__name__}.{self.name}"
