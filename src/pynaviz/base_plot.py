@@ -927,6 +927,7 @@ class PlotVideo(PlotBaseVideoTensor):
         self.canvas.request_draw(self._render_loop)
         # draw first
         self.request_queue.put((0, None, RenderTriggerSource.INITIALIZATION))
+        self._last_jump_index = 0
 
     def _get_initial_texture_data(self):
         # TODO: Get the current time from the controller
