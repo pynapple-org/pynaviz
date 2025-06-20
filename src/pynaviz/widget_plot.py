@@ -6,12 +6,12 @@ Create a unique Qt widget for each class.
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 from .base_plot import (
+    PlotIntervalSet,
     PlotTs,
     PlotTsd,
     PlotTsdFrame,
     PlotTsdTensor,
     PlotTsGroup,
-    PlotIntervalSet,
 )
 from .widget_menu import MenuWidget
 

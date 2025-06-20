@@ -1,39 +1,39 @@
 from .base_plot import (
+    PlotIntervalSet,
     PlotTs,
     PlotTsd,
     PlotTsdFrame,
     PlotTsdTensor,
     PlotTsGroup,
-    PlotIntervalSet,
 )
 
 __all__ = [
+    "PlotIntervalSet",
     "PlotTsd",
     "PlotTsdFrame",
     "PlotTsdTensor",
     "PlotTsGroup",
     "PlotTs",
-    "PlotIntervalSet",
 ]
 
 try:
     from .gui import scope
     from .widget_plot import (
+        IntervalSetWidget,
         TsdFrameWidget,
         TsdTensorWidget,
         TsdWidget,
         TsGroupWidget,
         TsWidget,
-        IntervalSetWidget,
     )
 
     __all__ += [
+        "IntervalSetWidget",
         "TsdFrameWidget",
         "TsdTensorWidget",
         "TsdWidget",
         "TsGroupWidget",
         "TsWidget",
-        "IntervalSetWidget",
         "scope",
     ]
 except ImportError:
