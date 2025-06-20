@@ -11,61 +11,6 @@ from line_profiler import profile
 from numpy.typing import NDArray
 
 
-def extract_keyframe_times_and_points(
-    video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
-) -> Tuple[NDArray, NDArray]:
-    """
-    Extract the indices and timestamps of keyframes from a video file.
-
-    This function decodes the video while skipping non-keyframes, and records:
-    - The index of each keyframe in the full video frame sequence
-    - The "Presentation Time Stamp" to each keyframe.
-
-    It is typically intended to run in a background thread during
-    initialization of a ``VideoHandler``, and supports optimized seeking:
-
-    - When the requested frame (based on experimental time) is before the
-      current playback position, seeking backward is necessary.
-
-    - When the requested frame is beyond the next known keyframe, seeking
-      forward to the closest keyframe is more efficient than decoding all
-      intermediate frames.
-
-    Parameters
-    ----------
-    video_path : str or pathlib.Path
-        The path to the video file.
-    stream_index:
-        The index of the video stream.
-    first_only:
-        If true, return the first keypoint only. Used at initialization.
-
-    Returns
-    -------
-    keyframe_points : NDArray[float]
-        The point number of the frame.
-
-    keyframe_timestamps : NDArray[float]
-        The timestamp of the frame.
-    """
-    keyframe_timestamp = []
-    keyframe_pts = []
-
-    with av.open(video_path) as container:
-        stream = container.streams.video[stream_index]
-        stream.codec_context.skip_frame = "NONKEY"
-
-        frame_index = 0
-        for frame in container.decode(stream):
-            keyframe_timestamp.append(frame.time)
-            keyframe_pts.append(frame.pts)
-            if first_only:
-                break
-            frame_index += 1
-
-    return np.asarray(keyframe_pts), np.asarray(keyframe_timestamp, dtype=float)
-
-
 def ts_to_index(ts: float, time: NDArray) -> int:
     """
     Return the index of the frame whose experimental time is just before (or equal to) `ts`.
@@ -156,6 +101,62 @@ class VideoHandler:
         self._keypoint_thread = threading.Thread(target=self._extract_keypoints_pts, daemon=True)
         self._keypoint_thread.start()
 
+    def extract_keyframe_times_and_points(
+            self, video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
+    ) -> Tuple[NDArray, NDArray] | None:
+        """
+        Extract the indices and timestamps of keyframes from a video file.
+
+        This function decodes the video while skipping non-keyframes, and records:
+        - The index of each keyframe in the full video frame sequence
+        - The "Presentation Time Stamp" to each keyframe.
+
+        It is typically intended to run in a background thread during
+        initialization of a ``VideoHandler``, and supports optimized seeking:
+
+        - When the requested frame (based on experimental time) is before the
+          current playback position, seeking backward is necessary.
+
+        - When the requested frame is beyond the next known keyframe, seeking
+          forward to the closest keyframe is more efficient than decoding all
+          intermediate frames.
+
+        Parameters
+        ----------
+        video_path : str or pathlib.Path
+            The path to the video file.
+        stream_index:
+            The index of the video stream.
+        first_only:
+            If true, return the first keypoint only. Used at initialization.
+
+        Returns
+        -------
+        keyframe_points : NDArray[float]
+            The point number of the frame.
+
+        keyframe_timestamps : NDArray[float]
+            The timestamp of the frame.
+        """
+        keyframe_timestamp = []
+        keyframe_pts = []
+
+        with av.open(video_path) as container:
+            stream = container.streams.video[stream_index]
+            stream.codec_context.skip_frame = "NONKEY"
+
+            frame_index = 0
+            for frame in container.decode(stream):
+                if not self._running:
+                    return
+                keyframe_timestamp.append(frame.time)
+                keyframe_pts.append(frame.pts)
+                if first_only:
+                    break
+                frame_index += 1
+
+        return np.asarray(keyframe_pts), np.asarray(keyframe_timestamp, dtype=float)
+
     @contextmanager
     def _set_get_from_index(self, value):
         """Context manager for setting the shallow copy flag in a thread safe way."""
@@ -173,7 +174,7 @@ class VideoHandler:
                 stream = container.streams.video[0]
                 for packet in container.demux(stream):
                     if not self._running:
-                        break
+                        return
                     if packet.is_keyframe:
                         with self._lock:
                             self._keypoint_pts.append(packet.pts)
@@ -527,7 +528,11 @@ class VideoHandler:
         try:
             self.container.close()
         except Exception:
-            pass
+            print("VideoHandler failed to close the video stream.")
+        finally:
+            # dropping refs to fully close av.InputContainer
+            self.container = None
+            self.stream = None
 
     def _wait_for_index(self, timeout=2.0):
         """Wait up to timeout.
