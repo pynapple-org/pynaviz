@@ -920,6 +920,9 @@ class PlotVideo(PlotBaseVideoTensor):
         self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
         self._buffer_thread.start()
 
+        # for to async/sync lock
+        self.buffer_lock = threading.Lock()
+
         # event requesting a re-draw
         self._needs_redraw = threading.Event()
 
@@ -1007,7 +1010,8 @@ class PlotVideo(PlotBaseVideoTensor):
             frame = self.data[frame_index]
             if isinstance(frame, av.VideoFrame):
                 frame = frame.to_ndarray(format="rgb24")[::-1] / 255.0
-            self.texture.data[:] = frame
+            with self.buffer_lock:
+                self.texture.data[:] = frame
 
     def _update_buffer_thread(self):
         while not self._stop_threads.is_set():
@@ -1016,7 +1020,8 @@ class PlotVideo(PlotBaseVideoTensor):
             if not self.frame_ready.wait(timeout=0.1):
                 continue
             # update the buffer (new frame will be displayed)
-            self.texture.data[:] = self.shared_frame
+            with self.buffer_lock:
+                self.texture.data[:] = self.shared_frame
             frame_index = int(self.shared_index[0])
             self.frame_ready.clear()
             try:
@@ -1047,7 +1052,8 @@ class PlotVideo(PlotBaseVideoTensor):
 
             # print(trigger_source, self.controller.controller_id)
             self._set_time_text(frame_index)
-            self.texture.update_full()
+            with self.buffer_lock:
+                self.texture.update_full()
             self.controller.frame_index = frame_index
             self.controller.renderer_request_draw()
 
