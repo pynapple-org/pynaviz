@@ -245,8 +245,6 @@ class SpanYLockController(SpanController):
         fx = 2 ** delta[0]
         new_cam_state = self._zoom(fx, 1, self._get_camera_state())
         self._set_camera_state(new_cam_state)
-
-        threading.Timer(0.01, self._update_plots).start()
         self._send_sync_event(
             update_type="zoom", cam_state=self._get_camera_state(), delta=delta
         )

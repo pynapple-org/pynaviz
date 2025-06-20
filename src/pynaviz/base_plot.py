@@ -1051,14 +1051,29 @@ class PlotIntervalSet(_BasePlot):
         self.graphic = self._create_and_plot_rectangle(
             data, color="cyan", transparency=1
         )
+        # set to default position
+        self._update()
+        self.ruler_y.ticks = {0.5: ""}
         self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time)
 
+        # Connect specific event handler for IntervalSet
+        self.renderer.add_event_handler(self._reset, "key_down")
+
         # By default, showing only the first second.
-        self.controller.set_view(0, 1, -0.5, 0.5)
+        self.controller.set_view(0, 1, -0.05, 1)
 
         self.canvas.request_draw(self.animate)
 
-    def _update(self):
+    def _reset(self, event):
+        """
+        "r" key reset the plot manager to initial view
+        """
+        if event.type == "key_down":
+            if event.key == "r":
+                self._manager.reset()
+                self._update()
+
+    def _update(self, action_name: str = None):
         """
         Update function for sort_by and group_by
         """
@@ -1066,19 +1081,22 @@ class PlotIntervalSet(_BasePlot):
         geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
         for c in geometries:
-            geometries[c].positions.data[:2, 1] = (
-                self._manager.data.loc[c]["offset"].astype("float32") - 0.5
-            )
+            geometries[c].positions.data[:2, 1] = self._manager.data.loc[c][
+                "offset"
+            ].astype("float32")
             geometries[c].positions.data[2:, 1] = (
-                self._manager.data.loc[c]["offset"].astype("float32") + 0.5
+                self._manager.data.loc[c]["offset"].astype("float32") + 1
             )
 
             geometries[c].positions.update_full()
 
         # Update camera to fit the full y range
-        self.controller.set_ylim(
-            np.min(self._manager.offset) - 0.5, np.max(self._manager.offset) + 0.5
-        )
+        ymax = np.max(self._manager.offset) + 1
+        self.controller.set_ylim(-0.05 * ymax, ymax)
+
+        # if action_name == "sort_by":
+        if hasattr(self._manager, "y_ticks"):
+            self.ruler_y.ticks = self._manager.y_ticks
 
         self.canvas.request_draw(self.animate)
 
@@ -1102,7 +1120,7 @@ class PlotIntervalSet(_BasePlot):
 
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
             self._manager.sort_by(values, mode)
-            self._update()
+            self._update("sort_by")
 
     def group_by(self, metadata_name: str, **kwargs):
         """
@@ -1125,4 +1143,4 @@ class PlotIntervalSet(_BasePlot):
 
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values)
-            self._update()
+            self._update("group_by")

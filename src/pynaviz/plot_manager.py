@@ -38,7 +38,6 @@ class _PlotManager:
                 "offset": np.zeros(len(index)),
                 "scale": np.ones(len(index)),
             },
-            },
         )
         # To keep track of past actions
         self._sorted = False
@@ -94,9 +93,12 @@ class _PlotManager:
         tmp = np.array(list(values.values()))
         unique, inverse = np.unique(tmp, return_inverse=True)
         y_order = np.argsort(unique)
+        y_labels = np.sort(unique)
 
         if self._sorting_mode == "descending":
             y_order = len(unique) - y_order - 1
+            y_labels = np.flip(y_labels)
+            tmp = np.flip(tmp)
 
             if self._grouped:  # Need to reverse group order
                 self.data["groups"] = (
@@ -107,8 +109,17 @@ class _PlotManager:
         self.data["order"] = order
         if self._grouped:
             self.get_offset()
+            y_ticks, idx = np.unique(self.data["offset"], return_index=True)
+            y_labels = tmp[idx]
+            self.y_ticks = {
+                y_tick: y_label for y_tick, y_label in zip(y_ticks + 0.5, y_labels)
+            }
         else:
             self.offset = order
+            y_ticks = np.unique(order) + 0.5
+            self.y_ticks = {
+                y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels)
+            }
         self._sorted = True
 
     def group_by(self, values: dict) -> None:
@@ -123,15 +134,27 @@ class _PlotManager:
         tmp = np.array(list(values.values()))
         unique, inverse = np.unique(tmp, return_inverse=True)
         groups = np.arange(len(unique))[inverse]
+        y_labels = np.sort(unique)
 
         if self._sorted and self._sorting_mode == "descending":
             groups = len(unique) - groups - 1
+            y_labels = np.flip(y_labels)
 
         self.data["groups"] = groups
         if self._sorted:
             self.get_offset()
+            y_ticks = np.unique(self.data["offset"]) + 0.5
+            y_ticks_groups = np.split(y_ticks, np.flatnonzero(np.diff(y_ticks) > 1) + 1)
+            self.y_ticks = {
+                np.mean(y_tick_group): y_label
+                for y_tick_group, y_label in zip(y_ticks_groups, y_labels)
+            }
         else:
             self.offset = 2 * groups
+            y_ticks = np.unique(self.offset) + 0.5
+            self.y_ticks = {
+                y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels)
+            }
         self._grouped = True
 
     def get_offset(self) -> None:
