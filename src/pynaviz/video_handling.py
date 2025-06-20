@@ -97,12 +97,13 @@ class VideoHandler:
 
         self._index_ready = threading.Event()
         self._index_thread.start()
+        self._keypoint_pts = []
         self._pts_keypoint_ready = threading.Event()
         self._keypoint_thread = threading.Thread(target=self._extract_keypoints_pts, daemon=True)
         self._keypoint_thread.start()
 
     def extract_keyframe_times_and_points(
-            self, video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
+        self, video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
     ) -> Tuple[NDArray, NDArray] | None:
         """
         Extract the indices and timestamps of keyframes from a video file.
@@ -168,7 +169,6 @@ class VideoHandler:
             self.__class__._get_from_index = old_value
 
     def _extract_keypoints_pts(self):
-        self._keypoint_pts = []
         try:
             with av.open(self.video_path) as container:
                 stream = container.streams.video[0]
@@ -237,11 +237,7 @@ class VideoHandler:
     def _need_seek_call(self, current_frame_pts, target_frame_pts):
         with self._lock:
             # return if empty list or empty array or not enough frmae
-            if (
-                    len(self._keypoint_pts) == 0 or
-                    getattr(self._keypoint_pts, "size", True) or
-                    self._keypoint_pts[-1] < target_frame_pts
-            ):
+            if len(self._keypoint_pts) == 0 or self._keypoint_pts[-1] < target_frame_pts:
                 return True
 
         # roll back the stream if video is scrolled backwards
@@ -278,7 +274,7 @@ class VideoHandler:
         # Wait until enough index is available
         # Estimate pts from index (using filled index if available)
         with self._lock:
-            done = self.all_pts[min(self._i, len(self.all_pts)-1)] > pts
+            done = self.all_pts[min(self._i, len(self.all_pts) - 1)] > pts
         if done:
             # the pts for this timestamp has been filled
             idx = np.searchsorted(self.all_pts, pts, side="right")
@@ -341,7 +337,6 @@ class VideoHandler:
         return target_pts, use_time
 
     def get_key_frame(self, backward) -> av.VideoFrame | NDArray:
-
         idx = self.last_loaded_idx
         if idx is None:
             # fallback to safe keypoint
@@ -359,7 +354,9 @@ class VideoHandler:
             delta = max(np.mean(np.diff(self._keypoint_pts[:10])) // 2, 1)
         try:
             self.container.seek(
-                int(target_pts + (-delta if backward else delta)),  # if you're on top of a key frame, seek does not move no matter what
+                int(
+                    target_pts + (-delta if backward else delta)
+                ),  # if you're on top of a key frame, seek does not move no matter what
                 backward=backward,
                 any_frame=False,
                 stream=self.stream,
@@ -394,6 +391,7 @@ class VideoHandler:
             self.last_loaded_idx,
         )
 
+    @profile
     def get(self, ts: float) -> av.VideoFrame | NDArray:
         if not self.__class__._get_from_index:
             idx = ts_to_index(ts, self.time)
@@ -619,6 +617,8 @@ class VideoHandler:
 
             try:
                 decoded = packet.decode()
+                while len(decoded) == 0:
+                    decoded = packet.decode()
             except av.error.EOFError:
                 # end of the video, rewind
                 break

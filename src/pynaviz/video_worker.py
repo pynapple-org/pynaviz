@@ -1,14 +1,15 @@
 import queue
+from enum import Enum
 from multiprocessing import Event, Queue, shared_memory
 
 import numpy as np
 
 from .video_handling import VideoHandler  # Replace with actual path
-from enum import Enum
 
 
 class RenderTriggerSource(Enum):
     """Enumeration of the renderer draw triggering source."""
+
     UNKNOWN = 0
     INITIALIZATION = 1
     ZOOM_TO_POINT = 2
@@ -29,7 +30,6 @@ def video_worker_process(
     response_queue: Queue,
     stop_event: Event,
 ):
-    import time
     handler = VideoHandler(video_path)
     shm_frame = shared_memory.SharedMemory(name=shm_frame_name)
     shm_index = shared_memory.SharedMemory(name=shm_index_name)
@@ -68,17 +68,14 @@ def video_worker_process(
 
         if request_type == RenderTriggerSource.LOCAL_KEY:
             frame, idx = handler.get_key_frame(move_key_frame)
-            np.copyto(index_buffer, idx)
         else:
             frame = handler[idx]  # shape: (H, W, 3) in RGB, float32
 
         np.copyto(frame_buffer, frame)
-        response_queue.put((int(idx), request_type))
+        np.copyto(index_buffer, idx)
+        response_queue.put(request_type)
         done_event.set()
     try:
         handler.close()
     except Exception as e:
         print(f"[video_worker_process] Failed to close handler: {e}")
-
-
-

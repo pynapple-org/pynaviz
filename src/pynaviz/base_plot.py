@@ -2,33 +2,16 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
-import atexit
-import signal
-import sys
-import weakref
-
-# WeakSet to avoid keeping dead references
-_active_plot_videos = weakref.WeakSet()
-
-def _cleanup_all_plot_videos():
-    for video in list(_active_plot_videos):
-        try:
-            video.close()
-        except Exception as e:
-            print(f"[WARN] Error during close: {e}")
-    _active_plot_videos.clear()
-
-# Register cleanup at process exit
-atexit.register(_cleanup_all_plot_videos)
-signal.signal(signal.SIGINT, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
-signal.signal(signal.SIGTERM, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
 
 import abc
+import atexit
 import pathlib
 import queue
+import signal
 import sys
 import threading
 import warnings
+import weakref
 from abc import ABC, abstractmethod
 from multiprocessing import Event, Process, Queue, set_start_method, shared_memory
 from typing import Any, Optional, Union
@@ -43,8 +26,6 @@ from matplotlib.pyplot import colormaps
 from numpy.typing import NDArray
 from wgpu.gui.auto import (
     WgpuCanvas,  # Should use auto here or be able to select qt if parent passed
-)
-from wgpu.gui.auto import (
     run,
 )
 from wgpu.gui.glfw import GlfwWgpuCanvas
@@ -57,7 +38,25 @@ from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
 from .video_handling import VideoHandler
-from .video_worker import video_worker_process, RenderTriggerSource
+from .video_worker import RenderTriggerSource, video_worker_process
+
+# WeakSet to avoid keeping dead references
+_active_plot_videos = weakref.WeakSet()
+
+
+def _cleanup_all_plot_videos():
+    for video in list(_active_plot_videos):
+        try:
+            video.close()
+        except Exception as e:
+            print(f"[WARN] Error during close: {e}")
+    _active_plot_videos.clear()
+
+
+# Register cleanup at process exit
+atexit.register(_cleanup_all_plot_videos)
+signal.signal(signal.SIGINT, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
+signal.signal(signal.SIGTERM, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
 
 if sys.platform != "win32":
     try:
@@ -331,6 +330,7 @@ class _BasePlot(IntervalSetInterface):
 
     def close(self):
         self.color_mapping_thread.shutdown()
+
 
 class PlotTsd(_BasePlot):
     """
@@ -860,6 +860,8 @@ class PlotTsdTensor(PlotBaseVideoTensor):
 
 
 class PlotVideo(PlotBaseVideoTensor):
+    _debug = False
+
     def __init__(
         self,
         video_path: str | pathlib.Path,
@@ -900,7 +902,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.request_queue,
                 self.frame_ready,
                 self.response_queue,
-                self.worker_stop_event
+                self.worker_stop_event,
             ),
             daemon=True,
         )
@@ -914,9 +916,7 @@ class PlotVideo(PlotBaseVideoTensor):
         # Start background thread that updates buffers when ready
         # shut thread event
         self._stop_threads = threading.Event()
-        self._buffer_thread = threading.Thread(
-            target=self._update_buffer_thread, daemon=True
-        )
+        self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
         self._buffer_thread.start()
 
         # event requesting a re-draw
@@ -926,7 +926,6 @@ class PlotVideo(PlotBaseVideoTensor):
         # when the painter draws next it will trigger this
         self.canvas.request_draw(self._render_loop)
         # draw first
-        self.request_queue.put((0, None, RenderTriggerSource.INITIALIZATION))
         self._last_jump_index = 0
 
     def _get_initial_texture_data(self):
@@ -976,13 +975,14 @@ class PlotVideo(PlotBaseVideoTensor):
                     break
 
             # Request: (is_absolute, is_backward, event type)
-            self.request_queue.put((False, event.key == "ArrowLeft", RenderTriggerSource.LOCAL_KEY))
+            self.request_queue.put(
+                (False, event.key == "ArrowLeft", RenderTriggerSource.LOCAL_KEY)
+            )
 
             # NOTE: don't wait, don't update buffer or UI here — let the thread handle it
 
             # Save pre-jump index for sync
             self._last_jump_index = self.controller.frame_index
-
 
     def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
         """Update buffer in response to a sync event."""
@@ -1004,17 +1004,17 @@ class PlotVideo(PlotBaseVideoTensor):
         while not self._stop_threads.is_set():
             # wait until ready then clear notifying the
             # worker sub-process
-            self.frame_ready.wait(timeout=0.1)
+            if not self.frame_ready.wait(timeout=0.1):
+                continue
             # update the buffer (new frame will be displayed)
             self.texture.data[:] = self.shared_frame
+            frame_index = int(self.shared_index[0])
             self.frame_ready.clear()
             try:
-                frame_index, trigger_source = self.response_queue.get_nowait()
+                trigger_source = self.response_queue.get_nowait()
                 self._pending_ui_update_queue.put((frame_index, trigger_source))
             except queue.Empty:
-                # fallback: assume it's from sync if nothing returned (optional)
-                frame_index = int(self.shared_index[0])
-                self._pending_ui_update_queue.put((frame_index, RenderTriggerSource.UNKNOWN))
+                continue
             # queue the update of the text
             self._needs_redraw.set()  # Ask the main thread to draw
 
@@ -1035,6 +1035,7 @@ class PlotVideo(PlotBaseVideoTensor):
             # try to get the text label for the frame
             # and update texture if found
             frame_index, trigger_source = self._pending_ui_update_queue.get_nowait()
+
             # print(trigger_source, self.controller.controller_id)
             self._set_time_text(frame_index)
             self.texture.update_full()
@@ -1042,20 +1043,23 @@ class PlotVideo(PlotBaseVideoTensor):
             self.controller.renderer_request_draw()
 
             # Sending the sync event
-            if trigger_source == RenderTriggerSource.LOCAL_KEY and hasattr(self, "_last_jump_index"):
+            if trigger_source == RenderTriggerSource.LOCAL_KEY and hasattr(
+                self, "_last_jump_index"
+            ):
                 current_time = self._data.t[frame_index]
-                print("keypress", current_time, frame_index)
+                if self._debug:
+                    print("keypress", current_time, frame_index)
                 del self._last_jump_index  # prevent repeat sync
                 self.controller._send_sync_event(update_type="pan", current_time=current_time)
 
             elif trigger_source == RenderTriggerSource.ZOOM_TO_POINT:
                 current_time = self.controller._get_current_time()
-                print("zoom", current_time, frame_index)
+                if self._debug:
+                    print("zoom", current_time, frame_index)
                 self.controller._send_sync_event(update_type="pan", current_time=current_time)
 
-
         except queue.Empty:
-           update = True
+            update = True
 
         # redraw in case text is found
         if self._needs_redraw.is_set() or update:
@@ -1064,8 +1068,6 @@ class PlotVideo(PlotBaseVideoTensor):
 
         # set the callback for the next draw
         self.canvas.request_draw(self._render_loop)
-
-
 
 
 def _update_buffer(plot_object: PlotTsdTensor | PlotTsdFrame, frame_index: int):
