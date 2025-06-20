@@ -17,8 +17,8 @@ from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
 from wgpu.gui.auto import (
     WgpuCanvas,
+    run,
 )  # Should use auto here or be able to select qt if parent passed
-from wgpu.gui.auto import run
 from wgpu.gui.glfw import GlfwWgpuCanvas
 
 from .controller import GetController, SpanController, SpanYLockController
