@@ -168,53 +168,69 @@ class VideoHandler:
 
     def _extract_keypoints_pts(self):
         self._keypoint_pts = []
-        with av.open(self.video_path) as container:
-            stream = container.streams.video[0]
-            for packet in container.demux(stream):
-                if packet.is_keyframe:
-                    with self._lock:
-                        self._keypoint_pts.append(packet.pts)
-
-        self._pts_keypoint_ready.set()
+        try:
+            with av.open(self.video_path) as container:
+                stream = container.streams.video[0]
+                for packet in container.demux(stream):
+                    if not self._running:
+                        break
+                    if packet.is_keyframe:
+                        with self._lock:
+                            self._keypoint_pts.append(packet.pts)
+        except Exception as e:
+            # do not block gui
+            print("Keypoint thread error:", e)
+        finally:
+            self._pts_keypoint_ready.set()
 
     def _build_index_fixed_size(self):
-        with av.open(self.video_path) as container:
-            stream = container.streams.video[self.stream_index]
-            n_frames = stream.frames
+        try:
+            with av.open(self.video_path) as container:
+                stream = container.streams.video[self.stream_index]
+                n_frames = stream.frames
 
-            if not n_frames or n_frames <= 0:
-                raise ValueError("Cannot determine total number of frames in stream.")
+                if not n_frames or n_frames <= 0:
+                    raise ValueError("Cannot determine total number of frames in stream.")
 
-            self.all_pts = np.empty(n_frames, dtype=np.int64)
-            self._i = 0  # Number of valid entries
+                self.all_pts = np.empty(n_frames, dtype=np.int64)
+                self._i = 0  # Number of valid entries
 
-            for packet in container.demux(stream):
-                for frame in packet.decode():
-                    if self._i >= n_frames:
-                        break
-                    with self._lock:
-                        self.all_pts[self._i] = frame.pts
-                        self._i += 1
-
+                for packet in container.demux(stream):
+                    if not self._running:
+                        return
+                    for frame in packet.decode():
+                        if self._i >= n_frames:
+                            break
+                        with self._lock:
+                            self.all_pts[self._i] = frame.pts
+                            self._i += 1
+        except Exception as e:
+            print("Index thread error:", e)
+        finally:
             self._index_ready.set()
 
     def _build_index_dynamic(self):
-        with av.open(self.video_path) as container:
-            stream = container.streams.video[self.stream_index]
-            pts_list = []
+        try:
+            with av.open(self.video_path) as container:
+                if not self._running:
+                    return
+                stream = container.streams.video[self.stream_index]
+                pts_list = []
 
-            current_index = 0
-            flush_every = 10  # number of frames over which flushing to all points
-            for packet in container.demux(stream):
-                for frame in packet.decode():
-                    if frame.pts is not None:
-                        pts_list.append(frame.pts)
-                        if current_index % flush_every == 1:
-                            with self._lock:
-                                self.all_pts = pts_list
-                                self._i = current_index
-                        current_index += 1
-
+                current_index = 0
+                flush_every = 10  # number of frames over which flushing to all points
+                for packet in container.demux(stream):
+                    for frame in packet.decode():
+                        if frame.pts is not None:
+                            pts_list.append(frame.pts)
+                            if current_index % flush_every == 1:
+                                with self._lock:
+                                    self.all_pts = pts_list
+                                    self._i = current_index
+                            current_index += 1
+        except Exception as e:
+            print("Index thread error:", e)
+        finally:
             self._index_ready.set()
 
     def _need_seek_call(self, current_frame_pts, target_frame_pts):
@@ -506,6 +522,8 @@ class VideoHandler:
         self._running = False
         if self._index_thread.is_alive():
             self._index_thread.join(timeout=1)  # Be conservative, don’t block forever
+        if self._keypoint_thread.is_alive():
+            self._keypoint_thread.join(timeout=1)
         try:
             self.container.close()
         except Exception:
@@ -699,3 +717,11 @@ class VideoHandler:
 
     def __len__(self):
         return self.shape[0]
+
+    # context protocol
+    # (with VideoHandler(path) as video ensure closing)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
