@@ -113,11 +113,11 @@ class _PlotManager:
             y_ticks, idx = np.unique(self.data["offset"], return_index=True)
             y_labels = tmp[idx]
             self.y_ticks = {
-                y_tick: y_label for y_tick, y_label in zip(y_ticks + 0.5, y_labels)
+                y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels)
             }
         else:
             self.offset = order
-            y_ticks = np.unique(order) + 0.5
+            y_ticks = np.unique(order)
             self.y_ticks = {
                 y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels)
             }
@@ -145,7 +145,7 @@ class _PlotManager:
         if self._sorted:
             self.get_offset()
             # set y ticks to middle of each group
-            y_ticks = np.unique(self.data["offset"]) + 0.5
+            y_ticks = np.unique(self.data["offset"])
             y_ticks_groups = np.split(y_ticks, np.flatnonzero(np.diff(y_ticks) > 1) + 1)
             self.y_ticks = {
                 np.mean(y_tick_group): y_label
@@ -153,7 +153,7 @@ class _PlotManager:
             }
         else:
             self.offset = 2 * groups
-            y_ticks = np.unique(self.offset) + 0.5
+            y_ticks = np.unique(self.offset)
             self.y_ticks = {
                 y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels)
             }

@@ -1095,7 +1095,8 @@ class PlotIntervalSet(_BasePlot):
 
         # if action_name == "sort_by":
         if self._manager.y_ticks is not None:
-            self.ruler_y.ticks = self._manager.y_ticks
+            # shift y ticks by 0.5
+            self.ruler_y.ticks = {k + 0.5: v for k, v in self._manager.y_ticks.items()}
         else:
             self.ruler_y.ticks = {0.5: ""}
 
