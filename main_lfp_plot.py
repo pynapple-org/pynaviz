@@ -53,30 +53,27 @@ tsdframe.channel = np.arange(0, 16)
 tsdframe.random = np.random.randn(16)
 
 
-path = "/mnt/ceph/users/gviejo/LMN-ADN/A5011/A5011-201014A/A5011-201014A.dat"
-num_channels, fs, shank_to_channel, shank_to_keep = loadXML(os.path.dirname(path))
-tsdframe = nap.misc.load_eeg(
-    path,
-    n_channels=num_channels,
-    frequency=20000
-    )
-ch = np.hstack([shank_to_channel[i] for i in shank_to_channel])
-tsdframe.channel = np.argsort(ch)
-gr = np.zeros(num_channels)
-for i in shank_to_channel:
-    gr[shank_to_channel[i]] = i
-tsdframe.group = gr
+# path = "/mnt/ceph/users/gviejo/LMN-ADN/A5011/A5011-201014A/A5011-201014A.dat"
+# num_channels, fs, shank_to_channel, shank_to_keep = loadXML(os.path.dirname(path))
+# tsdframe = nap.misc.load_eeg(
+#     path,
+#     n_channels=num_channels,
+#     frequency=20000
+#     )
+# ch = np.hstack([shank_to_channel[i] for i in shank_to_channel])
+# tsdframe.channel = np.argsort(ch)
+# gr = np.zeros(num_channels)
+# for i in shank_to_channel:
+#     gr[shank_to_channel[i]] = i
+# tsdframe.group = gr
 
 
 app = QApplication([])
 
 v = viz.TsdFrameWidget(tsdframe)
-
-
-v.plot.sort_by("channel", mode="descending")
-v.plot.group_by("group")
-v.plot.color_by("group")
-
+# v.plot.sort_by("channel")#, mode="descending")
+# v.plot.group_by("group")
+# v.plot.color_by("channel")
 v.show()
 
 if __name__ == "__main__":
