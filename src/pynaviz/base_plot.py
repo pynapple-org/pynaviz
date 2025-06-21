@@ -14,6 +14,7 @@ import warnings
 import weakref
 from abc import ABC, abstractmethod
 from multiprocessing import Event, Process, Queue, set_start_method, shared_memory
+from multiprocessing import Lock as MultiProcessLock
 from typing import Any, Optional, Union
 
 import av
@@ -892,7 +893,8 @@ class PlotVideo(PlotBaseVideoTensor):
         # Connect movement event handlers for video
         self.renderer.add_event_handler(self._move_fast, "key_down")
 
-        # Start worker
+        # worker process reading frames
+        self.worker_lock = MultiProcessLock()
         self._worker = Process(
             target=video_worker_process,
             args=(
@@ -904,6 +906,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.frame_ready,
                 self.response_queue,
                 self.worker_stop_event,
+                self.worker_lock,
             ),
             daemon=True,
         )
@@ -1022,15 +1025,15 @@ class PlotVideo(PlotBaseVideoTensor):
             if not self.frame_ready.wait(timeout=0.1):
                 continue
             # update the buffer (new frame will be displayed)
-            with self.buffer_lock:
+            with self.buffer_lock, self.worker_lock:
                 self.texture.data[:] = self.shared_frame
-            frame_index = int(self.shared_index[0])
-            self.frame_ready.clear()
-            try:
-                trigger_source = self.response_queue.get_nowait()
-                self._pending_ui_update_queue.put((frame_index, trigger_source))
-            except queue.Empty:
-                continue
+                frame_index = int(self.shared_index[0])
+                self.frame_ready.clear()
+                try:
+                    trigger_source = self.response_queue.get(timeout=0.05)
+                    self._pending_ui_update_queue.put((frame_index, trigger_source))
+                except queue.Empty:
+                    continue
             # queue the update of the text
             self._needs_redraw.set()  # Ask the main thread to draw
 

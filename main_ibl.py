@@ -15,7 +15,7 @@ one = ONE()
 eid = "ebce500b-c530-47de-8cb1-963c552703ea"
 
 # Videos
-ibl_path = Path("/home/wolf/Downloads/ONE")
+ibl_path = Path("")
 videos = {}
 for label in ["left", "body", "right"]:
     video_path = (

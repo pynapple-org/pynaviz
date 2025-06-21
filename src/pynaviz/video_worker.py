@@ -1,10 +1,10 @@
 import queue
 from enum import Enum
-from multiprocessing import Event, Queue, shared_memory
+from multiprocessing import Event, Lock, Queue, shared_memory
 
 import numpy as np
 
-from .video_handling import VideoHandler  # Replace with actual path
+from .video_handling import VideoHandler
 
 
 class RenderTriggerSource(Enum):
@@ -27,9 +27,10 @@ def video_worker_process(
     shm_frame_name: str,
     shm_index_name: str,
     request_queue: Queue,
-    done_event: Event,
+    frame_ready: Event,
     response_queue: Queue,
     stop_event: Event,
+    buffer_lock: Lock
 ):
     handler = VideoHandler(video_path)
     shm_frame = shared_memory.SharedMemory(name=shm_frame_name)
@@ -72,10 +73,20 @@ def video_worker_process(
         else:
             frame = handler[idx]  # shape: (H, W, 3) in RGB, float32
 
-        np.copyto(frame_buffer, frame)
-        np.copyto(index_buffer, idx)
-        response_queue.put(request_type)
-        done_event.set()
+        with buffer_lock:
+            np.copyto(frame_buffer, frame)
+            np.copyto(index_buffer, idx)
+
+            # drain response_queue to remove stale triggers
+            while True:
+                try:
+                    _ = response_queue.get_nowait()
+                except queue.Empty:
+                    break
+
+            # only now enqueue the trigger
+            response_queue.put(request_type)
+        frame_ready.set()
     try:
         handler.close()
     except Exception as e:
