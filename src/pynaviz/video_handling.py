@@ -7,7 +7,8 @@ from typing import List, Optional, Tuple
 
 import av
 import numpy as np
-from line_profiler import profile
+
+# from line_profiler import profile
 from numpy.typing import NDArray
 
 
@@ -391,7 +392,6 @@ class VideoHandler:
             self.last_loaded_idx,
         )
 
-    @profile
     def get(self, ts: float) -> av.VideoFrame | NDArray:
         if not self.__class__._get_from_index:
             idx = ts_to_index(ts, self.time)
@@ -427,7 +427,6 @@ class VideoHandler:
             else self.current_frame
         )
 
-    @profile
     def _frame_iterator(self, fall_back_pts: int | None):
         """
         Safe frame iterator.
@@ -451,7 +450,6 @@ class VideoHandler:
             )
             yield from self._frame_iterator(None)
 
-    @profile
     def _decode_and_check_frames(self, use_time: bool, target_pts: int, idx: int):
         """Decode from stream."""
         preceding_frame = None
