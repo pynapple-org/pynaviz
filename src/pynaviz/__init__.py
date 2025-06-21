@@ -17,8 +17,9 @@ try:
         TsdWidget,
         TsGroupWidget,
         TsWidget,
+        VideoWidget,
     )
-    __all__ += ["TsdFrameWidget", "TsdTensorWidget", "TsdWidget", "TsGroupWidget", "TsWidget", "scope"]
+    __all__ += ["TsdFrameWidget", "TsdTensorWidget", "TsdWidget", "TsGroupWidget", "TsWidget", "scope", "VideoWidget"]
 except ImportError:
     pass # Check if cleaner way of doing this
 
