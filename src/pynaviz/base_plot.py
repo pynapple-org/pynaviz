@@ -75,7 +75,6 @@ dict_sync_funcs = {
 }
 
 
-
 class _BasePlot(IntervalSetInterface):
     """
     Base class for time-aligned visualizations using pygfx.
@@ -434,34 +433,37 @@ class PlotTsdFrame(_BasePlot):
         self.data = data
 
         # To stream data
-        size = (256 * 1024 ** 2) // (data.shape[1] * 60)
+        size = (256 * 1024**2) // (data.shape[1] * 60)
 
-        self._stream = TsdFrameStreaming(data, callback=self._flush,
-                                         window_size = size/data.rate
-                                         ) # seconds
+        self._stream = TsdFrameStreaming(
+            data, callback=self._flush, window_size=size / data.rate
+        )  # seconds
         # print(size, size/data.rate, self._stream._max_n)
 
         # Create pygfx objects
         self._positions = np.full(
-            ((self._stream._max_n+1)*self.data.shape[1], 3), np.nan, dtype="float32"
-            )
-        self._positions[:,2] = 0.0
+            ((self._stream._max_n + 1) * self.data.shape[1], 3), np.nan, dtype="float32"
+        )
+        self._positions[:, 2] = 0.0
 
         self._buffer_slices = {}
-        for c, s in zip(self.data.columns, range(0, len(self._positions)-self._stream._max_n + 1, self._stream._max_n+1)):
-            self._buffer_slices[c] = slice(s, s+self._stream._max_n)
+        for c, s in zip(
+            self.data.columns,
+            range(0, len(self._positions) - self._stream._max_n + 1, self._stream._max_n + 1),
+        ):
+            self._buffer_slices[c] = slice(s, s + self._stream._max_n)
 
         colors = np.ones((self._positions.shape[0], 4), dtype=np.float32)
 
         self.graphic = gfx.Line(
             gfx.Geometry(positions=self._positions, colors=colors),
-            gfx.LineMaterial(thickness=1.0, color_mode="vertex")#, color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
+            gfx.LineMaterial(
+                thickness=1.0, color_mode="vertex"
+            ),  # , color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
         )
 
         # Add elements to the scene for rendering
-        self.scene.add(
-            self.ruler_x, self.ruler_y, self.ruler_ref_time, self.graphic
-        )
+        self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time, self.graphic)
 
         # Connect specific event handler for TsdFrame
         self.renderer.add_event_handler(self._rescale, "key_down")
@@ -517,35 +519,39 @@ class PlotTsdFrame(_BasePlot):
         right_offset = 0
         if time.shape[0] < self._stream._max_n:
             if slice_.start == 0:
-                left_offset = self._stream._max_n-time.shape[0]
+                left_offset = self._stream._max_n - time.shape[0]
             else:
                 right_offset = time.shape[0] - self._stream._max_n
 
         # Read
-        data = np.array(self.data.values[slice_,:])
+        data = np.array(self.data.values[slice_, :])
 
         # Copy the data
         for i, c in enumerate(self.data.columns):
             sl = self._buffer_slices[c]
-            sl = slice(sl.start+left_offset, sl.stop+right_offset)
-            self._positions[sl,0] = time
-            self._positions[sl,1] = data[:,i]
-            self._positions[sl,1] *= self._manager.data.loc[c]['scale']
-            self._positions[sl,1] += self._manager.data.loc[c]['offset']
+            sl = slice(sl.start + left_offset, sl.stop + right_offset)
+            self._positions[sl, 0] = time
+            self._positions[sl, 1] = data[:, i]
+            self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
+            self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
 
         # Put back some nans on the edges
         if left_offset:
             for sl in self._buffer_slices.values():
-                self._positions[sl.start:sl.start+left_offset,0:2] = np.nan
+                self._positions[sl.start : sl.start + left_offset, 0:2] = np.nan
         if right_offset:
             for sl in self._buffer_slices.values():
-                self._positions[sl.stop+right_offset:sl.stop,0:2] = np.nan
+                self._positions[sl.stop + right_offset : sl.stop, 0:2] = np.nan
 
         self.graphic.geometry.positions.set_data(self._positions)
 
     def _get_min_max(self):
-        return np.array([[np.nanmin(self._positions[sl, 1]),
-          np.nanmax(self._positions[sl, 1])] for sl in self._buffer_slices.values()])
+        return np.array(
+            [
+                [np.nanmin(self._positions[sl, 1]), np.nanmax(self._positions[sl, 1])]
+                for sl in self._buffer_slices.values()
+            ]
+        )
 
     def _rescale(self, event):
         """
@@ -561,7 +567,9 @@ class PlotTsdFrame(_BasePlot):
 
                 # Update the current buffers to avoid re-reading from disk
                 for c, sl in self._buffer_slices.items():
-                    self._positions[sl,1] += factor * (self._positions[sl,1] - self._manager.data.loc[c]['offset'])
+                    self._positions[sl, 1] += factor * (
+                        self._positions[sl, 1] - self._manager.data.loc[c]["offset"]
+                    )
 
                 # Update the gpu data
                 self.graphic.geometry.positions.set_data(self._positions)
@@ -638,11 +646,12 @@ class PlotTsdFrame(_BasePlot):
             self._manager.group_by(values)
             self._update("group_by")
 
-    def color_by(self,
-            metadata_name: str,
-            cmap_name: str = "viridis",
-            vmin: float = 0.0,
-            vmax: float = 100.0,
+    def color_by(
+        self,
+        metadata_name: str,
+        cmap_name: str = "viridis",
+        vmin: float = 0.0,
+        vmax: float = 100.0,
     ) -> None:
         """
         Applies color mapping to plot elements based on a metadata field.
@@ -678,9 +687,7 @@ class PlotTsdFrame(_BasePlot):
         """
         # If the color mapping thread is still processing, retry in 25 milliseconds
         if self.color_mapping_thread.is_running():
-            slot = lambda: self.color_by(
-                metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
-            )
+            slot = lambda: self.color_by(metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
             threading.Timer(0.025, slot).start()
             return
 
@@ -707,16 +714,14 @@ class PlotTsdFrame(_BasePlot):
         # materials = get_plot_attribute(self, "material")
 
         # Get the metadata values for each plotted element
-        values = (
-            self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
-        )
+        values = self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
 
         # If metadata is found and mapping works, update the material colors
         if len(values):
             map_color = map_to_colors(values, **map_kwargs)
             if map_color:
                 for c, sl in self._buffer_slices.items():
-                    self.graphic.geometry.colors.data[sl,:] = map_color[values[c]]
+                    self.graphic.geometry.colors.data[sl, :] = map_color[values[c]]
                     # self.graphic.material.color = map_color[values[c]]
                 self.graphic.geometry.colors.update_full()
                 # Request a redraw of the canvas to reflect the new colors
@@ -944,7 +949,6 @@ class PlotTsGroup(_BasePlot):
             self._update("group_by")
 
 
-
 class PlotTs(_BasePlot):
     def __init__(self, data: nap.Ts, index=None, parent=None):
         super().__init__(parent=parent)
@@ -967,7 +971,11 @@ class PlotTs(_BasePlot):
 
 class PlotBaseVideoTensor(_BasePlot, ABC):
     def __init__(
-        self, data: Any, index: Optional[int] = None, parent: Optional[Any] = None
+        self,
+        data: Any,
+        index: Optional[int] = None,
+        parent: Optional[Any] = None,
+        show_time: Optional[float] = None,
     ) -> None:
         super().__init__(data, parent=parent, maintain_aspect=True)
 
@@ -980,17 +988,21 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         )
 
         # Time display
-        self.time_text = gfx.Text(
-            text="0.0",
-            font_size=0.5,
-            anchor="bottom-left",
-            material=gfx.TextMaterial(
-                color="#B4F8C8", outline_color="#000", outline_thickness=0.15
-            ),
-        )
-        self.time_text.geometry.anchor = "bottom-left"
+        if show_time is not None:
+            self.time_text = gfx.Text(
+                text="t=0.00",
+                font_size=self.texture.size[1] * 0.05,
+                anchor="bottom-left",
+                material=gfx.TextMaterial(
+                    color="#B4F8C8", outline_color="#000", outline_thickness=0.15
+                ),
+            )
+            self.time_text.geometry.anchor = "bottom-left"
 
-        self.scene.add(self.image, self.time_text)
+            self.scene.add(self.image, self.time_text)
+        else:
+            self.time_text = False
+            self.scene.add(self.image)
         self.camera.show_object(self.scene)
 
         self.controller = GetController(
@@ -1013,7 +1025,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
 
     def _set_time_text(self, frame_index: int):
         if self.time_text:
-            self.time_text.set_text(str(self.data.t[frame_index]))
+            self.time_text.set_text(f"t={self.data.t[frame_index]:.2f}")
 
     def set_frame(self, target_time: float):
         """
@@ -1066,11 +1078,12 @@ class PlotVideo(PlotBaseVideoTensor):
         stream_index: int = 0,
         index=None,
         parent=None,
+        show_time: Optional[float] = None,
     ):
         self._closed = False
         data = VideoHandler(video_path, time=t, stream_index=stream_index)
         self._data = data
-        super().__init__(data, index=index, parent=parent)
+        super().__init__(data, index=index, parent=parent, show_time=show_time)
 
         # Shared memory and comms
         self.shape = self.texture.data.shape

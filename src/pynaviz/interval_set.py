@@ -140,7 +140,7 @@ class IntervalSetInterface:
                     self._interval_rects[label], color, transparency
                 )
 
-    def _update_all_isets(self):
+    def _update_all_isets(self, *args, **kwargs):
         for rectangles in self._interval_rects.values():
             self._update_rectangles(rectangles)
 
