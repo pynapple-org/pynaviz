@@ -5,7 +5,6 @@ from one.api import ONE
 from PyQt6.QtWidgets import QApplication
 import pynapple as nap
 import pynaviz as viz
-import numpy as np
 from brainbox.io.one import SpikeSortingLoader
 
 app = QApplication([])
@@ -17,6 +16,9 @@ eid = "ebce500b-c530-47de-8cb1-963c552703ea"
 
 # Videos
 ibl_path = Path("/home/wolf/Downloads/ONE/")
+if not ibl_path.exists():
+    print("Please set the path to your IBL data directory in the variable `ibl_path`.")
+    quit()
 videos = {}
 for label in ["left", "body", "right"]:
     video_path = (
