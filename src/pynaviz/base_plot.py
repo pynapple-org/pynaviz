@@ -820,32 +820,28 @@ class PlotTsGroup(_BasePlot):
 
         # Create pygfx objects
         self.graphic = {}
-        spike_sdf = """
-        // Normalize coordinates relative to size
-        let uv = coord / size;
-        // Distance to vertical center line (x = 0)
-        let line_thickness = 0.2;
-        let dist = abs(uv.x) - line_thickness;
-        return dist * size;
-        """
-        for i, n in enumerate(data.keys()):
-            positions = np.stack((data[n].t, np.ones(len(data[n])) * i, np.ones(len(data[n])))).T
-            positions = positions.astype("float32")
+        self._positions = {}
+        for i, (key, ts) in enumerate(data.items()):
+            self._positions[key] = np.empty((2 * len(data[key].times()), 3), dtype="float32")
+            # First row of each pair: (x, key, 0)
+            self._positions[key][0::2, 0] = ts.times()
+            self._positions[key][0::2, 1] = key
+            self._positions[key][0::2, 2] = 0.0
+            # Second row of each pair: (x, key+1, 0)
+            self._positions[key][1::2, 0] = ts.times()
+            self._positions[key][1::2, 1] = key + 1
+            self._positions[key][1::2, 2] = 0.0
 
-            self.graphic[n] = gfx.Points(
-                gfx.Geometry(positions=positions),
-                gfx.PointsMarkerMaterial(
-                    size=5,
-                    color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)],
-                    opacity=1,
-                    marker="custom",
-                    custom_sdf=spike_sdf,
+            colors = np.ones((self._positions[key].shape[0], 4), dtype=np.float32)
+            self.graphic[key] = gfx.Line(
+                gfx.Geometry(positions=self._positions[key], colors=colors),
+                gfx.LineSegmentMaterial(
+                    thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]
                 ),
             )
 
         # TODO: properly setup streams
         # Stream the first batch of data
-        self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
         self._manager.data["offset"] = self.data.index
         self._flush()
 
@@ -875,10 +871,11 @@ class PlotTsGroup(_BasePlot):
         # time = self.data.t[slice_]
         # n = time.shape[0]
 
-        for c in self._buffers:
+        for c in self._positions:
             # self._buffers[c].data[-n:, 0] = time.astype("float32")
-            self._buffers[c].data[:, 1] = self._manager.data.loc[c]["offset"].astype("float32")
-            self._buffers[c].update_full()
+            self._positions[c][0::2, 1] = self._manager.data.loc[c]["offset"].astype("float32")
+            self._positions[c][1::2, 1] = self._manager.data.loc[c]["offset"].astype("float32") + 1
+            self.graphic[c].geometry.positions.set_data(self._positions[c])
 
     def _reset(self, event):
         """
