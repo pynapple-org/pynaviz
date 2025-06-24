@@ -500,10 +500,6 @@ class PlotTsdFrame(_BasePlot):
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
 
-    def _update_buffer(self, frame_index: int):
-        _update_buffer(self, frame_index=frame_index)
-        self.controller.renderer_request_draw()
-
     def _flush(self, slice_: slice = None):
         """
         Flush the data stream from slice_ argument
@@ -800,6 +796,16 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
+    def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
+        self.time_point.geometry.positions.data[0,0:2] = self.data.values[frame_index].astype("float32")
+        self.time_point.geometry.positions.update_full()
+        self.canvas.request_draw(self.animate)
+
+        # plot_object.texture.update_full()
+        # plot_object._set_time_text(frame_index)
+        # _update_buffer(self, frame_index=frame_index)
+        # self.controller.renderer_request_draw()
+
 
 class PlotTsGroup(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
@@ -830,7 +836,7 @@ class PlotTsGroup(_BasePlot):
             self.graphic[n] = gfx.Points(
                 gfx.Geometry(positions=positions),
                 gfx.PointsMarkerMaterial(
-                    size=5,
+                    size=10,
                     color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)],
                     opacity=1,
                     marker="custom",
