@@ -2,6 +2,7 @@
 Plotting class for each pynapple object using Qt Widget.
 Create a unique Qt widget for each class.
 """
+
 import pathlib
 from typing import Optional
 
@@ -13,7 +14,6 @@ from .widget_menu import MenuWidget
 
 
 class TsGroupWidget(QWidget):
-
     def __init__(self, data, index=None, size=(640, 480), set_parent=True):
         super().__init__(None)
         self.resize(*size)
@@ -37,7 +37,6 @@ class TsGroupWidget(QWidget):
 
 
 class TsdWidget(QWidget):
-
     def __init__(self, data, index=None, size=(640, 480), set_parent=True):
         super().__init__(None)
         self.resize(*size)
@@ -61,7 +60,6 @@ class TsdWidget(QWidget):
 
 
 class TsdFrameWidget(QWidget):
-
     def __init__(self, data, index=None, size=(640, 480), set_parent=True):
         super().__init__(None)
         self.resize(*size)
@@ -85,7 +83,6 @@ class TsdFrameWidget(QWidget):
 
 
 class TsdTensorWidget(QWidget):
-
     def __init__(self, data, index=None, size=(640, 480), set_parent=True):
         super().__init__(None)
         self.resize(*size)
@@ -109,15 +106,23 @@ class TsdTensorWidget(QWidget):
 
 
 class TsWidget(QWidget):
-
     def __init__(self, data, index=None, set_parent=False):
         super().__init__(None)
         parent = self if set_parent else None
         self.plot = PlotTs(data, index=index, parent=parent)
 
-class VideoWidget(QWidget):
 
-    def __init__(self, video_path: str | pathlib.Path, t: Optional[NDArray] = None, stream_index: int=0, index=None, size=(640, 480), set_parent=True):
+class VideoWidget(QWidget):
+    def __init__(
+        self,
+        video_path: str | pathlib.Path,
+        t: Optional[NDArray] = None,
+        stream_index: int = 0,
+        index=None,
+        size=(640, 480),
+        set_parent=True,
+        show_time: Optional[float] = None,
+    ):
         super().__init__(None)
         self.resize(*size)
 
@@ -129,7 +134,14 @@ class VideoWidget(QWidget):
 
         # Canvas
         parent = self if set_parent else None
-        self.plot = PlotVideo(video_path=video_path, t=t, stream_index=stream_index, index=index, parent=parent)
+        self.plot = PlotVideo(
+            video_path=video_path,
+            t=t,
+            stream_index=stream_index,
+            index=index,
+            parent=parent,
+            show_time=show_time,
+        )
 
         # Top level menu container
         self.button_container = MenuWidget(metadata={}, plot=self.plot)
