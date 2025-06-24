@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QApplication
 import pynapple as nap
 import pynaviz as viz
 from brainbox.io.one import SpikeSortingLoader
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout
 
 app = QApplication([])
 
@@ -45,7 +46,7 @@ clusters = nap.TsGroup(
     {
         cluster_id: nap.Ts(spikes["times"][spikes["clusters"] == cluster_id])
         for cluster_id in tqdm(
-            clusters.pop("cluster_id")[:100], unit="cluster", desc="Loading spikes"
+            clusters.pop("cluster_id")[:200], unit="cluster", desc="Loading spikes"
         )
     },
     metadata={metadata_key: metadata_values for metadata_key, metadata_values in clusters.items()},
@@ -90,11 +91,27 @@ raster.show()
 raster.plot.add_interval_sets(trials, colors="white", alpha=0.2)
 # videos
 videos = [
-    viz.base_plot.PlotVideo(video_path=video_path, t=times, show_time=0.1)
+    viz.VideoWidget(video_path=video_path, t=times, show_time=0.1)
     for times, video_path in videos.values()
 ]
 # link
-viz.controller_group.ControllerGroup(videos + [raster.plot])
+viz.controller_group.ControllerGroup([video.plot for video in videos] + [raster.plot])
+
+# Main window
+window = QWidget()
+
+# Top row: horizontal layout for videos
+top_layout = QHBoxLayout()
+for video in videos:
+    top_layout.addWidget(video)
+
+# Overall layout: vertical, stacking videos on top of raster
+main_layout = QVBoxLayout()
+main_layout.addLayout(top_layout)  # Add videos at the top
+main_layout.addWidget(raster)  # Raster goes at the bottom
+
+window.setLayout(main_layout)
+window.show()
 
 if __name__ == "__main__":
     app.exit(app.exec())
