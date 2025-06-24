@@ -24,13 +24,12 @@ clusters = ssl.merge_clusters(spikes, clusters, channels)
 tsgroup = nap.TsGroup(
     {
         cluster_id: nap.Ts(spikes["times"][spikes["clusters"] == cluster_id])
-        for cluster_id in tqdm(clusters.pop("cluster_id")[:50])
+        for cluster_id in tqdm(clusters.pop("cluster_id"))
     },
     metadata={metadata_key: metadata_values for metadata_key, metadata_values in clusters.items()},
 )
 
-v1 = viz.TsGroupWidget(tsgroup)
-v1.show()
+viz.base_plot.PlotTsGroup(tsgroup).show()
 
 if __name__ == "__main__":
     app.exit(app.exec())

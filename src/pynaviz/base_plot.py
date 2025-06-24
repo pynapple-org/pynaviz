@@ -36,7 +36,6 @@ dict_sync_funcs = {
 }
 
 
-
 class _BasePlot(IntervalSetInterface):
     """
     Base class for time-aligned visualizations using pygfx.
@@ -389,34 +388,37 @@ class PlotTsdFrame(_BasePlot):
         self.data = data
 
         # To stream data
-        size = (256 * 1024 ** 2) // (data.shape[1] * 60)
+        size = (256 * 1024**2) // (data.shape[1] * 60)
 
-        self._stream = TsdFrameStreaming(data, callback=self._flush,
-                                         window_size = size/data.rate
-                                         ) # seconds
+        self._stream = TsdFrameStreaming(
+            data, callback=self._flush, window_size=size / data.rate
+        )  # seconds
         # print(size, size/data.rate, self._stream._max_n)
 
         # Create pygfx objects
         self._positions = np.full(
-            ((self._stream._max_n+1)*self.data.shape[1], 3), np.nan, dtype="float32"
-            )
-        self._positions[:,2] = 0.0
+            ((self._stream._max_n + 1) * self.data.shape[1], 3), np.nan, dtype="float32"
+        )
+        self._positions[:, 2] = 0.0
 
         self._buffer_slices = {}
-        for c, s in zip(self.data.columns, range(0, len(self._positions)-self._stream._max_n + 1, self._stream._max_n+1)):
-            self._buffer_slices[c] = slice(s, s+self._stream._max_n)
+        for c, s in zip(
+            self.data.columns,
+            range(0, len(self._positions) - self._stream._max_n + 1, self._stream._max_n + 1),
+        ):
+            self._buffer_slices[c] = slice(s, s + self._stream._max_n)
 
         colors = np.ones((self._positions.shape[0], 4), dtype=np.float32)
 
         self.graphic = gfx.Line(
             gfx.Geometry(positions=self._positions, colors=colors),
-            gfx.LineMaterial(thickness=1.0, color_mode="vertex")#, color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
+            gfx.LineMaterial(
+                thickness=1.0, color_mode="vertex"
+            ),  # , color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
         )
 
         # Add elements to the scene for rendering
-        self.scene.add(
-            self.ruler_x, self.ruler_y, self.ruler_ref_time, self.graphic
-        )
+        self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time, self.graphic)
 
         # Connect specific event handler for TsdFrame
         self.renderer.add_event_handler(self._rescale, "key_down")
@@ -467,35 +469,39 @@ class PlotTsdFrame(_BasePlot):
         right_offset = 0
         if time.shape[0] < self._stream._max_n:
             if slice_.start == 0:
-                left_offset = self._stream._max_n-time.shape[0]
+                left_offset = self._stream._max_n - time.shape[0]
             else:
                 right_offset = time.shape[0] - self._stream._max_n
 
         # Read
-        data = np.array(self.data.values[slice_,:])
+        data = np.array(self.data.values[slice_, :])
 
         # Copy the data
         for i, c in enumerate(self.data.columns):
             sl = self._buffer_slices[c]
-            sl = slice(sl.start+left_offset, sl.stop+right_offset)
-            self._positions[sl,0] = time
-            self._positions[sl,1] = data[:,i]
-            self._positions[sl,1] *= self._manager.data.loc[c]['scale']
-            self._positions[sl,1] += self._manager.data.loc[c]['offset']
+            sl = slice(sl.start + left_offset, sl.stop + right_offset)
+            self._positions[sl, 0] = time
+            self._positions[sl, 1] = data[:, i]
+            self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
+            self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
 
         # Put back some nans on the edges
         if left_offset:
             for sl in self._buffer_slices.values():
-                self._positions[sl.start:sl.start+left_offset,0:2] = np.nan
+                self._positions[sl.start : sl.start + left_offset, 0:2] = np.nan
         if right_offset:
             for sl in self._buffer_slices.values():
-                self._positions[sl.stop+right_offset:sl.stop,0:2] = np.nan
+                self._positions[sl.stop + right_offset : sl.stop, 0:2] = np.nan
 
         self.graphic.geometry.positions.set_data(self._positions)
 
     def _get_min_max(self):
-        return np.array([[np.nanmin(self._positions[sl, 1]),
-          np.nanmax(self._positions[sl, 1])] for sl in self._buffer_slices.values()])
+        return np.array(
+            [
+                [np.nanmin(self._positions[sl, 1]), np.nanmax(self._positions[sl, 1])]
+                for sl in self._buffer_slices.values()
+            ]
+        )
 
     def _rescale(self, event):
         """
@@ -511,7 +517,9 @@ class PlotTsdFrame(_BasePlot):
 
                 # Update the current buffers to avoid re-reading from disk
                 for c, sl in self._buffer_slices.items():
-                    self._positions[sl,1] += factor * (self._positions[sl,1] - self._manager.data.loc[c]['offset'])
+                    self._positions[sl, 1] += factor * (
+                        self._positions[sl, 1] - self._manager.data.loc[c]["offset"]
+                    )
 
                 # Update the gpu data
                 self.graphic.geometry.positions.set_data(self._positions)
@@ -590,11 +598,12 @@ class PlotTsdFrame(_BasePlot):
 
             self._update("group_by")
 
-    def color_by(self,
-            metadata_name: str,
-            cmap_name: str = "viridis",
-            vmin: float = 0.0,
-            vmax: float = 100.0,
+    def color_by(
+        self,
+        metadata_name: str,
+        cmap_name: str = "viridis",
+        vmin: float = 0.0,
+        vmax: float = 100.0,
     ) -> None:
         """
         Applies color mapping to plot elements based on a metadata field.
@@ -630,9 +639,7 @@ class PlotTsdFrame(_BasePlot):
         """
         # If the color mapping thread is still processing, retry in 25 milliseconds
         if self.color_mapping_thread.is_running():
-            slot = lambda: self.color_by(
-                metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
-            )
+            slot = lambda: self.color_by(metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
             threading.Timer(0.025, slot).start()
             return
 
@@ -659,16 +666,14 @@ class PlotTsdFrame(_BasePlot):
         # materials = get_plot_attribute(self, "material")
 
         # Get the metadata values for each plotted element
-        values = (
-            self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
-        )
+        values = self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
 
         # If metadata is found and mapping works, update the material colors
         if len(values):
             map_color = map_to_colors(values, **map_kwargs)
             if map_color:
                 for c, sl in self._buffer_slices.items():
-                    self.graphic.geometry.colors.data[sl,:] = map_color[values[c]]
+                    self.graphic.geometry.colors.data[sl, :] = map_color[values[c]]
                     # self.graphic.material.color = map_color[values[c]]
                 self.graphic.geometry.colors.update_full()
                 # Request a redraw of the canvas to reflect the new colors
@@ -752,6 +757,146 @@ class PlotTsdFrame(_BasePlot):
 
 
 class PlotTsGroup(_BasePlot):
+    def __init__(self, data: nap.TsGroup, index=None, parent=None):
+        super().__init__(data=data, parent=parent)
+
+        # Pynaviz specific controller
+        self.controller = SpanController(
+            camera=self.camera,
+            renderer=self.renderer,
+            controller_id=index,
+            dict_sync_funcs=dict_sync_funcs,
+        )
+
+        # Create pygfx objects
+        self.graphic = {}
+        self._positions = {}
+        for i, (key, ts) in enumerate(data.items()):
+            self._positions[key] = np.empty((2 * len(data[key].times()), 3), dtype="float32")
+            # First row of each pair: (x, key, 0)
+            self._positions[key][0::2, 0] = ts.times()
+            self._positions[key][0::2, 1] = key
+            self._positions[key][0::2, 2] = 0.0
+            # Second row of each pair: (x, key+1, 0)
+            self._positions[key][1::2, 0] = ts.times()
+            self._positions[key][1::2, 1] = key + 1
+            self._positions[key][1::2, 2] = 0.0
+
+            colors = np.ones((self._positions[key].shape[0], 4), dtype=np.float32)
+            self.graphic[key] = gfx.Line(
+                gfx.Geometry(positions=self._positions[key], colors=colors),
+                gfx.LineSegmentMaterial(
+                    thickness=1.0, color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)]
+                ),
+            )
+
+        # TODO: properly setup streams
+        # Stream the first batch of data
+        self._manager.data["offset"] = self.data.index
+        self._flush()
+
+        # Add elements to the scene for rendering
+        self.scene.add(
+            self.ruler_x, self.ruler_y, self.ruler_ref_time, *list(self.graphic.values())
+        )
+
+        # Connect specific event handler for TsGroup
+        self.renderer.add_event_handler(self._reset, "key_down")
+
+        # By default, showing only the first second.
+        self.controller.set_view(0, 1, 0, np.max(self._manager.offset) + 1)
+
+        # Request drawing of the scene
+        self.canvas.request_draw(self.animate)
+
+    def _flush(self, slice_: slice = None):
+        """
+        Flush the data stream from slice_ argument
+        """
+        # TODO: Handle slice_ argument properly, updating buffers
+
+        # if slice_ is None:
+        #    slice_ = self._stream.get_slice(*self.controller.get_xlim())
+
+        # time = self.data.t[slice_]
+        # n = time.shape[0]
+
+        for c in self._positions:
+            # self._buffers[c].data[-n:, 0] = time.astype("float32")
+            self._positions[c][0::2, 1] = self._manager.data.loc[c]["offset"].astype("float32")
+            self._positions[c][1::2, 1] = self._manager.data.loc[c]["offset"].astype("float32") + 1
+            self.graphic[c].geometry.positions.set_data(self._positions[c])
+
+    def _reset(self, event):
+        """
+        "r" key reset the plot manager to initial view
+        """
+        if event.type == "key_down":
+            if event.key == "r":
+                if isinstance(self.controller, SpanController):
+                    self._manager.reset()
+                    self._manager.data["offset"] = self.data.index
+                    self._flush()
+
+                self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+                self.canvas.request_draw(self.animate)
+
+    def _update(self, action_name):
+        """
+        Update function for sort_by and group_by. Because of mode of sort_by, it's not possible
+        to just update the buffer.
+        """
+        self._flush()
+
+        # Update camera to fit the full y range
+        self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+
+        self.canvas.request_draw(self.animate)
+
+    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
+        """
+        Sort the plotted unit raster vertically by a metadata field.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata key to sort by.
+        mode : str, optional
+            "ascending" (default) or "descending".
+        """
+        # The current controller should be a span controller.
+
+        # Grabbing the metadata
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
+
+        # If metadata found
+        if len(values):
+            # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
+            self._manager.sort_by(values, mode)
+
+            self._update("sort_by")
+
+    def group_by(self, metadata_name: str, **kwargs):
+        """
+        Group the plotted time series lines vertically by a metadata field.
+
+        Parameters
+        ----------
+        metadata_name : str
+            Metadata key to group by.
+        """
+        # Grabbing the metadata
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
+
+        # If metadata found
+        if len(values):
+            # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
+            self._manager.group_by(values)
+
+            self._update("group_by")
+
+
+class PlotTsGroupOld(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
         super().__init__(data=data, parent=parent)
 
