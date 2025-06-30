@@ -12,13 +12,13 @@ def linters(session):
 @nox.session(name="tests")
 def tests(session):
     """Run the test suite."""
-    session.log("install")
-    session.install(".[dev]")
+    # session.log("install")
+    # session.install(".[dev]")
     tests_path = pathlib.Path(__file__).parent.resolve() / "tests"
     video_dir = tests_path / "test_video"
     video_dir.mkdir(exist_ok=True)
     generated_video = [f"numbered_video{ext}" for ext in [".mp4", ".avi", ".mkv"]]
-    is_in_dir = all(name in  [*video_dir.iterdir()] for name in generated_video)
+    is_in_dir = all((video_dir / name).exists() for name in generated_video)
     session.log(f"video found {is_in_dir}")
     if not is_in_dir:
         session.log("Generating numbered videos...")
