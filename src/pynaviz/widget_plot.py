@@ -8,7 +8,6 @@ from typing import Optional
 from numpy._typing import NDArray
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
-
 from .base_plot import (
     PlotIntervalSet,
     PlotTs,
@@ -16,9 +15,8 @@ from .base_plot import (
     PlotTsdFrame,
     PlotTsdTensor,
     PlotTsGroup,
-    PlotVideo
+    PlotVideo,
 )
-
 from .widget_menu import MenuWidget
 
 
@@ -174,15 +172,15 @@ class VideoWidget(QWidget):
         # Canvas
         parent = self if set_parent else None
         self.plot = PlotVideo(video_path=video_path, t=t, stream_index=stream_index, index=index, parent=parent)
-        
+
         # Top level menu container
         self.button_container = MenuWidget(metadata={}, plot=self.plot)
-        
+
         # Add overlay and canvas to layout
         layout.addWidget(self.button_container)
         layout.addWidget(self.plot.canvas)
-        
-         
-          
-        
+
+
+
+
 

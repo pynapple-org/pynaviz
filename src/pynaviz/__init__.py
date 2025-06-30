@@ -40,7 +40,7 @@ try:
         "scope",
         "VideoWidget"
     ]
-    
+
 except ImportError:
     pass  # Check if cleaner way of doing this
 
