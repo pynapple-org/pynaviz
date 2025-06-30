@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 import pytest
 from PyQt6.QtWidgets import QApplication, QComboBox, QDoubleSpinBox
 
-from pynaviz.qt_item_models import ChannelListModel
-from pynaviz.widget_menu import ChannelList, DropdownDialog, MenuWidget, widget_factory
+from uviz.qt_item_models import ChannelListModel
+from uviz.widget_menu import ChannelList, DropdownDialog, MenuWidget, widget_factory
 
 
 # Initialize QApplication once per test session

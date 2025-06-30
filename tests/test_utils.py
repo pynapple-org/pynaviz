@@ -5,7 +5,7 @@ from wgpu.gui.offscreen import WgpuCanvas
 
 
 def test_get_event_handle():
-    from pynaviz.utils import _get_event_handle
+    from uviz.utils import _get_event_handle
     canvas = WgpuCanvas()
     renderer = renderers.WgpuRenderer(canvas)
     try:

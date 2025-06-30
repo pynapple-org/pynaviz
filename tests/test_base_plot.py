@@ -9,7 +9,7 @@ import pygfx as gfx
 import pynapple as nap
 import pytest
 
-from pynaviz.base_plot import _BasePlot
+from uviz.base_plot import _BasePlot
 
 
 @pytest.fixture

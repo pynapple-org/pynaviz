@@ -10,7 +10,7 @@ import numpy as np
 import pynapple as nap
 from PIL import Image
 
-import pynaviz as viz
+import uviz as viz
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.sin(np.arange(1000) * 0.1))
 # tsg = nap.TsGroup({

@@ -120,7 +120,7 @@ class TsdTensorWidget(QWidget):
 
 class TsWidget(QWidget):
 
-    def __init__(self, data, index=None, set_parent=False):
+    def __init__(self, data, index=None, set_parent=True):
         super().__init__(None)
         parent = self if set_parent else None
         self.plot = PlotTs(data, index=index, parent=parent)
@@ -128,7 +128,7 @@ class TsWidget(QWidget):
 
 class IntervalSetWidget(QWidget):
 
-    def __init__(self, data, index=None, size=(640, 480), set_parent=False):
+    def __init__(self, data, index=None, size=(640, 480), set_parent=True):
         super().__init__(None)
         self.resize(*size)
 

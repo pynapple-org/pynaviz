@@ -9,7 +9,7 @@ import numpy as np
 import pynapple as nap
 import pytest
 
-from pynaviz.events import SyncEvent
+from uviz.events import SyncEvent
 
 
 @pytest.fixture
