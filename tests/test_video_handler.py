@@ -5,7 +5,7 @@ import imageio.v3 as iio
 import numpy as np
 import pytest
 
-from pynaviz import PlotVideo, video_handling
+from uviz import PlotVideo, video_handling
 
 
 @pytest.fixture()
