@@ -1,4 +1,5 @@
 from .base_plot import (
+    PlotIntervalSet,
     PlotTs,
     PlotTsd,
     PlotTsdFrame,
@@ -7,11 +8,20 @@ from .base_plot import (
     PlotVideo,
 )
 
-__all__ = ["PlotTsd", "PlotTsdFrame", "PlotTsdTensor", "PlotTsGroup", "PlotTs", "PlotVideo"]
+__all__ = [
+    "PlotIntervalSet",
+    "PlotTsd",
+    "PlotTsdFrame",
+    "PlotTsdTensor",
+    "PlotTsGroup",
+    "PlotTs",
+    "PlotVideo"
+]
 
 try:
     from .gui import scope
     from .widget_plot import (
+        IntervalSetWidget,
         TsdFrameWidget,
         TsdTensorWidget,
         TsdWidget,
@@ -19,10 +29,19 @@ try:
         TsWidget,
         VideoWidget,
     )
-    __all__ += ["TsdFrameWidget", "TsdTensorWidget", "TsdWidget", "TsGroupWidget", "TsWidget", "scope", "VideoWidget"]
+
+    __all__ += [
+        "IntervalSetWidget",
+        "TsdFrameWidget",
+        "TsdTensorWidget",
+        "TsdWidget",
+        "TsGroupWidget",
+        "TsWidget",
+        "scope",
+        "VideoWidget"
+    ]
+    
 except ImportError:
-    pass # Check if cleaner way of doing this
+    pass  # Check if cleaner way of doing this
 
 __version__ = "0.0.1"
-
-

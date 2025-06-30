@@ -164,6 +164,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-
-# ingore the tests/test_video folder autogenerate by the script generate_numbered_video
+# ignore the tests/test_video folder autogenerate by the script generate_numbered_video
 tests/test_video/
+
+/.vscode
+

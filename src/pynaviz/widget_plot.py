@@ -8,7 +8,17 @@ from typing import Optional
 from numpy._typing import NDArray
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
-from .base_plot import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup, PlotVideo
+
+from .base_plot import (
+    PlotIntervalSet,
+    PlotTs,
+    PlotTsd,
+    PlotTsdFrame,
+    PlotTsdTensor,
+    PlotTsGroup,
+    PlotVideo
+)
+
 from .widget_menu import MenuWidget
 
 
@@ -79,6 +89,12 @@ class TsdFrameWidget(QWidget):
         # Top level menu container
         self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
 
+        # Add custom menu items
+        self.button_container.action_menu.addSeparator()
+        xvy_action = self.button_container.action_menu.addAction("Plot x vs y")
+        xvy_action.setObjectName("x_vs_y")
+        xvy_action.triggered.connect(self.button_container._popup_menu)
+
         # Add overlay and canvas to layout
         layout.addWidget(self.button_container)
         layout.addWidget(self.plot.canvas)
@@ -115,9 +131,37 @@ class TsWidget(QWidget):
         parent = self if set_parent else None
         self.plot = PlotTs(data, index=index, parent=parent)
 
+
+class IntervalSetWidget(QWidget):
+
+    def __init__(self, data, index=None, size=(640, 480), set_parent=False):
+
+        super().__init__(None)
+        self.resize(*size)
+
+        # The main layout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
+        layout.setSpacing(0)
+        self.setLayout(layout)
+
+        # Canvas
+        parent = self if set_parent else None
+        self.plot = PlotIntervalSet(data, index=index, parent=parent)
+
+        # Top level menu container
+        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
+
+         # Add overlay and canvas to layout
+        layout.addWidget(self.button_container)
+        layout.addWidget(self.plot.canvas)
+
+
+
 class VideoWidget(QWidget):
 
     def __init__(self, video_path: str | pathlib.Path, t: Optional[NDArray] = None, stream_index: int=0, index=None, size=(640, 480), set_parent=True):
+
         super().__init__(None)
         self.resize(*size)
 
@@ -130,10 +174,15 @@ class VideoWidget(QWidget):
         # Canvas
         parent = self if set_parent else None
         self.plot = PlotVideo(video_path=video_path, t=t, stream_index=stream_index, index=index, parent=parent)
-
+        
         # Top level menu container
         self.button_container = MenuWidget(metadata={}, plot=self.plot)
-
+        
         # Add overlay and canvas to layout
         layout.addWidget(self.button_container)
         layout.addWidget(self.plot.canvas)
+        
+         
+          
+        
+

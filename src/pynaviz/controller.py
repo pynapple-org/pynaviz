@@ -216,6 +216,42 @@ class SpanController(CustomController):
         self.renderer_request_draw()
 
 
+class SpanYLockController(SpanController):
+
+    def __init__(self, *args, **kwargs):
+        """
+        The class for horizontal time-panning and zooming, with the y-axis locked.
+        """
+        super().__init__(*args, **kwargs)
+
+    def _update_pan(self, delta, *, vecx, vecy):
+        """
+        Update pan in x axis only, forcing vecy to be 0.
+        """
+        super()._update_pan(delta, vecx=vecx, vecy=0)
+
+    def _update_zoom(self, delta):
+        """
+        Rewrite of _update_zoom since its inputs don't allow separation of fx and fy
+        """
+        if isinstance(delta, (int, float)):
+            delta = (delta, delta)
+        assert isinstance(delta, tuple) and len(delta) == 2
+
+        fx = 2 ** delta[0]
+        new_cam_state = self._zoom(fx, 1, self._get_camera_state())
+        self._set_camera_state(new_cam_state)
+        self._send_sync_event(
+            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
+        )
+
+    def _zoom(self, fx, fy, cam_state):
+        """
+        Zoom in x axis only, enforcing fy to be 1.
+        """
+        return super()._zoom(fx, 1, cam_state)
+
+
 class GetController(CustomController):
     """
     The class for grabbing a single time point
@@ -326,3 +362,20 @@ class GetController(CustomController):
         self._update_buffer(
             RenderTriggerSource.SYNC_EVENT_RECEIVED
         )  # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+
+#         if (
+#             self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
+#         ):  # assume single point
+#             self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+#                 "float32"
+#             )
+#         else:
+#             self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+
+#         self.buffer.update_full()
+
+#         if self.time_text:
+#             self.time_text.set_text(str(self.data.t[self.frame_index]))
+
+#         self.renderer_request_draw()
+

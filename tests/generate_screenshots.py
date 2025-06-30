@@ -34,6 +34,30 @@ def snapshot_tsd(path=DEFAULT_SCREENSHOT_PATH / "test_plot_tsd.png"):
     image = Image.fromarray(image_data, mode="RGBA")
     image.save(path)
 
+# v = viz.PlotTsd(tsd1)
+# v.animate()
+# image_data = v.renderer.snapshot()
+# image = Image.fromarray(image_data, mode="RGBA")
+# image.save(os.path.expanduser("~/pynaviz/tests/screenshots/test_plot_tsd.png"))
+
+
+# ep = nap.IntervalSet(
+#     [0, 0.2, 0.4, 0.6, 0.8],
+#     [0.19, 0.39, 0.59, 0.79, 0.99],
+#     metadata={
+#         "label": ["a", "b", "c", "d", "e"],
+#         "choice": [1, 0, 1, 1, 0],
+#         "reward": [0, 0, 1, 0, 1],
+#     },
+# )
+# v = viz.PlotIntervalSet(ep)
+# v.animate()
+# image_data = v.renderer.snapshot()
+# image = Image.fromarray(image_data, mode="RGBA")
+# image.save(
+#     os.path.expanduser("~/GitHub/pynaviz/tests/screenshots/test_plot_intervalset.png")
+# >>>>>>> dev    
+    
 
 def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_VIDEO_DIR, frames=None):
     if frames is None:
@@ -65,6 +89,7 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
 @click.option(
     "--path", type=click.Path(), default=str(DEFAULT_SCREENSHOT_PATH),
     help="Output directory for snapshots.",
+
 )
 @click.option(
     "--frames",
