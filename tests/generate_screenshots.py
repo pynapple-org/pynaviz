@@ -17,7 +17,7 @@ import numpy as np
 import pynapple as nap
 from PIL import Image
 
-import pynaviz as viz
+import uviz as viz
 
 # Define base paths
 BASE_DIR = pathlib.Path(__file__).parent.resolve()

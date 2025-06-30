@@ -6,8 +6,8 @@ import pytest
 from pygfx import cameras, controllers, renderers
 from wgpu.gui.offscreen import WgpuCanvas
 
-from pynaviz.controller import SpanController
-from pynaviz.synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
+from uviz.controller import SpanController
+from uviz.synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
 
 def test_controller_state_dict():

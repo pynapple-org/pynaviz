@@ -10,7 +10,7 @@ import pynapple as nap
 import pytest
 from PIL import Image
 
-import pynaviz as viz
+import uviz as viz
 
 
 @pytest.fixture

@@ -1,7 +1,7 @@
 import numpy as np
 import pynapple as nap
 from PyQt6.QtWidgets import QApplication
-import pynaviz as viz
+import uviz as viz
 
 from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton
 

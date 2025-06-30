@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "pynaviz"
+name = "uviz"
 version = "0.0.1"
-authors = [{name = "pynaviz authors"}]
+authors = [{name = "uviz authors"}]
 description = "Life made easier."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -32,7 +32,7 @@ dependencies = [
 # Configure package discovery for setuptools
 [tool.setuptools.packages.find]
 where = ["src"]             # The directory where package modules are located
-include = ["pynaviz"]       # The specific package(s) to include in the distribution
+include = ["uviz"]       # The specific package(s) to include in the distribution
 
 
 # Define optional dependencies for the project
@@ -74,7 +74,7 @@ docs = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=pynaviz"
+addopts = "--cov=uviz"
 
 
 [tool.ruff]
