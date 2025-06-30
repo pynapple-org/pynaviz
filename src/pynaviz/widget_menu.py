@@ -135,14 +135,20 @@ class DropdownDialog(QDialog):
         scroll.setWidgetResizable(True)
         scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         scroll_content = QWidget()
-        scroll_content.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        scroll_content.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum
+        )
 
         grid_layout = QGridLayout()
         inner_layout = QVBoxLayout()
         inner_layout.addLayout(grid_layout)
 
-        spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        h_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        spacer = QSpacerItem(
+            0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+        )
+        h_spacer = QSpacerItem(
+            0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
         inner_layout.addItem(spacer)
 
         outer_layout = QHBoxLayout()
@@ -283,10 +289,14 @@ class MenuWidget(QWidget):
         layout.setSpacing(0)
 
         icon_size = 18
-        self.select_button = self._make_button(self.show_select_menu, "SP_DialogApplyButton", icon_size)
+        self.select_button = self._make_button(
+            self.show_select_menu, "SP_DialogApplyButton", icon_size
+        )
         layout.addWidget(self.select_button)
 
-        self.action_button = self._make_button(self.show_action_menu, "SP_FileDialogDetailedView", icon_size)
+        self.action_button = self._make_button(
+            self.show_action_menu, "SP_FileDialogDetailedView", icon_size
+        )
         layout.addWidget(self.action_button)
 
         layout.addStretch()
@@ -303,7 +313,9 @@ class MenuWidget(QWidget):
             materials[index].opacity = val
         self.plot.canvas.request_draw(self.plot.animate)
 
-    def _make_button(self, menu_to_show: Callable, icon_name: str, icon_size: int = 20) -> QPushButton:
+    def _make_button(
+        self, menu_to_show: Callable, icon_name: str, icon_size: int = 20
+    ) -> QPushButton:
         """Helper to create a styled button with icon and action."""
         button = QPushButton()
         button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -318,14 +330,12 @@ class MenuWidget(QWidget):
     def _action_menu(self) -> None:
         """Creates the action menu with plot operation entries."""
         self.action_menu = QMenu()
-        for name, func_name in zip(["Color by", "Group by", "Sort by"], ["color_by", "group_by", "sort_by"]):
+        for name, func_name in zip(
+            ["Color by", "Group by", "Sort by"], ["color_by", "group_by", "sort_by"]
+        ):
             action = self.action_menu.addAction(name)
             action.setObjectName(func_name)
             action.triggered.connect(self._popup_menu)
-        self.action_menu.addSeparator()
-        xvy_action = self.action_menu.addAction("Plot x vs y")
-        xvy_action.setObjectName("x_vs_y")
-        xvy_action.triggered.connect(self._popup_menu)
 
     def show_action_menu(self) -> None:
         """Displays the action menu below the button."""

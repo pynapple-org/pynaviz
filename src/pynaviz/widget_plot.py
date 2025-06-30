@@ -5,7 +5,14 @@ Create a unique Qt widget for each class.
 
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
-from .base_plot import PlotTs, PlotTsd, PlotTsdFrame, PlotTsdTensor, PlotTsGroup
+from .base_plot import (
+    PlotIntervalSet,
+    PlotTs,
+    PlotTsd,
+    PlotTsdFrame,
+    PlotTsdTensor,
+    PlotTsGroup,
+)
 from .widget_menu import MenuWidget
 
 
@@ -76,6 +83,12 @@ class TsdFrameWidget(QWidget):
         # Top level menu container
         self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
 
+        # Add custom menu items
+        self.button_container.action_menu.addSeparator()
+        xvy_action = self.button_container.action_menu.addAction("Plot x vs y")
+        xvy_action.setObjectName("x_vs_y")
+        xvy_action.triggered.connect(self.button_container._popup_menu)
+
         # Add overlay and canvas to layout
         layout.addWidget(self.button_container)
         layout.addWidget(self.plot.canvas)
@@ -111,3 +124,27 @@ class TsWidget(QWidget):
         super().__init__(None)
         parent = self if set_parent else None
         self.plot = PlotTs(data, index=index, parent=parent)
+
+
+class IntervalSetWidget(QWidget):
+
+    def __init__(self, data, index=None, size=(640, 480), set_parent=False):
+        super().__init__(None)
+        self.resize(*size)
+
+        # The main layout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove default margins
+        layout.setSpacing(0)
+        self.setLayout(layout)
+
+        # Canvas
+        parent = self if set_parent else None
+        self.plot = PlotIntervalSet(data, index=index, parent=parent)
+
+        # Top level menu container
+        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
+
+        # Add overlay and canvas to layout
+        layout.addWidget(self.button_container)
+        layout.addWidget(self.plot.canvas)

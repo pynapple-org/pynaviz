@@ -3,6 +3,7 @@ This script is for generating screenshots than then will be compared to during t
 Naming of the file should equal the name of the test it corresponds to.
 
 """
+
 import os
 
 import numpy as np
@@ -20,11 +21,26 @@ tsd1 = nap.Tsd(t=np.arange(1000), d=np.sin(np.arange(1000) * 0.1))
 # tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
 
+# v = viz.PlotTsd(tsd1)
+# v.animate()
+# image_data = v.renderer.snapshot()
+# image = Image.fromarray(image_data, mode="RGBA")
+# image.save(os.path.expanduser("~/pynaviz/tests/screenshots/test_plot_tsd.png"))
 
-v = viz.PlotTsd(tsd1)
+
+ep = nap.IntervalSet(
+    [0, 0.2, 0.4, 0.6, 0.8],
+    [0.19, 0.39, 0.59, 0.79, 0.99],
+    metadata={
+        "label": ["a", "b", "c", "d", "e"],
+        "choice": [1, 0, 1, 1, 0],
+        "reward": [0, 0, 1, 0, 1],
+    },
+)
+v = viz.PlotIntervalSet(ep)
 v.animate()
 image_data = v.renderer.snapshot()
 image = Image.fromarray(image_data, mode="RGBA")
 image.save(
-    os.path.expanduser("~/pynaviz/tests/screenshots/test_plot_tsd.png")
+    os.path.expanduser("~/GitHub/pynaviz/tests/screenshots/test_plot_intervalset.png")
 )
