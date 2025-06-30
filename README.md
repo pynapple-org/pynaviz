@@ -4,4 +4,5 @@ Universal Visualization of Time Series
 
 #
 
-![image](in_construction.png)
+
+<img src="in_construction.png" alt="image" width="100"/>
