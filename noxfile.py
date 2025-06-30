@@ -14,4 +14,4 @@ def linters(session):
 @nox.session(name="tests")
 def tests(session):
     """Run the test suite."""
-    session.run("pytest", "--cov=src/pynaviz", "tests/", env={"WGPU_FORCE_OFFSCREEN": "1"})  # , "--pdb", "--pdbcls=IPython.terminal.debugger:Pdb")
+    session.run("pytest", "--cov=src/uviz", "tests/", env={"WGPU_FORCE_OFFSCREEN": "1"})  # , "--pdb", "--pdbcls=IPython.terminal.debugger:Pdb")

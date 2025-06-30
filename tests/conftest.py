@@ -1,8 +1,8 @@
 """
-Testing configurations for the pynaviz library.
+Testing configurations for the uviz library.
 
 This module contains test fixtures required to set up and verify the functionality of modules
-in the pynaviz library.
+in the uviz library.
 """
 
 import numpy as np

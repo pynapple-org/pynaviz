@@ -110,7 +110,7 @@ class ListDock(QDockWidget):
 
         index = self._n_dock_open
 
-        # Getting the pynaviz widget class
+        # Getting the uviz widget class
         if isinstance(var, nap.TsGroup):
             widget = TsGroupWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.Tsd):

@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath('sphinxext'))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'pynaviz'
+project = 'uviz'
 copyright = f'2025-{time.strftime("%Y")}'
 author = ''
 # from importlib.metadata import version

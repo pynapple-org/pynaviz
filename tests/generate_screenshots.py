@@ -25,7 +25,7 @@ tsd1 = nap.Tsd(t=np.arange(1000), d=np.sin(np.arange(1000) * 0.1))
 # v.animate()
 # image_data = v.renderer.snapshot()
 # image = Image.fromarray(image_data, mode="RGBA")
-# image.save(os.path.expanduser("~/pynaviz/tests/screenshots/test_plot_tsd.png"))
+# image.save(os.path.expanduser("~/uviz/tests/screenshots/test_plot_tsd.png"))
 
 
 ep = nap.IntervalSet(
@@ -42,5 +42,5 @@ v.animate()
 image_data = v.renderer.snapshot()
 image = Image.fromarray(image_data, mode="RGBA")
 image.save(
-    os.path.expanduser("~/GitHub/pynaviz/tests/screenshots/test_plot_intervalset.png")
+    os.path.expanduser("~/GitHub/uviz/tests/screenshots/test_plot_intervalset.png")
 )
