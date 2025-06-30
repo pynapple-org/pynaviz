@@ -97,6 +97,7 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
     type=str,
     default=None,
     help="Comma-separated list of frame indices to render (e.g. 0,1,2,99). Only applies to video.",
+)
 @click.option(
     "--video-dir",
     type=click.Path(),
