@@ -9,11 +9,11 @@ def linters(session):
     session.run("ruff", "check", "src", "--ignore", "D")
 
 
-@nox.session(name="tests")
+@nox.session(name="tests", reuse_venv=True)
 def tests(session):
     """Run the test suite."""
     # session.log("install")
-    session.install(".[dev]")
+    session.install("-e", ".[dev]")
     tests_path = pathlib.Path(__file__).parent.resolve() / "tests"
     video_dir = tests_path / "test_video"
     video_dir.mkdir(exist_ok=True)
