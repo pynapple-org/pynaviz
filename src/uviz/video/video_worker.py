@@ -1,24 +1,11 @@
 import queue
-from enum import Enum
 from multiprocessing import Event, Lock, Queue, shared_memory
 
 import numpy as np
 
-from .video_handling import VideoHandler
+from uviz.video.video_handling import VideoHandler
 
-
-class RenderTriggerSource(Enum):
-    """Enumeration of the renderer draw triggering source."""
-
-    UNKNOWN = 0
-    INITIALIZATION = 1
-    ZOOM_TO_POINT = 2
-    SYNC_EVENT_RECEIVED = 3
-    LOCAL_KEY = 4
-    SET_FRAME = 5
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}.{self.name}"
+from ..utils import RenderTriggerSource
 
 
 def video_worker_process(

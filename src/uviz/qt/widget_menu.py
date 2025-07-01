@@ -33,10 +33,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from uviz.qt_item_models import ChannelListModel, DynamicSelectionListView
-
-from .drop_down_dict_builder import get_popup_kwargs
-from .utils import get_plot_attribute
+from uviz.qt.drop_down_dict_builder import get_popup_kwargs
+from uviz.qt.qt_item_models import ChannelListModel, DynamicSelectionListView
+from uviz.utils import get_plot_attribute
 
 WIDGET_PARAMS = {
     QComboBox: {

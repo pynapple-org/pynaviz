@@ -3,21 +3,10 @@ Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
 
-import abc
-import atexit
-import pathlib
-import queue
-import signal
-import sys
 import threading
 import warnings
-import weakref
-from abc import ABC, abstractmethod
-from multiprocessing import Event, Process, Queue, set_start_method, shared_memory
-from multiprocessing import Lock as MultiProcessLock
 from typing import Any, Optional, Union
 
-import av
 import matplotlib.pyplot as plt
 import numpy as np
 import pygfx as gfx
@@ -26,7 +15,6 @@ import pynapple as nap
 # from line_profiler import profile
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
-from numpy.typing import NDArray
 from wgpu.gui.auto import (
     WgpuCanvas,
     run,
@@ -39,34 +27,13 @@ from .plot_manager import _PlotManager
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
-from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
-from .video_handling import VideoHandler
-from .video_worker import RenderTriggerSource, video_worker_process
-
-# WeakSet to avoid keeping dead references
-_active_plot_videos = weakref.WeakSet()
-
-
-def _cleanup_all_plot_videos():
-    for video in list(_active_plot_videos):
-        try:
-            video.close()
-        except Exception as e:
-            print(f"[WARN] Error during close: {e}")
-    _active_plot_videos.clear()
-
-
-# Register cleanup at process exit
-atexit.register(_cleanup_all_plot_videos)
-signal.signal(signal.SIGINT, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
-signal.signal(signal.SIGTERM, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
-
-if sys.platform != "win32":
-    try:
-        set_start_method("fork", force=True)
-    except RuntimeError:
-        pass
-
+from .utils import (
+    GRADED_COLOR_LIST,
+    RenderTriggerSource,
+    get_plot_attribute,
+    get_plot_min_max,
+    trim_kwargs,
+)
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -997,7 +964,6 @@ class PlotTsGroup(_BasePlot):
             self._update("group_by")
 
 
-
 class PlotTs(_BasePlot):
     def __init__(self, data: nap.Ts, index=None, parent=None):
         super().__init__(parent=parent)
@@ -1016,339 +982,6 @@ class PlotTs(_BasePlot):
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
         pass
-
-
-class PlotBaseVideoTensor(_BasePlot, ABC):
-    def __init__(
-        self, data: Any, index: Optional[int] = None, parent: Optional[Any] = None
-    ) -> None:
-        super().__init__(data, parent=parent, maintain_aspect=True)
-
-        # Image texture (subclass provides the texture data)
-        texture_data = self._get_initial_texture_data()
-        self.texture = gfx.Texture(texture_data.astype("float32"), dim=2)
-        self.image = gfx.Image(
-            gfx.Geometry(grid=self.texture),
-            gfx.ImageBasicMaterial(clim=(0, 1)),
-        )
-
-        # Time display
-        self.time_text = gfx.Text(
-            text="0.0",
-            font_size=0.5,
-            anchor="bottom-left",
-            material=gfx.TextMaterial(
-                color="#B4F8C8", outline_color="#000", outline_thickness=0.15
-            ),
-        )
-        self.time_text.geometry.anchor = "bottom-left"
-
-        self.scene.add(self.image, self.time_text)
-        self.camera.show_object(self.scene)
-
-        self.controller = GetController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            data=self._data,
-            buffer=self.texture,
-            callback=self._update_buffer,
-        )
-
-        self.canvas.request_draw(
-            draw_function=lambda: self.renderer.render(self.scene, self.camera)
-        )
-
-    @abstractmethod
-    def _get_initial_texture_data(self) -> np.ndarray:
-        """Subclasses must return a 2D ndarray to initialize the texture."""
-        pass
-
-    def _set_time_text(self, frame_index: int):
-        if self.time_text:
-            self.time_text.set_text(str(self.data.t[frame_index]))
-
-    def set_frame(self, target_time: float):
-        """
-        Display the video frame closest to the given time.
-
-        Updates the current video display to show the frame corresponding
-        to the specified time. This can be used to navigate to a specific
-        moment in the video.
-
-        Parameters
-        ----------
-        target_time : float
-            The time (in seconds) to display.
-        """
-        self.controller.set_frame(target_time)
-
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
-        pass
-
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        pass
-
-    @abc.abstractmethod
-    def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
-        pass
-
-
-class PlotTsdTensor(PlotBaseVideoTensor):
-    def __init__(self, data: nap.TsdTensor, index=None, parent=None):
-        self._data = data
-        super().__init__(data, index=index, parent=parent)
-
-    def _get_initial_texture_data(self):
-        return self._data.values[0]
-
-    def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
-        # this update is fast, do not need async rendering as in PlotVideo
-        # event_type is not used here
-        _update_buffer(self, frame_index)
-        self.controller.renderer_request_draw()
-
-
-class PlotVideo(PlotBaseVideoTensor):
-    _debug = False
-
-    def __init__(
-        self,
-        video_path: str | pathlib.Path,
-        t: Optional[NDArray] = None,
-        stream_index: int = 0,
-        index=None,
-        parent=None,
-    ):
-        self._closed = False
-        data = VideoHandler(video_path, time=t, stream_index=stream_index)
-        self._data = data
-        super().__init__(data, index=index, parent=parent)
-
-        # Shared memory and comms
-        self.shape = self.texture.data.shape
-        self.shm_frame = shared_memory.SharedMemory(
-            create=True, size=np.prod(self.shape) * np.float32().nbytes
-        )
-        self.shm_index = shared_memory.SharedMemory(create=True, size=np.float32().nbytes)
-        self.shared_frame = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm_frame.buf)
-        self.shared_index = np.ndarray(shape=(1,), dtype=np.float32, buffer=self.shm_index.buf)
-        self.request_queue = Queue()
-        self.response_queue = Queue()
-        self.frame_ready = Event()
-        self.worker_stop_event = Event()
-
-        # Connect movement event handlers for video
-        self.renderer.add_event_handler(self._move_fast, "key_down")
-
-        # worker process reading frames
-        self.worker_lock = MultiProcessLock()
-        self._worker = Process(
-            target=video_worker_process,
-            args=(
-                video_path,
-                self.shape,
-                self.shm_frame.name,
-                self.shm_index.name,
-                self.request_queue,
-                self.frame_ready,
-                self.response_queue,
-                self.worker_stop_event,
-                self.worker_lock,
-            ),
-            daemon=True,
-        )
-        self._worker.start()
-
-        # add to registry of active plot video
-        # guarantees close at exit.
-        _active_plot_videos.add(self)
-        self._pending_ui_update_queue = queue.Queue()
-
-        # Start background thread that updates buffers when ready
-        # shut thread event
-        self._stop_threads = threading.Event()
-        self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
-        self._buffer_thread.start()
-
-        # for to async/sync lock
-        self.buffer_lock = threading.Lock()
-
-        # event requesting a re-draw
-        self._needs_redraw = threading.Event()
-
-        # set a pygfx callback for the next draw
-        # when the painter draws next it will trigger this
-        self.canvas.request_draw(self._render_loop)
-        # draw first
-        self._last_jump_index = 0
-
-    def _get_initial_texture_data(self):
-        # TODO: Get the current time from the controller
-        return self._data.get(self._data.time[0])
-
-    @property
-    def data(self):
-        return self._data
-
-    @data.setter
-    def data(self, value):
-        raise ValueError("Cannot set data for ``PlotVideo``. Data must be a fixed video stream.")
-
-    def close(self):
-        if not self._closed:
-            try:
-                self._data.close()
-                # stop update buffer loop
-                self._stop_threads.set()
-                # stop worker thread
-                self.worker_stop_event.set()
-                self._worker.join(timeout=2)
-                # close shared memory
-                self.shm_frame.close()
-                self.shm_frame.unlink()
-                self.shm_index.close()
-                self.shm_index.unlink()
-            except Exception:
-                pass
-            finally:
-                # remove form weakref
-                _active_plot_videos.discard(self)
-                self._closed = True
-
-    def _move_fast(self, event, delta=1):
-        """
-        "ArrowLeft"/"ArrowRight" key moves between keypoint frames.
-        Schedules a move and defers buffer updates to the worker and render loop.
-        """
-        if event.type == "key_down" and event.key in ("ArrowRight", "ArrowLeft"):
-            self.frame_ready.clear()
-            while not self.request_queue.empty():
-                try:
-                    self.request_queue.get_nowait()
-                except queue.Empty:
-                    break
-
-            # Request: (is_absolute, is_backward, event type)
-            self.request_queue.put(
-                (False, event.key == "ArrowLeft", RenderTriggerSource.LOCAL_KEY)
-            )
-
-            # NOTE: don't wait, don't update buffer or UI here — let the thread handle it
-
-            # Save pre-jump index for sync
-            self._last_jump_index = self.controller.frame_index
-
-    def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
-        """Update buffer in response to a sync event."""
-        if event_type != RenderTriggerSource.SET_FRAME:
-            self.frame_ready.clear()
-            while not self.request_queue.empty():
-                try:
-                    self.request_queue.get_nowait()
-                except queue.Empty:
-                    break
-            event_type = event_type or RenderTriggerSource.UNKNOWN
-            self.request_queue.put((frame_index, None, event_type))
-            # Track frame index text display which must happen
-            # after _update_buffer_thread changes the frame
-            # note: the text cannot be set in a thread (since pygfx is not thread
-            # safe for these operations) while the buffer can be written safely.
-            self._last_requested_frame_index = frame_index
-        else:
-            # no rendering loop is running
-            # update buffer in a sync manner
-            frame = self.data[frame_index]
-            if isinstance(frame, av.VideoFrame):
-                frame = frame.to_ndarray(format="rgb24")[::-1] / 255.0
-            with self.buffer_lock:
-                self.texture.data[:] = frame
-                self._set_time_text(frame_index)
-                self.texture.update_full()
-
-    def _update_buffer_thread(self):
-        while not self._stop_threads.is_set():
-            # wait until ready then clear notifying the
-            # worker sub-process
-            if not self.frame_ready.wait(timeout=0.1):
-                continue
-            # update the buffer (new frame will be displayed)
-            with self.buffer_lock, self.worker_lock:
-                self.texture.data[:] = self.shared_frame
-                frame_index = int(self.shared_index[0])
-                self.frame_ready.clear()
-                try:
-                    trigger_source = self.response_queue.get(timeout=0.05)
-                    self._pending_ui_update_queue.put((frame_index, trigger_source))
-                except queue.Empty:
-                    continue
-            # queue the update of the text
-            self._needs_redraw.set()  # Ask the main thread to draw
-
-    def __del__(self):
-        self.close()
-
-    def _render_loop(self):
-        """
-        Main render loop scheduled via canvas.request_draw().
-
-        - Polls pending frame updates with trigger metadata.
-        - Updates time text and texture in a GUI-safe way.
-        - Triggers renderer draw if required.
-        - Optionally triggers synchronization if the update was initiated locally.
-        """
-        update = False
-        try:
-            # try to get the text label for the frame
-            # and update texture if found
-            frame_index, trigger_source = self._pending_ui_update_queue.get_nowait()
-
-            # print(trigger_source, self.controller.controller_id)
-            with self.buffer_lock:
-                self._set_time_text(frame_index)
-                self.texture.update_full()
-            self.controller.frame_index = frame_index
-            self.controller.renderer_request_draw()
-
-            # Sending the sync event
-            if trigger_source == RenderTriggerSource.LOCAL_KEY and hasattr(
-                self, "_last_jump_index"
-            ):
-                current_time = self._data.t[frame_index]
-                if self._debug:
-                    print("keypress", current_time, frame_index)
-                del self._last_jump_index  # prevent repeat sync
-                self.controller._send_sync_event(update_type="pan", current_time=current_time)
-
-            elif trigger_source == RenderTriggerSource.ZOOM_TO_POINT:
-                current_time = self.controller._get_current_time()
-                if self._debug:
-                    print("zoom", current_time, frame_index)
-                self.controller._send_sync_event(update_type="pan", current_time=current_time)
-
-        except queue.Empty:
-            update = True
-
-        # redraw in case text is found
-        if self._needs_redraw.is_set() or update:
-            self.renderer.render(self.scene, self.camera)
-            self._needs_redraw.clear()
-
-        # set the callback for the next draw
-        self.canvas.request_draw(self._render_loop)
-
-
-def _update_buffer(plot_object: PlotTsdTensor | PlotTsdFrame, frame_index: int):
-    if (
-        plot_object.texture.data.shape[0] == 1 and plot_object.texture.data.shape[1] == 3
-    ):  # assume single point
-        plot_object.texture.data[0, 0:2] = plot_object.data.values[frame_index].astype("float32")
-    else:
-        img_array = plot_object.data.values[frame_index]
-        plot_object.texture.data[:] = img_array.astype("float32")
-    plot_object.texture.update_full()
-    plot_object._set_time_text(frame_index)
-    return
 
 
 class PlotIntervalSet(_BasePlot):
@@ -1485,4 +1118,6 @@ class PlotIntervalSet(_BasePlot):
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values)
             self._update("group_by")
+
+
 

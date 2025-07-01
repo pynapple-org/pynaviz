@@ -3,8 +3,10 @@ from .base_plot import (
     PlotTs,
     PlotTsd,
     PlotTsdFrame,
-    PlotTsdTensor,
     PlotTsGroup,
+)
+from .video import (
+    PlotTsdTensor,
     PlotVideo,
 )
 
@@ -19,8 +21,7 @@ __all__ = [
 ]
 
 try:
-    from .gui import scope
-    from .widget_plot import (
+    from .qt import (
         IntervalSetWidget,
         TsdFrameWidget,
         TsdTensorWidget,
@@ -28,6 +29,7 @@ try:
         TsGroupWidget,
         TsWidget,
         VideoWidget,
+        scope,
     )
 
     __all__ += [
@@ -41,7 +43,8 @@ try:
         "VideoWidget"
     ]
 
-except ImportError:
-    pass  # Check if cleaner way of doing this
+except ImportError as e:
+    print(f"An error occurred when importing: {e}")
+
 
 __version__ = "0.0.1"

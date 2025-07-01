@@ -3,17 +3,14 @@ The controller class.
 """
 
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 import pygfx
-import pynapple as nap
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 
 from .events import SyncEvent
-from .utils import _get_event_handle
-from .video_handling import VideoHandler
-from .video_worker import RenderTriggerSource
+from .utils import RenderTriggerSource, _get_event_handle
 
 
 class CustomController(ABC, PanZoomController):
@@ -265,7 +262,7 @@ class GetController(CustomController):
         auto_update: bool = True,
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
-        data: Optional[Union[nap.TsdFrame, nap.TsdTensor, VideoHandler]] = None,
+        data: Optional[Any] = None,
         buffer: pygfx.Buffer = None,
         callback: Optional[Callable] = None,
     ):
