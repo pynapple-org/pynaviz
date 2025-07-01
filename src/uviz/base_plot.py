@@ -27,7 +27,13 @@ from .plot_manager import _PlotManager
 from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
-from .utils import GRADED_COLOR_LIST, get_plot_attribute, get_plot_min_max, trim_kwargs
+from .utils import (
+    GRADED_COLOR_LIST,
+    RenderTriggerSource,
+    get_plot_attribute,
+    get_plot_min_max,
+    trim_kwargs,
+)
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -296,6 +302,9 @@ class _BasePlot(IntervalSetInterface):
     def group_by(self, metadata_name: str):
         pass
 
+    def close(self):
+        self.color_mapping_thread.shutdown()
+
 
 class PlotTsd(_BasePlot):
     """
@@ -457,6 +466,7 @@ class PlotTsdFrame(_BasePlot):
                 data=None,
                 buffer=None,
                 enabled=False,
+                callback=self._update_buffer,
             ),
         }
 
@@ -598,7 +608,6 @@ class PlotTsdFrame(_BasePlot):
         if len(values):
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
             self._manager.sort_by(values, mode)
-
             self._update("sort_by")
 
     def group_by(self, metadata_name: str, **kwargs):
@@ -621,7 +630,6 @@ class PlotTsdFrame(_BasePlot):
         if len(values):
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values)
-
             self._update("group_by")
 
     def color_by(
@@ -787,6 +795,16 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
+    def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
+        self.time_point.geometry.positions.data[0,0:2] = self.data.values[frame_index].astype("float32")
+        self.time_point.geometry.positions.update_full()
+        self.canvas.request_draw(self.animate)
+
+        # plot_object.texture.update_full()
+        # plot_object._set_time_text(frame_index)
+        # _update_buffer(self, frame_index=frame_index)
+        # self.controller.renderer_request_draw()
+
 
 class PlotTsGroup(_BasePlot):
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
@@ -819,7 +837,7 @@ class PlotTsGroup(_BasePlot):
             self.graphic[n] = gfx.Points(
                 gfx.Geometry(positions=positions),
                 gfx.PointsMarkerMaterial(
-                    size=5,
+                    size=10,
                     color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)],
                     opacity=1,
                     marker="custom",
@@ -944,54 +962,6 @@ class PlotTsGroup(_BasePlot):
             self._manager.group_by(values)
 
             self._update("group_by")
-
-
-class PlotTsdTensor(_BasePlot):
-    def __init__(self, data: nap.TsdTensor, index=None, parent=None):
-        super().__init__(data, parent=parent, maintain_aspect=True)
-
-        # Image
-        texture = gfx.Texture(self.data.values[0].astype("float32"), dim=2)
-        self.image = gfx.Image(
-            gfx.Geometry(grid=texture),
-            gfx.ImageBasicMaterial(clim=(0, 1)),
-        )
-        # Text of the current time
-        self.time_text = gfx.Text(
-            text="0.0",
-            font_size=0.5,
-            anchor="bottom-left",
-            material=gfx.TextMaterial(
-                color="#B4F8C8", outline_color="#000", outline_thickness=0.15
-            ),
-        )
-
-        self.time_text.geometry.anchor = "bottom-left"
-
-        self.scene.add(self.image, self.time_text)
-        self.camera.show_object(self.scene)  # , view_dir=(0, 0, -1))
-
-        # # Pynaviz specific controller
-        self.controller = GetController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            data=data,
-            buffer=texture,
-            time_text=self.time_text,
-        )
-
-        # In the draw event, the draw function is called
-        # This assign the function draw_frame of WgpuCanvasBase
-        self.canvas.request_draw(
-            draw_function=lambda: self.renderer.render(self.scene, self.camera)
-        )
-
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
-        pass
-
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        pass
 
 
 class PlotTs(_BasePlot):
@@ -1148,3 +1118,6 @@ class PlotIntervalSet(_BasePlot):
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values)
             self._update("group_by")
+
+
+

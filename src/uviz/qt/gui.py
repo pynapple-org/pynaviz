@@ -14,8 +14,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .controller_group import ControllerGroup
-from .widget_plot import (
+from uviz.controller_group import ControllerGroup
+from uviz.qt.widget_plot import (
     TsdFrameWidget,
     TsdTensorWidget,
     TsdWidget,

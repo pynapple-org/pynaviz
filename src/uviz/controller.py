@@ -3,15 +3,14 @@ The controller class.
 """
 
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Optional, Union
 
+import numpy as np
 import pygfx
-import pygfx as gfx
-import pynapple as nap
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 
 from .events import SyncEvent
-from .utils import _get_event_handle
+from .utils import RenderTriggerSource, _get_event_handle
 
 
 class CustomController(ABC, PanZoomController):
@@ -41,17 +40,13 @@ class CustomController(ABC, PanZoomController):
                 f"If provided, `controller_id` must be of integer type. Type {type(controller_id)} provided instead!"
             )
         self._controller_id = controller_id
-        self.camera = (
-            camera  # Weirdly pygfx controller doesn't have it as direct attributes
-        )
+        self.camera = camera  # Weirdly pygfx controller doesn't have it as direct attributes
         self.renderer = renderer  # Nor renderer
         self.renderer_handle_event = None
         self.renderer_request_draw = lambda: True
 
         if renderer:
-            self.renderer_handle_event = _get_event_handle(
-                renderer
-            )  # renderer.handle_event
+            self.renderer_handle_event = _get_event_handle(renderer)  # renderer.handle_event
             self.renderer_request_draw = lambda: self._request_draw(
                 renderer
             )  # renderer.request_draw
@@ -67,9 +62,7 @@ class CustomController(ABC, PanZoomController):
                     )
             self._dict_sync_funcs = dict_sync_funcs
         else:
-            raise TypeError(
-                "When provided, `dict_sync_funcs` must be a dictionary of callables."
-            )
+            raise TypeError("When provided, `dict_sync_funcs` must be a dictionary of callables.")
 
     @property
     def controller_id(self):
@@ -202,10 +195,10 @@ class SpanController(CustomController):
     def sync(self, event):
         """Set a new camera state using the sync rule provided."""
         # Need to convert to camera movement
-        if "delta_t" in event.kwargs:
+        if "current_time" in event.kwargs:
             camera_state = self._get_camera_state()
             camera_pos = camera_state["position"].copy()
-            camera_pos[0] += event.kwargs["delta_t"]
+            camera_pos[0] = event.kwargs["current_time"]
             camera_state["position"] = camera_pos
             event.kwargs["cam_state"] = camera_state
 
@@ -269,9 +262,9 @@ class GetController(CustomController):
         auto_update: bool = True,
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
-        data: Optional[Union[nap.TsdFrame, nap.TsdTensor]] = None,
+        data: Optional[Any] = None,
         buffer: pygfx.Buffer = None,
-        time_text: gfx.Text = None,
+        callback: Optional[Callable] = None,
     ):
         super().__init__(
             camera=camera,
@@ -282,10 +275,9 @@ class GetController(CustomController):
         )
         self.data = data
         if self.data:
-            self.n_frames = data.shape[0]
             self.frame_index = 0
         self.buffer = buffer
-        self.time_text = time_text
+        self.callback = callback
 
     @property
     def frame_index(self):
@@ -293,60 +285,94 @@ class GetController(CustomController):
 
     @frame_index.setter
     def frame_index(self, value):
-        self._frame_index = max(min(value, self.n_frames), 0)
+        if self.data:
+            n_frames = self.data.shape[0]
+            self._frame_index = max(min(value, n_frames), 0)
+        else:
+            self._frame_index = 0
+
+    def _get_current_time(self):
+        time_array = getattr(self.data.index, "values", self.data.index)
+        return time_array[self.frame_index]
+
+    def _update_buffer(self, event_type: Optional[RenderTriggerSource] = None):
+        self.callback(self.frame_index, event_type)
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         """Should convert the jump of time to camera position
         before emitting the sync event.
         Does not propagate to the original PanZoomController
         """
-        current_t = self.data.index.values[self.frame_index]
         if delta > 0:
             self.frame_index += 1
         else:
             self.frame_index -= 1
-        delta_t = self.data.index.values[self.frame_index] - current_t
 
-        if (
-            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
-        ):  # assume single point
-            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
-                "float32"
-            )
-        else:
-            self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
-        self.buffer.update_full()
+        self.frame_index = min(max(self.frame_index, 0), self.data.shape[0] - 1)
 
-        if self.time_text:
-            self.time_text.set_text(str(self.data.t[self.frame_index]))
+        self._update_buffer(event_type=RenderTriggerSource.ZOOM_TO_POINT)
 
-        self.renderer_request_draw()
+        # hack for finding out if data is pynapple
+        # TODO fix later
+        if hasattr(self.data.index, "values"):
+            # Sending the sync event (no concurrent logic)
+            current_t = self._get_current_time()
+            self._send_sync_event(update_type="pan", current_time=current_t)
 
-        # Sending the sync event
-        self._send_sync_event(update_type="pan", delta_t=delta_t)
+    def set_frame(self, target_time: float):
+        """
+        Set the frame to target time.
+
+        Parameters
+        ----------
+        target_time:
+            A time point.
+        """
+        time_array = getattr(self.data.index, "values", self.data.index)
+        idx_before = np.searchsorted(time_array, target_time, side="right") - 1
+        idx_before = np.clip(idx_before, 0, len(time_array) - 1)
+        idx_after = min(idx_before + 1, len(self.data.time) - 1)
+        frame_index = (
+            idx_before
+            if (time_array[idx_after] - target_time) > (target_time - time_array[idx_before])
+            else idx_after
+        )
+        current_t = time_array[frame_index]
+
+        # update frame index
+        self.frame_index = frame_index
+
+        # update buffer and sync
+        self._update_buffer(event_type=RenderTriggerSource.SET_FRAME)
+        self._send_sync_event(update_type="pan", current_time=current_t)
 
     def sync(self, event):
         """Get a new data point and update the texture"""
         if "cam_state" in event.kwargs:
             new_t = event.kwargs["cam_state"]["position"][0]
         else:
-            delta_t = event.kwargs["delta_t"]
-            new_t = self.data.t[self.frame_index] + delta_t
+            current_time = event.kwargs["current_time"]
+            index = np.searchsorted(self.data.index, current_time, side="right") - 1
+            new_t = self.data.t[index]
 
         self.frame_index = self.data.get_slice(new_t).start
+        self._update_buffer(
+            RenderTriggerSource.SYNC_EVENT_RECEIVED
+        )  # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
 
-        if (
-            self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
-        ):  # assume single point
-            self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
-                "float32"
-            )
-        else:
-            self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+#         if (
+#             self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
+#         ):  # assume single point
+#             self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
+#                 "float32"
+#             )
+#         else:
+#             self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
 
-        self.buffer.update_full()
+#         self.buffer.update_full()
 
-        if self.time_text:
-            self.time_text.set_text(str(self.data.t[self.frame_index]))
+#         if self.time_text:
+#             self.time_text.set_text(str(self.data.t[self.frame_index]))
 
-        self.renderer_request_draw()
+#         self.renderer_request_draw()
+

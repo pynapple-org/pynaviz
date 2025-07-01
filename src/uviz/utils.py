@@ -6,6 +6,8 @@ from pygfx import Renderer, Viewport
 if TYPE_CHECKING:
     from .base_plot import _BasePlot
 
+from enum import Enum
+
 from pylinalg import vec_transform, vec_unproject
 
 GRADED_COLOR_LIST = [
@@ -29,6 +31,20 @@ GRADED_COLOR_LIST = [
     "deeppink",
     "magenta",
 ]
+
+
+class RenderTriggerSource(Enum):
+    """Enumeration of the renderer draw triggering source."""
+
+    UNKNOWN = 0
+    INITIALIZATION = 1
+    ZOOM_TO_POINT = 2
+    SYNC_EVENT_RECEIVED = 3
+    LOCAL_KEY = 4
+    SET_FRAME = 5
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}.{self.name}"
 
 
 def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
