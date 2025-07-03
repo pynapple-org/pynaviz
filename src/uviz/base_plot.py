@@ -577,6 +577,10 @@ class PlotTsdFrame(_BasePlot):
         if self._manager._sorted ^ self._manager._grouped:
             self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
 
+        # Specific to PloTsdFrame, the first row should be at 1.
+        self._manager.offset = self._manager.offset + 1 - self._manager.offset.min()
+
+        # Update the buffer
         self._flush()
 
         # Update camera to fit the full y range

@@ -11,54 +11,53 @@ import pytest
 
 from uviz.events import SyncEvent
 
+# pytest.fixture can't be called directly
+# to generate screenshots
+
+def tsd():
+    return nap.Tsd(t=np.arange(0, 10, 0.1),
+                   d=np.sin(np.arange(0, 10, 0.1))
+                   )
+
+def tsdframe():
+    t = np.arange(0, 10, 0.1)
+    offsets = np.linspace(0, 2 * np.pi, 5, endpoint=False)
+    d = np.cos(t[None, :] + offsets[:, None])
+    return nap.TsdFrame(
+        t=t,
+        d=d.T,
+        metadata = {
+            "group":[0, 0, 1, 0, 1],
+            "channel":[1, 3, 0, 2, 4],
+            "random":np.random.randn(5)
+        }
+    )
+
+def intervalset():
+    return nap.IntervalSet(
+        [0, 0.2, 0.4, 0.6, 0.8],
+        [0.19, 0.39, 0.59, 0.79, 0.99],
+        metadata={
+            "label": ["a", "b", "c", "d", "e"],
+            "choice": [1, 0, 1, 1, 0],
+            "reward": [0, 0, 1, 0, 1],
+        },
+    )
+
+
+
 
 @pytest.fixture
-def sine():
-    """Generate single line data that can be used for testing visual creation."""
-    xs = np.linspace(0, 100, 1_000)
-
-    # sine data
-    ys = np.sin(xs)
-
-    # associated pynapple array
-    sine = nap.Tsd(t=xs, d=ys)
-
-    return sine
-
+def dummy_tsd():
+    return tsd()
 
 @pytest.fixture
-def cosine():
-    """Generate multi-line data that can be used for testing visual creation."""
-    xs = np.linspace(0, 100, 1_000)
-
-    # cosine data
-    ys = np.cos(xs)
-    # create multiple lines
-    cosine = np.array([ys] * 10).T
-
-    # pynapple object
-    cosine = nap.TsdFrame(t=xs, d=cosine)
-
-    return cosine
-
+def dummy_tsdframe():
+    return tsdframe()
 
 @pytest.fixture
-def heatmap_data():
-    """Generate 2D data for testing heatmap visual creation."""
-    pass
-
-
-@pytest.fixture
-def movie_data():
-    """Generate data for testing movie visual creation."""
-    data = np.random.rand(1000, 512, 512)
-
-    xs = np.array([i for i in range(data.shape[0])])
-
-    movie = nap.TsdTensor(t=xs, d=data)
-
-    return movie
-
+def dummy_intervalset():
+    return intervalset()
 
 @pytest.fixture
 def camera_state():

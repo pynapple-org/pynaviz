@@ -1,7 +1,7 @@
 """
 Test for PlotTsd.
 """
-
+import pathlib
 import os
 
 import numpy as np
@@ -11,11 +11,6 @@ import pytest
 from PIL import Image
 
 import uviz as viz
-
-
-@pytest.fixture
-def dummy_tsd():
-    return nap.Tsd(t=np.arange(0, 10, 0.1), d=np.sin(np.arange(0, 10, 0.1)))
 
 
 def test_plot_tsd_init(dummy_tsd):
@@ -30,13 +25,22 @@ def test_plot_tsd(dummy_tsd):
     v.animate()
     image_data = v.renderer.snapshot()
 
-    try:
-        image = Image.open(
-            os.path.expanduser("tests/screenshots/test_plot_tsd.png")
-        ).convert("RGBA")
-    except Exception:
-        image = Image.open(
-            os.path.expanduser("screenshots/test_plot_tsd.png")
-        ).convert("RGBA")
+    image = Image.open(
+        pathlib.Path(__file__).parent / "screenshots/test_plot_tsd.png"
+    ).convert("RGBA")
+
+    np.allclose(np.array(image), image_data)
+
+def test_plot_tsd_actions(dummy_tsd):
+    # For coverage
+    v = viz.PlotTsd(dummy_tsd)
+    v.sort_by("a")
+    v.group_by("b")
+    v.animate()
+    image_data = v.renderer.snapshot()
+
+    image = Image.open(
+        pathlib.Path(__file__).parent / "screenshots/test_plot_tsd.png"
+    ).convert("RGBA")
 
     np.allclose(np.array(image), image_data)

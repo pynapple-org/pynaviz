@@ -56,7 +56,7 @@ def test_video_handler_get_frame_snapshots(
     extension = pathlib.Path(video).suffix[1:]
     path = (
         pathlib.Path(__file__).parent
-        / f"screenshots/numbered_video_{extension}_frame_{expected_frame_id}.png"
+        / f"screenshots/video/numbered_video_{extension}_frame_{expected_frame_id}.png"
     )
     stored_img = iio.imread(path)
     v = PlotVideo(video, t=np.arange(100))

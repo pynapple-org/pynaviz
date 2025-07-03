@@ -16,7 +16,7 @@ import click
 import numpy as np
 import pynapple as nap
 from PIL import Image
-
+import conftest as conf
 import uviz as viz
 
 # Define base paths
@@ -24,37 +24,67 @@ BASE_DIR = pathlib.Path(__file__).parent.resolve()
 DEFAULT_SCREENSHOT_PATH = BASE_DIR / "screenshots"
 DEFAULT_VIDEO_DIR = BASE_DIR / "test_video"
 
-# ---------- Snapshot functions ----------
+# ---------- Snapshot classes ----------
+class SnapshotsTsdFrame:
+    """
+    Generate screenshots for different calls to PlotTsdFrame.
+    """
 
+    def __init__(self, path):
+        self.tsdframe = conf.tsdframe()
+        self.path = path
+
+    def _save_snapshot(self, viewer, name):
+        viewer.animate()
+        image = Image.fromarray(viewer.renderer.snapshot())
+        image.save(self.path / f"{name}.png")
+
+    def run_all(self):
+        actions = {
+            "test_plot_tsdframe": lambda v: None,
+            "test_plot_tsdframe_sort_by": lambda v: v.sort_by("channel"),
+            "test_plot_tsdframe_group_by": lambda v: v.group_by("group"),
+            # "test_plot_tsdframe_color_by": lambda v: v.color_by("group"),
+            "test_plot_tsdframe_all": lambda v: (v.group_by("group"), v.sort_by("channel")),
+            # "test_plot_tsdframe_reset": lambda v: (v.group_by("random"), v.sort_by("channel"), v._reset()),
+            "test_plot_tsdframe_plot_x_vs_y": lambda v: v.plot_x_vs_y(0, 1),
+        }
+
+        for name, action in actions.items():
+            v = viz.PlotTsdFrame(self.tsdframe)
+            action(v)
+            self._save_snapshot(v, name)
+
+
+# ---------- Snapshot functions ----------
 def snapshot_tsd(path=DEFAULT_SCREENSHOT_PATH / "test_plot_tsd.png"):
     """
     Generate and save a snapshot of a Tsd plot.
     """
-    tsd1 = nap.Tsd(t=np.arange(1000), d=np.sin(np.arange(1000) * 0.1))
+    tsd1 = conf.tsd()
     v = viz.PlotTsd(tsd1)
     v.animate()
     image_data = v.renderer.snapshot()
-    image = Image.fromarray(image_data, mode="RGBA")
+    image = Image.fromarray(image_data)#, mode="RGBA")
     image.save(path)
 
 def snapshot_intervalset(path=DEFAULT_SCREENSHOT_PATH / "test_plot_intervalset.png"):
     """
     Generate and save a snapshot of an IntervalSet plot.
     """
-    ep = nap.IntervalSet(
-        [0, 0.2, 0.4, 0.6, 0.8],
-        [0.19, 0.39, 0.59, 0.79, 0.99],
-        metadata={
-            "label": ["a", "b", "c", "d", "e"],
-            "choice": [1, 0, 1, 1, 0],
-            "reward": [0, 0, 1, 0, 1],
-        },
-    )
+    ep = conf.intervalset()
     v = viz.PlotIntervalSet(ep)
     v.animate()
     image_data = v.renderer.snapshot()
-    image = Image.fromarray(image_data, mode="RGBA")
+    image = Image.fromarray(image_data)#, mode="RGBA")
     image.save(path)
+
+def snapshot_tsdframe(path=DEFAULT_SCREENSHOT_PATH):
+    """
+    """
+    print(path)
+    snapshots = SnapshotsTsdFrame(path)
+    snapshots.run_all()
 
 def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_VIDEO_DIR, frames=None):
     """
@@ -64,6 +94,9 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
     if frames is None:
         # Default frames to snapshot
         frames = [0, 1, 2, 3, 4, 10, 12, 14, 16, 18, 25, 50, 75, 95, 96, 97, 98, 99]
+
+    path = pathlib.Path(path) / "video/"
+    path.mkdir(parents=True, exist_ok=True)
 
     for extension in ["mkv", "mp4", "avi"]:
         video_path = pathlib.Path(path_video) / f"numbered_video.{extension}"
@@ -75,7 +108,7 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
             v.set_frame(frame)
             v.renderer.render(v.scene, v.camera)
             image_data = v.renderer.snapshot()
-            image = Image.fromarray(image_data, mode="RGBA")
+            image = Image.fromarray(image_data)#, mode="RGBA")
             image.save(path_frame)
 
 # ---------- CLI entry point using Click ----------
@@ -85,7 +118,7 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
     "--type",
     "types",
     multiple=True,
-    type=click.Choice(["tsd", "video", "all"], case_sensitive=False),
+    type=click.Choice(["tsd", "tsdframe", "video", "all"], case_sensitive=False),
     help="Type(s) of snapshot to generate. Can be used multiple times.",
 )
 @click.option(
@@ -130,6 +163,10 @@ def main(types, path, video_dir, frames):
     if "intervalset" in types or "all" in types:
         click.echo("Generating Intervalset snapshot...")
         snapshot_intervalset(path=path / "test_plot_intervalset.png")
+
+    if "tsdframe" in types or "all" in types:
+        click.echo("Generating TsdFrame snapshot...")
+        snapshot_tsdframe(path=path)
 
     # Generate video frame snapshots
     if "video" in types or "all" in types:
