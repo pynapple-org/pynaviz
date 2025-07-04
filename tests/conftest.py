@@ -1,63 +1,31 @@
 """
 Testing configurations for the uviz library.
 
-This module contains test fixtures required to set up and verify the functionality of modules
-in the uviz library.
+This module contains test fixtures required to set up
+and verify the functionality of modules in the uviz library.
 """
-
-import numpy as np
-import pynapple as nap
 import pytest
+import numpy as np
+from . import config
 
 from uviz.events import SyncEvent
 
-# pytest.fixture can't be called directly
-# to generate screenshots
-
-def tsd():
-    return nap.Tsd(t=np.arange(0, 10, 0.1),
-                   d=np.sin(np.arange(0, 10, 0.1))
-                   )
-
-def tsdframe():
-    t = np.arange(0, 10, 0.1)
-    offsets = np.linspace(0, 2 * np.pi, 5, endpoint=False)
-    d = np.cos(t[None, :] + offsets[:, None])
-    return nap.TsdFrame(
-        t=t,
-        d=d.T,
-        metadata = {
-            "group":[0, 0, 1, 0, 1],
-            "channel":[1, 3, 0, 2, 4],
-            "random":np.random.randn(5)
-        }
-    )
-
-def intervalset():
-    return nap.IntervalSet(
-        [0, 0.2, 0.4, 0.6, 0.8],
-        [0.19, 0.39, 0.59, 0.79, 0.99],
-        metadata={
-            "label": ["a", "b", "c", "d", "e"],
-            "choice": [1, 0, 1, 1, 0],
-            "reward": [0, 0, 1, 0, 1],
-        },
-    )
 
 
 
+# ---------- Fixtures ----------
 
 @pytest.fixture
 def dummy_tsd():
-    return tsd()
+    return config.tsd()
 
 @pytest.fixture
 def dummy_tsdframe():
-    return tsdframe()
+    return config.TsdFrameConfig.tsdframe()
 
 @pytest.fixture
 def dummy_intervalset():
-    return intervalset()
+    return config.intervalset()
 
 @pytest.fixture
 def camera_state():

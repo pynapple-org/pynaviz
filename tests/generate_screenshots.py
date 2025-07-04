@@ -14,9 +14,10 @@ os.environ["WGPU_FORCE_OFFSCREEN"] = "1"
 import pathlib
 import click
 import numpy as np
-import pynapple as nap
 from PIL import Image
-import conftest as conf
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+import tests.config as config
 import uviz as viz
 
 # Define base paths
@@ -24,36 +25,6 @@ BASE_DIR = pathlib.Path(__file__).parent.resolve()
 DEFAULT_SCREENSHOT_PATH = BASE_DIR / "screenshots"
 DEFAULT_VIDEO_DIR = BASE_DIR / "test_video"
 
-# ---------- Snapshot classes ----------
-class SnapshotsTsdFrame:
-    """
-    Generate screenshots for different calls to PlotTsdFrame.
-    """
-
-    def __init__(self, path):
-        self.tsdframe = conf.tsdframe()
-        self.path = path
-
-    def _save_snapshot(self, viewer, name):
-        viewer.animate()
-        image = Image.fromarray(viewer.renderer.snapshot())
-        image.save(self.path / f"{name}.png")
-
-    def run_all(self):
-        actions = {
-            "test_plot_tsdframe": lambda v: None,
-            "test_plot_tsdframe_sort_by": lambda v: v.sort_by("channel"),
-            "test_plot_tsdframe_group_by": lambda v: v.group_by("group"),
-            # "test_plot_tsdframe_color_by": lambda v: v.color_by("group"),
-            "test_plot_tsdframe_all": lambda v: (v.group_by("group"), v.sort_by("channel")),
-            # "test_plot_tsdframe_reset": lambda v: (v.group_by("random"), v.sort_by("channel"), v._reset()),
-            "test_plot_tsdframe_plot_x_vs_y": lambda v: v.plot_x_vs_y(0, 1),
-        }
-
-        for name, action in actions.items():
-            v = viz.PlotTsdFrame(self.tsdframe)
-            action(v)
-            self._save_snapshot(v, name)
 
 
 # ---------- Snapshot functions ----------
@@ -61,7 +32,7 @@ def snapshot_tsd(path=DEFAULT_SCREENSHOT_PATH / "test_plot_tsd.png"):
     """
     Generate and save a snapshot of a Tsd plot.
     """
-    tsd1 = conf.tsd()
+    tsd1 = config.tsd()
     v = viz.PlotTsd(tsd1)
     v.animate()
     image_data = v.renderer.snapshot()
@@ -72,7 +43,7 @@ def snapshot_intervalset(path=DEFAULT_SCREENSHOT_PATH / "test_plot_intervalset.p
     """
     Generate and save a snapshot of an IntervalSet plot.
     """
-    ep = conf.intervalset()
+    ep = config.intervalset()
     v = viz.PlotIntervalSet(ep)
     v.animate()
     image_data = v.renderer.snapshot()
@@ -82,9 +53,8 @@ def snapshot_intervalset(path=DEFAULT_SCREENSHOT_PATH / "test_plot_intervalset.p
 def snapshot_tsdframe(path=DEFAULT_SCREENSHOT_PATH):
     """
     """
-    print(path)
-    snapshots = SnapshotsTsdFrame(path)
-    snapshots.run_all()
+    conf_class = config.TsdFrameConfig(path)
+    conf_class.run_all()
 
 def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_VIDEO_DIR, frames=None):
     """

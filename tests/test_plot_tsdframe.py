@@ -8,7 +8,7 @@ import pygfx as gfx
 import pynapple as nap
 import pytest
 from PIL import Image
-
+from .config import TsdFrameConfig
 import uviz as viz
 
 
@@ -33,20 +33,19 @@ def test_plot_tsdframe(dummy_tsdframe):
     np.allclose(np.array(image), image_data)
 
 @pytest.mark.parametrize(
-    "func, kwargs, extension",
-    [
-        ("group_by", {"metadata_name":"group"}, ""),
-        ("sort_by", {"metadata_name":"channel"}, ""),
-        ("plot_x_vs_y", {"x_label":0,"y_label":1}, ""),
-    ],
+    "func, kwargs",
+    TsdFrameConfig.parameters,
 )
-def test_plot_tsdframe_action(dummy_tsdframe, func, kwargs, extension):
+def test_plot_tsdframe_action(dummy_tsdframe, func, kwargs):
     v = viz.PlotTsdFrame(dummy_tsdframe)
-    getattr(v, func)(**kwargs)
+    if func is not None:
+        getattr(v, func)(**kwargs)
     v.animate()
     image_data = v.renderer.snapshot()
+
+    filename = TsdFrameConfig._build_filename(func, kwargs)
     image = Image.open(
-        pathlib.Path(__file__).parent / f"screenshots/test_plot_tsdframe_{func}{extension}.png"
+        pathlib.Path(__file__).parent / "screenshots" / filename
     ).convert("RGBA")
     np.allclose(np.array(image), image_data)
 
