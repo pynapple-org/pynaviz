@@ -41,33 +41,3 @@ def test_plot_tsdframe_action(dummy_tsdframe, func, kwargs):
     ).convert("RGBA")
     np.allclose(np.array(image), image_data)
 
-@pytest.mark.parametrize(
-    "func, kwargs",
-    TsdFrameConfig.parameters,
-)
-def test_plot_tsdframe_reset(dummy_tsdframe, func, kwargs):
-    v = viz.PlotTsdFrame(dummy_tsdframe)
-    if func is not None:
-        if isinstance(func, (list, tuple)):
-            for n, k in zip(func, kwargs):
-                getattr(v, n)(**k)
-        else:
-            getattr(v, func)(**kwargs)
-
-    keyboard_event = SimpleNamespace(
-        type="key_down",   # or "key_up"
-        key="r",           # character
-        code="KeyR",       # physical key code
-        modifiers={},      # e.g., {"shift": False}
-        repeat=False,
-        target=None,
-        native=None
-    )
-    v._reset(keyboard_event)
-    v.animate()
-    image_data = v.renderer.snapshot()
-    # filename = TsdFrameConfig._build_filename(None, {})
-    # image = Image.open(
-    #     pathlib.Path(__file__).parent / "screenshots" / filename
-    # ).convert("RGBA")
-    # np.allclose(np.array(image), image_data)

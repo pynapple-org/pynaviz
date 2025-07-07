@@ -547,29 +547,28 @@ class PlotTsdFrame(_BasePlot):
         "i" key increase the scale by 50%.
         "d" key decrease the scale by 50%
         """
-        if event.type == "key_down":
-            if event.key == "i" or event.key == "d":
-                factor = {"i": 0.5, "d": -0.5}[event.key]
+        if self._manager._sorted or self._manager._grouped:
+            if event.type == "key_down":
+                if event.key == "i" or event.key == "d":
+                    factor = {"i": 0.5, "d": -0.5}[event.key]
 
-                # Update the scale of the PlotManager
-                self._manager.rescale(factor=factor)
+                    # Update the scale of the PlotManager
+                    self._manager.rescale(factor=factor)
 
-                # Update the current buffers to avoid re-reading from disk
-                for c, sl in self._buffer_slices.items():
-                    self._positions[sl, 1] += factor * (
-                        self._positions[sl, 1] - self._manager.data.loc[c]["offset"]
-                    )
+                    # Update the current buffers to avoid re-reading from disk
+                    for c, sl in self._buffer_slices.items():
+                        self._positions[sl, 1] += factor * (
+                            self._positions[sl, 1] - self._manager.data.loc[c]["offset"]
+                        )
 
-                # Update the gpu data
-                self.graphic.geometry.positions.set_data(self._positions)
-                self.canvas.request_draw(self.animate)
+                    # Update the gpu data
+                    self.graphic.geometry.positions.set_data(self._positions)
+                    self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
         """
         "r" key reset the plot manager to initial view
         """
-        # TODO set the reset for the get controller
-        print(event)
         if event.type == "key_down":
             if event.key == "r":
                 if isinstance(self.controller, SpanController):

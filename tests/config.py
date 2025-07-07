@@ -5,6 +5,7 @@ Config classes to generate data and views
 
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pynapple as nap
@@ -33,6 +34,10 @@ class TsdFrameConfig:
         (["group_by", "sort_by"], [{"metadata_name": "group"},{"metadata_name": "channel"}]),
         (["group_by", "sort_by", "color_by"], [{"metadata_name": "group"}, {"metadata_name": "channel"}, {"metadata_name": "random"}]),
         ("plot_x_vs_y", {"x_label": 0, "y_label": 1}),
+        (["group_by", "_reset"], [{"metadata_name": "group"}, {"event": SimpleNamespace(type="key_down",key="r")}]),
+        (["plot_x_vs_y", "_reset"], [{"x_label": 0, "y_label": 1}, {"event": SimpleNamespace(type="key_down", key="r")}]),
+        (["sort_by", "_rescale"], [{"metadata_name": "channel"}, {"event": SimpleNamespace(type="key_down", key="i")}]),
+        (["sort_by", "_rescale"], [{"metadata_name": "channel"}, {"event": SimpleNamespace(type="key_down", key="d")}]),
     ]
 
     def __init__(self, path):
@@ -93,7 +98,7 @@ class TsdFrameConfig:
                 else:
                     getattr(viewer, name)(**kwargs)
 
-                self._save_snapshot(viewer, name, kwargs)
+            self._save_snapshot(viewer, name, kwargs)
 
 
 
