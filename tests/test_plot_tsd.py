@@ -2,12 +2,9 @@
 Test for PlotTsd.
 """
 import pathlib
-import os
 
 import numpy as np
 import pygfx as gfx
-import pynapple as nap
-import pytest
 from PIL import Image
 
 import uviz as viz

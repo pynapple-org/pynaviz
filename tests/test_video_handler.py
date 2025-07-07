@@ -114,7 +114,7 @@ def test_getitem_slice_return_frame(video_info, start, stop, step):
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
-def test_getitem_single_index_return_frame(video_info):
+def test_getitem_single_index_return_frame2(video_info):
     _, _, video_path = video_info
     video = video_handling.VideoHandler(
         video_path, time=np.arange(100), return_frame_array=True

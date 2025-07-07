@@ -4,14 +4,12 @@ Testing configurations for the uviz library.
 This module contains test fixtures required to set up
 and verify the functionality of modules in the uviz library.
 """
-import pytest
 import numpy as np
-from . import config
+import pytest
 
 from uviz.events import SyncEvent
 
-
-
+from . import config
 
 # ---------- Fixtures ----------
 

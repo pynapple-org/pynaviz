@@ -12,12 +12,15 @@ import os
 os.environ["WGPU_FORCE_OFFSCREEN"] = "1"
 
 import pathlib
+import sys
+
 import click
 import numpy as np
 from PIL import Image
-import sys
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import config
+
 import uviz as viz
 
 # Define base paths

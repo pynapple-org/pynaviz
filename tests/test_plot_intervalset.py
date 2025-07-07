@@ -6,8 +6,6 @@ import os
 
 import numpy as np
 import pygfx as gfx
-import pynapple as nap
-import pytest
 from PIL import Image
 
 import uviz as viz
@@ -18,8 +16,8 @@ def test_plot_iset_init(dummy_intervalset):
 
     assert isinstance(v.controller, viz.controller.SpanController)
     assert isinstance(v.graphic, dict)
-    for k, v in v.graphic.items():
-        assert isinstance(v, gfx.Mesh)
+    for m in v.graphic.values():
+        assert isinstance(m, gfx.Mesh)
 
 
 def test_plot_iset(dummy_intervalset):
