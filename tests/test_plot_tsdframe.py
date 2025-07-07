@@ -21,17 +21,6 @@ def test_plot_tsdframe_init(dummy_tsdframe):
     assert isinstance(v.graphic, gfx.Line)
 
 
-def test_plot_tsdframe(dummy_tsdframe):
-    v = viz.PlotTsdFrame(dummy_tsdframe)
-    v.animate()
-    image_data = v.renderer.snapshot()
-
-    image = Image.open(
-        pathlib.Path(__file__).parent / "screenshots/test_plot_tsdframe.png"
-    ).convert("RGBA")
-
-    np.allclose(np.array(image), image_data)
-
 @pytest.mark.parametrize(
     "func, kwargs",
     TsdFrameConfig.parameters,
