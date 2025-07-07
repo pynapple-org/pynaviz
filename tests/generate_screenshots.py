@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image
 import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-import tests.config as config
+import config
 import uviz as viz
 
 # Define base paths
