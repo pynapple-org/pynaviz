@@ -1,14 +1,15 @@
 :html_theme.sidebar_secondary.remove:
 
 
-pynaviz
-=======
+uviz
+====
 
 .. toctree::
     :maxdepth: 1
     :hidden:
 
     Installing <installing>
+    User guide <user_guide>
     API <api>
 
 
@@ -18,7 +19,7 @@ pynaviz
 
    .. grid-item::
 
-      Pynaviz
+      Uviz
 
 
       .. grid:: auto
@@ -28,6 +29,12 @@ pynaviz
             :shadow:
 
             Installing
+
+         .. button-ref:: user_guide
+            :color: primary
+            :shadow:
+
+            User guide
 
          .. button-ref:: api
             :color: primary

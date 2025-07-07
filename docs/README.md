@@ -1,7 +1,7 @@
-Building the pynaviz documentation
+Building the uviz documentation
 ===========
 
-`pip install pynaviz[docs]`
+`pip install uviz[docs]`
 
 `pip install sphinx-autobuild`
 

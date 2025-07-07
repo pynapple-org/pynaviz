@@ -45,7 +45,8 @@ extensions = [
     'sphinx_design',  # For layout components
     'myst_nb',
     'sphinx_contributors',
-    'matplotlib.sphinxext.plot_directive'
+    'matplotlib.sphinxext.plot_directive',
+    'sphinx.ext.intersphinx',
     # 'sphinxcontrib.apidoc'
     # 'sphinx_gallery.gen_gallery',    
     # 'myst_sphinx_gallery',
@@ -89,7 +90,7 @@ html_theme_options = {
     "icon_links": [
         {
             "name": "GitHub",
-            "url": "https://github.com/pynapple-org/pynaviz",
+            "url": "https://github.com/pynapple-org/uviz",
             "icon": "fab fa-github",
             "type": "fontawesome",
         },
@@ -144,6 +145,9 @@ nb_execution_timeout = 60 * 15
 # nb_execution_mode = "cache"
 # nb_execution_raise_on_error = True
 
+intersphinx_mapping = {
+    'pynapple': ('https://pynapple-org.github.io/pynapple/', None)
+}
 
 
 
