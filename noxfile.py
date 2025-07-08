@@ -33,7 +33,7 @@ def tests(session):
         "python",
         gen_screenshot_script.as_posix(),
         "--type", "all",
-        "--path", "tests/screenshots",
+        # "--path", "tests/screenshots",
     )
     session.log(f"Run Tests...")
     session.run(

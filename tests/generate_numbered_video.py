@@ -1,9 +1,9 @@
-import av
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import pathlib
 
+import av
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 EXTENSION_TO_CODEC = {
     ".mp4": "mpeg4",

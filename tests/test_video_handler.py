@@ -56,7 +56,7 @@ def test_video_handler_get_frame_snapshots(
     extension = pathlib.Path(video).suffix[1:]
     path = (
         pathlib.Path(__file__).parent
-        / f"screenshots/numbered_video_{extension}_frame_{expected_frame_id}.png"
+        / f"screenshots/video/numbered_video_{extension}_frame_{expected_frame_id}.png"
     )
     stored_img = iio.imread(path)
     v = PlotVideo(video, t=np.arange(100))
@@ -114,7 +114,7 @@ def test_getitem_slice_return_frame(video_info, start, stop, step):
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
-def test_getitem_single_index_return_frame(video_info):
+def test_getitem_single_index_return_frame2(video_info):
     _, _, video_path = video_info
     video = video_handling.VideoHandler(
         video_path, time=np.arange(100), return_frame_array=True

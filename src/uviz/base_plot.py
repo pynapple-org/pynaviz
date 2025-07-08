@@ -414,7 +414,7 @@ class PlotTsdFrame(_BasePlot):
         size = (256 * 1024**2) // (data.shape[1] * 60)
 
         self._stream = TsdFrameStreaming(
-            data, callback=self._flush, window_size=size / data.rate
+            data, callback=self._flush, window_size=np.ceil(size / data.rate)
         )  # seconds
         # print(size, size/data.rate, self._stream._max_n)
 
@@ -435,14 +435,8 @@ class PlotTsdFrame(_BasePlot):
         ):
             self._buffer_slices[c] = slice(s, s + self._stream._max_n)
 
-        colors = np.ones((self._positions.shape[0], 4), dtype=np.float32)
-
-        self.graphic = gfx.Line(
-            gfx.Geometry(positions=self._positions, colors=colors),
-            gfx.LineMaterial(
-                thickness=1.0, color_mode="vertex"
-            ),  # , color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
-        )
+        # Create pygfx object
+        self._initialize_graphic()
 
         # Add elements to the scene for rendering
         self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time, self.graphic)
@@ -484,6 +478,16 @@ class PlotTsdFrame(_BasePlot):
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
 
+    def _initialize_graphic(self):
+        colors = np.ones((self._positions.shape[0], 4), dtype=np.float32)
+
+        self.graphic = gfx.Line(
+            gfx.Geometry(positions=self._positions, colors=colors),
+            gfx.LineMaterial(
+                thickness=1.0, color_mode="vertex"
+            ),  # , color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
+        )
+
     def _flush(self, slice_: slice = None):
         """
         Flush the data stream from slice_ argument
@@ -524,43 +528,63 @@ class PlotTsdFrame(_BasePlot):
         self.graphic.geometry.positions.set_data(self._positions)
 
     def _get_min_max(self):
-        return np.array(
-            [
-                [np.nanmin(self._positions[sl, 1]), np.nanmax(self._positions[sl, 1])]
-                for sl in self._buffer_slices.values()
-            ]
-        )
+        """
+        If the data object is a numpy array, get min max directly from it
+        otherwise get min max from the buffer.
+        """
+        if isinstance(self.data.values, np.ndarray) and not isinstance(self.data.values, np.memmap):
+            return np.stack([np.nanmin(self.data, 0), np.nanmax(self.data, 0)]).T
+        else:
+            return np.array(
+                [
+                    [np.nanmin(self._positions[sl, 1]), np.nanmax(self._positions[sl, 1])]
+                    for sl in self._buffer_slices.values()
+                ]
+            )
 
     def _rescale(self, event):
         """
         "i" key increase the scale by 50%.
         "d" key decrease the scale by 50%
         """
-        if event.type == "key_down":
-            if event.key == "i" or event.key == "d":
-                factor = {"i": 0.5, "d": -0.5}[event.key]
+        if self._manager._sorted or self._manager._grouped:
+            if event.type == "key_down":
+                if event.key == "i" or event.key == "d":
+                    factor = {"i": 0.5, "d": -0.5}[event.key]
 
-                # Update the scale of the PlotManager
-                self._manager.rescale(factor=factor)
+                    # Update the scale of the PlotManager
+                    self._manager.rescale(factor=factor)
 
-                # Update the current buffers to avoid re-reading from disk
-                for c, sl in self._buffer_slices.items():
-                    self._positions[sl, 1] += factor * (
-                        self._positions[sl, 1] - self._manager.data.loc[c]["offset"]
-                    )
+                    # Update the current buffers to avoid re-reading from disk
+                    for c, sl in self._buffer_slices.items():
+                        self._positions[sl, 1] += factor * (
+                            self._positions[sl, 1] - self._manager.data.loc[c]["offset"]
+                        )
 
-                # Update the gpu data
-                self.graphic.geometry.positions.set_data(self._positions)
-                self.canvas.request_draw(self.animate)
+                    # Update the gpu data
+                    self.graphic.geometry.positions.set_data(self._positions)
+                    self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
         """
         "r" key reset the plot manager to initial view
         """
-        # TODO set the reset for the get controller
         if event.type == "key_down":
             if event.key == "r":
                 if isinstance(self.controller, SpanController):
+                    self._manager.reset()
+                    self._flush()
+
+                if isinstance(self.controller, GetController):
+                    self.scene.remove(self.graphic, self.time_point)
+                    # Switch back to SpanController
+                    self.controller.enabled = False
+                    controller_id = self.controller._controller_id
+                    self.controller = self._controllers["span"]
+                    self.controller._controller_id = controller_id
+                    self.controller.enabled = True
+                    self._initialize_graphic()
+                    self.scene.add(self.graphic)
                     self._manager.reset()
                     self._flush()
 
@@ -577,6 +601,10 @@ class PlotTsdFrame(_BasePlot):
         if self._manager._sorted ^ self._manager._grouped:
             self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
 
+        # Specific to PloTsdFrame, the first row should be at 1.
+        self._manager.offset = self._manager.offset + 1 - self._manager.offset.min()
+
+        # Update the buffer
         self._flush()
 
         # Update camera to fit the full y range
@@ -784,26 +812,19 @@ class PlotTsdFrame(_BasePlot):
         self.controller = get_controller
 
         # Update camera to fit the full x-y range
-        minmax = self._get_min_max()
-        # print(minmax)
         self.controller.set_view(
-            xmin=np.min(minmax[:, 0]),
-            xmax=np.max(minmax[:, 0]),
-            ymin=np.min(minmax[:, 1]),
-            ymax=np.max(minmax[:, 1]),
+            np.nanmin(positions[:, 0]),
+            np.nanmax(positions[:, 0]),
+            np.nanmin(positions[:, 1]),
+            np.nanmax(positions[:, 1])
         )
 
         self.canvas.request_draw(self.animate)
 
     def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
-        self.time_point.geometry.positions.data[0,0:2] = self.data.values[frame_index].astype("float32")
+        self.time_point.geometry.positions.data[0,0:2] = self.graphic.geometry.positions.data[frame_index,0:2]
         self.time_point.geometry.positions.update_full()
         self.canvas.request_draw(self.animate)
-
-        # plot_object.texture.update_full()
-        # plot_object._set_time_text(frame_index)
-        # _update_buffer(self, frame_index=frame_index)
-        # self.controller.renderer_request_draw()
 
 
 class PlotTsGroup(_BasePlot):
