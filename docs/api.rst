@@ -18,6 +18,16 @@ API reference
     PlotTs
     PlotTsGroup
 
+.. currentmodule:: uviz.video.video_plot
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+    :recursive:
+
+    PlotTsdTensor
+    PlotVideo
+
 .. rubric:: Custom controllers
 
 .. currentmodule:: uviz.controller
@@ -40,6 +50,7 @@ API reference
     :recursive:
 
     base_plot
+    video
     controller
     events
     interval_set

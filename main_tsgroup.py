@@ -3,12 +3,11 @@ Test script
 """
 
 import pynapple as nap
-from PyQt6.QtWidgets import QApplication
 import pynaviz as viz
-from tqdm import tqdm
-
-from one.api import ONE
 from brainbox.io.one import SpikeSortingLoader
+from one.api import ONE
+from PyQt6.QtWidgets import QApplication
+from tqdm import tqdm
 
 app = QApplication([])
 

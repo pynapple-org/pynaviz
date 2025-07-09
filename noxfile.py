@@ -28,14 +28,14 @@ def tests(session):
         )
 
     gen_screenshot_script = tests_path / "generate_screenshots.py"
-    session.log(f"Generating screenshots...")
+    session.log("Generating screenshots...")
     session.run(
         "python",
         gen_screenshot_script.as_posix(),
         "--type", "all",
         # "--path", "tests/screenshots",
     )
-    session.log(f"Run Tests...")
+    session.log("Run Tests...")
     session.run(
         "pytest",
         env={"WGPU_FORCE_OFFSCREEN": "1"},

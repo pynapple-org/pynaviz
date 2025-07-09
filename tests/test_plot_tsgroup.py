@@ -1,5 +1,5 @@
 """
-Test for PlotTsd.
+Test for PlotTsGroup.
 """
 import pathlib
 
@@ -13,22 +13,21 @@ import sys
 
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-from config import TsdConfig
+from config import TsGroupConfig
 
 
-def test_plot_tsd_init(dummy_tsd):
-    v = viz.PlotTsd(dummy_tsd)
+def test_plot_tsgroup_init(dummy_tsgroup):
+    v = viz.PlotTsGroup(dummy_tsgroup)
 
     assert isinstance(v.controller, viz.controller.SpanController)
-    assert isinstance(v.line, gfx.Line)
 
 
 @pytest.mark.parametrize(
     "func, kwargs",
-    TsdConfig.parameters,
+    TsGroupConfig.parameters,
 )
-def test_plot_tsd_action(dummy_tsd, func, kwargs):
-    v = viz.PlotTsd(dummy_tsd)
+def test_plot_tsgroup_action(dummy_tsgroup, func, kwargs):
+    v = viz.PlotTsGroup(dummy_tsgroup)
     if func is not None:
         if isinstance(func, (list, tuple)):
             for n, k in zip(func, kwargs):
@@ -37,22 +36,9 @@ def test_plot_tsd_action(dummy_tsd, func, kwargs):
             getattr(v, func)(**kwargs)
     v.animate()
     image_data = v.renderer.snapshot()
-    filename = TsdConfig._build_filename(func, kwargs)
+    filename = TsGroupConfig._build_filename(func, kwargs)
     image = Image.open(
         pathlib.Path(__file__).parent / "screenshots" / filename
     ).convert("RGBA")
     np.allclose(np.array(image), image_data)
 
-def test_plot_tsd_actions(dummy_tsd):
-    # For coverage
-    v = viz.PlotTsd(dummy_tsd)
-    v.sort_by("a")
-    v.group_by("b")
-    v.animate()
-    image_data = v.renderer.snapshot()
-
-    image = Image.open(
-        pathlib.Path(__file__).parent / "screenshots/test_plot_tsd.png"
-    ).convert("RGBA")
-
-    np.allclose(np.array(image), image_data)

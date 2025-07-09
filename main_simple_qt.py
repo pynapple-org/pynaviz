@@ -1,11 +1,11 @@
 """
 Test script
 """
+
 import numpy as np
-import os
 import pynapple as nap
-from PyQt6.QtWidgets import QApplication
 import pynaviz as viz
+from PyQt6.QtWidgets import QApplication
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.sin(np.arange(1000) * 0.1))
 tsg = nap.TsGroup({

@@ -1,10 +1,4 @@
-import pynapple as nap
-from pynaviz import scope
-import pynaviz as viz
-from PyQt6.QtWidgets import QApplication
 from one.api import ONE
-import ibllib.io.video as vidio
-from brainbox.io.one import SpikeSortingLoader
 
 one = ONE()
 

@@ -123,7 +123,11 @@ copybutton_prompt_text = r">>> |\$ |# "
 copybutton_prompt_is_regexp = True
 
 # Enable markdown and notebook support
-myst_enable_extensions = ["colon_fence"]  # For improved markdown 
+myst_enable_extensions = [
+    "html_image",
+    "html_admonition",
+    "colon_fence"
+]  # For improved markdown
 
 # # ----------------------------------------------------------------------------
 # # -- Autodoc and Napoleon Options -------------------------------------------------

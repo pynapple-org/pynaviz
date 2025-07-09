@@ -1,12 +1,12 @@
 """
 Test script
 """
+
 import numpy as np
-import os
 import pynapple as nap
-from wgpu.gui.auto import run
 import pynaviz as viz
 from pynaviz.controller_group import ControllerGroup
+from wgpu.gui.auto import run
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.sin(np.arange(1000) * 0.1))
 tsg = nap.TsGroup({

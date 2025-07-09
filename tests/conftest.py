@@ -6,24 +6,31 @@ and verify the functionality of modules in the uviz library.
 """
 import numpy as np
 import pytest
-
+import sys
+import os
 from uviz.events import SyncEvent
 
-from . import config
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import config
 
 # ---------- Fixtures ----------
 
 @pytest.fixture
 def dummy_tsd():
-    return config.tsd()
+    return config.TsdConfig.get_data()
 
 @pytest.fixture
 def dummy_tsdframe():
-    return config.TsdFrameConfig.tsdframe()
+    return config.TsdFrameConfig.get_data()
 
 @pytest.fixture
 def dummy_intervalset():
-    return config.intervalset()
+    return config.IntervalSetConfig.get_data()
+
+@pytest.fixture
+def dummy_tsgroup():
+    return config.TsGroupConfig.get_data()
 
 @pytest.fixture
 def camera_state():

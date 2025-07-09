@@ -1,13 +1,13 @@
+import os
 from pathlib import Path
 
-from tqdm import tqdm
-from one.api import ONE
-from PyQt6.QtWidgets import QApplication
 import pynapple as nap
-import uviz as viz
+from one.api import ONE
+
 # from brainbox.io.one import SpikeSortingLoader
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout
-import os
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget
+
+import uviz as viz
 
 app = QApplication([])
 

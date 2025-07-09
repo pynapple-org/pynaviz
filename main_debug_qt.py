@@ -2,13 +2,13 @@
 Test script
 """
 
+
 import numpy as np
 import pynapple as nap
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton
-import uviz as viz
-import sys
-from uviz.controller_group import ControllerGroup
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QWidget
 
+import uviz as viz
+from uviz.controller_group import ControllerGroup
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
 tsg = nap.TsGroup(

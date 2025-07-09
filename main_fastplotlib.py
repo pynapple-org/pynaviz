@@ -4,15 +4,16 @@
 # @Last Modified by:   Guillaume Viejo
 # @Last Modified time: 2023-10-31 19:24:48
 
-import fastplotlib as fpl
-import pynapple as nap
+import os
+import sys
+
 import numpy as np
-import sys, os
+import pynapple as nap
 
 sys.path.append(os.path.expanduser("~/fastplotlib-sfn2023"))
-from _video import LazyVideo
 from pathlib import Path
-from ipywidgets import HBox
+
+from _video import LazyVideo
 
 behavior_path = Path("/mnt/home/gviejo/fastplotlib-sfn2023/sample_data/M238Slc17a7_Chr2/20170824")
 
