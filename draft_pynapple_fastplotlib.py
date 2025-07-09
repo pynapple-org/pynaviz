@@ -17,11 +17,12 @@ This tutorial was made by Sofia Skromne Carrasco and Guillaume Viejo.
 # %%
 # %gui qt
 
-import pynapple as nap
-import numpy as np
-import fastplotlib as fpl
-
 import sys
+
+import fastplotlib as fpl
+import numpy as np
+import pynapple as nap
+
 # mkdocs_gallery_thumbnail_path = '../_static/fastplotlib_demo.png'
 
 
@@ -68,8 +69,8 @@ fig.show(maintain_aspect=False)
 # grid_plot['lfp'].add_line(lfp.t, lfp[:,14].d)
 
 
-import numpy as np
 import fastplotlib as fpl
+import numpy as np
 
 fig = fpl.Figure(canvas="glfw")  # , shape=(2,1), controller_ids="sync")
 fig[0, 0].add_line(data=np.random.randn(1000))
@@ -142,7 +143,6 @@ iw = fpl.ImageWidget(frames, cmap="gnuplot2")
 # Example 4
 
 from PyQt6 import QtWidgets
-
 
 mainwidget = QtWidgets.QWidget()
 

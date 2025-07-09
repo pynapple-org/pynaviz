@@ -1,10 +1,8 @@
 import numpy as np
 import pynapple as nap
-from PyQt6.QtWidgets import QApplication
 import pynaviz as viz
 from pynaviz.controller import ControllerGroup
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton
-
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QWidget
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
 tsg = nap.TsGroup(

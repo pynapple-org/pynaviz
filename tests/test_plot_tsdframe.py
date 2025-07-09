@@ -2,7 +2,6 @@
 Test for PlotTsdFrame
 """
 import pathlib
-from types import SimpleNamespace
 
 import numpy as np
 import pygfx as gfx
@@ -10,8 +9,11 @@ import pytest
 from PIL import Image
 
 import uviz as viz
+import sys
 
-from .config import TsdFrameConfig
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+from config import TsdFrameConfig
+
 
 
 def test_plot_tsdframe_init(dummy_tsdframe):
