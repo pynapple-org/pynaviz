@@ -1,8 +1,9 @@
-# UVIZ 
+# Pynaviz
 
-Universal Visualization of Time Series
+Python Neural Analysis Visualization
 
 #
+
 
 
 <img src="in_construction.png" alt="image" width="300"/>
