@@ -87,7 +87,7 @@ class BaseConfig:
     def get_data():
         pass
 
-    def write_markdown(self, path):
+    def write_simple_visuals(self, path):
         """
         """
         obj_repr = self.get_data().__repr__()
@@ -132,6 +132,7 @@ v.show()
 
                     """
                     f.write(block)
+
 
 
 class TsdFrameConfig(BaseConfig):
@@ -201,6 +202,7 @@ class TsdConfig(BaseConfig):
         t = np.arange(0, 2, 0.01)
         return nap.Tsd(t=t,d=np.cos(t*6*np.pi))
 
+
 class TsGroupConfig(BaseConfig):
     metadata = {
         "group": [0, 0, 1, 0, 1, 0, 0, 1, 0, 1],
@@ -223,3 +225,4 @@ class TsGroupConfig(BaseConfig):
                 t=np.sort(np.random.uniform(0, 100, 100 * (i + 1)))
             ) for i in range(10)},
             metadata=TsGroupConfig.metadata)
+

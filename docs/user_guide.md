@@ -2,7 +2,8 @@ User guide
 ==========
 
 
-## Simple visuals
+Simple visuals
+--------------
 
 
 ::::{grid} 1 2 2 2
@@ -17,11 +18,6 @@ User guide
          style="width: 250px;" />
   </a>
 
-
-```{toctree}
-Tsd <user_guide/tsd>
-```
-
 :::
 
 :::{grid-item-card}
@@ -33,11 +29,6 @@ Tsd <user_guide/tsd>
          alt="TsdFrame Image"
          style="width: 250px;" />
   </a>
-
-
-```{toctree}
-TsdFrame <user_guide/tsdframe>
-```
 
 :::
 
@@ -53,10 +44,6 @@ TsdFrame <user_guide/tsdframe>
   </a>
 
 
-```{toctree}
-TsGroup <user_guide/tsgroup>
-```
-
 :::
 
 
@@ -71,22 +58,26 @@ TsGroup <user_guide/tsgroup>
   </a>
 
 
+:::
+
+::::
+
+
+
+Qt visuals
+----------
+
 ```{toctree}
-IntervalSet <user_guide/intervalset>
+Qt Widgets <user_guide/qt>
 ```
-:::
-
-:::
 
 
+Time syncing
+------------
 
-## Qt Visuals
-
-
-
-## Time syncing
-
-
+```{toctree}
+Time Series Synchronization <user_guide/syncing>
+```
 
 
 
