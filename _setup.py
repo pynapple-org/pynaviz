@@ -23,7 +23,7 @@ extras_require = {
 with open(Path(__file__).parent.joinpath("README.md")) as f:
     readme = f.read()
 
-with open(Path(__file__).parent.joinpath("uviz", "VERSION"), "r") as f:
+with open(Path(__file__).parent.joinpath("pynaviz", "VERSION"), "r") as f:
     ver = f.read().split("\n")[0]
 
 classifiers = [
@@ -37,7 +37,7 @@ classifiers = [
 authors = "Guillaume Viejo, Edoardo Balzani, Kushal Kolar, Caitlin Lewis"
 
 setup(
-    name="uviz",
+    name="pynaviz",
     version=ver,
     long_description=readme,
     long_description_content_type="text/markdown",

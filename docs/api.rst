@@ -5,7 +5,7 @@ API reference
 
 .. rubric:: Base plot
 
-.. currentmodule:: uviz.base_plot
+.. currentmodule:: pynaviz.base_plot
 
 .. autosummary::
     :toctree: generated/
@@ -18,7 +18,7 @@ API reference
     PlotTs
     PlotTsGroup
 
-.. currentmodule:: uviz.video.video_plot
+.. currentmodule:: pynaviz.video.video_plot
 
 .. autosummary::
     :toctree: generated/
@@ -30,7 +30,7 @@ API reference
 
 .. rubric:: Custom controllers
 
-.. currentmodule:: uviz.controller
+.. currentmodule:: pynaviz.controller
 
 .. autosummary::
     :toctree: generated/
@@ -40,9 +40,9 @@ API reference
     SpanController
     GetController
 
-.. rubric:: Uviz
+.. rubric:: Pynaviz
 
-.. currentmodule:: uviz
+.. currentmodule:: pynaviz
 
 .. autosummary::
     :toctree: generated/

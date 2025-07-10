@@ -1,9 +1,9 @@
 """
 Test script
 """
-#import os, requests, tqdm, math
 import numpy as np
 import pynapple as nap
+
 from pynaviz import scope
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))

@@ -2,9 +2,14 @@ User guide
 ==========
 
 
+## Simple visuals
+
+
 ::::{grid} 1 2 2 2
 
 :::{grid-item-card}
+
+**Tsd**
 
  <a href="/user_guide/tsd.html">
     <img src="/_static/screenshots/test_plot_tsd.png"
@@ -19,8 +24,9 @@ Tsd <user_guide/tsd>
 
 :::
 
-
 :::{grid-item-card}
+
+**TsdFrame**
 
  <a href="/user_guide/tsdframe.html">
     <img src="/_static/screenshots/test_plot_tsdframe.png"
@@ -38,6 +44,8 @@ TsdFrame <user_guide/tsdframe>
 
 :::{grid-item-card}
 
+**TsGroup**
+
  <a href="/user_guide/tsgroup.html">
     <img src="/_static/screenshots/test_plot_tsgroup.png"
          alt="TsGroup Image"
@@ -54,6 +62,8 @@ TsGroup <user_guide/tsgroup>
 
 :::{grid-item-card}
 
+**IntervalSet**
+
  <a href="/user_guide/intervalset.html">
     <img src="/_static/screenshots/test_plot_intervalset.png"
          alt="IntervalSet Image"
@@ -64,5 +74,22 @@ TsGroup <user_guide/tsgroup>
 ```{toctree}
 IntervalSet <user_guide/intervalset>
 ```
+:::
 
 :::
+
+
+
+## Qt Visuals
+
+
+
+## Time syncing
+
+
+
+
+
+
+
+

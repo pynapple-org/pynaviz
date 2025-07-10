@@ -2,7 +2,7 @@ from contextlib import nullcontext as does_not_raise
 
 import pytest
 
-import uviz.synchronization_rules as sync_rules
+import pynaviz.synchronization_rules as sync_rules
 
 
 class TestMatchPanOnXAxis:

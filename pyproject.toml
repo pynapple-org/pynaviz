@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "uviz"
+name = "pynaviz"
 version = "0.0.1"
-authors = [{name = "uviz authors"}]
+authors = [{name = "pynaviz authors"}]
 description = "Life made easier."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -32,7 +32,7 @@ dependencies = [
 # Configure package discovery for setuptools
 [tool.setuptools.packages.find]
 where = ["src"]             # The directory where package modules are located
-include = ["uviz"]       # The specific package(s) to include in the distribution
+include = ["pynaviz"]       # The specific package(s) to include in the distribution
 
 
 # Define optional dependencies for the project
@@ -43,6 +43,7 @@ qt = [
 dev = [
     "pip-tools",                    # Dependency management
     "pytest",                       # Testing framework
+    "pytest-qt",
     "coverage",                     # Test coverage measurement
     "pytest-cov",                   # Test coverage plugin for pytest
     'matplotlib>=3.7',              # Plotting library
@@ -51,6 +52,7 @@ dev = [
     "isort",
     "click",
     "imageio",
+    "pyqt6"
 ]
 docs = [
     "matplotlib",
@@ -74,7 +76,7 @@ docs = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=uviz"
+addopts = "--cov=pynaviz"
 
 
 [tool.ruff]

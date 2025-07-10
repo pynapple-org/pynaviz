@@ -8,7 +8,7 @@ import pygfx as gfx
 import pytest
 from PIL import Image
 
-import uviz as viz
+import pynaviz as viz
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))

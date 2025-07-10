@@ -7,8 +7,8 @@ import numpy as np
 import pynapple as nap
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QWidget
 
-import uviz as viz
-from uviz.controller_group import ControllerGroup
+import pynaviz as viz
+from pynaviz.controller_group import ControllerGroup
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
 tsg = nap.TsGroup(

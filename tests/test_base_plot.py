@@ -9,12 +9,7 @@ import pygfx as gfx
 import pynapple as nap
 import pytest
 
-from uviz.base_plot import _BasePlot
-
-
-@pytest.fixture
-def dummy_tsd():
-    return nap.Tsd(t=np.arange(0, 10, 0.1), d=np.sin(np.arange(0, 10, 0.1)))
+from pynaviz.base_plot import _BasePlot
 
 
 def test_baseplot_init(dummy_tsd):

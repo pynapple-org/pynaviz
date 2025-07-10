@@ -15,6 +15,7 @@ Main Classes:
 from collections import OrderedDict
 from typing import Any, Callable
 
+import numpy as np
 from PyQt6.QtCore import QPoint, QSize, Qt
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -33,9 +34,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from uviz.qt.drop_down_dict_builder import get_popup_kwargs
-from uviz.qt.qt_item_models import ChannelListModel, DynamicSelectionListView
-from uviz.utils import get_plot_attribute
+from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
+from pynaviz.qt.qt_item_models import ChannelListModel, DynamicSelectionListView
+from pynaviz.utils import get_plot_attribute
 
 WIDGET_PARAMS = {
     QComboBox: {
@@ -270,7 +271,7 @@ class MenuWidget(QWidget):
 
     Parameters
     ----------
-    metadata : dict or pd.DataFrame
+    metadata : dict or pd.DataFrame or None
         Metadata associated with the plot.
     plot : _BasePlot
         The plot instance this menu is attached to.
@@ -288,15 +289,17 @@ class MenuWidget(QWidget):
         layout.setSpacing(0)
 
         icon_size = 18
-        self.select_button = self._make_button(
-            self.show_select_menu, "SP_DialogApplyButton", icon_size
-        )
-        layout.addWidget(self.select_button)
+        if hasattr(plot._data, "metadata"):
+            self.select_button = self._make_button(
+                self.show_select_menu, "SP_DialogApplyButton", icon_size
+            )
+            layout.addWidget(self.select_button)
 
-        self.action_button = self._make_button(
-            self.show_action_menu, "SP_FileDialogDetailedView", icon_size
-        )
-        layout.addWidget(self.action_button)
+        if metadata is not None and hasattr(metadata, "shape") and np.prod(metadata.shape):
+            self.action_button = self._make_button(
+                self.show_action_menu, "SP_FileDialogDetailedView", icon_size
+            )
+            layout.addWidget(self.action_button)
 
         layout.addStretch()
         self.setLayout(layout)

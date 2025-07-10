@@ -4,7 +4,7 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 from PyQt6.QtWidgets import QComboBox, QWidget
 
-from uviz.utils import GRADED_COLOR_LIST
+from pynaviz.utils import GRADED_COLOR_LIST
 
 
 def _get_meta_combo(widget):

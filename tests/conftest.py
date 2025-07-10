@@ -1,14 +1,14 @@
 """
-Testing configurations for the uviz library.
+Testing configurations for the pynaviz library.
 
 This module contains test fixtures required to set up
-and verify the functionality of modules in the uviz library.
+and verify the functionality of modules in the pynaviz library.
 """
 import numpy as np
 import pytest
 import sys
 import os
-from uviz.events import SyncEvent
+from pynaviz.events import SyncEvent
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 

@@ -1,4 +1,4 @@
-import uviz.events as events
+import pynaviz.events as events
 
 
 def test_sync_event_initialization():

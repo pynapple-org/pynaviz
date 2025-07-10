@@ -14,8 +14,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from uviz.controller_group import ControllerGroup
-from uviz.qt.widget_plot import (
+from pynaviz.controller_group import ControllerGroup
+from pynaviz.qt.widget_plot import (
     TsdFrameWidget,
     TsdTensorWidget,
     TsdWidget,
@@ -110,7 +110,7 @@ class ListDock(QDockWidget):
 
         index = self._n_dock_open
 
-        # Getting the uviz widget class
+        # Getting the pynaviz widget class
         if isinstance(var, nap.TsGroup):
             widget = TsGroupWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.Tsd):
