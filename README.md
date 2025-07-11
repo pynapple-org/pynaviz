@@ -1,6 +1,6 @@
-# UVIZ 
+# Pynaviz
 
-Universal Visualization of Time Series
+Interactive visualizations that keep **pynapple time series** and/or **video frames** in sync.
 
 #
 
