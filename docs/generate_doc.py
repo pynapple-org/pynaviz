@@ -4,19 +4,11 @@ Generate visuals and markdown files for documentation
 
 import os
 
-from PyQt6.QtGui import QPixmap, QPainter
-from PyQt6.QtWidgets import QApplication
-
 # Force offscreen rendering for headless environments (e.g., CI servers)
 os.environ["WGPU_FORCE_OFFSCREEN"] = "1"
 
 import pathlib
 import sys
-
-import click
-import numpy as np
-from PIL import Image
-import pynaviz as viz
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import config
