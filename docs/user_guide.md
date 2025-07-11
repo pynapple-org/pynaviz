@@ -38,7 +38,7 @@ Simple visuals
 **TsGroup**
 
  <a href="/pynaviz/user_guide/tsgroup.html">
-    <img src="._static/screenshots/test_plot_tsgroup.png"
+    <img src="_static/screenshots/test_plot_tsgroup.png"
          alt="TsGroup Image"
          style="width: 250px;" />
   </a>
