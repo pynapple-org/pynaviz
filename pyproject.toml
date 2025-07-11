@@ -1,0 +1,131 @@
+[build-system]
+requires      = ["setuptools>=61.0.0", "setuptools-scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "pynaviz"
+version = "0.0.1"
+authors = [{name = "pynaviz authors"}]
+description = "Life made easier."
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["neuroscience", "visualization", "pynapple"]
+license = { file = "LICENSE" }
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10"
+]
+
+# Define dependencies for the project
+dependencies = [    
+    "pygfx>=0.10.0",
+    "pynapple>=0.9.0",
+    "glfw",
+    "matplotlib",
+    "numpy",
+    "av",
+]
+
+# Configure package discovery for setuptools
+[tool.setuptools.packages.find]
+where = ["src"]             # The directory where package modules are located
+include = ["pynaviz"]       # The specific package(s) to include in the distribution
+
+
+# Define optional dependencies for the project
+[project.optional-dependencies]
+qt = [
+    "pyqt6"
+]
+dev = [
+    "pip-tools",                    # Dependency management
+    "pytest",                       # Testing framework
+    "pytest-qt",
+    "coverage",                     # Test coverage measurement
+    "pytest-cov",                   # Test coverage plugin for pytest
+    'matplotlib>=3.7',              # Plotting library
+    "nox",
+    "ruff",
+    "isort",
+    "click",
+    "imageio",
+    "pyqt6"
+]
+docs = [
+    "matplotlib",
+    "zarr",
+    "seaborn",
+    "tqdm",
+    "numpydoc",
+    "sphinx",
+    "pydata-sphinx-theme",
+    "sphinx-autodoc-typehints",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "sphinx-issues",
+    "sphinxcontrib-apidoc",
+    "myst-parser",
+    "myst-nb",
+    "sphinx-autobuild",
+    "sphinx-contributors",
+    # "sphinx-excec-code"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=pynaviz"
+
+
+[tool.ruff]
+line-length = 99
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".github",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "tests",
+    "examples",
+    "docs"
+]
+
+
+[tool.ruff.lint]
+# Add the `line-too-long` rule to the enforced rule set. By default, Ruff omits rules that
+# overlap with the use of a formatter, like Black, but we can override this behavior by
+# explicitly adding the rule.
+extend-select = ["F", "W", "B", "I"]
+ignore = ["E731"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.coverage.report]
+exclude_also = []

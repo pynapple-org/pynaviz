@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  nox:
+    strategy:
+      matrix:
+        os: [ubuntu-latest] #[ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.10','3.11', '3.12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4 # Use v4 for compatibility with pyproject.toml
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install llvmpipe and lavapipe for offscreen canvas
+        run: |
+          sudo apt-get update -y -qq
+          sudo apt-get install --no-install-recommends -y \
+            ffmpeg \
+            libegl1 \
+            libopengl0 \
+            libgl1-mesa-dri \
+            libxcb-xfixes0-dev \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-render-util0 \
+            libxcb-xinerama0 \
+            libxkbcommon-x11-0 \
+            libglib2.0-0 \
+            mesa-vulkan-drivers
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install ".[dev]"
+      - name: Generate videos
+        run: |
+          python tests/generate_numbered_video.py
+      - name: Generate Screenshots
+#        env:
+#          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python tests/generate_screenshots.py --type all --path tests/screenshots
+      - name: Run nox
+        run: |
+          nox --no-venv -s linters
+      - name: Test examples
+        env:
+          PYGFX_EXPECT_LAVAPIPE: true
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          WGPU_FORCE_OFFSCREEN=1 pytest -v tests/
+
+  check:
+    if: always()
+    needs: nox
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether all tests and notebooks succeeded
+        uses: re-actors/alls-green@v1.2.2
+        with:
+          jobs: ${{ toJSON(needs) }}
+
+
