@@ -13,7 +13,7 @@ Simple visuals
 **Tsd**
 
  <a href="/user_guide/tsd.html">
-    <img src="../_static/screenshots/test_plot_tsd.png"
+    <img src="_static/screenshots/test_plot_tsd.png"
          alt="Tsd Image"
          style="width: 250px;" />
   </a>
@@ -25,7 +25,7 @@ Simple visuals
 **TsdFrame**
 
  <a href="/user_guide/tsdframe.html">
-    <img src="../_static/screenshots/test_plot_tsdframe.png"
+    <img src="_static/screenshots/test_plot_tsdframe.png"
          alt="TsdFrame Image"
          style="width: 250px;" />
   </a>
@@ -38,7 +38,7 @@ Simple visuals
 **TsGroup**
 
  <a href="/user_guide/tsgroup.html">
-    <img src="../_static/screenshots/test_plot_tsgroup.png"
+    <img src="._static/screenshots/test_plot_tsgroup.png"
          alt="TsGroup Image"
          style="width: 250px;" />
   </a>
@@ -52,7 +52,7 @@ Simple visuals
 **IntervalSet**
 
  <a href="/user_guide/intervalset.html">
-    <img src="../_static/screenshots/test_plot_intervalset.png"
+    <img src="_static/screenshots/test_plot_intervalset.png"
          alt="IntervalSet Image"
          style="width: 250px;" />
   </a>
