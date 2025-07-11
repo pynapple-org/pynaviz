@@ -7,8 +7,8 @@ import numpy as np
 import pynapple as nap
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QWidget
 
-import uviz as viz
-from uviz.controller_group import ControllerGroup
+import pynaviz as viz
+from pynaviz.controller_group import ControllerGroup
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
 tsg = nap.TsGroup(
@@ -29,10 +29,10 @@ window.setMinimumSize(1500, 800)
 layout = QHBoxLayout()
 
 # viz1 = viz.TsdWidget(tsd1, set_parent=True)
-viz1 = viz.TsdFrameWidget(tsdframe, set_parent=True)
+viz1 = viz.TsdFrameWidget(tsdframe)
 # viz1.plot.plot_x_vs_y(0, 1)
 # viz2 = viz.TsdWidget(tsd1, set_parent=True)
-viz2 = viz.TsdTensorWidget(tsdtensor, set_parent=True)
+viz2 = viz.TsdTensorWidget(tsdtensor)
 
 arg = [viz1.plot, viz2.plot]
 

@@ -1,7 +1,7 @@
 :html_theme.sidebar_secondary.remove:
 
 
-uviz
+pynaviz
 ====
 
 .. toctree::
@@ -19,7 +19,7 @@ uviz
 
    .. grid-item::
 
-      Uviz
+      pynaviz
 
 
       .. grid:: auto

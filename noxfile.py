@@ -38,5 +38,7 @@ def tests(session):
     session.log("Run Tests...")
     session.run(
         "pytest",
-        env={"WGPU_FORCE_OFFSCREEN": "1"},
+        env={
+            "WGPU_FORCE_OFFSCREEN": "1",
+        },
     )

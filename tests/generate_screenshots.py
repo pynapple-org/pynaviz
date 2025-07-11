@@ -21,7 +21,7 @@ from PIL import Image
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import config
 
-import uviz as viz
+import pynaviz as viz
 
 # Define base paths
 BASE_DIR = pathlib.Path(__file__).parent.resolve()

@@ -35,10 +35,18 @@ jobs:
           sudo apt-get update -y -qq
           sudo apt-get install --no-install-recommends -y \
             ffmpeg \
-            libegl-mesa0 \
+            libegl1 \
+            libopengl0 \
             libgl1-mesa-dri \
             libxcb-xfixes0-dev \
-            mesa-vulkan-drivers          
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-render-util0 \
+            libxcb-xinerama0 \
+            libxkbcommon-x11-0 \
+            libglib2.0-0 \
+            mesa-vulkan-drivers
 
       - name: Install dependencies
         run: |
@@ -58,6 +66,7 @@ jobs:
       - name: Test examples
         env:
           PYGFX_EXPECT_LAVAPIPE: true
+          QT_QPA_PLATFORM: offscreen
         run: |
           WGPU_FORCE_OFFSCREEN=1 pytest -v tests/
 

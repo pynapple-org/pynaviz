@@ -2,9 +2,15 @@ User guide
 ==========
 
 
+Simple visuals
+--------------
+
+
 ::::{grid} 1 2 2 2
 
 :::{grid-item-card}
+
+**Tsd**
 
  <a href="/user_guide/tsd.html">
     <img src="/_static/screenshots/test_plot_tsd.png"
@@ -12,15 +18,11 @@ User guide
          style="width: 250px;" />
   </a>
 
-
-```{toctree}
-Tsd <user_guide/tsd>
-```
-
 :::
 
-
 :::{grid-item-card}
+
+**TsdFrame**
 
  <a href="/user_guide/tsdframe.html">
     <img src="/_static/screenshots/test_plot_tsdframe.png"
@@ -28,15 +30,12 @@ Tsd <user_guide/tsd>
          style="width: 250px;" />
   </a>
 
-
-```{toctree}
-TsdFrame <user_guide/tsdframe>
-```
-
 :::
 
 
 :::{grid-item-card}
+
+**TsGroup**
 
  <a href="/user_guide/tsgroup.html">
     <img src="/_static/screenshots/test_plot_tsgroup.png"
@@ -45,14 +44,12 @@ TsdFrame <user_guide/tsdframe>
   </a>
 
 
-```{toctree}
-TsGroup <user_guide/tsgroup>
-```
-
 :::
 
 
 :::{grid-item-card}
+
+**IntervalSet**
 
  <a href="/user_guide/intervalset.html">
     <img src="/_static/screenshots/test_plot_intervalset.png"
@@ -61,8 +58,29 @@ TsGroup <user_guide/tsgroup>
   </a>
 
 
+:::
+
+::::
+
+
+
+Qt visuals
+----------
+
 ```{toctree}
-IntervalSet <user_guide/intervalset>
+Qt Widgets <user_guide/qt>
 ```
 
-:::
+
+Time syncing
+------------
+
+```{toctree}
+Time Series Synchronization <user_guide/syncing>
+```
+
+
+
+
+
+

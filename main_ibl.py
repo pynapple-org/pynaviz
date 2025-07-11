@@ -7,7 +7,7 @@ from one.api import ONE
 # from brainbox.io.one import SpikeSortingLoader
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget
 
-import uviz as viz
+import pynaviz as viz
 
 app = QApplication([])
 

@@ -15,11 +15,7 @@ import pynapple as nap
 # from line_profiler import profile
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
-from wgpu.gui.auto import (
-    WgpuCanvas,
-    run,
-)  # Should use auto here or be able to select qt if parent passed
-from wgpu.gui.glfw import GlfwWgpuCanvas
+from wgpu.gui.auto import run
 
 from .controller import GetController, SpanController, SpanYLockController
 from .interval_set import IntervalSetInterface
@@ -91,8 +87,10 @@ class _BasePlot(IntervalSetInterface):
 
         # Create a GPU-accelerated canvas for rendering, optionally with a parent widget
         if parent:  # Assuming it's a Qt background
+            from wgpu.gui.qt import WgpuCanvas
             self.canvas = WgpuCanvas(parent=parent)
         else:  # Default to glfw for single canvas
+            from wgpu.gui.auto import WgpuCanvas
             self.canvas = WgpuCanvas()
 
         # Create a WGPU-based renderer attached to the canvas
@@ -209,8 +207,14 @@ class _BasePlot(IntervalSetInterface):
 
     def show(self):
         """To show the canvas in case of GLFW context used"""
-        if isinstance(self.canvas, GlfwWgpuCanvas):
+        try:
             run()
+        except Exception:
+            pass
+        # if isinstance(self.canvas, pygGlfwWgpuCanvas):
+        #     run()
+        # else:
+        #     pass
 
     def color_by(
         self,
