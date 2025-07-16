@@ -41,7 +41,7 @@ def ts_to_index(ts: float, time: NDArray) -> int:
 class VideoHandler:
     """Class for getting video frames."""
 
-    _get_from_index = False
+    _thread_local = threading.local()
 
     def __init__(
         self,
@@ -50,6 +50,7 @@ class VideoHandler:
         time: Optional[NDArray] = None,
         return_frame_array: bool = True,
     ) -> None:
+        self._thread_local.get_from_index = False
         self.video_path = pathlib.Path(video_path)
         self.container = av.open(video_path)
         self.stream = self.container.streams.video[stream_index]
@@ -162,12 +163,12 @@ class VideoHandler:
     @contextmanager
     def _set_get_from_index(self, value):
         """Context manager for setting the shallow copy flag in a thread safe way."""
-        old_value = self.__class__._get_from_index
-        self.__class__._get_from_index = value
+        old_value = getattr(self._thread_local, "get_from_index", False)
+        self._thread_local.get_from_index = value
         try:
             yield
         finally:
-            self.__class__._get_from_index = old_value
+            self._thread_local.get_from_index = old_value
 
     def _extract_keypoints_pts(self):
         try:
@@ -393,7 +394,7 @@ class VideoHandler:
         )
 
     def get(self, ts: float) -> av.VideoFrame | NDArray:
-        if not self.__class__._get_from_index:
+        if not getattr(self._thread_local, "get_from_index", False):
             idx = ts_to_index(ts, self.time)
         else:
             idx = ts
