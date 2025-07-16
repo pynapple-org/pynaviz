@@ -163,6 +163,10 @@ class VideoHandler:
     @contextmanager
     def _set_get_from_index(self, value):
         """Context manager for setting the shallow copy flag in a thread safe way."""
+        # safe getattr is needed because the local variable is initialized
+        # with every thread, and a thread won't have `get_from_index` since
+        # in the main thread it is defined at __init__
+        # which is not called by the thread.
         old_value = getattr(self._thread_local, "get_from_index", False)
         self._thread_local.get_from_index = value
         try:
