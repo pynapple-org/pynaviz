@@ -3,6 +3,7 @@ import threading
 import time
 import warnings
 from contextlib import contextmanager
+from ctypes.wintypes import PRECT
 from typing import List, Optional, Tuple
 
 import av
@@ -121,7 +122,6 @@ class AudioHandler:
             self.container = None
             self.stream = None
 
-    # SHIFTED BY SOME WEIRD AMOUNT (~50 samples)
     def get(
         self,
         start: float,
@@ -140,8 +140,6 @@ class AudioHandler:
             stream=self.stream,
         )
         self.current_frame = None
-        preceding_frame = None
-        go_to_next_packet = True
 
         frames = []
 
@@ -160,22 +158,10 @@ class AudioHandler:
                 if frame.pts is None:
                     continue
 
-                found_next = frame.pts > current_pts
-                found_current = frame.pts == current_pts or (found_next and preceding_frame is None)
+                frames.append(frame.to_ndarray())
+                current_pts = frame.pts
 
-                if found_current:
-                    frames.append(frame)
-                    go_to_next_packet = False
-                elif found_next:
-                    frames.append(preceding_frame)
-                    go_to_next_packet = False
-                else:
-                    go_to_next_packet = True
-
-                preceding_frame = frame
-                current_pts = frames[-1].pts
-
-        return np.concatenate([f.to_ndarray() for f in frames], axis=1).T
+        return np.concatenate(frames, axis=1).T
 
     # context protocol
     # (with AudioHandler(path) as audiovideo ensure closing)
