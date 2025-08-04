@@ -126,7 +126,7 @@ class AudioHandler:
         self,
         start: float,
         end: float,
-    ) -> Tuple[int, List[av.AudioFrame] | NDArray, av.AudioFrame]:
+    ) -> NDArray:
 
         start = self.ts_to_pts(start)
         end = self.ts_to_pts(end)
@@ -141,7 +141,7 @@ class AudioHandler:
         )
         self.current_frame = None
 
-        frames = []
+        frames: List[NDArray] = []
 
         while current_pts < end:
             packet = next(self.container.demux(self.stream))
