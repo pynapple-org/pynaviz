@@ -3,7 +3,7 @@ from multiprocessing import Event, Lock, Queue, shared_memory
 
 import numpy as np
 
-from pynaviz.video.video_handling import VideoHandler
+from pynaviz.audiovideo.video_handling import VideoHandler
 
 from ..utils import RenderTriggerSource
 

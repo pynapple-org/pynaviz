@@ -31,7 +31,7 @@ _active_plot_videos = weakref.WeakSet()
 
 
 def _cleanup_all_plot_videos():
-    """Cleans up all active video plot instances on exit."""
+    """Cleans up all active audiovideo plot instances on exit."""
     for video in list(_active_plot_videos):
         try:
             video.close()
@@ -68,19 +68,19 @@ def _update_buffer(plot_object: Any, frame_index: int):
 
 class PlotBaseVideoTensor(_BasePlot, ABC):
     """
-    Abstract base class for time-synchronized video plots using pygfx.
+    Abstract base class for time-synchronized audiovideo plots using pygfx.
 
-    Subclasses must implement the methods to provide video frames as 2D tensors.
+    Subclasses must implement the methods to provide audiovideo frames as 2D tensors.
     """
 
     def __init__(self, data: Any, index: Optional[int] = None, parent: Optional[Any] = None) -> None:
         """
-        Initialize the base video tensor plot.
+        Initialize the base audiovideo tensor plot.
 
         Parameters
         ----------
         data : Any
-            The data source, such as a TsdTensor or a video handler.
+            The data source, such as a TsdTensor or a audiovideo handler.
         index : int, optional
             Identifier for the controller.
         parent : Any, optional
@@ -133,7 +133,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
 
     def set_frame(self, target_time: float):
         """
-        Set the video display to the frame closest to the target time.
+        Set the audiovideo display to the frame closest to the target time.
 
         Parameters
         ----------
@@ -186,7 +186,7 @@ class PlotTsdTensor(PlotBaseVideoTensor):
 
 class PlotVideo(PlotBaseVideoTensor):
     """
-    Video visualization class for rendering video files synchronized with a time series.
+    Video visualization class for rendering audiovideo files synchronized with a time series.
 
     This class uses shared memory and multiprocessing to efficiently stream frames
     from disk to GPU via pygfx. It also supports real-time interaction and frame-based control.
@@ -203,16 +203,16 @@ class PlotVideo(PlotBaseVideoTensor):
         parent=None,
     ):
         """
-        Initialize the PlotVideo instance with a given video source.
+        Initialize the PlotVideo instance with a given audiovideo source.
 
         Parameters
         ----------
         video_path : str or pathlib.Path
-            Path to the video file to be visualized.
+            Path to the audiovideo file to be visualized.
         t : NDArray, optional
             Optional time vector to use for syncing frames.
         stream_index : int, default=0
-            Index of the stream to read in the video file.
+            Index of the stream to read in the audiovideo file.
         index : int, optional
             Controller ID index.
         parent : object, optional
@@ -240,7 +240,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
         self.renderer.add_event_handler(self._move_fast, "key_down")
 
-        # Worker process to read video frames asynchronously
+        # Worker process to read audiovideo frames asynchronously
         self.worker_lock = MultiProcessLock()
         self._worker = Process(
             target=video_worker_process,
@@ -272,17 +272,17 @@ class PlotVideo(PlotBaseVideoTensor):
         self._last_jump_index = 0
 
     def _get_initial_texture_data(self):
-        """Return the first video frame as the initial texture."""
+        """Return the first audiovideo frame as the initial texture."""
         return self._data.get(self._data.time[0])
 
     @property
     def data(self):
-        """Read-only access to the video data handler."""
+        """Read-only access to the audiovideo data handler."""
         return self._data
 
     @data.setter
     def data(self, value):
-        raise ValueError("Cannot set data for ``PlotVideo``. Data must be a fixed video stream.")
+        raise ValueError("Cannot set data for ``PlotVideo``. Data must be a fixed audiovideo stream.")
 
     def close(self):
         """Cleanly close shared memory, worker, and background thread."""
@@ -326,7 +326,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
     def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
         """
-        Update the video buffer based on the event type.
+        Update the audiovideo buffer based on the event type.
 
         Parameters
         ----------

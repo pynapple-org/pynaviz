@@ -16,7 +16,7 @@ from ..base_plot import (
     PlotTsdFrame,
     PlotTsGroup,
 )
-from ..video import PlotTsdTensor, PlotVideo
+from ..audiovideo import PlotTsdTensor, PlotVideo
 from .widget_menu import MenuWidget
 
 

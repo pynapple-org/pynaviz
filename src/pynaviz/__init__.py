@@ -5,7 +5,7 @@ from .base_plot import (
     PlotTsdFrame,
     PlotTsGroup,
 )
-from .video import (
+from .audiovideo import (
     PlotTsdTensor,
     PlotVideo,
 )
