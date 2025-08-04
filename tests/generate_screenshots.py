@@ -3,7 +3,7 @@ This script generates screenshots that are compared during tests.
 The name of each file should match the corresponding test.
 
 Run with:
-    python tests/generate_screenshots.py --type tsd --type video
+    python tests/generate_screenshots.py --type tsd --type audiovideo
 """
 
 import os
@@ -66,7 +66,7 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
         # Default frames to snapshot
         frames = [0, 1, 2, 3, 4, 10, 12, 14, 16, 18, 25, 50, 75, 95, 96, 97, 98, 99]
 
-    path = pathlib.Path(path) / "video/"
+    path = pathlib.Path(path) / "audiovideo/"
     path.mkdir(parents=True, exist_ok=True)
 
     for extension in ["mkv", "mp4", "avi"]:
@@ -89,7 +89,7 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
     "--type",
     "types",
     multiple=True,
-    type=click.Choice(["tsd", "tsdframe", "video", "all"], case_sensitive=False),
+    type=click.Choice(["tsd", "tsdframe", "audiovideo", "all"], case_sensitive=False),
     help="Type(s) of snapshot to generate. Can be used multiple times.",
 )
 @click.option(
@@ -100,10 +100,10 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
     "--frames",
     type=str,
     default=None,
-    help="Comma-separated list of frame indices to render (e.g. 0,1,2,99). Only applies to video.",
+    help="Comma-separated list of frame indices to render (e.g. 0,1,2,99). Only applies to audiovideo.",
 )
 @click.option(
-    "--video-dir",
+    "--audiovideo-dir",
     type=click.Path(),
     default=str(DEFAULT_VIDEO_DIR),
     help="Directory containing numbered videos.",
@@ -117,7 +117,7 @@ def main(types, path, video_dir, frames):
     path.mkdir(parents=True, exist_ok=True)
 
     if not types:
-        click.echo("Please specify at least one --type (tsd or video).")
+        click.echo("Please specify at least one --type (tsd or audiovideo).")
         return
 
     # Parse frame indices if provided
@@ -145,9 +145,9 @@ def main(types, path, video_dir, frames):
         click.echo("Generating TsGroup snapshot...")
         snapshot_tsgroup(path=path)
 
-    # Generate video frame snapshots
-    if "video" in types or "all" in types:
-        click.echo("Generating video snapshots...")
+    # Generate audiovideo frame snapshots
+    if "audiovideo" in types or "all" in types:
+        click.echo("Generating audiovideo snapshots...")
         snapshots_numbered_movies(path=path, path_video=video_dir, frames=frame_list)
 
     click.echo("Done.")
