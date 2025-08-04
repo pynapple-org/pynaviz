@@ -99,10 +99,10 @@ class VideoHandler:
 
         self._index_ready = threading.Event()
         self._index_thread.start()
-        self._keypoint_pts = []
-        self._pts_keypoint_ready = threading.Event()
-        self._keypoint_thread = threading.Thread(target=self._extract_keypoints_pts, daemon=True)
-        self._keypoint_thread.start()
+        self._keyframe_pts = []
+        self._pts_keyframe_ready = threading.Event()
+        self._keyframe_thread = threading.Thread(target=self._extract_keyframes_pts, daemon=True)
+        self._keyframe_thread.start()
 
     def extract_keyframe_times_and_points(
         self, video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
@@ -131,7 +131,7 @@ class VideoHandler:
         stream_index:
             The index of the audiovideo stream.
         first_only:
-            If true, return the first keypoint only. Used at initialization.
+            If true, return the first keyframe only. Used at initialization.
 
         Returns
         -------
@@ -174,7 +174,7 @@ class VideoHandler:
         finally:
             self._thread_local.get_from_index = old_value
 
-    def _extract_keypoints_pts(self):
+    def _extract_keyframes_pts(self):
         try:
             with av.open(self.video_path) as container:
                 stream = container.streams.video[0]
@@ -183,12 +183,12 @@ class VideoHandler:
                         return
                     if packet.is_keyframe:
                         with self._lock:
-                            self._keypoint_pts.append(packet.pts)
+                            self._keyframe_pts.append(packet.pts)
         except Exception as e:
             # do not block gui
-            print("Keypoint thread error:", e)
+            print("Keyframe thread error:", e)
         finally:
-            self._pts_keypoint_ready.set()
+            self._pts_keyframe_ready.set()
 
     def _build_index_fixed_size(self):
         try:
@@ -243,22 +243,22 @@ class VideoHandler:
     def _need_seek_call(self, current_frame_pts, target_frame_pts):
         with self._lock:
             # return if empty list or empty array or not enough frmae
-            if len(self._keypoint_pts) == 0 or self._keypoint_pts[-1] < target_frame_pts:
+            if len(self._keyframe_pts) == 0 or self._keyframe_pts[-1] < target_frame_pts:
                 return True
 
         # roll back the stream if audiovideo is scrolled backwards
         if current_frame_pts > target_frame_pts:
             return True
 
-        # find the closest keypoint pts before a given frame
-        idx = np.searchsorted(self._keypoint_pts, target_frame_pts, side="right")
-        closest_keypoint_pts = self._keypoint_pts[max(0, idx - 1)]
+        # find the closest keyframe pts before a given frame
+        idx = np.searchsorted(self._keyframe_pts, target_frame_pts, side="right")
+        closest_keyframe_pts = self._keyframe_pts[max(0, idx - 1)]
 
         # if target_frame_pts is larger than current (and if code
         # arrives here, it is, see second return statement),
-        # then seek forward if there is a future keypoint closest
+        # then seek forward if there is a future keyframe closest
         # to the target.
-        return closest_keypoint_pts > current_frame_pts
+        return closest_keyframe_pts > current_frame_pts
 
     def _get_frame_idx(self, pts: int) -> int:
         """
@@ -345,10 +345,10 @@ class VideoHandler:
     def get_key_frame(self, backward) -> av.VideoFrame | NDArray:
         idx = self.last_loaded_idx
         if idx is None:
-            # fallback to safe keypoint
-            self._pts_keypoint_ready.wait(2.0)
-            if len(self._keypoint_pts) > 0:
-                idx = self._get_frame_idx(self._keypoint_pts[0])[0]
+            # fallback to safe keyframe
+            self._pts_keyframe_ready.wait(2.0)
+            if len(self._keyframe_pts) > 0:
+                idx = self._get_frame_idx(self._keyframe_pts[0])[0]
             else:
                 idx = 0  # safe fallback
 
@@ -357,7 +357,7 @@ class VideoHandler:
 
         # Seek the next or previous keyframe based on the direction
         with self._lock:
-            delta = max(np.mean(np.diff(self._keypoint_pts[:10])) // 2, 1)
+            delta = max(np.mean(np.diff(self._keyframe_pts[:10])) // 2, 1)
         try:
             self.container.seek(
                 int(
@@ -419,7 +419,7 @@ class VideoHandler:
                 int(target_pts), backward=True, any_frame=False, stream=self.stream
             )
 
-        # Decode forward from the keypoint until the frame just before (or equal to) target_pts
+        # Decode forward from the keyframe until the frame just before (or equal to) target_pts
         last_idx, preceding_frame = self._decode_and_check_frames(use_time, target_pts, idx)
 
         if preceding_frame is not None:
@@ -524,8 +524,8 @@ class VideoHandler:
         self._running = False
         if self._index_thread.is_alive():
             self._index_thread.join(timeout=1)  # Be conservative, don’t block forever
-        if self._keypoint_thread.is_alive():
-            self._keypoint_thread.join(timeout=1)
+        if self._keyframe_thread.is_alive():
+            self._keyframe_thread.join(timeout=1)
         try:
             self.container.close()
         except Exception:
@@ -542,7 +542,7 @@ class VideoHandler:
         threads are completed.
         """
         self._index_ready.wait(timeout)
-        self._pts_keypoint_ready.wait(timeout)
+        self._pts_keyframe_ready.wait(timeout)
 
     def get_slice(self, start: float, end: float = None):
         # TODO check start and end are sorted
