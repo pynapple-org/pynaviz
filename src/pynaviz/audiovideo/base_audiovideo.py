@@ -41,6 +41,9 @@ class BaseAudioVideo:
         pass
 
     def _need_seek_call(self, current_frame_pts, target_frame_pts):
+        if current_frame_pts is None:
+            return True
+
         with self._lock:
             # return if empty list or empty array or not enough frmae
             if len(self._keyframe_pts) == 0 or self._keyframe_pts[-1] < target_frame_pts:

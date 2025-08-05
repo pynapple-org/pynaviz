@@ -26,9 +26,15 @@ class AudioHandler(BaseAudioVideo):
         self.duration = float(self.time_base * self.stream.duration)
         self.stream_index = stream_index
 
+        self.container.seek(0)
+        packet = next(self.container.demux(self.stream))
+        decoded = packet.decode()
+        while len(decoded) == 0:
+            decoded = packet.decode()
         # initialize current frame
-        self.current_frame: Optional[av.AudioFrame] = None
-
+        self.current_frame = decoded[-1]
+        self.initial_pts = self.current_frame.pts
+        self.pts_to_samples = int(self.current_frame.duration / self.current_frame.samples)
 
     def ts_to_pts(self, ts: float) -> int:
         """
@@ -76,15 +82,23 @@ class AudioHandler(BaseAudioVideo):
 
         current_pts = start
 
-        self.container.seek(
-            start,
-            backward=True,
-            any_frame=False,
-            stream=self.stream,
-        )
-        self.current_frame = None
+        if self._need_seek_call(getattr(self.current_frame, "pts", None),
+                                start):
+            self.container.seek(
+                start,
+                backward=True,
+                any_frame=False,
+                stream=self.stream,
+            )
+            self.current_frame = None
 
         frames: List[NDArray] = []
+        first_frame = True
+
+        if start < self.initial_pts:
+            zero_shape = (self.stream.channels,
+                          (self.initial_pts - start) // self.pts_to_samples)
+            frames.append(np.zeros(zero_shape))
 
         while current_pts < end:
             packet = next(self.container.demux(self.stream))
@@ -101,7 +115,15 @@ class AudioHandler(BaseAudioVideo):
                 if frame.pts is None:
                     continue
 
-                frames.append(frame.to_ndarray())
-                current_pts = frame.pts
+                if first_frame:
+                    idx = (start - frame.pts) // self.pts_to_samples
+                    frames.append(frame.to_ndarray()[:, idx:])
+                    first_frame = False
+                else:
+                    frames.append(frame.to_ndarray())
+                current_pts = frame.pts + frame.duration
+                self.current_frame = frame
 
-        return np.concatenate(frames, axis=1).T
+        frames = np.concatenate(frames, axis=1).T
+        idx = (frame.pts + frame.duration - end) // self.pts_to_samples
+        return frames[:-idx]
