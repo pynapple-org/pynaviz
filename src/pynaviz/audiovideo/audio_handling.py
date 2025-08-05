@@ -1,55 +1,33 @@
 import pathlib
 import threading
-import time
-import warnings
-from contextlib import contextmanager
-from ctypes.wintypes import PRECT
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import av
 import numpy as np
 
 # from line_profiler import profile
 from numpy.typing import NDArray
+from .base_audiovideo import BaseAudioVideo
 
-
-class AudioHandler:
+class AudioHandler(BaseAudioVideo):
     """Class for getting audiovideo frames."""
 
-    _thread_local = threading.local()
 
     def __init__(
         self,
         audio_path: str | pathlib.Path,
         stream_index: int = 0,
         time: Optional[NDArray] = None,
-        return_frame_array: bool = True,
     ) -> None:
-        self._thread_local.get_from_index = False
-        self.audio_path = pathlib.Path(audio_path)
-        self.container = av.open(audio_path)
+        super().__init__(audio_path)
         self.stream = self.container.streams.audio[stream_index]
         self.time_base = self.stream.time_base
         self.duration = float(self.time_base * self.stream.duration)
         self.stream_index = stream_index
-        self.return_frame_array = return_frame_array
-        self._running = True
-
-        # initialize index for last decoded frame
-        # if sampling of other signals (LFP) is much denser, multiple times the frame
-        # is unchanged, so cache the idx
-        self.last_loaded_idx = None
 
         # initialize current frame
         self.current_frame: Optional[av.AudioFrame] = None
-        self.current_frame_pts: Optional[tuple[int, int]] = None
 
-        self._lock = threading.Lock()
-
-        self._keyframe_pts = []
-        self._pts_keyframe_ready = threading.Event()
-        self._keyframe_thread = threading.Thread(target=self._extract_keyframes_pts, daemon=True)
-        self._keyframe_thread.start()
 
     def ts_to_pts(self, ts: float) -> int:
         """
@@ -85,42 +63,6 @@ class AudioHandler:
             with self._lock:
                 self._keyframe_pts = np.asarray(self._keyframe_pts)
             self._pts_keyframe_ready.set()
-
-    def _need_seek_call(self, current_frame_pts, target_frame_pts):
-        with self._lock:
-            # return if empty list or empty array or not enough frmae
-            if len(self._keyframe_pts) == 0 or self._keyframe_pts[-1] < target_frame_pts:
-                return True
-
-        # roll back the stream if audiovideo is scrolled backwards
-        if current_frame_pts > target_frame_pts:
-            return True
-
-        # find the closest keyframe pts before a given frame
-        idx = np.searchsorted(self._keyframe_pts, target_frame_pts, side="right")
-        closest_keyframe_pts = self._keyframe_pts[max(0, idx - 1)]
-
-        # if target_frame_pts is larger than current (and if code
-        # arrives here, it is, see second return statement),
-        # then seek forward if there is a future keyframe closest
-        # to the target.
-        return closest_keyframe_pts > current_frame_pts
-
-    def close(self):
-        """Close the audiovideo stream."""
-        self._running = False
-        if self._index_thread.is_alive():
-            self._index_thread.join(timeout=1)  # Be conservative, don’t block forever
-        if self._keyframe_thread.is_alive():
-            self._keyframe_thread.join(timeout=1)
-        try:
-            self.container.close()
-        except Exception:
-            print("AudioHandler failed to close the audiovideo stream.")
-        finally:
-            # dropping refs to fully close av.InputContainer
-            self.container = None
-            self.stream = None
 
     def get(
         self,
@@ -162,11 +104,3 @@ class AudioHandler:
                 current_pts = frame.pts
 
         return np.concatenate(frames, axis=1).T
-
-    # context protocol
-    # (with AudioHandler(path) as audiovideo ensure closing)
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
