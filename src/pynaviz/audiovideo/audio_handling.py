@@ -1,5 +1,4 @@
 import pathlib
-import threading
 from typing import List, Optional
 
 import av
@@ -7,7 +6,9 @@ import numpy as np
 
 # from line_profiler import profile
 from numpy.typing import NDArray
+
 from .base_audiovideo import BaseAudioVideo
+
 
 class AudioHandler(BaseAudioVideo):
     """Class for getting audiovideo frames."""

@@ -10,7 +10,9 @@ import numpy as np
 
 # from line_profiler import profile
 from numpy.typing import NDArray
+
 from .base_audiovideo import BaseAudioVideo
+
 
 class VideoHandler(BaseAudioVideo):
     """Class for getting video frames."""
