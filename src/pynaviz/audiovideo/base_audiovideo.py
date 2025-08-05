@@ -40,7 +40,6 @@ class BaseAudioVideo:
     def _extract_keyframes_pts(self):
         pass
 
-
     def _need_seek_call(self, current_frame_pts, target_frame_pts):
         with self._lock:
             # return if empty list or empty array or not enough frmae
