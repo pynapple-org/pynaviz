@@ -236,26 +236,6 @@ class VideoHandler(BaseAudioVideo):
         finally:
             self._index_ready.set()
 
-    # def _need_seek_call(self, current_frame_pts, target_frame_pts):
-    #     with self._lock:
-    #         # return if empty list or empty array or not enough frmae
-    #         if len(self._keyframe_pts) == 0 or self._keyframe_pts[-1] < target_frame_pts:
-    #             return True
-    #
-    #     # roll back the stream if video is scrolled backwards
-    #     if current_frame_pts > target_frame_pts:
-    #         return True
-    #
-    #     # find the closest keyframe pts before a given frame
-    #     idx = np.searchsorted(self._keyframe_pts, target_frame_pts, side="right")
-    #     closest_keyframe_pts = self._keyframe_pts[max(0, idx - 1)]
-    #
-    #     # if target_frame_pts is larger than current (and if code
-    #     # arrives here, it is, see second return statement),
-    #     # then seek forward if there is a future keyframe closest
-    #     # to the target.
-    #     return closest_keyframe_pts > current_frame_pts
-
     def _get_frame_idx(self, pts: int) -> int:
         """
         Get the frame index from the presentation time stamp.
@@ -514,22 +494,6 @@ class VideoHandler(BaseAudioVideo):
     @property
     def t(self):
         return self.time
-
-    # def close(self):
-    #     """Close the video stream."""
-    #     self._running = False
-    #     if self._index_thread.is_alive():
-    #         self._index_thread.join(timeout=1)  # Be conservative, don’t block forever
-    #     if self._keyframe_thread.is_alive():
-    #         self._keyframe_thread.join(timeout=1)
-    #     try:
-    #         self.container.close()
-    #     except Exception:
-    #         print("VideoHandler failed to close the video stream.")
-    #     finally:
-    #         # dropping refs to fully close av.InputContainer
-    #         self.container = None
-    #         self.stream = None
 
     def _wait_for_index(self, timeout=2.0):
         """Wait up to timeout.
