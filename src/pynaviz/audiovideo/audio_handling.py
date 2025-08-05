@@ -49,7 +49,7 @@ class AudioHandler(BaseAudioVideo):
 
     def _extract_keyframes_pts(self):
         try:
-            with av.open(self.audio_path) as container:
+            with av.open(self.file_path) as container:
                 stream = container.streams.audio[0]
                 for packet in container.demux(stream):
                     if not self._running:
