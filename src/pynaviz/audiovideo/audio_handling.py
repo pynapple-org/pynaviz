@@ -52,7 +52,12 @@ class AudioHandler(BaseAudioVideo):
                 f"Actual number of sample points: {self._tot_samples}\n"
                 f"Provided number of sample points: {len(time)}"
             )
-        self._time = None if time is None else np.array(time, dtype=float)
+        if time is not None:
+            time = np.array(time, dtype=float)
+            if time.ndim > 1:
+                raise ValueError(f"'time' must be 1 dimensional. {time.ndim}-array provided.")
+
+        self._time = time
 
     def ts_to_pts(self, ts: float) -> int:
         """
