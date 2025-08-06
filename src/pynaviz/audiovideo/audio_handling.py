@@ -20,6 +20,28 @@ class AudioHandler(BaseAudioVideo):
         stream_index: int = 0,
         time: Optional[NDArray] = None,
     ) -> None:
+        """Handler for reading and decoding audio frames from a file.
+
+        This class uses PyAV to access audio frames from a given file.
+        It allows querying time-aligned audio samples between two timepoints,
+        and provides audio shape and total length information.
+
+        Parameters
+        ----------
+        audio_path :
+            Path to the audio file.
+        stream_index :
+            Index of the audio stream to decode (default is 0).
+        time :
+            Optional 1D time axis to associate with the samples. Must match
+            the number of sample points in the audio file.
+
+        Raises
+        ------
+        ValueError
+            If the provided `time` axis is not 1D or does not match the
+            number of sample points in the audio file.
+        """
         super().__init__(audio_path)
         self.stream = self.container.streams.audio[stream_index]
         self.time_base = self.stream.time_base
@@ -65,12 +87,12 @@ class AudioHandler(BaseAudioVideo):
 
         Parameters
         ----------
-        ts : float
+        ts :
             Experimental timestamp to match.
 
         Returns
         -------
-        idx : int
+        idx :
             Index of the frame with time <= `ts`. Clipped to [0, len(time) - 1].
         """
         ts = np.clip(ts, 0, self.duration)
@@ -99,6 +121,21 @@ class AudioHandler(BaseAudioVideo):
         start: float,
         end: float,
     ) -> NDArray:
+        """
+        Extract a chunk of audio samples between two timestamps.
+
+        Parameters
+        ----------
+        start :
+            Start time in seconds.
+        end :
+            End time in seconds.
+
+        Returns
+        -------
+        :
+            2D array of shape (num_samples, num_channels) containing the audio data.
+        """
         start = self.ts_to_pts(start)
         end = self.ts_to_pts(end)
 
@@ -149,6 +186,14 @@ class AudioHandler(BaseAudioVideo):
 
     @property
     def time(self):
+        """
+        Time axis corresponding to the audio samples.
+
+        Returns
+        -------
+        :
+            Array of timestamps with shape (num_samples,).
+        """
         # generate time on the fly or use provided
         return (
             self._time if self._time is not None else
@@ -157,8 +202,24 @@ class AudioHandler(BaseAudioVideo):
 
     @property
     def shape(self):
+        """
+        Shape of the audio data.
+
+        Returns
+        -------
+        :
+            Tuple `(num_samples, num_channels)` describing the audio shape.
+        """
         return self._tot_samples, self.stream.codec_context.channels
 
     @property
     def tot_length(self):
+        """
+        Total duration of the audio in seconds.
+
+        Returns
+        -------
+        :
+            Total duration of the audio stream.
+        """
         return self._tot_time
