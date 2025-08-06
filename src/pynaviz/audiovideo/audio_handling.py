@@ -39,12 +39,20 @@ class AudioHandler(BaseAudioVideo):
         # Compute tot time (this is a Fraction that can be
         # converted to float to get the duration in sec).
         self._tot_time = self.stream.time_base * self.stream.duration
+
         # tot_time assumes that all samples have the same length
         # but the first sometimes doesn't, here we correct for that
         nominal_length = int(self._tot_time * self.stream.rate)
         self._tot_time = float(self._tot_time)
         full_frame_size = self.stream.codec_context.frame_size
         self._tot_samples = nominal_length - full_frame_size + self.current_frame.samples
+        if time is not None and len(time) != self._tot_samples:
+            raise ValueError(
+                "The provided time axis doesn't match the number of sample points in the audio file.\n"
+                f"Actual number of sample points: {self._tot_samples}\n"
+                f"Provided number of sample points: {len(time)}"
+            )
+        self._time = None if time is None else np.array(time, dtype=float)
 
     def ts_to_pts(self, ts: float) -> int:
         """
@@ -136,7 +144,11 @@ class AudioHandler(BaseAudioVideo):
 
     @property
     def time(self):
-        return np.linspace(0, float(self._tot_time), self._tot_samples)
+        # generate time on the fly or use provided
+        return (
+            self._time if self._time is not None else
+            np.linspace(0, float(self._tot_time), self._tot_samples)
+        )
 
     @property
     def shape(self):
