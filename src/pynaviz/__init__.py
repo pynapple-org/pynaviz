@@ -1,13 +1,13 @@
+from .audiovideo import (
+    PlotTsdTensor,
+    PlotVideo,
+)
 from .base_plot import (
     PlotIntervalSet,
     PlotTs,
     PlotTsd,
     PlotTsdFrame,
     PlotTsGroup,
-)
-from .audiovideo import (
-    PlotTsdTensor,
-    PlotVideo,
 )
 
 __all__ = [

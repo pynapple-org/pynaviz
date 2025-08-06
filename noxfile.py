@@ -8,6 +8,10 @@ def linters(session):
     """Run linters"""
     session.run("ruff", "check", "src", "--ignore", "D")
 
+@nox.session(name="linters-fix")
+def linters_fix(session):
+    """Run linters and auto-fix issues"""
+    session.run("ruff", "check", "src", "--ignore", "D", "--fix")
 
 @nox.session(name="tests", reuse_venv=True)
 def tests(session):
