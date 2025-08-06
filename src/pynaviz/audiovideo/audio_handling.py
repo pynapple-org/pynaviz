@@ -33,8 +33,18 @@ class AudioHandler(BaseAudioVideo):
             decoded = packet.decode()
         # initialize current frame
         self.current_frame = decoded[-1]
-        self.initial_pts = self.current_frame.pts
+        self.initial_pts = self.stream.start_time
         self.pts_to_samples = int(self.current_frame.duration / self.current_frame.samples)
+
+        # Compute tot time (this is a Fraction that can be
+        # converted to float to get the duration in sec).
+        self._tot_time = self.stream.time_base * self.stream.duration
+        # tot_time assumes that all samples have the same length
+        # but the first sometimes doesn't, here we correct for that
+        nominal_length = int(self._tot_time * self.stream.rate)
+        self._tot_time = float(self._tot_time)
+        full_frame_size = self.stream.codec_context.frame_size
+        self._tot_samples = nominal_length - full_frame_size + self.current_frame.samples
 
     def ts_to_pts(self, ts: float) -> int:
         """
@@ -76,7 +86,7 @@ class AudioHandler(BaseAudioVideo):
         start: float,
         end: float,
     ) -> NDArray:
-
+        larger_than_duration = end >= self.duration
         start = self.ts_to_pts(start)
         end = self.ts_to_pts(end)
 
@@ -125,5 +135,19 @@ class AudioHandler(BaseAudioVideo):
                 self.current_frame = frame
 
         frames = np.concatenate(frames, axis=1).T
-        idx = (frame.pts + frame.duration - end) // self.pts_to_samples
-        return frames[:-idx]
+        if not larger_than_duration:
+            idx = (frame.pts + frame.duration - end) // self.pts_to_samples
+            frames = frames[:-idx]
+        return frames
+
+    @property
+    def time(self):
+        return np.linspace(0, float(self._tot_time), self._tot_samples)
+
+    @property
+    def shape(self):
+        return self._tot_samples, self.stream.codec_context.channels
+
+    @property
+    def tot_length(self):
+        return self._tot_time
