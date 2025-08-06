@@ -68,6 +68,11 @@ class AudioHandler(BaseAudioVideo):
         self._tot_time = float(self._tot_time)
         full_frame_size = self.stream.codec_context.frame_size
         self._tot_samples = nominal_length - full_frame_size + self.current_frame.samples
+
+        self._time = self._check_and_cast_time(time)
+        self._initial_experimental_time_sec = 0 if self._time is None else self._time[0]
+
+    def _check_and_cast_time(self, time):
         if time is not None and len(time) != self._tot_samples:
             raise ValueError(
                 "The provided time axis doesn't match the number of sample points in the audio file.\n"
@@ -78,9 +83,7 @@ class AudioHandler(BaseAudioVideo):
             time = np.array(time, dtype=float)
             if time.ndim > 1:
                 raise ValueError(f"'time' must be 1 dimensional. {time.ndim}-array provided.")
-
-        self._time = time
-        self._initial_experimental_time_sec = 0 if self._time is None else self._time[0]
+        return time
 
     def ts_to_pts(self, ts: float) -> int:
         """
@@ -200,6 +203,9 @@ class AudioHandler(BaseAudioVideo):
             self._time if self._time is not None else
             np.linspace(0, float(self._tot_time), self._tot_samples)
         )
+    @time.setter
+    def time(self, time):
+        self._time = self._check_and_cast_time(time)
 
     @property
     def shape(self):
