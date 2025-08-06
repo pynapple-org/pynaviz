@@ -80,6 +80,7 @@ class AudioHandler(BaseAudioVideo):
                 raise ValueError(f"'time' must be 1 dimensional. {time.ndim}-array provided.")
 
         self._time = time
+        self._initial_experimental_time_sec = 0 if self._time is None else self._time[0]
 
     def ts_to_pts(self, ts: float) -> int:
         """
@@ -95,7 +96,7 @@ class AudioHandler(BaseAudioVideo):
         idx :
             Index of the frame with time <= `ts`. Clipped to [0, len(time) - 1].
         """
-        ts = np.clip(ts, 0, self.duration)
+        ts = np.clip(ts - self._initial_experimental_time_sec, 0, self.duration)
         return int(ts  / self.time_base + self.stream.start_time)
 
     def _extract_keyframes_pts(self):
