@@ -61,7 +61,7 @@ class AudioHandler(BaseAudioVideo):
             Index of the frame with time <= `ts`. Clipped to [0, len(time) - 1].
         """
         ts = np.clip(ts, 0, self.duration)
-        return int(ts / self.time_base)
+        return int(ts  / self.time_base + self.stream.start_time)
 
     def _extract_keyframes_pts(self):
         try:
@@ -86,7 +86,6 @@ class AudioHandler(BaseAudioVideo):
         start: float,
         end: float,
     ) -> NDArray:
-        larger_than_duration = end >= self.duration
         start = self.ts_to_pts(start)
         end = self.ts_to_pts(end)
 
@@ -104,11 +103,6 @@ class AudioHandler(BaseAudioVideo):
 
         frames: List[NDArray] = []
         first_frame = True
-
-        if start < self.initial_pts:
-            zero_shape = (self.stream.channels,
-                          (self.initial_pts - start) // self.pts_to_samples)
-            frames.append(np.zeros(zero_shape))
 
         while current_pts < end:
             packet = next(self.container.demux(self.stream))
@@ -134,10 +128,10 @@ class AudioHandler(BaseAudioVideo):
                 current_pts = frame.pts + frame.duration
                 self.current_frame = frame
 
+        idx = (frame.pts + frame.duration - end) // self.pts_to_samples
         frames = np.concatenate(frames, axis=1).T
-        if not larger_than_duration:
-            idx = (frame.pts + frame.duration - end) // self.pts_to_samples
-            frames = frames[:-idx]
+        # handle corner case: end == frame.pts + frame.duration
+        frames = frames[:-idx] if idx > 0 else frames
         return frames
 
     @property
