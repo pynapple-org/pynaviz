@@ -45,30 +45,39 @@ class AudioHandler(BaseAudioVideo):
         super().__init__(audio_path)
         self.stream = self.container.streams.audio[stream_index]
         self.time_base = self.stream.time_base
-        self.duration = float(self.time_base * self.stream.duration)
         self.stream_index = stream_index
+        # decode last and first frame (in this order so that the stream
+        # stream is currently at the beginning), and grab information about
+        # the frames
+        self.container.seek(self.stream.duration)
+        packet = next(self.container.demux(self.stream))
+        decoded = packet.decode()
+        while len(decoded) == 0:
+            decoded = packet.decode()
+        last_frame_samples = decoded[-1].samples
 
         self.container.seek(0)
         packet = next(self.container.demux(self.stream))
         decoded = packet.decode()
         while len(decoded) == 0:
             decoded = packet.decode()
+
         # initialize current frame
         self.current_frame = decoded[-1]
-        self.initial_pts = self.stream.start_time
+        self.start_time_pts = self.stream.start_time if self.stream.start_time is not None else self.current_frame.pts
+        self.stop_time_pts = self.start_time_pts + self.stream.duration
         self.pts_to_samples = int(self.current_frame.duration / self.current_frame.samples)
-
-        # Compute tot time (this is a Fraction that can be
-        # converted to float to get the duration in sec).
-        self._tot_time = self.stream.time_base * self.stream.duration
 
         # tot_time assumes that all samples have the same length
         # but the first sometimes doesn't, here we correct for that
-        nominal_length = int(self._tot_time * self.stream.rate)
-        self._tot_time = float(self._tot_time)
-        full_frame_size = self.stream.codec_context.frame_size
-        self._tot_samples = nominal_length - full_frame_size + self.current_frame.samples
-
+        full_frame_size = self.stream.codec_context.frame_size if  self.stream.codec_context.frame_size > 0 else self.current_frame.duration
+        self._tot_samples = int(
+            self.stream.time_base * self.stream.duration * self.stream.rate -
+            2 * full_frame_size + last_frame_samples + self.current_frame.samples
+        )
+        self.duration = float(self._tot_samples / self.stream.rate)
+        # if the codec context stores the frame_size info, then get the size form it,
+        # otherwise assume that each frame has the same size (as in a wav)
         self._time = self._check_and_cast_time(time)
         self._initial_experimental_time_sec = 0 if self._time is None else self._time[0]
 
@@ -100,7 +109,7 @@ class AudioHandler(BaseAudioVideo):
             Index of the frame with time <= `ts`. Clipped to [0, len(time) - 1].
         """
         ts = np.clip(ts - self._initial_experimental_time_sec, 0, self.duration)
-        return int(ts  / self.time_base + self.stream.start_time)
+        return int(ts / self.time_base + self.start_time_pts)
 
     def _extract_keyframes_pts(self):
         try:
@@ -155,8 +164,15 @@ class AudioHandler(BaseAudioVideo):
             )
             self.current_frame = None
 
-        frames: List[NDArray] = []
         first_frame = True
+
+        if self.current_frame is not None and self.current_frame.pts == start:
+            frame_array = self.current_frame.to_ndarray()
+            idx = (start - self.current_frame.pts) // self.pts_to_samples
+            frames: List[NDArray] = [frame_array[:, idx:]]
+            first_frame = False
+        else:
+            frames: List[NDArray] = []
 
         while current_pts < end:
             packet = next(self.container.demux(self.stream))
@@ -201,7 +217,7 @@ class AudioHandler(BaseAudioVideo):
         # generate time on the fly or use provided
         return (
             self._time if self._time is not None else
-            np.linspace(0, float(self._tot_time), self._tot_samples)
+            np.linspace(0, float(self.duration), self._tot_samples)
         )
     @time.setter
     def time(self, time):
@@ -229,4 +245,4 @@ class AudioHandler(BaseAudioVideo):
         :
             Total duration of the audio stream.
         """
-        return self._tot_time
+        return self.duration
