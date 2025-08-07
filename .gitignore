@@ -170,10 +170,7 @@ tests/screenshots/
 
 /.vscode
 
-<<<<<<< HEAD
-=======
 # ignore the tests/test_video folder autogenerate by the script generate_numbered_video
 tests/test_video/
 tests/screenshots/
-
->>>>>>> dev
+tests/test_audio/
