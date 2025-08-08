@@ -75,7 +75,7 @@ class VideoHandler(BaseAudioVideo):
 
 
     @staticmethod
-    def ts_to_index(ts: float, time: NDArray) -> int:
+    def _ts_to_index(ts: float, time: NDArray) -> int:
         """
         Return the index of the frame whose experimental time is just before (or equal to) `ts`.
 
@@ -100,7 +100,7 @@ class VideoHandler(BaseAudioVideo):
         idx = np.searchsorted(time, ts, side="right") - 1
         return np.clip(idx, 0, len(time) - 1)
 
-    def extract_keyframe_times_and_points(
+    def _extract_keyframe_times_and_points(
         self, video_path: str | pathlib.Path, stream_index: int = 0, first_only=False
     ) -> Tuple[NDArray, NDArray] | None:
         """
@@ -318,7 +318,7 @@ class VideoHandler(BaseAudioVideo):
                 use_time = True
         return target_pts, use_time
 
-    def get_key_frame(self, backward) -> av.VideoFrame | NDArray:
+    def _get_key_frame(self, backward) -> av.VideoFrame | NDArray:
         idx = self.last_loaded_idx
         if idx is None:
             # fallback to safe keyframe
@@ -375,7 +375,7 @@ class VideoHandler(BaseAudioVideo):
 
     def get(self, ts: float) -> av.VideoFrame | NDArray:
         if not getattr(self._thread_local, "get_from_index", False):
-            idx = self.ts_to_index(ts, self.time)
+            idx = self._ts_to_index(ts, self.time)
         else:
             idx = ts
 
@@ -470,14 +470,16 @@ class VideoHandler(BaseAudioVideo):
                 "calculated runtime and will be updated.",
                 stacklevel=2,
             )
+        with self._lock:
+            current_len = self._i
         return (
             (len(self.time), self.stream.width, self.stream.height)
             if has_frames
-            else (len(self.all_pts), self.stream.width, self.stream.height)
+            else (current_len, self.stream.width, self.stream.height)
         )
 
     @property
-    def index(self):
+    def index(self) -> NDArray:
         if self._time_provided:
             return self.time
         else:
@@ -492,7 +494,7 @@ class VideoHandler(BaseAudioVideo):
             return self.time
 
     @property
-    def t(self):
+    def t(self) -> NDArray:
         return self.time
 
     def _wait_for_index(self, timeout=2.0):
@@ -506,9 +508,9 @@ class VideoHandler(BaseAudioVideo):
 
     def get_slice(self, start: float, end: float = None):
         # TODO check start and end are sorted
-        start = self.ts_to_index(start, self.time)
+        start = self._ts_to_index(start, self.time)
         if end:
-            end = self.ts_to_index(end, self.time)
+            end = self._ts_to_index(end, self.time)
             return slice(start, end)
         else:
             return slice(start, start + 1)
@@ -615,7 +617,7 @@ class VideoHandler(BaseAudioVideo):
 
         return indices[-1], frames, frame
 
-    def __getitem__(self, idx: slice | int):
+    def __getitem__(self, idx: slice | int) -> NDArray | av.VideoFrame | List[av.VideoFrame]:
         """
         Get item for video frame.
 
@@ -624,12 +626,13 @@ class VideoHandler(BaseAudioVideo):
         Parameters
         ----------
         idx:
-            The index for slicing.
+            The index for slicing, can be a slice or a integer.
 
         Returns
         -------
         frame:
-            A video frame.
+            An array, if ``return_frame_array==True``, otherwise a single `av.VideoFrame` if indexing with an integer,
+            or a  list of `av.VideoFrame` frames if indexing with a slice.
 
         """
         if isinstance(idx, slice):
@@ -674,12 +677,18 @@ class VideoHandler(BaseAudioVideo):
 
         # Default case: single index
         with self._set_get_from_index(True):
-            # TODO CHeck borders
+            # TODO Check borders
             idx_start = idx if not hasattr(idx, "start") else idx.start
             idx_start = idx_start if idx_start >= 0 else self.shape[0] + idx_start
             frame = self.get(idx_start)
+            # handle slice requesting a single frame:
+            # for arrays add 1 dimension (1, pixel, pixel)
+            # for frames return a len 1 list.
             if isinstance(idx, slice):
-                frame = np.expand_dims(frame, axis=0)
+                if isinstance(frame, np.ndarray):
+                    frame = np.expand_dims(frame, axis=0)
+                else:
+                    frame = [frame]
 
         return frame
 

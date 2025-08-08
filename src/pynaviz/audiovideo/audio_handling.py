@@ -11,8 +11,28 @@ from .base_audiovideo import BaseAudioVideo
 
 
 class AudioHandler(BaseAudioVideo):
-    """Class for getting audiovideo frames."""
+    """Handler for reading and decoding audio frames from a file.
 
+    This class uses PyAV to access audio frames from a given file.
+    It allows querying time-aligned audio samples between two timepoints,
+    and provides audio shape and total length information.
+
+    Parameters
+    ----------
+    audio_path :
+        Path to the audio file.
+    stream_index :
+        Index of the audio stream to decode (default is 0).
+    time :
+        Optional 1D time axis to associate with the samples. Must match
+        the number of sample points in the audio file.
+
+    Raises
+    ------
+    ValueError
+        If the provided `time` axis is not 1D or does not match the
+        number of sample points in the audio file.
+    """
 
     def __init__(
         self,
@@ -20,28 +40,7 @@ class AudioHandler(BaseAudioVideo):
         stream_index: int = 0,
         time: Optional[NDArray] = None,
     ) -> None:
-        """Handler for reading and decoding audio frames from a file.
 
-        This class uses PyAV to access audio frames from a given file.
-        It allows querying time-aligned audio samples between two timepoints,
-        and provides audio shape and total length information.
-
-        Parameters
-        ----------
-        audio_path :
-            Path to the audio file.
-        stream_index :
-            Index of the audio stream to decode (default is 0).
-        time :
-            Optional 1D time axis to associate with the samples. Must match
-            the number of sample points in the audio file.
-
-        Raises
-        ------
-        ValueError
-            If the provided `time` axis is not 1D or does not match the
-            number of sample points in the audio file.
-        """
         super().__init__(audio_path)
         self.stream = self.container.streams.audio[stream_index]
         self.time_base = self.stream.time_base
@@ -94,7 +93,7 @@ class AudioHandler(BaseAudioVideo):
                 raise ValueError(f"'time' must be 1 dimensional. {time.ndim}-array provided.")
         return time
 
-    def ts_to_pts(self, ts: float) -> int:
+    def _ts_to_pts(self, ts: float) -> int:
         """
         Convert time point to sound pts, clipping if necessary.
 
@@ -254,8 +253,47 @@ class AudioHandler(BaseAudioVideo):
         raise ValueError("Failed to decode the first audio frame with sufficient preroll.")
 
     def get(self, start: float, end: float) -> NDArray:
-        start_pts = self.ts_to_pts(start)
-        end_pts = self.ts_to_pts(end)
+        """
+        Extract decoded frames from a video between two timestamps.
+
+        This method decodes and returns the raw video frames corresponding to
+        the time interval ``[start, end]`` in seconds. Decoding begins from the
+        nearest keyframe at or before ``start``, and proceeds sequentially until
+        the end timestamp is reached or exceeded. If the last decoded frame
+        extends beyond ``end``, trailing samples are truncated so that the
+        returned array aligns with the requested time range.
+
+        Parameters
+        ----------
+        start : float
+            Start time of the segment to extract, in seconds.
+        end : float
+            End time of the segment to extract, in seconds. Must be greater
+            than ``start``.
+
+        Returns
+        -------
+        :
+            A 2D NumPy array containing the decoded frames for the requested
+            interval. The exact shape depends on the video format and frame size,
+            with the first dimension corresponding to time (frame index or
+            samples) and the remaining dimensions containing
+            audio channels.
+
+        Notes
+        -----
+        - The returned frames are decoded in sequence and concatenated before
+          being transposed so that time is the first dimension.
+        - If ``end`` falls between two frames, the last frame is partially trimmed
+          to match the requested duration.
+
+        See Also
+        --------
+        `av.AudioFrame <https://pyav.org/docs/stable/api/audio.html#module-av.audio.frame>`
+            The PyAV frame object.
+        """
+        start_pts = self._ts_to_pts(start)
+        end_pts = self._ts_to_pts(end)
 
         frames, current_pts = self._decode_first(start_pts)
 
@@ -331,3 +369,18 @@ class AudioHandler(BaseAudioVideo):
             Total duration of the audio stream.
         """
         return self.duration
+
+    def __len__(self):
+        return self._tot_samples
+
+    @property
+    def index(self):
+        """
+        Time axis corresponding to the audio samples.
+
+        Returns
+        -------
+        :
+            Array of timestamps with shape (num_samples,).
+        """
+        return self.time

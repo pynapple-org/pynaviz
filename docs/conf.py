@@ -150,7 +150,11 @@ nb_execution_timeout = 60 * 15
 # nb_execution_raise_on_error = True
 
 intersphinx_mapping = {
-    'pynapple': ('https://pynapple-org.github.io/pynapple/', None)
+    'pynapple': ('https://pynapple-org.github.io/pynapple/', None),
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "av": ("https://pyav.org/docs/stable/", None),
+    "pygfx": ("https://docs.pygfx.org/stable", None),
 }
 
 

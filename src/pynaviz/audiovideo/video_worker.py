@@ -56,7 +56,7 @@ def video_worker_process(
             break
 
         if request_type == RenderTriggerSource.LOCAL_KEY:
-            frame, idx = handler.get_key_frame(move_key_frame)
+            frame, idx = handler._get_key_frame(move_key_frame)
         else:
             frame = handler[idx]  # shape: (H, W, 3) in RGB, float32
 
