@@ -158,5 +158,15 @@ intersphinx_mapping = {
 }
 
 
+autodoc_typehints = "description"
+autodoc_type_aliases = {
+    "numpy.typing.NDArray": "NDArray",
+    "numpy.typing.ArrayLike": "ArrayLike",
+}
 
+napoleon_preprocess_types = True
+napoleon_type_aliases = {
+    "NDArray": "numpy.typing.NDArray",
+    "ArrayLike": "numpy.typing.ArrayLike",
+}
 
