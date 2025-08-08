@@ -41,6 +41,7 @@ API reference
     GetController
 
 .. rubric:: Audio and Video Manipulation
+Classes allowing random access to video and audio frames, with ``pynapple``-like ``get`` syntax or by indexing.
 
 .. currentmodule:: pynaviz.audiovideo
 
