@@ -38,7 +38,7 @@ def tests(session):
     generated_audio = [f"noise_audio{ext}" for ext in [".mp3", ".wav", ".flac"]]
     is_in_dir = all((audio_dir / name).exists() for name in generated_audio)
     if not is_in_dir:
-        session.log("Generating sine wave audio...")
+        session.log("Generating noise wave audio...")
         session.run(
             "python",
             f"{audio_dir.parent / 'generate_noise_audio.py'}"
