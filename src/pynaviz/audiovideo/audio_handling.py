@@ -130,109 +130,143 @@ class AudioHandler(BaseAudioVideo):
             self._pts_keyframe_ready.set()
 
     def _decode_first(self, start: int):
-        if self.current_frame is not None and self.current_frame.pts <= start <= self.current_frame.pts + self.current_frame.duration:
-            frame = self.current_frame
-            idx = (start - frame.pts) // self.pts_to_samples
-            return [frame.to_ndarray()[:, idx:]], frame.pts + frame.duration
+        """Decode first frame backing off if more warm-up is needed.
 
-        is_mp3 = self.container.format.name == "mp3"
-        max_backoff = int(1.0 / self.time_base) # ~1sec
-        backoff_step = int(0.1 / self.time_base)  # ~100ms
+        This method attempts to start decoding at `start`, handling formats
+        (notably MP3) that may require a preroll due to inter-frame dependencies.
 
-        # how much backing off is needed
-        backoff = 0 if not is_mp3 else backoff_step
-
-        is_valid = False
-        safe_start = max(start - backoff, 0)
-        first_frame = True
-        frames = []
-        current_pts = safe_start
-        while  start - safe_start < max_backoff and not is_valid:
-            if current_pts == safe_start and self._need_seek_call(
-                    getattr(self.current_frame, "pts", None),
-                    current_pts
-            ):
-                self.container.seek(
-                    current_pts,
-                    backward=True,
-                    any_frame=False,
-                    stream=self.stream,
-                )
-                self.current_frame = None
-
-            packet = next(self.container.demux(self.stream))
-            try:
-                decoded = packet.decode()
-                while len(decoded) == 0:
-                    decoded = packet.decode()
-            except av.error.EOFError:
-                # end of the audio, rewind
-                break
-
-            for frame in decoded:
-
-                if frame.pts is None:
-                    continue
-
-                elif frame.pts <= start <= frame.pts + frame.duration:
-                    # check that the first frame is not empty, otherwise start before
-                    is_valid = np.any(frame.to_ndarray() != 0)
-                    if not is_valid:
-                        safe_start -= backoff
-                        current_pts = safe_start
-                        continue
-
-                    if first_frame:
-                        idx = (start - frame.pts) // self.pts_to_samples
-                        frames.append(frame.to_ndarray()[:, idx:])
-                        first_frame = False
-                    else:
-                        frames.append(frame.to_ndarray())
-
-                current_pts = frame.pts + frame.duration
-                self.current_frame = frame
-        if is_valid is False:
-            raise ValueError("Failed to decode the first audio frame.")
-        return frames, current_pts
-
-    def get(
-        self,
-        start: float,
-        end: float,
-    ) -> NDArray:
-        """
-        Extract a chunk of audio samples between two timestamps.
+        Behavior:
+        ---------
+        - If the current frame in memory already covers `start`, return a
+          sliced version without seeking.
+        - For most formats (WAV, FLAC, etc.), decoding starts exactly at `start`.
+        - For MP3, decoding may start slightly earlier (initially 100 ms before
+          `start`) to avoid returning an empty or silent first frame. If the
+          first decoded frame is invalid, the preroll is increased in 100 ms
+          steps, up to 1 second.
 
         Parameters
         ----------
-        start :
-            Start time in seconds.
-        end :
-            End time in seconds.
+        start : int
+            Start position in presentation timestamp (PTS) units.
 
         Returns
         -------
-        :
-            2D array of shape (num_samples, num_channels) containing the audio data.
+        frames : list of np.ndarray
+            Decoded audio data for the first chunk starting at `start`
+            (possibly beginning earlier for MP3 preroll).
+        current_pts : int
+            PTS of the last decoded frame.
+
+        Raises
+        ------
+        ValueError
+            If no valid first frame can be decoded within the allowed preroll
+            (for MP3) or starting exactly at `start` (for other formats).
+
+        Notes
+        -----
+        MP3 decoding requires preroll because frames are not independently
+        decodable; starting too close to `start` can yield an all-zero frame.
+        Other formats are decoded directly from `start`.
         """
+        # Fast-path: current frame already spans 'start'
+        cf = self.current_frame
+        if cf is not None and cf.pts is not None and cf.pts <= start <= cf.pts + cf.duration:
+            idx = (start - cf.pts) // self.pts_to_samples
+            return [cf.to_ndarray()[:, idx:]], cf.pts + cf.duration
 
-        start = self.ts_to_pts(start)
-        end = self.ts_to_pts(end)
-        frames, current_pts = self._decode_first(start)
+        # change this if more than one format needs a preroll
+        is_mp3 = self.container.format.name == "mp3"
+        max_backoff = int(1.0 / self.time_base)  # ~1s in PTS
+        backoff_step = int(0.1 / self.time_base)  # ~100ms in PTS
 
-        while current_pts < end:
-            packet = next(self.container.demux(self.stream))
+        # MP3 typically needs preroll; others generally don't
+        backoff = backoff_step if is_mp3 else 0
 
-            try:
+        while (start - max(0, start - backoff)) < max_backoff:
+            safe_start = max(0, start - backoff)
+
+            # Seek once per attempt
+            self.container.seek(
+                safe_start,
+                backward=True,
+                any_frame=False,
+                stream=self.stream,
+            )
+            self.current_frame = None
+
+            current_pts = safe_start
+            first_frame = True
+            frames: list[np.ndarray] = []
+            need_retry_with_more_backoff = False
+
+            # Demux packets until we either assemble the first slice or decide to retry
+            for packet in self.container.demux(self.stream):
                 decoded = packet.decode()
-                while len(decoded) == 0:
-                    decoded = packet.decode()
-            except av.error.EOFError:
-                # end of the audiovideo, rewind
-                break
+                if not decoded:
+                    continue
+
+                for frame in decoded:
+                    if frame.pts is None:
+                        continue
+
+                    # Skip warmup frames before 'start'
+                    if frame.pts + frame.duration <= start:
+                        self.current_frame = frame
+                        current_pts = frame.pts + frame.duration
+                        continue
+
+                    # We’re at the frame covering 'start'
+                    arr = frame.to_ndarray()
+
+                    # MP3: first frame after seek can decode as silence (zeros); back off and retry
+                    # Note that mp3 returns all zeros if frame was iif not decoded properly. This may
+                    # lead to erroneous conclusion for non-mp3s.
+                    if is_mp3 and first_frame and not np.any(arr):
+                        need_retry_with_more_backoff = True
+                        break  # break inner frame loop to increase backoff and re-seek
+
+                    if first_frame:
+                        idx = (start - frame.pts) // self.pts_to_samples
+                        frames.append(arr[:, idx:])
+                        first_frame = False
+                    else:
+                        frames.append(arr)
+
+                    current_pts = frame.pts + frame.duration
+                    self.current_frame = frame
+
+                # Decide what to do after processing this packet
+                if need_retry_with_more_backoff:
+                    break  # go increase backoff and retry a new attempt
+
+                if frames:
+                    # We’ve produced the first slice; return to let caller continue decoding
+                    return frames, current_pts
+
+                # else: no usable frame yet → continue demuxing next packet
+
+            if need_retry_with_more_backoff:
+                backoff += backoff_step
+                continue
+
+
+        raise ValueError("Failed to decode the first audio frame with sufficient preroll.")
+
+    def get(self, start: float, end: float) -> NDArray:
+        start_pts = self.ts_to_pts(start)
+        end_pts = self.ts_to_pts(end)
+
+        frames, current_pts = self._decode_first(start_pts)
+
+        # Decode subsequent full frames until we pass 'end'
+        for packet in self.container.demux(self.stream):
+            decoded = packet.decode()
+            if not decoded:
+                continue
 
             for frame in decoded:
-
                 if frame.pts is None:
                     continue
 
@@ -240,11 +274,21 @@ class AudioHandler(BaseAudioVideo):
                 current_pts = frame.pts + frame.duration
                 self.current_frame = frame
 
-        idx = (frame.pts + frame.duration - end) // self.pts_to_samples
-        frames = np.concatenate(frames, axis=1).T
-        # handle corner case: end == frame.pts + frame.duration
-        frames = frames[:-idx] if idx > 0 else frames
-        return frames
+                if current_pts >= end_pts:
+                    break
+            if current_pts >= end_pts:
+                break
+
+        # Concatenate and trim tail if we overshot 'end'
+        out = np.concatenate(frames, axis=1).T
+
+        overhang_pts = current_pts - end_pts
+        if overhang_pts > 0:
+            chop = int(overhang_pts // self.pts_to_samples)
+            if chop > 0:
+                out = out[:-chop]
+
+        return out
 
     @property
     def time(self):
