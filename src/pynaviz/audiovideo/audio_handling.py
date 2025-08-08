@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import Optional
+from typing import Optional, Tuple
 
 import av
 import numpy as np
@@ -330,7 +330,7 @@ class AudioHandler(BaseAudioVideo):
         return out
 
     @property
-    def t(self):
+    def t(self) -> NDArray:
         """
         Time axis corresponding to the audio samples.
 
@@ -349,7 +349,7 @@ class AudioHandler(BaseAudioVideo):
         self._time = self._check_and_cast_time(time)
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, int]:
         """
         Shape of the audio data.
 
@@ -361,7 +361,7 @@ class AudioHandler(BaseAudioVideo):
         return self._tot_samples, self.stream.codec_context.channels
 
     @property
-    def tot_length(self):
+    def tot_length(self) -> float:
         """
         Total duration of the audio in seconds.
 
@@ -376,7 +376,7 @@ class AudioHandler(BaseAudioVideo):
         return self._tot_samples
 
     @property
-    def index(self):
+    def index(self) -> NDArray:
         """
         Time axis corresponding to the audio samples.
 
