@@ -53,5 +53,10 @@ def test_av_handler_partial_decoding(fully_decoded_audio):
         concat_array = np.concatenate(frame_arrays, axis=1).T
         np.testing.assert_array_equal(array, concat_array)
         # this may fail if the seek behavior is wrong
-        array = handler.get(0, handler.tot_length/2)
+        array = handler.get(0, handler.tot_length / 2)
         np.testing.assert_array_equal(array, concat_array[:concat_array.shape[0]//2])
+        array = handler.get(handler.tot_length / 2, handler.tot_length)
+        np.testing.assert_array_equal(array, concat_array[concat_array.shape[0] // 2:])
+        array = handler.get(handler.tot_length / 4., handler.tot_length - handler.tot_length / 4.)
+        np.testing.assert_array_equal(array, concat_array[concat_array.shape[0] // 4: - concat_array.shape[0] // 4])
+
