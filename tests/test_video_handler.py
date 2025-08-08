@@ -143,7 +143,7 @@ def test_getitem_slice_matches_expected(video_info, start, stop, step):
     video_obj.data.return_frame_array = False
     frames = video_obj.data[start:stop:step]
     video_obj.data.return_frame_array = True
-    # make sure the audiovideo meta-info about time are fully computed
+    # make sure the video meta-info about time are fully computed
     video_obj.data._wait_for_index(timeout=15)
     for i, frame in zip(range(start, stop, step), frames):
         with video_obj.data._set_get_from_index(True):
