@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pathlib
 import threading
 import time
@@ -15,7 +17,30 @@ from .base_audiovideo import BaseAudioVideo
 
 
 class VideoHandler(BaseAudioVideo):
-    """Class for getting video frames."""
+    """
+    Random-access video reader with timestamp-aware seeking.
+
+    This class wraps a PyAV container to provide precise, timestamp-based
+    random access to frames. It can return either `av.VideoFrame` objects
+    or RGB float arrays in the shape ``(H, W, 3)`` normalized to ``[0, 1]``.
+    Internally, a background thread builds an index of presentation timestamps
+    (PTS) for fast seeks, with a fallback to on-the-fly indexing when the total
+    frame count is unknown.
+
+    Parameters
+    ----------
+    video_path :
+        Path to the video file.
+    stream_index :
+        Index of the video stream to use, default is 0.
+    time :
+        Experimental timestamps for each frame (seconds). If ``None``, a
+        uniform grid is generated from the stream's average rate.
+    return_frame_array :
+        If ``True`` (default), return frames as ``np.ndarray`` (RGB, float32 in ``[0, 1]``);
+        otherwise return `av.VideoFrame` instances.
+
+    """
 
     _thread_local = threading.local()
 
@@ -374,6 +399,28 @@ class VideoHandler(BaseAudioVideo):
         )
 
     def get(self, ts: float) -> av.VideoFrame | NDArray:
+        """
+        Return the frame at (or immediately preceding) a timestamp.
+
+        Parameters
+        ----------
+        ts : float
+            Target time in seconds.
+
+        Returns
+        -------
+        :
+            If ``return_frame_array`` is ``True``, returns an array with shape
+            ``(H, W, 3)`` (RGB, float32 in ``[0, 1]``). Otherwise returns an
+            `av.VideoFrame`.
+
+        Notes
+        -----
+        - Seeks to the closest keyframe behind ``ts`` and decodes forward
+          until the target is reached.
+        - Uses an internal cache: if the requested frame index matches the
+          previously decoded one, the cached frame is returned.
+        """
         if not getattr(self._thread_local, "get_from_index", False):
             idx = self._ts_to_index(ts, self.time)
         else:
@@ -457,7 +504,17 @@ class VideoHandler(BaseAudioVideo):
         return last_idx, preceding_frame
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, int, int]:
+        """
+        :
+            Shape of the video, ``(n_frames, width, height)``.
+
+        Notes
+        -----
+        - When the total frame count is unknown at initialization, the length
+          may grow while the background indexer discovers frames. A warning is
+          emitted until indexing is complete.
+        """
         if (
             self._time_provided
         ):  # TODO maybe check what is the actual number of frames decoded and throw a warning
@@ -480,6 +537,13 @@ class VideoHandler(BaseAudioVideo):
 
     @property
     def index(self) -> NDArray:
+        """
+        Time index in seconds corresponding to frames.
+
+        If ``time`` was provided at initialization, that array is returned.
+        Otherwise, a uniformly spaced array derived from the stream rate is used
+        and may be updated as indexing progresses.
+        """
         if self._time_provided:
             return self.time
         else:
@@ -495,6 +559,13 @@ class VideoHandler(BaseAudioVideo):
 
     @property
     def t(self) -> NDArray:
+        """
+        Time index in seconds corresponding to frames.
+
+        If ``time`` was provided at initialization, that array is returned.
+        Otherwise, a uniformly spaced array derived from the stream rate is used
+        and may be updated as indexing progresses.
+        """
         return self.time
 
     def _wait_for_index(self, timeout=2.0):
@@ -630,10 +701,13 @@ class VideoHandler(BaseAudioVideo):
 
         Returns
         -------
-        frame:
-            An array, if ``return_frame_array==True``, otherwise a single `av.VideoFrame` if indexing with an integer,
-            or a  list of `av.VideoFrame` frames if indexing with a slice.
-
+        ndarray or av.VideoFrame or list[av.VideoFrame]
+            - If indexing with an ``int``:
+              returns a single frame (array or `av.VideoFrame`).
+            - If indexing with a ``slice``:
+              returns a stack of frames as ``ndarray`` with shape
+              ``(n_frames, height, width, 3)`` when ``return_frame_array`` is ``True``,
+              otherwise a ``list[av.VideoFrame]``.
         """
         if isinstance(idx, slice):
             # Fill in missing slice components
