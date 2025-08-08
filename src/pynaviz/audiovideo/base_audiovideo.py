@@ -33,7 +33,7 @@ class BaseAudioVideo:
         self._keyframe_thread.start()
 
     @abc.abstractmethod
-    def ts_to_pts(self, ts: float) -> int:
+    def _ts_to_pts(self, ts: float) -> int:
         pass
 
     @abc.abstractmethod

@@ -40,6 +40,19 @@ API reference
     SpanController
     GetController
 
+.. rubric:: Audio and Video Manipulation
+
+.. currentmodule:: pynaviz.audiovideo
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+    :recursive:
+
+    AudioHandler
+    VideoHandler
+
+
 .. rubric:: Pynaviz
 
 .. currentmodule:: pynaviz
