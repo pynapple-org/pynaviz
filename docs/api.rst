@@ -18,7 +18,7 @@ API reference
     PlotTs
     PlotTsGroup
 
-.. currentmodule:: pynaviz.video.video_plot
+.. currentmodule:: pynaviz.audiovideo.video_plot
 
 .. autosummary::
     :toctree: generated/
