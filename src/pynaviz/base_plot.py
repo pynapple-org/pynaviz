@@ -412,7 +412,7 @@ class PlotTsdFrame(_BasePlot):
         parent: Optional[Any] = None,
     ):
         super().__init__(data=data, parent=parent)
-        self.data = data
+        self._data = data
 
         # To stream data
         size = (256 * 1024**2) // (data.shape[1] * 60)
@@ -704,7 +704,9 @@ class PlotTsdFrame(_BasePlot):
             Raised when the specified metadata field has no associated color mapping.
         """
         # If the color mapping thread is still processing, retry in 25 milliseconds
-        if self.color_mapping_thread.is_running():
+        # print(self.color_mapping_thread.color_maps, self.color_mapping_thread.colormap_ready.is_set())
+        if not self.color_mapping_thread.colormap_ready.is_set():
+            # print(self.color_mapping_thread.color_maps, self.color_mapping_thread.colormap_ready.is_set())
             slot = lambda: self.color_by(
                 metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
             )

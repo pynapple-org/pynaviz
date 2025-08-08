@@ -108,7 +108,9 @@ class MetadataMappingThread:
         # create the worker
         self.worker = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.future = None
+        self.colormap_ready = threading.Event()
         self.compute_map()
+
 
     def update_maps(self, time_series):
         self.request_stop()
@@ -184,3 +186,5 @@ class MetadataMappingThread:
             else:
                 with self.map_lock:
                     self.color_maps[col] = None
+
+        self.colormap_ready.set()
