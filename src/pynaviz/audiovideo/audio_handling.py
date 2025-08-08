@@ -330,7 +330,7 @@ class AudioHandler(BaseAudioVideo):
         return out
 
     @property
-    def time(self):
+    def t(self):
         """
         Time axis corresponding to the audio samples.
 
@@ -344,8 +344,8 @@ class AudioHandler(BaseAudioVideo):
             self._time if self._time is not None else
             np.linspace(0, float(self.duration), self._tot_samples)
         )
-    @time.setter
-    def time(self, time):
+    @t.setter
+    def t(self, time):
         self._time = self._check_and_cast_time(time)
 
     @property
@@ -385,4 +385,4 @@ class AudioHandler(BaseAudioVideo):
         :
             Array of timestamps with shape (num_samples,).
         """
-        return self.time
+        return self.t
