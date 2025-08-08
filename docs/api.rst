@@ -14,11 +14,10 @@ API reference
 
     PlotTsd
     PlotTsdFrame
-    PlotTsdTensor
     PlotTs
     PlotTsGroup
 
-.. currentmodule:: pynaviz.video.video_plot
+.. currentmodule:: pynaviz.audiovideo.video_plot
 
 .. autosummary::
     :toctree: generated/
@@ -40,6 +39,20 @@ API reference
     SpanController
     GetController
 
+.. rubric:: Audio and Video Manipulation
+Classes allowing random access to video and audio frames, with ``pynapple``-like ``get`` syntax or by indexing.
+
+.. currentmodule:: pynaviz.audiovideo
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+    :recursive:
+
+    AudioHandler
+    VideoHandler
+
+
 .. rubric:: Pynaviz
 
 .. currentmodule:: pynaviz
@@ -50,13 +63,26 @@ API reference
     :recursive:
 
     base_plot
-    video
+    audiovideo
     controller
     events
     interval_set
     plot_manager
-    qt_item_models
-    widget_plot
-    widget_menu
     utils
     synchronization_rules
+
+.. rubric:: Qt
+
+.. currentmodule:: pynaviz.qt
+
+Module including Qt widgets with selection, sorting and coloring by metadata functionalities.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+    :recursive:
+
+    qt_item_models
+    gui
+    widget_plot
+    widget_menu

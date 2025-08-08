@@ -71,6 +71,7 @@ docs = [
     "myst-nb",
     "sphinx-autobuild",
     "sphinx-contributors",
+    "pyqt6",
     # "sphinx-excec-code"
 ]
 
