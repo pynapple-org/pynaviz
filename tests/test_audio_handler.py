@@ -10,7 +10,7 @@ from pynaviz.audiovideo import audio_handling
 @pytest.fixture(scope="module")
 def fully_decoded_audio(request) -> Tuple[pathlib.Path, List[NDArray], List[int], List[av.AudioFrame], List[int]]:
     extension = request.param
-    audio = pathlib.Path(__file__).parent / f"test_audio/sine_audio.{extension}"
+    audio = pathlib.Path(__file__).parent / f"test_audio/noise_audio.{extension}"
     frame_arrays: List[NDArray] = []
     frame_pts: List[int] = []
     frame_av: List[av.AudioFrame] = []
@@ -37,8 +37,10 @@ def test_av_handler_full_decoding(fully_decoded_audio):
     with audio_handling.AudioHandler(audio_path) as handler:
         array = handler.get(0, handler.tot_length)
         concat_array = np.concatenate(frame_arrays, axis=1).T
-        assert handler.shape == (88200, 1), "the video shape doesn't match expectation."
-        assert handler.tot_length == 2, "the video duration in sec doesn't match expectation."
+        assert handler.shape == concat_array.shape, ("the audio shape doesn't match expectation.\n"
+                                                     f"Actual shape {handler.shape},  expected shape "
+                                                     f"{concat_array.shape}")
+        assert handler.tot_length == 2, "The audio duration in sec doesn't match expectation."
         np.testing.assert_array_equal(array, concat_array)
         # this may fail if the seek behavior is wrong
         array = handler.get(0, handler.tot_length)
