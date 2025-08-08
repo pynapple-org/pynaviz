@@ -1,0 +1,85 @@
+# TsGroup
+
+```python
+import pynapple as nap
+import uviz as viz
+
+print(tsgroup)
+```
+```
+  Index      rate    group    channel    random
+-------  --------  -------  ---------  --------
+      0   1.00029        0          1     -0.58
+      1   2.00059        0          3     -0.11
+      2   3.00088        1          0     -1.5
+      3   4.00117        0          2     -1.92
+      4   5.00146        1          4      0.95
+      5   6.00176        0          5      0.54
+      6   7.00205        0          6      0.64
+      7   8.00234        1          7      1.43
+      8   9.00263        0          8      0.97
+      9  10.0029         1          9      0.92
+```
+
+---
+## PlotTsGroup                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+
+v.show()
+```
+![None](/_static/screenshots/test_plot_tsgroup.png)
+
+                    
+
+---
+## PlotTsGroup - group_by                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+v.group_by(metadata_name=group)
+v.show()
+```
+![group_by](/_static/screenshots/test_plot_tsgroup_group_by_metadata_name=group.png)
+
+                    
+
+---
+## PlotTsGroup - sort_by                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+v.sort_by(metadata_name=rate)
+v.show()
+```
+![sort_by](/_static/screenshots/test_plot_tsgroup_sort_by_metadata_name=rate.png)
+
+                    
+
+---
+## PlotTsGroup - color_by                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+v.color_by(metadata_name=group)
+v.show()
+```
+![color_by](/_static/screenshots/test_plot_tsgroup_color_by_metadata_name=group.png)
+
+                    
+
+---
+## PlotTsGroup - add_interval_sets                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+v.add_interval_sets(epochs=  index    start    end
+      0     0.25    0.4
+      1     0.7     0.8
+shape: (2, 2), time unit: sec.)
+v.show()
+```
+![add_interval_sets](/_static/screenshots/test_plot_tsgroup_add_interval_sets_epochs=__index____start____end_______0_____0.25____0.4_______1_____0.7_____0.8_shape___2__2___time_unit__sec..png)
+
+                    

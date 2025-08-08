@@ -1,0 +1,15 @@
+﻿pynaviz.video
+=============
+
+.. automodule:: pynaviz.video
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   video_handling
+   video_plot
+   video_worker

@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTs.add\_interval\_sets
+=============================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTs.add_interval_sets

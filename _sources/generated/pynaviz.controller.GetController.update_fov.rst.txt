@@ -1,0 +1,6 @@
+pynaviz.controller.GetController.update\_fov
+============================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: GetController.update_fov

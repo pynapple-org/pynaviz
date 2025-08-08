@@ -1,0 +1,39 @@
+﻿pynaviz.base\_plot.PlotTs
+=========================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. autoclass:: PlotTs
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~PlotTs.__init__
+      ~PlotTs.add_interval_sets
+      ~PlotTs.animate
+      ~PlotTs.close
+      ~PlotTs.color_by
+      ~PlotTs.group_by
+      ~PlotTs.show
+      ~PlotTs.sort_by
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~PlotTs.cmap
+      ~PlotTs.data
+   
+   

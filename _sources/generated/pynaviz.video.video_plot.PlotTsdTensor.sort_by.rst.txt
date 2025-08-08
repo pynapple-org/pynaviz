@@ -1,0 +1,6 @@
+pynaviz.video.video\_plot.PlotTsdTensor.sort\_by
+================================================
+
+.. currentmodule:: pynaviz.video.video_plot
+
+.. automethod:: PlotTsdTensor.sort_by

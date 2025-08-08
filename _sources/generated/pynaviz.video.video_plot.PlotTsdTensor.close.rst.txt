@@ -1,0 +1,6 @@
+pynaviz.video.video\_plot.PlotTsdTensor.close
+=============================================
+
+.. currentmodule:: pynaviz.video.video_plot
+
+.. automethod:: PlotTsdTensor.close

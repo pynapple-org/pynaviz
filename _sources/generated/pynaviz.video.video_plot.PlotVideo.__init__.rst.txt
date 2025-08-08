@@ -1,0 +1,6 @@
+pynaviz.video.video\_plot.PlotVideo.\_\_init\_\_
+================================================
+
+.. currentmodule:: pynaviz.video.video_plot
+
+.. automethod:: PlotVideo.__init__

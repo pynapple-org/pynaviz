@@ -1,0 +1,6 @@
+pynaviz.video.video\_plot.PlotTsdTensor.color\_by
+=================================================
+
+.. currentmodule:: pynaviz.video.video_plot
+
+.. automethod:: PlotTsdTensor.color_by

@@ -1,0 +1,40 @@
+﻿pynaviz.base\_plot.PlotTsdFrame
+===============================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. autoclass:: PlotTsdFrame
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~PlotTsdFrame.__init__
+      ~PlotTsdFrame.add_interval_sets
+      ~PlotTsdFrame.animate
+      ~PlotTsdFrame.close
+      ~PlotTsdFrame.color_by
+      ~PlotTsdFrame.group_by
+      ~PlotTsdFrame.plot_x_vs_y
+      ~PlotTsdFrame.show
+      ~PlotTsdFrame.sort_by
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~PlotTsdFrame.cmap
+      ~PlotTsdFrame.data
+   
+   

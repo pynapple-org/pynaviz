@@ -1,0 +1,6 @@
+﻿pynaviz.synchronization\_rules
+==============================
+
+.. automodule:: pynaviz.synchronization_rules
+
+   

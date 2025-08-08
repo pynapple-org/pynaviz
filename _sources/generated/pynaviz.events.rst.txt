@@ -1,0 +1,12 @@
+﻿pynaviz.events
+==============
+
+.. automodule:: pynaviz.events
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      SyncEvent
+   
