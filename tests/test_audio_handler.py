@@ -60,3 +60,30 @@ def test_av_handler_partial_decoding(fully_decoded_audio):
         array = handler.get(handler.tot_length / 4., handler.tot_length - handler.tot_length / 4.)
         np.testing.assert_array_equal(array, concat_array[concat_array.shape[0] // 4: - concat_array.shape[0] // 4])
 
+
+@pytest.mark.parametrize("fully_decoded_audio", ["wav", "mp3", "flac"], indirect=True)
+def test_decode_first_boundaries(fully_decoded_audio):
+    audio_path, frame_arrays, frame_pts, frame_av, frame_size = fully_decoded_audio
+
+    with audio_handling.AudioHandler(audio_path) as handler:
+        # Preload so current_frame is set
+        _ = handler.get(0, 0.1)  # decode first chunk
+        cf = handler.current_frame
+        assert cf is not None
+
+        # Case 1: start == cf.pts
+        frames, _ = handler._decode_first(cf.pts)
+        # Should return exactly from that PTS forward
+        expected = cf.to_ndarray()
+        np.testing.assert_array_equal(frames[0], expected)
+
+        # Case 2: start == cf.pts + cf.duration
+        start_at_next = cf.pts + cf.duration
+        # Make sure that we are still at cf frame
+        assert handler.current_frame == cf
+        frames, _ = handler._decode_first(start_at_next)
+        # This should start at the *next* frame
+        end_bound = cf.pts + cf.duration
+        frames, cur = handler._decode_first(end_bound)
+        assert frames[0].shape[1] == 0  # empty first piece
+        assert cur == end_bound
