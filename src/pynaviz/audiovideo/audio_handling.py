@@ -34,6 +34,16 @@ class AudioHandler(BaseAudioVideo):
     ValueError
         If the provided `time` axis is not 1D or does not match the
         number of sample points in the audio file.
+
+    Examples
+    --------
+    >>> from pynaviz.audiovideo import AudioHandler
+    >>> ah = AudioHandler("example.mp3")  # doctest: +SKIP
+    >>> # Get audio samples between 1.5 and 2.5 seconds.
+    >>> audio_trace = ah.get(1.5, 2.5)  # doctest: +SKIP
+    >>> # Shape: (n_samples, n_channels)
+    >>> audio_trace.shape  # doctest: +SKIP
+    (44100, 2)
     """
 
     def __init__(

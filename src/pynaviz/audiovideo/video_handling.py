@@ -40,6 +40,20 @@ class VideoHandler(BaseAudioVideo):
         If ``True`` (default), return frames as ``np.ndarray`` (RGB, float32 in ``[0, 1]``);
         otherwise return `av.VideoFrame` instances.
 
+    Examples
+    --------
+    >>> from pynaviz.audiovideo import VideoHandler
+    >>> vh = VideoHandler("example.mp4")  # doctest: +SKIP
+    >>> # Get the frame at 1.5 seconds.
+    >>> frame = vh.get(1.5)  # doctest: +SKIP
+    >>> # Shape: (height, width, channels)
+    >>> frame.shape  # doctest: +SKIP
+    (480, 640, 3)
+    >>> # Get frames from the second to the 10th, every other frame.
+    >>> frame_sequence = vh[1:10:2]  # doctest: +SKIP
+    >>> # Shape: (n_samples, height, width, channels)
+    >>> frame_sequence.shape  # doctest: +SKIP
+    (5, 480, 640, 3)
     """
 
     _thread_local = threading.local()
