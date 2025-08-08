@@ -129,6 +129,72 @@ class AudioHandler(BaseAudioVideo):
                 self._keyframe_pts = np.asarray(self._keyframe_pts)
             self._pts_keyframe_ready.set()
 
+    def _decode_first(self, start: int):
+        if self.current_frame is not None and self.current_frame.pts <= start <= self.current_frame.pts + self.current_frame.duration:
+            frame = self.current_frame
+            idx = (start - frame.pts) // self.pts_to_samples
+            return [frame.to_ndarray()[:, idx:]], frame.pts + frame.duration
+
+        is_mp3 = self.container.format.name == "mp3"
+        max_backoff = int(1.0 / self.time_base) # ~1sec
+        backoff_step = int(0.1 / self.time_base)  # ~100ms
+
+        # how much backing off is needed
+        backoff = 0 if not is_mp3 else backoff_step
+
+        is_valid = False
+        safe_start = max(start - backoff, 0)
+        first_frame = True
+        frames = []
+        current_pts = safe_start
+        while  start - safe_start < max_backoff and not is_valid:
+            if current_pts == safe_start and self._need_seek_call(
+                    getattr(self.current_frame, "pts", None),
+                    current_pts
+            ):
+                self.container.seek(
+                    current_pts,
+                    backward=True,
+                    any_frame=False,
+                    stream=self.stream,
+                )
+                self.current_frame = None
+
+            packet = next(self.container.demux(self.stream))
+            try:
+                decoded = packet.decode()
+                while len(decoded) == 0:
+                    decoded = packet.decode()
+            except av.error.EOFError:
+                # end of the audio, rewind
+                break
+
+            for frame in decoded:
+
+                if frame.pts is None:
+                    continue
+
+                elif frame.pts <= start <= frame.pts + frame.duration:
+                    # check that the first frame is not empty, otherwise start before
+                    is_valid = np.any(frame.to_ndarray() != 0)
+                    if not is_valid:
+                        safe_start -= backoff
+                        current_pts = safe_start
+                        continue
+
+                    if first_frame:
+                        idx = (start - frame.pts) // self.pts_to_samples
+                        frames.append(frame.to_ndarray()[:, idx:])
+                        first_frame = False
+                    else:
+                        frames.append(frame.to_ndarray())
+
+                current_pts = frame.pts + frame.duration
+                self.current_frame = frame
+        if is_valid is False:
+            raise ValueError("Failed to decode the first audio frame.")
+        return frames, current_pts
+
     def get(
         self,
         start: float,
@@ -149,30 +215,10 @@ class AudioHandler(BaseAudioVideo):
         :
             2D array of shape (num_samples, num_channels) containing the audio data.
         """
+
         start = self.ts_to_pts(start)
         end = self.ts_to_pts(end)
-
-        current_pts = start
-
-        if self._need_seek_call(getattr(self.current_frame, "pts", None),
-                                start):
-            self.container.seek(
-                start,
-                backward=True,
-                any_frame=False,
-                stream=self.stream,
-            )
-            self.current_frame = None
-
-        first_frame = True
-
-        if self.current_frame is not None and self.current_frame.pts == start:
-            frame_array = self.current_frame.to_ndarray()
-            idx = (start - self.current_frame.pts) // self.pts_to_samples
-            frames: List[NDArray] = [frame_array[:, idx:]]
-            first_frame = False
-        else:
-            frames: List[NDArray] = []
+        frames, current_pts = self._decode_first(start)
 
         while current_pts < end:
             packet = next(self.container.demux(self.stream))
@@ -186,15 +232,11 @@ class AudioHandler(BaseAudioVideo):
                 break
 
             for frame in decoded:
+
                 if frame.pts is None:
                     continue
 
-                if first_frame:
-                    idx = (start - frame.pts) // self.pts_to_samples
-                    frames.append(frame.to_ndarray()[:, idx:])
-                    first_frame = False
-                else:
-                    frames.append(frame.to_ndarray())
+                frames.append(frame.to_ndarray())
                 current_pts = frame.pts + frame.duration
                 self.current_frame = frame
 
