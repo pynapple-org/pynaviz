@@ -135,8 +135,7 @@ class AudioHandler(BaseAudioVideo):
         This method attempts to start decoding at `start`, handling formats
         (notably MP3) that may require a preroll due to inter-frame dependencies.
 
-        Behavior:
-        ---------
+        **Behavior:**
         - If the current frame in memory already covers `start`, return a
           sliced version without seeking.
         - For most formats (WAV, FLAC, etc.), decoding starts exactly at `start`.
