@@ -55,6 +55,7 @@ jobs:
       - name: Generate videos
         run: |
           python tests/generate_numbered_video.py
+          python tests/generate_noise_audio.py
       - name: Generate Screenshots
 #        env:
 #          PYTHONPATH: ${{ github.workspace }}
