@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pynaviz import PlotVideo
-from pynaviz.video import video_handling
+from pynaviz.audiovideo import video_handling
 
 
 @pytest.fixture()
