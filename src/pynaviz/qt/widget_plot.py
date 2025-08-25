@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 from numpy._typing import NDArray
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
+from ..audiovideo import PlotTsdTensor, PlotVideo
 from ..base_plot import (
     PlotIntervalSet,
     PlotTs,
@@ -16,7 +17,6 @@ from ..base_plot import (
     PlotTsdFrame,
     PlotTsGroup,
 )
-from ..video import PlotTsdTensor, PlotVideo
 from .widget_menu import MenuWidget
 
 
