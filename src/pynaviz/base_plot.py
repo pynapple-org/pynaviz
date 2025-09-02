@@ -140,6 +140,9 @@ class _BasePlot(IntervalSetInterface):
             index = []
         self._manager = _PlotManager(index=index)
 
+        # Connect the play keyboard action
+        self.renderer.add_event_handler(self._play, "key_down")
+
     @property
     def data(self):
         return self._data
@@ -317,6 +320,17 @@ class _BasePlot(IntervalSetInterface):
 
     def close(self):
         self.color_mapping_thread.shutdown()
+
+    def _play(self, event):
+        """
+        "space" to play/pause
+        """
+        print(event)
+        if event.type == " ":
+            self.playing = not self.playing
+            print(self.playing)
+
+
 
 
 class PlotTsd(_BasePlot):
@@ -837,6 +851,9 @@ class PlotTsdFrame(_BasePlot):
         self.canvas.request_draw(self.animate)
 
     def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
+        """
+        For get controller
+        """
         self.time_point.geometry.positions.data[0,0:2] = self.graphic.geometry.positions.data[frame_index,0:2]
         self.time_point.geometry.positions.update_full()
         self.canvas.request_draw(self.animate)

@@ -210,6 +210,7 @@ class SpanController(CustomController):
         # Update camera
         self._set_camera_state(state_update)
         self._update_cameras()
+        self._update_plots()
         self.renderer_request_draw()
 
 
@@ -294,7 +295,7 @@ class GetController(CustomController):
         else:
             self._frame_index = 0
 
-    def _get_current_time(self):
+    def _get_frame_time(self):
         time_array = getattr(self.data.index, "values", self.data.index)
         return time_array[self.frame_index]
 
@@ -319,7 +320,7 @@ class GetController(CustomController):
         # TODO fix later
         if hasattr(self.data.index, "values"):
             # Sending the sync event (no concurrent logic)
-            current_t = self._get_current_time()
+            current_t = self._get_frame_time()
             self._send_sync_event(update_type="pan", current_time=current_t)
 
     def set_frame(self, target_time: float):
@@ -362,20 +363,4 @@ class GetController(CustomController):
         self._update_buffer(
             RenderTriggerSource.SYNC_EVENT_RECEIVED
         )  # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
-
-#         if (
-#             self.buffer.data.shape[0] == 1 and self.buffer.data.shape[1] == 3
-#         ):  # assume single point
-#             self.buffer.data[0, 0:2] = self.data.values[self.frame_index].astype(
-#                 "float32"
-#             )
-#         else:
-#             self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
-
-#         self.buffer.update_full()
-
-#         if self.time_text:
-#             self.time_text.set_text(str(self.data.t[self.frame_index]))
-
-#         self.renderer_request_draw()
 

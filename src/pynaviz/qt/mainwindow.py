@@ -137,16 +137,9 @@ class ListDock(QDockWidget):
         self.playing = not self.playing
         self.playPauseBtn.setText("Pause" if self.playing else "Play")
 
-    def _advance(self):
+    def _advance(self, delta=0.03):
         if self.playing:
-            print("playing")
-            self.ctrl_group.advance(delta=0.03)
-
-        # Update x-range to follow the signal
-        # left = self.current_time
-        # right = self.current_time + self.window_size
-        # self.plot_widget.setXRange(left, right, padding=0)
-
+            self.ctrl_group.advance(delta=delta)
 
     def add_dock_widget(self, item):
         var = self.pynavar[item.text()]

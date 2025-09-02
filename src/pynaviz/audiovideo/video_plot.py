@@ -397,7 +397,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.controller._send_sync_event(update_type="pan", current_time=current_time)
 
             elif trigger_source == RenderTriggerSource.ZOOM_TO_POINT:
-                current_time = self.controller._get_current_time()
+                current_time = self.controller._get_frame_time()
                 if self._debug:
                     print("zoom", current_time, frame_index)
                 self.controller._send_sync_event(update_type="pan", current_time=current_time)
