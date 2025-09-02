@@ -17,9 +17,9 @@ tsg = nap.TsGroup({
 
 })
 tsdframe = nap.TsdFrame(
-    t=np.arange(1000),
+    t=np.arange(1000)/30,
     d=np.random.randn(1000, 10))
-tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
+tsdtensor = nap.TsdTensor(t=np.arange(10000)/30, d=np.random.randn(10000, 10, 10))
 
 
 scope(globals())

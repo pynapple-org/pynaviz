@@ -4,7 +4,10 @@ ControllerGroup is used to synchronize in time each canvas.
 
 from typing import Optional, Sequence, Union
 
+import numpy as np
 from pygfx import Renderer, Viewport
+
+from pynaviz.events import SyncEvent
 
 
 class ControllerGroup:
@@ -24,7 +27,7 @@ class ControllerGroup:
     def __init__(
         self,
         plots: Optional[Sequence] = None,
-        interval: tuple[Union[int, float], Union[int, float]] = (0, 10),
+        interval: tuple[Union[int, float], Union[int, float]] = (0, 1),
     ):
         self._controller_group = dict()
 
@@ -39,6 +42,7 @@ class ControllerGroup:
             raise ValueError("`interval` start must not be greater than end.")
 
         self.interval = interval
+        self.current_time = interval[0] + (interval[1] - interval[0])/2
 
         # Initialize controller group from given plots
         if plots is not None:
@@ -64,23 +68,56 @@ class ControllerGroup:
         event : Event
             The sync event that contains `controller_id` and possibly data to sync.
         """
+        # Intercepting the new current time
+        if hasattr(event, "kwargs") and "cam_state" in event.kwargs:
+            self.current_time = event.kwargs["cam_state"]["position"][0]
+        else:
+            self.current_time = event.kwargs["current_time"]
+
         for id_other, ctrl in self._controller_group.items():
             if event.controller_id != id_other and ctrl.enabled:
                 ctrl.sync(event)
 
     def advance(self, delta):
         """
-        Move all the controllers by a given delta in the time axis
+        Advances the state of all enabled controllers in the controller group.
+
+        This method generates an event indicating the state advancement and synchronizes
+        all enabled controllers within the controller group to the new state defined by the event.
 
         Parameters
         ----------
-        delta: Number
+        delta : int or float
+            The amount by which to advance the state.
 
-        Returns
-        -------
+        Notes
+        -----
+        The `delta` value is used to update all enabled controllers in the group, ensuring that their
+        states are synchronized to the new time.
 
+        Examples
+        --------
+        >>> controller_group = ControllerGroup()
+        >>> controller_group.advance(10)
         """
-        pass
+        new_time = self.current_time + delta
+
+        for controller in self._controller_group.values():
+            if controller.enabled:
+                event = SyncEvent(
+                    type="sync",
+                    controller_id=None,
+                    update_type="pan",
+                    sync_extra_args={
+                        "args": (),
+                        "kwargs": {
+                            "current_time": new_time
+                        }
+                    }
+                )
+                controller.sync(event)
+
+        self.current_time = new_time
 
 
     def add(self, plot, controller_id: int):
@@ -124,6 +161,21 @@ class ControllerGroup:
 
         self._controller_group[controller_id] = controller
         self._add_update_handler(renderer)
+
+        # Sync the new visual to the current time
+        controller.sync(
+            SyncEvent(
+                type="sync",
+                controller_id=controller.controller_id,
+                update_type="pan",
+                sync_extra_args={
+                    "args": (),
+                    "kwargs": {
+                        "current_time": self.current_time
+                    }
+                }
+            )
+        )
 
     def remove(self, controller_id: int):
         """
