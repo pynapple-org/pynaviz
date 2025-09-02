@@ -38,10 +38,23 @@ def snapshot_tsd(path=DEFAULT_SCREENSHOT_PATH):
     conf_class = config.TsdConfig(path)
     conf_class.run_all()
 
+def snapshot_ts(path=DEFAULT_SCREENSHOT_PATH):
+    """
+    Generate and save a snapshot of a Ts plot.
+    """
+    conf_class = config.TsConfig(path)
+    conf_class.run_all()
+
 def snapshot_tsdframe(path=DEFAULT_SCREENSHOT_PATH):
     """
     """
     conf_class = config.TsdFrameConfig(path)
+    conf_class.run_all()
+
+def snapshot_tsdtensor(path=DEFAULT_SCREENSHOT_PATH):
+    """
+    """
+    conf_class = config.TsdTensorConfig(path)
     conf_class.run_all()
 
 def snapshot_tsgroup(path=DEFAULT_SCREENSHOT_PATH):
@@ -130,6 +143,11 @@ def main(types, path, video_dir, frames):
         click.echo("Generating Tsd snapshot...")
         snapshot_tsd(path=path)
 
+    # Generate TS snapshot
+    if "ts" in types or "all" in types:
+        click.echo("Generating Ts snapshot...")
+        snapshot_ts(path=path)
+
     # Generate ISet snapshot
     if "intervalset" in types or "all" in types:
         click.echo("Generating Intervalset snapshot...")
@@ -139,6 +157,11 @@ def main(types, path, video_dir, frames):
     if "tsdframe" in types or "all" in types:
         click.echo("Generating TsdFrame snapshot...")
         snapshot_tsdframe(path=path)
+
+    # Generate TsdTensor snapshot
+    if "tsdtensor" in types or "all" in types:
+        click.echo("Generating TsdTensor snapshot...")
+        snapshot_tsdtensor(path=path)
 
     # Generate TsGroup snapshot
     if "tsgroup" in types or "all" in types:

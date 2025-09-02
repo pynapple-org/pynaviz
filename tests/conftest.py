@@ -21,6 +21,10 @@ def dummy_tsd():
     return config.TsdConfig.get_data()
 
 @pytest.fixture
+def dummy_ts():
+    return config.TsConfig.get_data()
+
+@pytest.fixture
 def dummy_tsdframe():
     return config.TsdFrameConfig.get_data()
 
@@ -31,6 +35,10 @@ def dummy_intervalset():
 @pytest.fixture
 def dummy_tsgroup():
     return config.TsGroupConfig.get_data()
+
+@pytest.fixture
+def dummy_tsdtensor():
+    return config.TsdTensorConfig.get_data()
 
 @pytest.fixture
 def camera_state():

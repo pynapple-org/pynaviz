@@ -226,3 +226,31 @@ class TsGroupConfig(BaseConfig):
             ) for i in range(10)},
             metadata=TsGroupConfig.metadata)
 
+
+class TsConfig(BaseConfig):
+    parameters = [
+        (None, {}),
+        ("add_interval_sets", {"epochs": nap.IntervalSet([0.25, 0.4, 0.7, 0.8])}),
+    ]
+
+    @staticmethod
+    def get_data():
+        t = np.array([0.1, 0.3, 0.5, 0.55, 0.9])
+        return nap.Ts(t=t)
+
+
+class TsdTensorConfig(BaseConfig):
+    parameters = [
+        (None, {}),
+    ]
+
+    @staticmethod
+    def get_data():
+        t = np.arange(3)
+        n = 50
+        x = np.linspace(-10, 10, n)
+        y = np.linspace(-10, 10, n)
+        X, Y = np.meshgrid(x, y)
+        d = np.sin(X ** 2 + Y ** 2) + np.cos(3 * X) * np.sin(3 * Y)
+        d = np.repeat(d[None,:], 3, 0)
+        return nap.TsdTensor(t=t, d=d)

@@ -37,6 +37,15 @@ dict_sync_funcs = {
     "zoom_to_point": _match_zoom_on_x_axis,
 }
 
+spike_sdf = """
+// Normalize coordinates relative to size
+let uv = coord / size;
+// Distance to vertical center line (x = 0)
+let line_thickness = 0.2;
+let dist = abs(uv.x) - line_thickness;
+return dist * size;
+"""
+
 
 class _BasePlot(IntervalSetInterface):
     """
@@ -312,7 +321,7 @@ class _BasePlot(IntervalSetInterface):
 
 class PlotTsd(_BasePlot):
     """
-    A time series plot for `nap.Tsd` objects using GPU-accelerated rendering.
+    Visualization for 1-dimensional pynapple time series object (``nap.Tsd``)
 
     This class renders a continuous 1D time series as a line plot and manages
     user interaction through a `SpanController`. It supports optional synchronization
@@ -380,7 +389,7 @@ class PlotTsd(_BasePlot):
 
 class PlotTsdFrame(_BasePlot):
     """
-    A GPU-accelerated visualization of a multi-columns time series (nap.TsdFrame).
+    Visualization of a multi-columns pynapple time series (``nap.TsdFrame``).
 
     This class allows dynamic rendering of each column in a `nap.TsdFrame`, with interactive
     controls for span navigation. It supports switching between
@@ -834,51 +843,65 @@ class PlotTsdFrame(_BasePlot):
 
 
 class PlotTsGroup(_BasePlot):
+    """
+    Visualization for plotting multiple spike trains (``nap.TsGroup``) as a raster plot.
+
+    Each unit in the group is displayed as a row, where spike times are rendered as
+    point markers (vertical ticks). Units can be sorted or grouped based on metadata.
+    A `SpanController` is used to synchronize view ranges across plots.
+
+    Parameters
+    ----------
+    data : nap.TsGroup
+        A Pynapple `TsGroup` object containing multiple spike trains.
+    index : int, optional
+        Identifier for the controller instance, useful when synchronizing multiple plots.
+    parent : QWidget, optional
+        Parent widget in a Qt application, if applicable.
+    """
+
     def __init__(self, data: nap.TsGroup, index=None, parent=None):
+        # Initialize the base plot with provided data
         super().__init__(data=data, parent=parent)
 
-        # Pynaviz specific controller
+        # Pynaviz-specific controller that handles pan/zoom and synchronization
         self.controller = SpanController(
             camera=self.camera,
             renderer=self.renderer,
             controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,
+            dict_sync_funcs=dict_sync_funcs,  # shared synchronization registry
         )
 
-        # Create pygfx objects
+        # Store PyGFX graphics objects (one per unit in TsGroup)
         self.graphic = {}
-        spike_sdf = """
-        // Normalize coordinates relative to size
-        let uv = coord / size;
-        // Distance to vertical center line (x = 0)
-        let line_thickness = 0.2;
-        let dist = abs(uv.x) - line_thickness;
-        return dist * size;
-        """
+
+        # Iterate over each unit in the TsGroup and build its spike raster
         for i, n in enumerate(data.keys()):
+            # Each spike is represented by its (time, row index, depth=1)
             positions = np.stack(
                 (data[n].t, np.ones(len(data[n])) * i, np.ones(len(data[n])))
             ).T
             positions = positions.astype("float32")
 
+            # Create a point cloud for the spikes of unit n
             self.graphic[n] = gfx.Points(
                 gfx.Geometry(positions=positions),
                 gfx.PointsMarkerMaterial(
                     size=10,
-                    color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)],
+                    color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)],  # assign color cyclically
                     opacity=1,
-                    marker="custom",
+                    marker="custom",  # custom marker defined by spike_sdf
                     custom_sdf=spike_sdf,
                 ),
             )
 
-        # TODO: properly setup streams
-        # Stream the first batch of data
+        # TODO: Implement streaming logic properly.
+        # For now, initialize buffers with the first batch of data.
         self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
         self._manager.data["offset"] = self.data.index
         self._flush()
 
-        # Add elements to the scene for rendering
+        # Add rulers (axes and reference line) and all graphics to the scene
         self.scene.add(
             self.ruler_x,
             self.ruler_y,
@@ -886,29 +909,28 @@ class PlotTsGroup(_BasePlot):
             *list(self.graphic.values()),
         )
 
-        # Connect specific event handler for TsGroup
+        # Connect a key event handler ("r" key resets the view)
         self.renderer.add_event_handler(self._reset, "key_down")
 
-        # By default, showing only the first second.
+        # By default, show the first second and full raster vertically
         self.controller.set_view(0, 1, 0, np.max(self._manager.offset) + 1)
 
-        # Request drawing of the scene
+        # Request continuous redrawing
         self.canvas.request_draw(self.animate)
 
     def _flush(self, slice_: slice = None):
         """
-        Flush the data stream from slice_ argument
+        Update the GPU buffers with the latest offsets and data slice.
+
+        Parameters
+        ----------
+        slice_ : slice, optional
+            Data slice to update. Not yet implemented.
         """
-        # TODO: Handle slice_ argument properly, updating buffers
+        # TODO: Implement slice-based updates (only redraw relevant portion)
 
-        # if slice_ is None:
-        #    slice_ = self._stream.get_slice(*self.controller.get_xlim())
-
-        # time = self.data.t[slice_]
-        # n = time.shape[0]
-
+        # Currently only updates y-offsets of spikes for each unit
         for c in self._buffers:
-            # self._buffers[c].data[-n:, 0] = time.astype("float32")
             self._buffers[c].data[:, 1] = self._manager.data.loc[c]["offset"].astype(
                 "float32"
             )
@@ -916,33 +938,42 @@ class PlotTsGroup(_BasePlot):
 
     def _reset(self, event):
         """
-        "r" key reset the plot manager to initial view
-        """
-        if event.type == "key_down":
-            if event.key == "r":
-                if isinstance(self.controller, SpanController):
-                    self._manager.reset()
-                    self._manager.data["offset"] = self.data.index
-                    self._flush()
+        Reset the view to the initial state when pressing the "r" key.
 
-                self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
-                self.canvas.request_draw(self.animate)
+        Parameters
+        ----------
+        event : gfx.Event
+            Key event containing type and pressed key.
+        """
+        if event.type == "key_down" and event.key == "r":
+            if isinstance(self.controller, SpanController):
+                # Reset the internal plot manager (sorting, grouping, etc.)
+                self._manager.reset()
+                self._manager.data["offset"] = self.data.index
+                self._flush()
+
+            # Reset the vertical axis to show all units
+            self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+            self.canvas.request_draw(self.animate)
 
     def _update(self, action_name):
         """
-        Update function for sort_by and group_by. Because of mode of sort_by, it's not possible
-        to just update the buffer.
+        Update the raster after sorting or grouping operations.
+
+        Parameters
+        ----------
+        action_name : str
+            The action performed ("sort_by" or "group_by").
         """
         self._flush()
 
-        # Update camera to fit the full y range
+        # Ensure camera spans the full y range
         self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
-
         self.canvas.request_draw(self.animate)
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
         """
-        Sort the plotted unit raster vertically by a metadata field.
+        Sort the raster vertically by a metadata field.
 
         Parameters
         ----------
@@ -951,69 +982,107 @@ class PlotTsGroup(_BasePlot):
         mode : str, optional
             "ascending" (default) or "descending".
         """
-        # The current controller should be a span controller.
-
-        # Grabbing the metadata
+        # Grab metadata from TsGroup if available
         values = (
             dict(self.data.get_info(metadata_name))
             if hasattr(self.data, "get_info")
             else {}
         )
 
-        # If metadata found
         if len(values):
-            # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
+            # Sort units in the plot manager by metadata values
             self._manager.sort_by(values, mode)
-
             self._update("sort_by")
 
     def group_by(self, metadata_name: str, **kwargs):
         """
-        Group the plotted time series lines vertically by a metadata field.
+        Group the raster vertically by a metadata field.
 
         Parameters
         ----------
         metadata_name : str
             Metadata key to group by.
         """
-        # Grabbing the metadata
+        # Grab metadata from TsGroup if available
         values = (
             dict(self.data.get_info(metadata_name))
             if hasattr(self.data, "get_info")
             else {}
         )
 
-        # If metadata found
         if len(values):
-            # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
+            # Group units in the plot manager by metadata values
             self._manager.group_by(values)
-
             self._update("group_by")
 
 
 class PlotTs(_BasePlot):
-    def __init__(self, data: nap.Ts, index=None, parent=None):
-        super().__init__(parent=parent)
-        self.data = data
+    """
+    Visualization for pynapple timestamps object (``nap.Ts``) as vertical tick marks.
 
-        # Pynaviz specific controller
-        self.controller = SpanController(
+    Parameters
+    ----------
+    data : nap.Ts
+        A Pynapple `Ts` object containing spike timestamps to visualize.
+    index : Optional[int], default=None
+        Controller index used for synchronized interaction (e.g., panning across multiple plots).
+    parent : Optional[Any], default=None
+        Optional parent widget (e.g., in a Qt context).
+
+    """
+
+    def __init__(self, data: nap.Ts, index=None, parent=None):
+        # Initialize the base plot with provided data
+        super().__init__(data=data, parent=parent)
+
+        # Disable aspect ratio lock (x and y can scale independently)
+        self.camera.maintain_aspect = False
+
+        # Create the Pynaviz-specific controller to lock/synchronize vertical spans
+        self.controller = SpanYLockController(
             camera=self.camera,
             renderer=self.renderer,
             controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,
+            dict_sync_funcs=dict_sync_funcs,  # external sync registry
         )
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
-        pass
+        # Number of timestamps in the data
+        n = len(data)
 
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        pass
+        # Build positions array for vertical tick marks:
+        # For each timestamp, repeat the time 3 times (x coordinate)
+        # and pair it with (0, 1, NaN) in y to form a vertical line segment
+        # (NaN ensures gaps between line segments in pygfx)
+        positions = np.stack(
+            (
+                np.repeat(data.t, 3),                  # x: same timestamp repeated
+                np.tile(np.array([0, 1, np.nan]), n),  # y: line from 0 to 1, then gap
+                np.tile(np.array([1, 1, np.nan]), n)   # z: keep constant depth (1)
+            )
+        ).T
+        positions = positions.astype("float32")
+
+        # Create geometry and material for the tick marks
+        geometry = gfx.Geometry(positions=positions)
+        material = gfx.LineMaterial(thickness=2, color=(1, 0, 0, 1))  # solid red
+        self.graphic = gfx.Line(geometry, material)
+
+        # Add objects to the scene:
+        # - x ruler (time axis)
+        # - reference ruler (time marker)
+        # - the spike train graphic
+        self.scene.add(self.ruler_x, self.ruler_ref_time, self.graphic)
+
+        # Adjust camera to show full data range:
+        self.camera.show_rect(0, 1, -0.1, 1.0)
+
+        # Request continuous redrawing with animation
+        self.canvas.request_draw(self.animate)
 
 
 class PlotIntervalSet(_BasePlot):
     """
-    A visualization of a set of non-overlapping epochs (nap.IntervalSet).
+    A visualization of a set of non-overlapping epochs (``nap.IntervalSet``).
 
     This class allows dynamic rendering of each interval in a `nap.IntervalSet`, with interactive
     controls for span navigation. It supports coloring, grouping, and sorting of intervals based on metadata.

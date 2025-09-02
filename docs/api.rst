@@ -37,6 +37,7 @@ API reference
     :recursive:
 
     SpanController
+    SpanYLockController
     GetController
 
 .. rubric:: Audio and Video Manipulation

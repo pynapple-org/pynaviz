@@ -1,7 +1,7 @@
 import sys
 
 import pynapple as nap
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import QSize, Qt, QTimer
 from PyQt6.QtWidgets import (
     QApplication,
     QDockWidget,
@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QStyle,
-    QWidget,
+    QWidget, QSizePolicy, QVBoxLayout,
 )
 
 from pynaviz.controller_group import ControllerGroup
@@ -85,14 +85,36 @@ class ListDock(QDockWidget):
         self.setWindowTitle("Variables")
         self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
 
+        # --- central container widget ---
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(5)
+
+        # --- list widget ---
         self.listWidget = QListWidget()
         for k in pynavar.keys():
             if k != "data":
                 self.listWidget.addItem(k)
-
         self.listWidget.itemDoubleClicked.connect(self.add_dock_widget)
         self.listWidget.setStyleSheet(DOCK_LIST_STYLESHEET)
-        self.setWidget(self.listWidget)
+        layout.addWidget(self.listWidget)
+
+        # --- play/pause button at bottom ---
+        button_layout = QHBoxLayout()
+        # button_layout.addStretch()
+
+        self.playPauseBtn = QPushButton()
+        self.playPauseBtn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
+        )
+        self.playPauseBtn.setCheckable(True)
+        self.playPauseBtn.toggled.connect(self._toggle_play)
+        button_layout.addWidget(self.playPauseBtn)
+
+        layout.addLayout(button_layout)
+
+        self.setWidget(container)
         self.setFixedWidth(self.listWidget.sizeHintForColumn(0) + 50)
 
         self.gui.addDockWidget(
@@ -104,6 +126,27 @@ class ListDock(QDockWidget):
         # Adding controller group
         self.ctrl_group = ControllerGroup()
         self._n_dock_open = 0
+
+        # Animation
+        self.playing = False
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._advance)
+        self.timer.start(30) # 30 FPS
+
+    def _toggle_play(self):
+        self.playing = not self.playing
+        self.playPauseBtn.setText("Pause" if self.playing else "Play")
+
+    def _advance(self):
+        if self.playing:
+            print("playing")
+            self.ctrl_group.advance(delta=0.03)
+
+        # Update x-range to follow the signal
+        # left = self.current_time
+        # right = self.current_time + self.window_size
+        # self.plot_widget.setXRange(left, right, padding=0)
+
 
     def add_dock_widget(self, item):
         var = self.pynavar[item.text()]
@@ -148,6 +191,23 @@ class ListDock(QDockWidget):
         # Adding the dock widget to the GUI window.
         self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
+        # balance all right docks equally
+        right_docks = [
+            d for d in self.gui.findChildren(QDockWidget)
+            if self.gui.dockWidgetArea(d) == Qt.DockWidgetArea.RightDockWidgetArea
+        ]
+
+        if right_docks:
+            # Horizontal = width distribution (central vs right area).
+            # Using larger size for the newest dock nudges the main splitter to allocate width.
+            sizes_w = [1] * len(right_docks)
+            sizes_w[right_docks.index(dock)] = 300  # request ~300 "units" for the new one
+            self.gui.resizeDocks(right_docks, sizes_w, Qt.Orientation.Horizontal)
+
+            # B) Distribute HEIGHT among right-docks (stacked vertically)
+            sizes_h = [1] * len(right_docks)  # equal heights
+            self.gui.resizeDocks(right_docks, sizes_h, Qt.Orientation.Vertical)
+
         # Adding controller and render to control group
         self.ctrl_group.add(widget.plot, index)
         self._n_dock_open += 1
@@ -166,13 +226,13 @@ class ListDock(QDockWidget):
         self.setTitleBarWidget(self._title_bar)
 
 
-class GUI(QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self):
         # HACK to ensure that closeEvent is called only twice (seems like a
         # Qt bug).
         if not QApplication.instance():  # pragma: no cover
             raise RuntimeError("A Qt application must be created.")
-        super(GUI, self).__init__()
+        super().__init__()
 
         self.name = "Pynaviz"
         self.setWindowTitle(self.name)
@@ -181,7 +241,6 @@ class GUI(QMainWindow):
 
         # Enable nested docking (so docks can be stacked)
         self.setDockNestingEnabled(True)
-
 
 def get_pynapple_variables(variables=None):
     tmp = variables.copy()
@@ -203,7 +262,7 @@ def scope(variables):
     if app is None:
         app = QApplication(sys.argv)
 
-    gui = GUI()
+    gui = MainWindow()
 
     ListDock(pynavar, gui)
 
