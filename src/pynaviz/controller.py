@@ -214,6 +214,9 @@ class SpanController(CustomController):
 
 
 class SpanYLockController(SpanController):
+    """
+    Horizontal time-panning with y-axis locked
+    """
 
     def __init__(self, *args, **kwargs):
         """

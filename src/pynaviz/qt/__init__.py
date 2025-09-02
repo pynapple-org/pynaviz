@@ -1,4 +1,4 @@
-from .gui import scope
+from .mainwindow import scope
 from .widget_plot import (
     IntervalSetWidget,
     TsdFrameWidget,

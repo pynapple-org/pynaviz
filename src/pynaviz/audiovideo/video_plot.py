@@ -167,7 +167,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
 
 class PlotTsdTensor(PlotBaseVideoTensor):
     """
-    Video tensor plot for Pynapple TsdTensor objects.
+    Visualization for 3-dimensional time series (``nap.TsdTensor``) displayed as movies.
     """
 
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
@@ -186,7 +186,7 @@ class PlotTsdTensor(PlotBaseVideoTensor):
 
 class PlotVideo(PlotBaseVideoTensor):
     """
-    Video visualization class for rendering video files synchronized with a time series.
+    Visualization for rendering video files synchronized with a time series.
 
     This class uses shared memory and multiprocessing to efficiently stream frames
     from disk to GPU via pygfx. It also supports real-time interaction and frame-based control.

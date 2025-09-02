@@ -55,7 +55,9 @@ def main():
         config.TsdConfig(DEFAULT_SCREENSHOT_PATH),
         config.TsdFrameConfig(DEFAULT_SCREENSHOT_PATH),
         config.TsGroupConfig(DEFAULT_SCREENSHOT_PATH),
-        config.IntervalSetConfig(DEFAULT_SCREENSHOT_PATH)
+        config.IntervalSetConfig(DEFAULT_SCREENSHOT_PATH),
+        config.TsConfig(DEFAULT_SCREENSHOT_PATH),
+        config.TsdTensorConfig(DEFAULT_SCREENSHOT_PATH)
     ]:
         conf_cls.run_all(fill=True)
         conf_cls.write_simple_visuals(MARKDOWN_PATH)

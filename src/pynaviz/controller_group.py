@@ -68,6 +68,21 @@ class ControllerGroup:
             if event.controller_id != id_other and ctrl.enabled:
                 ctrl.sync(event)
 
+    def advance(self, delta):
+        """
+        Move all the controllers by a given delta in the time axis
+
+        Parameters
+        ----------
+        delta: Number
+
+        Returns
+        -------
+
+        """
+        pass
+
+
     def add(self, plot, controller_id: int):
         """
         Adds a plot to the controller group.
@@ -137,3 +152,4 @@ class ControllerGroup:
         except Exception:
             # Fallback: skip if removal fails (e.g., missing references)
             pass
+

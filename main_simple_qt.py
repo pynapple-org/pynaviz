@@ -23,9 +23,12 @@ tsdframe = nap.TsdFrame(
     d=np.stack((np.cos(2*np.pi*np.arange(0, 100, 0.1)), np.sin(2*np.pi*np.arange(0, 100, 0.1)))).T
     )
 
+ts = nap.Ts(t=np.arange(10))
 
 
 v = viz.TsdFrameWidget(tsdframe)
-# v = viz.TsdWidget(tsd1)
+# # v = viz.TsdWidget(tsd1)
+# v = viz.TsWidget(ts)
+
 v.show()
 
