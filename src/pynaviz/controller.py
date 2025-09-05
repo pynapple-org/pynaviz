@@ -12,7 +12,6 @@ from pygfx import Camera, PanZoomController, Renderer, Viewport
 from .events import SyncEvent
 from .utils import RenderTriggerSource, _get_event_handle
 
-import threading
 
 class CustomController(ABC, PanZoomController):
     """"""

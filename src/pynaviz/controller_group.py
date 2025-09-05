@@ -4,7 +4,6 @@ ControllerGroup is used to synchronize in time each canvas.
 
 from typing import Optional, Sequence, Union
 
-import numpy as np
 from pygfx import Renderer, Viewport
 
 from pynaviz.events import SyncEvent
