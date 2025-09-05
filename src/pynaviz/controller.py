@@ -12,6 +12,7 @@ from pygfx import Camera, PanZoomController, Renderer, Viewport
 from .events import SyncEvent
 from .utils import RenderTriggerSource, _get_event_handle
 
+import threading
 
 class CustomController(ABC, PanZoomController):
     """"""
@@ -63,6 +64,7 @@ class CustomController(ABC, PanZoomController):
             self._dict_sync_funcs = dict_sync_funcs
         else:
             raise TypeError("When provided, `dict_sync_funcs` must be a dictionary of callables.")
+
 
     @property
     def controller_id(self):
@@ -126,6 +128,11 @@ class CustomController(ABC, PanZoomController):
     def sync(self, event):
         pass
 
+    @abstractmethod
+    def advance(self, delta=0.025):
+        # This should still trigger a sync event
+        pass
+
 
 class SpanController(CustomController):
     """
@@ -136,13 +143,13 @@ class SpanController(CustomController):
         self,
         camera: Optional[Camera] = None,
         *,
-        enabled: object = True,
+        enabled: bool = True,
         damping: int = 0,
         auto_update: bool = True,
         renderer: Optional[Union[Viewport, Renderer]] = None,
         controller_id: Optional[int] = None,
         dict_sync_funcs: Optional[dict[Callable]] = None,
-        plot_callbacks: Optional[dict[Callable]] = None,
+        plot_callbacks: Optional[list[Callable]] = None,
     ) -> None:
         super().__init__(
             camera=camera,
@@ -213,6 +220,27 @@ class SpanController(CustomController):
         self._update_plots()
         self.renderer_request_draw()
 
+    def advance(self, delta=0.025):
+        """
+        Advances the camera's position by a specified delta value along the x-axis.
+
+        This can be used to play the time series with a timer thread.
+
+        Parameters
+        ----------
+        delta (float): The incremental value to adjust the camera's x-axis position. Defaults to 0.025.
+
+        """
+        camera_state = self._get_camera_state()
+        new_position = np.array(camera_state["position"]).copy()
+        new_position[0] += delta
+        self._set_camera_state(dict(position=new_position))
+        self._update_cameras()
+        self._update_plots()
+        self.renderer_request_draw()
+        # To make sure all controller stays in sync
+        self._send_sync_event(update_type="pan", current_time=new_position[0])
+
 
 class SpanYLockController(SpanController):
     """
@@ -280,6 +308,10 @@ class GetController(CustomController):
         self.data = data
         if self.data:
             self.frame_index = 0
+            self._current_time = self._get_frame_time()  # Initializing the current time
+        else:
+            self._current_time = None
+
         self.buffer = buffer
         self.callback = callback
 
@@ -320,12 +352,12 @@ class GetController(CustomController):
         # TODO fix later
         if hasattr(self.data.index, "values"):
             # Sending the sync event (no concurrent logic)
-            current_t = self._get_frame_time()
-            self._send_sync_event(update_type="pan", current_time=current_t)
+            self._current_time = self._get_frame_time()
+            self._send_sync_event(update_type="pan", current_time=self._current_time)
 
     def set_frame(self, target_time: float):
         """
-        Set the frame to target time.
+        Set the frame from target time.
 
         Parameters
         ----------
@@ -335,7 +367,7 @@ class GetController(CustomController):
         time_array = getattr(self.data.index, "values", self.data.index)
         idx_before = np.searchsorted(time_array, target_time, side="right") - 1
         idx_before = np.clip(idx_before, 0, len(time_array) - 1)
-        idx_after = min(idx_before + 1, len(self.data.time) - 1)
+        idx_after = min(idx_before + 1, len(time_array) - 1)
         frame_index = (
             idx_before
             if (time_array[idx_after] - target_time) > (target_time - time_array[idx_before])
@@ -349,18 +381,36 @@ class GetController(CustomController):
         # update buffer and sync
         self._update_buffer(event_type=RenderTriggerSource.SET_FRAME)
         self._send_sync_event(update_type="pan", current_time=current_t)
+        self._current_time = target_time # Target time is not necessarily frame time
 
     def sync(self, event):
         """Get a new data point and update the texture"""
+        new_t = None
         if "cam_state" in event.kwargs:
             new_t = event.kwargs["cam_state"]["position"][0]
-        else:
-            current_time = event.kwargs["current_time"]
-            index = np.searchsorted(self.data.index, current_time, side="right") - 1
+        elif "current_time" in event.kwargs:
+            self._current_time = event.kwargs["current_time"]
+            index = np.searchsorted(self.data.index, self._current_time, side="right") - 1
             new_t = self.data.t[index]
 
-        self.frame_index = self.data.get_slice(new_t).start
-        self._update_buffer(
-            RenderTriggerSource.SYNC_EVENT_RECEIVED
-        )  # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+        if new_t is not None:
+            self.frame_index = self.data.get_slice(new_t).start
+            self._update_buffer(
+                RenderTriggerSource.SYNC_EVENT_RECEIVED
+            )  # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
 
+    def advance(self, delta=0.025):
+        """
+        Advance the current time by a specified delta value.
+
+        This can be used to play movies with a timer thread.
+
+        Parameters
+        ----------
+        delta (float): The incremental value. Defaults to 0.025.
+
+        """
+        self._current_time += delta
+        self.set_frame(self._current_time)
+        # To make sure all controller stays in sync
+        self._send_sync_event(update_type="pan", current_time=self._current_time)

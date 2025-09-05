@@ -2,6 +2,7 @@ import sys
 
 import pynapple as nap
 from PyQt6.QtCore import QSize, Qt, QTimer
+from PyQt6.QtGui import QShortcut, QKeySequence
 from PyQt6.QtWidgets import (
     QApplication,
     QDockWidget,
@@ -130,14 +131,17 @@ class ListDock(QDockWidget):
         # Animation
         self.playing = False
         self.timer = QTimer()
-        self.timer.timeout.connect(self._advance)
-        self.timer.start(30) # 30 FPS
+        self.timer.timeout.connect(self._play)
+        self.timer.start(0.025) # 40 FPS
+
+        shortcut = QShortcut(QKeySequence("Space"), self)
+        shortcut.activated.connect(self._toggle_play)
 
     def _toggle_play(self):
         self.playing = not self.playing
         self.playPauseBtn.setText("Pause" if self.playing else "Play")
 
-    def _advance(self, delta=0.03):
+    def _play(self, delta=0.025):
         if self.playing:
             self.ctrl_group.advance(delta=delta)
 

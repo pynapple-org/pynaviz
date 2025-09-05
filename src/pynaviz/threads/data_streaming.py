@@ -1,5 +1,6 @@
 from typing import Callable
 
+import numpy as np
 import pynapple as nap
 
 
@@ -42,7 +43,7 @@ class TsdFrameStreaming:
 
         # Determine how many points fall in a window of size `window_size`
         slice_ = data._get_slice(0, window_size)
-        self._max_n = slice_.stop - slice_.start
+        self._max_n = (slice_.stop - slice_.start) + 1
 
     def get_slice(self, start: float, end: float) -> slice:
         """
@@ -86,7 +87,7 @@ class TsdFrameStreaming:
         slice_ = self.get_slice(position[0] - width / 2, position[0] + width / 2)
 
         # print(position[0] - width / 2, position[0] + width / 2)
-        # print(slice_, slice_.stop - slice_.start, self._max_n, "\n")
+        # print(slice_, slice_.stop - slice_.start, self._max_n)
 
         # Edge cases
         if slice_.start == 0 or slice_.stop == self.data.shape[0]:

@@ -6,6 +6,8 @@ import pathlib
 import sys
 from typing import Optional, Tuple
 
+from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtGui import QShortcut, QKeySequence, QAction
 from numpy._typing import NDArray
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
@@ -43,6 +45,17 @@ class BaseWidget(QWidget):
         self.layout.setSpacing(0)
         self.setLayout(self.layout)
 
+        # Add play shortcut (only if we created the app ourselves)
+        if self._own_app is not None:
+            action = QAction(self)
+            action.setShortcut(QKeySequence("Space"))
+            action.triggered.connect(self._toggle_play)
+            self.addAction(action)
+            self._playing = False
+            self._play_timer = QTimer()
+            self._play_timer.timeout.connect(self._play)
+            self._play_timer.start(25)  # 40 FPS
+
     def show(self) -> None:
         # Show the widget window
         super().show()
@@ -51,6 +64,13 @@ class BaseWidget(QWidget):
         if self._own_app:
             self._own_app.exec()
 
+    def _toggle_play(self):
+        if self._own_app is not None:
+            self._playing = not self._playing
+
+    def _play(self) -> None:
+        if self._playing and hasattr(self, "plot"):
+            self.plot.controller.advance(0.025)
 
 class TsGroupWidget(BaseWidget):
 

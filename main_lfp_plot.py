@@ -8,6 +8,7 @@ import pynapple as nap
 from PyQt6.QtWidgets import QApplication
 
 import pynaviz as viz
+# from pynaviz import scope
 
 
 def loadXML(path):
@@ -70,13 +71,8 @@ for i in shank_to_channel:
 tsdframe.group = gr
 
 
-app = QApplication([])
-
 v = viz.TsdFrameWidget(tsdframe)
 v.plot.sort_by("channel")#, mode="descending")
 v.plot.group_by("group")
 v.plot.color_by("channel")
 v.show()
-
-if __name__ == "__main__":
-    app.exit(app.exec())

@@ -140,8 +140,6 @@ class _BasePlot(IntervalSetInterface):
             index = []
         self._manager = _PlotManager(index=index)
 
-        # Connect the play keyboard action
-        self.renderer.add_event_handler(self._play, "key_down")
 
     @property
     def data(self):
@@ -321,17 +319,6 @@ class _BasePlot(IntervalSetInterface):
     def close(self):
         self.color_mapping_thread.shutdown()
 
-    def _play(self, event):
-        """
-        "space" to play/pause
-        """
-        print(event)
-        if event.type == " ":
-            self.playing = not self.playing
-            print(self.playing)
-
-
-
 
 class PlotTsd(_BasePlot):
     """
@@ -392,13 +379,7 @@ class PlotTsd(_BasePlot):
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
-        # self.controller.show_interval(start=0, end=1)
 
-    def sort_by(self, metadata_name: str, order: Optional[str] = "ascending"):
-        pass
-
-    def group_by(self, metadata_name: str, spacing: Optional = None):
-        pass
 
 
 class PlotTsdFrame(_BasePlot):
@@ -439,17 +420,21 @@ class PlotTsdFrame(_BasePlot):
 
         # To stream data
         size = (256 * 1024**2) // (data.shape[1] * 60)
+        window_size = np.floor(size / data.rate) # seconds
 
         self._stream = TsdFrameStreaming(
-            data, callback=self._flush, window_size=np.ceil(size / data.rate)
-        )  # seconds
-        # print(size, size/data.rate, self._stream._max_n)
+            data, callback=self._flush, window_size=window_size
+        )
+
+        plot_callbacks = []
+
+        if self._stream._max_n < data.shape[0]:
+            plot_callbacks = [self._stream.stream] # For controller
 
         # Create pygfx objects
         self._positions = np.full(
             ((self._stream._max_n + 1) * self.data.shape[1], 3), np.nan, dtype="float32"
         )
-        self._positions[:, 2] = 0.0
 
         self._buffer_slices = {}
         for c, s in zip(
@@ -461,6 +446,8 @@ class PlotTsdFrame(_BasePlot):
             ),
         ):
             self._buffer_slices[c] = slice(s, s + self._stream._max_n)
+
+        self._positions[:, 2] = 0.0
 
         # Create pygfx object
         self._initialize_graphic()
@@ -479,7 +466,7 @@ class PlotTsdFrame(_BasePlot):
                 renderer=self.renderer,
                 controller_id=index,
                 dict_sync_funcs=dict_sync_funcs,
-                plot_callbacks=[self._stream.stream],
+                plot_callbacks=plot_callbacks,
             ),
             "get": GetController(
                 camera=self.camera,
@@ -498,7 +485,10 @@ class PlotTsdFrame(_BasePlot):
         self.time_point = None
 
         # By default, showing only the first second.
+        # this should flush the whole dataset if data fits into memory
         self._flush(self._stream.get_slice(start=0, end=1))
+
+        # Setting the boundaries of the plot
         minmax = self._get_min_max()
         self.controller.set_view(0, 1, np.min(minmax[:, 0]), np.max(minmax[:, 1]))
 
@@ -517,42 +507,52 @@ class PlotTsdFrame(_BasePlot):
 
     def _flush(self, slice_: slice = None):
         """
-        Flush the data stream from slice_ argument
+        Flush the data stream from slice_ argument.
         """
-        if slice_ is None:
-            slice_ = self._stream.get_slice(*self.controller.get_xlim())
+        if self._stream._max_n == self.data.shape[0]:
+            # If data fit into memory
+            for i, c in enumerate(self.data.columns):
+                sl = self._buffer_slices[c]
+                self._positions[sl, 0] = self.data.t.astype("float32")
+                self._positions[sl, 1] = self.data.d[:, i].astype("float32")
+                self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
+                self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
+        else:
+            # print("Flushing\n")
+            if slice_ is None:
+                slice_ = self._stream.get_slice(*self.controller.get_xlim())
 
-        time = self.data.t[slice_].astype("float32")
+            time = self.data.t[slice_].astype("float32")
 
-        left_offset = 0
-        right_offset = 0
-        if time.shape[0] < self._stream._max_n:
-            if slice_.start == 0:
-                left_offset = self._stream._max_n - time.shape[0]
-            else:
-                right_offset = time.shape[0] - self._stream._max_n
+            left_offset = 0
+            right_offset = 0
+            if time.shape[0] < self._stream._max_n:
+                if slice_.start == 0:
+                    left_offset = self._stream._max_n - time.shape[0]
+                else:
+                    right_offset = time.shape[0] - self._stream._max_n
 
-        # Read
-        data = np.array(self.data.values[slice_, :])
+            # Read
+            data = np.array(self.data.values[slice_, :])
 
-        # Copy the data
-        for i, c in enumerate(self.data.columns):
-            sl = self._buffer_slices[c]
-            sl = slice(sl.start + left_offset, sl.stop + right_offset)
-            self._positions[sl, 0] = time
-            self._positions[sl, 1] = data[:, i]
-            self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
-            self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
+            # Copy the data
+            for i, c in enumerate(self.data.columns):
+                sl = self._buffer_slices[c]
+                sl = slice(sl.start + left_offset, sl.stop + right_offset)
+                self._positions[sl, 0] = time
+                self._positions[sl, 1] = data[:, i]
+                self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
+                self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
 
-        # Put back some nans on the edges
-        if left_offset:
-            for sl in self._buffer_slices.values():
-                self._positions[sl.start : sl.start + left_offset, 0:2] = np.nan
-        if right_offset:
-            for sl in self._buffer_slices.values():
-                self._positions[sl.stop + right_offset : sl.stop, 0:2] = np.nan
+            # Put back some nans on the edges
+            if left_offset:
+                for sl in self._buffer_slices.values():
+                    self._positions[sl.start : sl.start + left_offset, 0:2] = np.nan
+            if right_offset:
+                for sl in self._buffer_slices.values():
+                    self._positions[sl.stop + right_offset : sl.stop, 0:2] = np.nan
 
-        self.graphic.geometry.positions.set_data(self._positions)
+            self.graphic.geometry.positions.set_data(self._positions)
 
     def _get_min_max(self):
         """
