@@ -6,9 +6,9 @@ import pathlib
 import sys
 from typing import Optional, Tuple
 
-from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtGui import QShortcut, QKeySequence, QAction
 from numpy._typing import NDArray
+from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
 from ..audiovideo import PlotTsdTensor, PlotVideo

@@ -2,7 +2,7 @@ import sys
 
 import pynapple as nap
 from PyQt6.QtCore import QSize, Qt, QTimer
-from PyQt6.QtGui import QShortcut, QKeySequence
+from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
     QDockWidget,
@@ -12,7 +12,8 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QPushButton,
     QStyle,
-    QWidget, QSizePolicy, QVBoxLayout,
+    QVBoxLayout,
+    QWidget,
 )
 
 from pynaviz.controller_group import ControllerGroup
