@@ -1,8 +1,8 @@
 import sys
 
 import pynapple as nap
-from PyQt6.QtCore import QSize, Qt, QTimer
-from PyQt6.QtGui import QKeySequence, QShortcut
+from PyQt6.QtCore import QSize, Qt, QTimer, QPoint, QEvent, QByteArray
+from PyQt6.QtGui import QKeySequence, QShortcut, QAction, QIcon, QDoubleValidator, QFont
 from PyQt6.QtWidgets import (
     QApplication,
     QDockWidget,
@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QStyle,
     QVBoxLayout,
-    QWidget,
+    QWidget, QToolBar, QLineEdit, QFrame, QFileDialog,
 )
 
 from pynaviz.controller_group import ControllerGroup
@@ -24,42 +24,9 @@ from pynaviz.qt.widget_plot import (
     TsGroupWidget,
     TsWidget,
 )
+import sys, json, base64
 
-DOCK_TITLE_STYLESHEET = """
-    * {
-        padding: 0;
-        margin: 0;
-        border: 0;
-        background: #272822;
-        color: white;
-    }
 
-    QPushButton {
-        padding: 4px;
-        margin: 0 1px;
-    }
-
-    QCheckBox {
-        padding: 2px 4px;
-        margin: 0 1px;
-    }
-
-    QLabel {
-        padding: 3px;
-    }
-
-    QPushButton:hover, QCheckBox:hover {
-        background: #323438;
-    }
-
-    QPushButton:pressed {
-        background: #53575e;
-    }
-
-    QPushButton:checked {
-        background: #6c717a;
-    }
-"""
 DOCK_LIST_STYLESHEET = """
     * {
         border : 2px solid black;
@@ -75,17 +42,55 @@ DOCK_LIST_STYLESHEET = """
     }
 """
 
+class HelpBox(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-class ListDock(QDockWidget):
+        text = (
+            "Shortcuts:\n"
+            "Play/Pause: Space\n"
+            "Stop: S\n"
+            "Next Frame: →\n"
+            "Previous Frame: ←\n"
+        )
+
+        # Frameless floating box
+        self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
+        self.setFrameShape(QFrame.Shape.Box)
+        self.setLineWidth(1)
+        self.setFixedSize(300, 300)
+
+        # Layout with help text
+        layout = QVBoxLayout(self)
+        label = QLabel(text)
+        label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        label.setWordWrap(True)
+        layout.addWidget(label)
+
+        # Track clicks outside
+        if parent:
+            parent.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.Type.MouseButtonPress:
+            # Close the help box if clicking outside
+            if not self.geometry().contains(event.globalPosition().toPoint()):
+                self.close()
+        return super().eventFilter(obj, event)
+
+class MainDock(QDockWidget):
 
     def __init__(self, pynavar, gui):
-        super(ListDock, self).__init__()
+        super(MainDock, self).__init__()
         self.pynavar = pynavar
-        self.gui = gui
 
-        self.setObjectName("Variables")
-        self.setWindowTitle("Variables")
+        # Adding controller group
+        self.ctrl_group = ControllerGroup()
+        self._n_dock_open = 0
+
+        self.gui = gui
         self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
+        self.setTitleBarWidget(QWidget())
 
         # --- central container widget ---
         container = QWidget()
@@ -93,19 +98,49 @@ class ListDock(QDockWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
+        # Toolbar
+        toolbar = QToolBar("Main Toolbar")
+        toolbar.setMovable(False)  # fixed position like a menu bar
+
+        # Save action
+        save_action = QAction(QIcon.fromTheme("document-save"), "Save layout", self)
+        save_action.triggered.connect(self._save_layout)
+        toolbar.addAction(save_action)
+
+        # Load action
+        load_action = QAction(QIcon.fromTheme("document-open"), "Load layout", self)
+        load_action.triggered.connect(self._load_layout)
+        toolbar.addAction(load_action)
+
+        # Help action
+        self.help_box = None
+        self.help_action = QAction(QIcon.fromTheme("help-about"), "Help", self)
+        self.help_action.triggered.connect(self._toggle_help_box)
+        toolbar.addAction(self.help_action)
+        self.help_button = toolbar.widgetForAction(self.help_action)
+
+        layout.addWidget(toolbar)
+
         # --- list widget ---
+        layout.addWidget(QLabel("Variables"))
         self.listWidget = QListWidget()
         for k in pynavar.keys():
             if k != "data":
                 self.listWidget.addItem(k)
         self.listWidget.itemDoubleClicked.connect(self.add_dock_widget)
-        self.listWidget.setStyleSheet(DOCK_LIST_STYLESHEET)
+        # self.listWidget.setStyleSheet(DOCK_LIST_STYLESHEET)
         layout.addWidget(self.listWidget)
+
+        # --- Timer ---
+        self.time_label = QLabel(f"{self.ctrl_group.current_time:.2f} s")
+        self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = self.time_label.font()
+        font.setPointSize(12)
+        self.time_label.setFont(font)
+        layout.addWidget(self.time_label)
 
         # --- play/pause button at bottom ---
         button_layout = QHBoxLayout()
-        # button_layout.addStretch()
-
         self.playPauseBtn = QPushButton()
         self.playPauseBtn.setIcon(
             self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
@@ -113,6 +148,12 @@ class ListDock(QDockWidget):
         self.playPauseBtn.setCheckable(True)
         self.playPauseBtn.toggled.connect(self._toggle_play)
         button_layout.addWidget(self.playPauseBtn)
+        self.stopBtn = QPushButton()
+        self.stopBtn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop)
+        )
+        self.stopBtn.toggled.connect(self._stop)
+        button_layout.addWidget(self.stopBtn)
 
         layout.addLayout(button_layout)
 
@@ -123,28 +164,31 @@ class ListDock(QDockWidget):
             Qt.DockWidgetArea.LeftDockWidgetArea, self, Qt.Orientation.Horizontal
         )
 
-        self._create_title_bar()
-
-        # Adding controller group
-        self.ctrl_group = ControllerGroup()
-        self._n_dock_open = 0
-
         # Animation
         self.playing = False
         self.timer = QTimer()
         self.timer.timeout.connect(self._play)
-        self.timer.start(0.025) # 40 FPS
+        self.timer.start(25) # 40 FPS
 
         shortcut = QShortcut(QKeySequence("Space"), self)
         shortcut.activated.connect(self._toggle_play)
 
     def _toggle_play(self):
         self.playing = not self.playing
-        self.playPauseBtn.setText("Pause" if self.playing else "Play")
+        if self.playing:
+            # Switch to pause icon
+            self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-pause"))
+        else:
+            # Switch to play icon
+            self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-start"))
 
     def _play(self, delta=0.025):
         if self.playing:
             self.ctrl_group.advance(delta=delta)
+            self.time_label.setText(f"{self.ctrl_group.current_time:.2f} s")
+
+    def _stop(self):
+        pass
 
     def add_dock_widget(self, item):
         var = self.pynavar[item.text()]
@@ -210,18 +254,67 @@ class ListDock(QDockWidget):
         self.ctrl_group.add(widget.plot, index)
         self._n_dock_open += 1
 
-    def _create_title_bar(self):
-        """Create the title bar."""
-        self._title_bar = QWidget(self)
-        self._layout = QHBoxLayout(self._title_bar)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(0)
-        self._title_bar.setStyleSheet(DOCK_TITLE_STYLESHEET)
-        label = QLabel(self.windowTitle())
-        self._layout.addWidget(label)
-        self._layout.addStretch(1)
-        self._title_bar.setLayout(self._layout)
-        self.setTitleBarWidget(self._title_bar)
+    def _toggle_help_box(self):
+        # If the box exists and is visible, close it
+        if self.help_box and self.help_box.isVisible():
+            self.help_box.close()
+            return
+
+        self.help_box = HelpBox(parent=self)
+
+        # Position it below the button
+        btn_pos = self.help_button.mapToGlobal(QPoint(0, self.help_button.height()))
+        self.help_box.move(btn_pos)
+        self.help_box.show()
+
+    def _save_layout(self):
+        file_name, _ = QFileDialog.getSaveFileName(self, "Save Layout", "", "Layout Files (*.json)")
+        if file_name:
+            geom = bytes(self.gui.saveGeometry())
+            state = bytes(self.gui.saveState())
+
+            docks = self.gui.findChildren(QDockWidget)
+            all_docks = [d.objectName() for d in docks]
+            visible_docks = [d.objectName() for d in docks if d.isVisible()]
+
+            payload = {
+                "version": 1,
+                "geometry_b64": base64.b64encode(geom).decode("ascii"),
+                "state_b64": base64.b64encode(state).decode("ascii"),
+                "all_docks": all_docks,
+                "visible_docks": visible_docks,
+            }
+            with open(file_name, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2)
+            print(f"Layout saved to {file_name}")
+
+    def _load_layout(self):
+        file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
+        if file_name:
+            with open(file_name, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+
+            # 1) Ensure every dock that existed at save-time exists now
+            for name in payload.get("all_docks", []):
+                if not self.gui.findChild(QDockWidget, name):
+                    print("Cant fint it")
+                    # # Try to create it from a known factory; skip if unknown
+                    # factory = self.dock_factories.get(name)
+                    # if factory:
+                    #     factory()
+
+            # 2) Restore geometry first, then layout
+            geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))
+            state = QByteArray.fromBase64(payload["state_b64"].encode("ascii"))
+
+            self.gui.restoreGeometry(geom)
+            ok = self.restoreState(state, payload.get("version", 1))
+            print("restoreState ok:", ok)
+
+            # 3) (Safety) Enforce visibility exactly as saved
+            visible = set(payload.get("visible_docks", []))
+            for dock in self.findChildren(QDockWidget):
+                dock.setVisible(dock.objectName() in visible)
 
 
 class MainWindow(QMainWindow):
@@ -236,9 +329,18 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(self.name)
         self.setObjectName(self.name)
         self.resize(QSize(1200, 800))
+        # font = QFont("Arial", 10)  # Font family Arial, size 14 pt
+        # self.setFont(font)
 
-        # Enable nested docking (so docks can be stacked)
-        self.setDockNestingEnabled(True)
+    def save_layout(self):
+        print("New File action triggered")
+
+    def load_layout(self):
+        print("Open File action triggered")
+
+    def show_about(self):
+        print("About selected")
+
 
 def get_pynapple_variables(variables=None):
     tmp = variables.copy()
@@ -262,7 +364,7 @@ def scope(variables):
 
     gui = MainWindow()
 
-    ListDock(pynavar, gui)
+    MainDock(pynavar, gui)
 
     gui.show()
 
