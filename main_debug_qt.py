@@ -5,6 +5,8 @@ Test script
 
 import numpy as np
 import pynapple as nap
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QShortcut, QKeySequence
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QWidget
 
 import pynaviz as viz
@@ -29,6 +31,7 @@ window.setMinimumSize(1500, 800)
 layout = QHBoxLayout()
 
 # viz1 = viz.TsdWidget(tsd1, set_parent=True)
+# viz1 = viz.TsGroupWidget(tsg, set_parent=True)
 viz1 = viz.TsdFrameWidget(tsdframe)
 # viz1.plot.plot_x_vs_y(0, 1)
 # viz2 = viz.TsdWidget(tsd1, set_parent=True)
@@ -44,6 +47,23 @@ layout.addWidget(viz1)
 layout.addWidget(viz2)
 window.setLayout(layout)
 window.show()
+
+# --- QTimer setup ---
+timer = QTimer()
+timer.setInterval(25)  # 25 ms = 40Hz
+timer.timeout.connect(lambda: ctrl_group.advance())
+
+# --- Spacebar shortcut toggles the timer ---
+def on_space_pressed():
+    if timer.isActive():
+        print("⏸️ Paused")
+        timer.stop()
+    else:
+        print("▶️ Playing")
+        timer.start()
+
+shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), window)
+shortcut.activated.connect(on_space_pressed)
 
 if __name__ == "__main__":
     app.exit(app.exec())

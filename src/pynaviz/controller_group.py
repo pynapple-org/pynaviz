@@ -78,47 +78,28 @@ class ControllerGroup:
             if event.controller_id != id_other and ctrl.enabled:
                 ctrl.sync(event)
 
-    def advance(self, delta):
+    def advance(self, delta=0.025):
         """
-        Advances the state of all enabled controllers in the controller group.
+        Advances the simulation or application by a specified time interval.
 
-        This method generates an event indicating the state advancement and synchronizes
-        all enabled controllers within the controller group to the new state defined by the event.
+        This method updates the current simulation or application time and triggers
+        synchronized events for all enabled controllers within the controller group.
+        The method generates a sync event with specific parameters and uses this event
+        to synchronize each enabled controller.
 
         Parameters
         ----------
-        delta : int or float
-            The amount by which to advance the state.
+        delta (float): The time interval to advance the simulation or application.
+                       Defaults to 0.025 seconds.
 
-        Notes
-        -----
-        The `delta` value is used to update all enabled controllers in the group, ensuring that their
-        states are synchronized to the new time.
-
-        Examples
-        --------
-        >>> controller_group = ControllerGroup()
-        >>> controller_group.advance(10)
         """
-        new_time = self.current_time + delta
-
-        for controller in self._controller_group.values():
-            if controller.enabled:
-                event = SyncEvent(
-                    type="sync",
-                    controller_id=None,
-                    update_type="pan",
-                    sync_extra_args={
-                        "args": (),
-                        "kwargs": {
-                            "current_time": new_time
-                        }
-                    }
-                )
-                controller.sync(event)
-
-        self.current_time = new_time
-
+        try:
+            first_key = next(iter(self._controller_group))
+            self._controller_group[first_key].advance(delta)
+            self.current_time += delta
+        except StopIteration:
+            # Dictionary is empty, nothing to advance
+            print("Controller group is empty, nothing to advance.")
 
     def add(self, plot, controller_id: int):
         """
