@@ -203,7 +203,7 @@ class SpanController(CustomController):
         # Need to convert to camera movement
         if "current_time" in event.kwargs:
             camera_state = self._get_camera_state()
-            camera_pos = camera_state["position"].copy()
+            camera_pos = np.array(camera_state["position"]).copy()
             camera_pos[0] = event.kwargs["current_time"]
             camera_state["position"] = camera_pos
             event.kwargs["cam_state"] = camera_state

@@ -1,5 +1,5 @@
 """Available sync controller options."""
-
+import numpy as np
 import pylinalg as la
 from pygfx.cameras._perspective import fov_distance_factor
 
@@ -31,7 +31,7 @@ def _match_pan_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
     other_cam_state = update_event.kwargs["cam_state"]
     x_pos = other_cam_state["position"][0]
 
-    new_position = camera_state["position"].copy()
+    new_position = np.array(camera_state["position"]).copy()
     # new_position[0] = new_position[0] + dx
     new_position[0] = x_pos
     return dict(position=new_position)
@@ -71,7 +71,7 @@ def _match_zoom_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
     distance = fov_distance_factor(fov) * new_extent
     v2 = la.vec_transform_quat((0, 0, -distance), rot)
 
-    new_position = camera_state["position"].copy()
+    new_position = np.array(camera_state["position"]).copy()
     new_position = new_position + v1 - v2
 
     return dict(position=new_position, width=other_cam_state["width"])

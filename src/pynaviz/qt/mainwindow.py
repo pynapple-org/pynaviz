@@ -270,6 +270,10 @@ class MainDock(QDockWidget):
     def _save_layout(self):
         file_name, _ = QFileDialog.getSaveFileName(self, "Save Layout", "", "Layout Files (*.json)")
         if file_name:
+
+            if not file_name.lower().endswith(".json"):
+                file_name += ".json"
+
             geom = bytes(self.gui.saveGeometry())
             state = bytes(self.gui.saveState())
 
