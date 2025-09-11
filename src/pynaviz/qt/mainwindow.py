@@ -136,7 +136,7 @@ class MainDock(QDockWidget):
         layout.addWidget(toolbar)
         for action in [save_action, load_action, self.help_action]:
             button = toolbar.widgetForAction(action)
-            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            button.setFixedWidth(20)
 
 
         # --- list widget ---
