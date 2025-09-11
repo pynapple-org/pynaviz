@@ -98,11 +98,7 @@ class MainDock(QDockWidget):
         super(MainDock, self).__init__()
         self.setObjectName("MainDock")
         self.pynavar = pynavar
-
-        # Adding controller group
-        self.ctrl_group = ControllerGroup()
         self._n_dock_open = 0
-
         self.gui = gui
         self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
         self.setTitleBarWidget(QWidget())
@@ -136,7 +132,7 @@ class MainDock(QDockWidget):
         layout.addWidget(toolbar)
         for action in [save_action, load_action, self.help_action]:
             button = toolbar.widgetForAction(action)
-            button.setFixedWidth(20)
+            button.setFixedWidth(25)
 
 
         # --- list widget ---
@@ -150,7 +146,7 @@ class MainDock(QDockWidget):
         layout.addWidget(self.listWidget)
 
         # --- Timer ---
-        self.time_label = QLabel(f"{self.ctrl_group.current_time:.2f} s")
+        self.time_label = QLabel("0.0 s")
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         font = self.time_label.font()
         font.setPointSize(12)
@@ -166,11 +162,12 @@ class MainDock(QDockWidget):
         self.playPauseBtn.setCheckable(True)
         self.playPauseBtn.toggled.connect(self._toggle_play)
         button_layout.addWidget(self.playPauseBtn)
+
         self.stopBtn = QPushButton()
         self.stopBtn.setIcon(
             self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop)
         )
-        self.stopBtn.toggled.connect(self._stop)
+        self.stopBtn.clicked.connect(self._stop)
         button_layout.addWidget(self.stopBtn)
 
         layout.addLayout(button_layout)
@@ -191,9 +188,12 @@ class MainDock(QDockWidget):
         shortcut = QShortcut(QKeySequence("Space"), self)
         shortcut.activated.connect(self._toggle_play)
 
+        # Adding controller group
+        self.ctrl_group = ControllerGroup(callback=self._update_time_label)
+
         # Loading layout if provided
         if layout_path is not None and os.path.isfile(layout_path):
-            self._load_layout(layout_path)
+            self._restore_layout(layout_path)
 
     def _toggle_play(self):
         self.playing = not self.playing
@@ -207,10 +207,18 @@ class MainDock(QDockWidget):
     def _play(self, delta=0.025):
         if self.playing:
             self.ctrl_group.advance(delta=delta)
-            self.time_label.setText(f"{self.ctrl_group.current_time:.2f} s")
+            self._update_time_label(self.ctrl_group.current_time)
+
+    def _update_time_label(self, current_time):
+        self.time_label.setText(f"{current_time:.5f} s")
 
     def _stop(self):
-        pass
+        print("Stopped")
+        if self.playing:
+            self._toggle_play()
+        self.ctrl_group.current_time = 0.5
+        self.ctrl_group.set_interval(0, 1)
+        self._update_time_label(self.ctrl_group.current_time)
 
     def add_dock_widget(self, item: object) -> None:
         name = ""
@@ -354,45 +362,47 @@ class MainDock(QDockWidget):
                 json.dump(payload, f, indent=2)
             print(f"Layout saved to {file_name}")
 
-    def _load_layout(self, file_name=None):
-        if file_name is None:
-            file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
+    def _restore_layout(self, file_name):
+        with open(file_name, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+
+        # 0) Need to empty the gui
+        for d in self.gui.findChildren(QDockWidget):
+            if d.objectName() != "MainDock":
+                d.close()
+                d.setParent(None)
+                d.deleteLater()
+
+        # Clear the main window state
+        self.gui.restoreState(QByteArray())
+        self.gui.restoreGeometry(QByteArray())
+
+        # Empty the controller group
+        index = list(self.ctrl_group._controller_group.keys())
+        for id in index:
+            self.ctrl_group.remove(id)
+        self._n_dock_open = 0
+        assert len(self.ctrl_group._controller_group) == 0, "Controller group not empty after removing all docks."
+
+        # 1) add every dock with the potential variable. Order them by number in the name
+        for widget in payload.get("docks", []):
+            if widget['varname'] in self.pynavar:
+                self.add_dock_widget(widget['varname'])
+            assert self.gui.findChild(QDockWidget,
+                                      widget['name']) is not None, f"Dock {widget['name']} was not created."
+
+        # 2) Restore geometry first, then layout
+        geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))
+        state = QByteArray.fromBase64(payload["state_b64"].encode("ascii"))
+
+        self.gui.restoreGeometry(geom)
+        ok = self.gui.restoreState(state, payload.get("version", 0))
+        print("restoreState ok:", ok)
+
+    def _load_layout(self):
+        file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
         if file_name:
-            with open(file_name, "r", encoding="utf-8") as f:
-                payload = json.load(f)
-
-            # 0) Need to empty the gui
-            for d in self.gui.findChildren(QDockWidget):
-                if d.objectName() != "MainDock":
-                    d.close()
-                    d.setParent(None)
-                    d.deleteLater()
-
-            # Clear the main window state
-            self.gui.restoreState(QByteArray())
-            self.gui.restoreGeometry(QByteArray())
-
-            # Empty the controller group
-            index = list(self.ctrl_group._controller_group.keys())
-            for id in index:
-                self.ctrl_group.remove(id)
-            self._n_dock_open = 0
-            assert len(self.ctrl_group._controller_group) == 0, "Controller group not empty after removing all docks."
-
-            # 1) add every dock with the potential variable. Order them by number in the name
-            for widget in payload.get("docks", []):
-                if widget['varname'] in self.pynavar:
-                    self.add_dock_widget(widget['varname'])
-                assert self.gui.findChild(QDockWidget, widget['name']) is not None, f"Dock {widget['name']} was not created."
-
-            # 2) Restore geometry first, then layout
-            geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))
-            state = QByteArray.fromBase64(payload["state_b64"].encode("ascii"))
-
-            self.gui.restoreGeometry(geom)
-            ok = self.gui.restoreState(state, payload.get("version", 0))
-            print("restoreState ok:", ok)
-
+            self._restore_layout(file_name)
 
 class MainWindow(QMainWindow):
     def __init__(self):
