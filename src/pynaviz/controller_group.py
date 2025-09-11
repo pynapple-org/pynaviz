@@ -2,7 +2,7 @@
 ControllerGroup is used to synchronize in time each canvas.
 """
 
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, Callable
 
 from pygfx import Renderer, Viewport
 
@@ -21,14 +21,21 @@ class ControllerGroup:
     interval : tuple[float | int, float | int]
         Start and end of the epoch (x-axis range) to show when initializing.
         Must be a 2-tuple with start <= end.
+    callback : Optional[Callable]
+        A function to be called when the time is advanced through any sync event.
+        This is used mostly for Qtimer integration in GUI applications.
     """
 
     def __init__(
         self,
         plots: Optional[Sequence] = None,
         interval: tuple[Union[int, float], Union[int, float]] = (0, 1),
+        callback: Optional[Callable] = None,
     ):
         self._controller_group = dict()
+        self.callback = callback
+        self.current_time = None
+        self.interval = interval
 
         # Validate interval format
         if not isinstance(interval, (tuple, list)):
@@ -37,19 +44,15 @@ class ControllerGroup:
         if len(interval) != 2 or not all(isinstance(x, (int, float)) for x in interval):
             raise ValueError("`interval` must be a 2-tuple of int or float values.")
 
-        if interval[0] > interval[1]:
-            raise ValueError("`interval` start must not be greater than end.")
-
-        self.interval = interval
-        self.current_time = interval[0] + (interval[1] - interval[0])/2
-
         # Initialize controller group from given plots
         if plots is not None:
             for i, plt in enumerate(plots):
                 plt.controller._controller_id = i
                 self._add_update_handler(plt.renderer)
-                plt.controller.set_xlim(*interval)
                 self._controller_group[i] = plt.controller
+
+        self.set_interval(interval[0], interval[1])
+
 
     def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
         """
@@ -57,6 +60,47 @@ class ControllerGroup:
         """
         viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
         viewport.renderer.add_event_handler(self.sync_controllers, "sync")
+
+    def set_interval(self, start: Union[int, float], end: Union[int, float]):
+        """
+        Sets a new time interval for all controllers in the group.
+
+        Parameters
+        ----------
+        start : int or float
+            The start of the new time interval.
+        end : int or float
+            The end of the new time interval.
+
+        Raises
+        ------
+        ValueError
+            If start is greater than end.
+        """
+        if start > end:
+            raise ValueError("`start` must not be greater than `end`.")
+
+        self.interval = (start, end)
+        self.current_time = start + (end - start)/2
+
+        for ctrl in self._controller_group.values():
+            ctrl.sync(
+                SyncEvent(
+                    type="sync",
+                    controller_id=ctrl.controller_id,
+                    update_type="pan",
+                    sync_extra_args={
+                        "args": (),
+                        "kwargs": {
+                            "current_time": self.current_time
+                        }
+                    }
+                )
+            )
+
+        # Call the callback if provided
+        if self.callback is not None:
+            self.callback(self.current_time)
 
     def sync_controllers(self, event):
         """
@@ -76,6 +120,10 @@ class ControllerGroup:
         for id_other, ctrl in self._controller_group.items():
             if event.controller_id != id_other and ctrl.enabled:
                 ctrl.sync(event)
+
+        # Call the callback if provided
+        if self.callback is not None:
+            self.callback(self.current_time)
 
     def advance(self, delta=0.025):
         """
