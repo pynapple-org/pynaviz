@@ -1,21 +1,26 @@
+import base64
+import json
 import os
 import sys
 from datetime import datetime
 
 import pynapple as nap
-from PyQt6.QtCore import QSize, Qt, QTimer, QPoint, QEvent, QByteArray
-from PyQt6.QtGui import QKeySequence, QShortcut, QAction, QIcon, QDoubleValidator, QFont
+from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
     QDockWidget,
+    QFileDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QListWidget,
     QMainWindow,
     QPushButton,
     QStyle,
+    QToolBar,
     QVBoxLayout,
-    QWidget, QToolBar, QLineEdit, QFrame, QFileDialog, QSizePolicy,
+    QWidget,
 )
 
 from pynaviz.controller_group import ControllerGroup
@@ -26,8 +31,6 @@ from pynaviz.qt.widget_plot import (
     TsGroupWidget,
     TsWidget,
 )
-import sys, json, base64
-
 
 DOCK_LIST_STYLESHEET = """
     * {
@@ -49,18 +52,23 @@ class HelpBox(QFrame):
         super().__init__(parent)
 
         text = (
+            "Add variables by double-clicking them in the list.\n"
+            "Specific plot controls are available in each dock's menu (top-left corner).\n\n"
             "Shortcuts:\n"
             "Play/Pause: Space\n"
-            "Stop: S\n"
-            "Next Frame: →\n"
-            "Previous Frame: ←\n"
+            "Save layout: Ctrl+s\n"
+            "Load layout: Ctrl+o\n"
+            "Reset view: r\n\n"
+            "Specific to TsdFrame:\n"
+            "Increase contrast: i\n"
+            "Decrease contrast: d\n"
         )
 
         # Frameless floating box
         self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
         self.setFrameShape(QFrame.Shape.Box)
         self.setLineWidth(1)
-        self.setFixedSize(300, 300)
+        self.setFixedSize(800, 600)
 
         # Layout with help text
         layout = QVBoxLayout(self)
@@ -116,11 +124,13 @@ class MainDock(QDockWidget):
         # Save action
         save_action = QAction(QIcon.fromTheme("document-save"), "Save layout", self)
         save_action.triggered.connect(self._save_layout)
+        save_action.setShortcut(QKeySequence("Ctrl+S"))
         toolbar.addAction(save_action)
 
         # Load action
         load_action = QAction(QIcon.fromTheme("document-open"), "Load layout", self)
         load_action.triggered.connect(self._load_layout)
+        load_action.setShortcut(QKeySequence("Ctrl+O"))
         toolbar.addAction(load_action)
 
         # Help action
@@ -213,7 +223,6 @@ class MainDock(QDockWidget):
         self.time_label.setText(f"{current_time:.5f} s")
 
     def _stop(self):
-        print("Stopped")
         if self.playing:
             self._toggle_play()
         self.ctrl_group.current_time = 0.5
