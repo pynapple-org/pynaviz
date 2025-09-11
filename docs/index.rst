@@ -10,6 +10,7 @@ pynaviz
 
     Installing <installing>
     User guide <user_guide>
+    Example gallery <examples>
     API <api>
 
 
