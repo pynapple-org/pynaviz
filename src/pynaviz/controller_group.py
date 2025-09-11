@@ -2,7 +2,7 @@
 ControllerGroup is used to synchronize in time each canvas.
 """
 
-from typing import Optional, Sequence, Union, Callable
+from typing import Callable, Optional, Sequence, Union
 
 from pygfx import Renderer, Viewport
 
