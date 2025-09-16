@@ -60,6 +60,7 @@ class ControllerGroup:
         """
         viewport = Viewport.from_viewport_or_renderer(viewport_or_renderer)
         viewport.renderer.add_event_handler(self.sync_controllers, "sync")
+        viewport.renderer.add_event_handler(self.switch_controller, "switch")
 
     def set_interval(self, start: Union[int, float], end: Union[int, float]):
         """
@@ -124,6 +125,22 @@ class ControllerGroup:
         # Call the callback if provided
         if self.callback is not None:
             self.callback(self.current_time)
+
+    def switch_controller(self, event):
+        """
+        Switches the active controller in the group based on a switch event.
+
+        Parameters
+        ----------
+        event : Event
+            The switch event that contains `controller_id` to switch.
+        """
+        if not hasattr(event, "new_controller") or event.new_controller is None:
+            return
+        else:
+            ctrl = self._controller_group.get(event.controller_id, None)
+            if ctrl is not None and event.controller_id in self._controller_group:
+                self._controller_group[event.controller_id] = event.new_controller
 
     def advance(self, delta=0.025):
         """

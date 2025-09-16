@@ -9,7 +9,7 @@ import numpy as np
 import pygfx
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 
-from .events import SyncEvent
+from .events import SyncEvent, SwitchEvent
 from .utils import RenderTriggerSource, _get_event_handle
 
 
@@ -93,6 +93,17 @@ class CustomController(ABC, PanZoomController):
                     controller_id=self._controller_id,
                     update_type=update_type,
                     sync_extra_args=dict(args=args, kwargs=kwargs),
+                )
+            )
+
+    def _send_switch_event(self):
+        if self.renderer_handle_event:
+            self.renderer_handle_event(
+                SwitchEvent(
+                    type="switch",
+                    controller_id=self._controller_id,
+                    new_controller=self,
+                    sync_extra_args=dict(args=(), kwargs={}),
                 )
             )
 

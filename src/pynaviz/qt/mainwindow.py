@@ -29,7 +29,7 @@ from pynaviz.qt.widget_plot import (
     TsdTensorWidget,
     TsdWidget,
     TsGroupWidget,
-    TsWidget,
+    TsWidget, VideoWidget,
 )
 
 DOCK_LIST_STYLESHEET = """
@@ -259,6 +259,11 @@ class MainDock(QDockWidget):
                 widget = TsdTensorWidget(var, index=index, set_parent=True)
             elif isinstance(var, nap.Ts):
                 widget = TsWidget(var, index=index, set_parent=True)
+            elif isinstance(var, VideoWidget):
+                widget = var  # already a widget
+            else:
+                print(f"Variable '{name}' of type '{type(var)}' is not supported for plotting.")
+                return # unsupported type
 
             # Instantiating the dock widget
             dock = QDockWidget()
@@ -437,6 +442,9 @@ def get_pynapple_variables(variables=None):
     for k, v in tmp.items():
         if hasattr(v, "__module__"):
             if "pynapple" in v.__module__ and k[0] != "_":
+                pynavar[k] = v
+
+            if "pynaviz" in v.__module__ and k[0] != "_":
                 pynavar[k] = v
 
     return pynavar
