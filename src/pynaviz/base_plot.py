@@ -839,6 +839,8 @@ class PlotTsdFrame(_BasePlot):
         get_controller.buffer = self.time_point.geometry.positions
 
         self.controller = get_controller
+        # In case the plot is part of a ControllerGroup, we need to notify the change
+        self.controller._send_switch_event()
 
         # Update camera to fit the full x-y range
         self.controller.set_view(

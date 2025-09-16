@@ -84,6 +84,6 @@ Module including Qt widgets with selection, sorting and coloring by metadata fun
     :recursive:
 
     qt_item_models
-    gui
+    mainwindow
     widget_plot
     widget_menu
