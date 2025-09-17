@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
     QStyle,
     QToolBar,
     QVBoxLayout,
-    QWidget,
+    QWidget, QSizePolicy,
 )
 
 from pynaviz.controller_group import ControllerGroup
@@ -299,12 +299,9 @@ class MainDock(QDockWidget):
         layout.addWidget(label)
         layout.addStretch()
 
-        close_btn = QPushButton()
-        close_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
-        close_btn.setFixedSize(12, 12)
-        close_btn.clicked.connect(dock.close)
+        close_btn = widget.button_container._make_button(dock.close, "SP_TitleBarCloseButton", 15)
         layout.addWidget(close_btn)
-
+        widget.button_container.setMinimumHeight(15)
         dock.setTitleBarWidget(widget.button_container)
         return dock
 

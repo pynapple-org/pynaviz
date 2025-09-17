@@ -287,8 +287,9 @@ class MenuWidget(QWidget):
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        icon_size = 18
+        icon_size = 15
         if hasattr(plot._data, "metadata"):
             self.select_button = self._make_button(
                 self.show_select_menu, "SP_DialogApplyButton", icon_size
@@ -303,8 +304,6 @@ class MenuWidget(QWidget):
 
         layout.addStretch()
         self.setLayout(layout)
-        self.setFixedHeight(icon_size + 2)
-
         self._action_menu()
 
     def _request_draw(self) -> None:
@@ -320,11 +319,14 @@ class MenuWidget(QWidget):
     ) -> QPushButton:
         """Helper to create a styled button with icon and action."""
         button = QPushButton()
-        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         icon = self.style().standardIcon(getattr(QStyle.StandardPixmap, icon_name))
         button.setIcon(icon)
         button.setIconSize(QSize(icon_size, icon_size))
-        button.setFixedSize(icon_size + 3, icon_size + 3)
+        button.setSizePolicy(
+            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Minimum
+        )
+        button.setFixedSize(icon_size + 4, icon_size + 4)
         button.setFlat(True)
         button.clicked.connect(menu_to_show)
         return button
