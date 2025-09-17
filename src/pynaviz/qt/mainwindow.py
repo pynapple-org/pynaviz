@@ -230,90 +230,100 @@ class MainDock(QDockWidget):
         self._update_time_label(self.ctrl_group.current_time)
 
     def add_dock_widget(self, item: object) -> None:
-        name = ""
+        name = self._extract_variable_name(item)
+        if not name:
+            return
+
+        var = self._get_variable(name)
+        if var is None:
+            return
+
+        widget = self._create_widget_for_variable(var)
+        if widget is None:
+            return
+
+        dock = self._create_dock(name, widget)
+        self._add_dock_to_gui(dock)
+        self._register_controller(widget)
+        self._n_dock_open += 1
+
+    def _extract_variable_name(self, item: object) -> str | None:
+        """Return the variable name from a QListWidgetItem or a string."""
         if hasattr(item, "text"):
-            # item is a QListWidgetItem
-            name = item.text()
+            return item.text()
         elif isinstance(item, str):
-            # item is a string (variable name)
-            name = item
             if item not in self.pynavar:
                 print(f"Variable '{item}' not found.")
-                return
+                return None
+            return item
+        else:
+            print("Invalid item type for dock widget.")
+            return None
 
+    def _get_variable(self, name: str):
+        """Fetch the variable from pynavar and validate."""
         var = self.pynavar.get(name, None)
         if var is None:
             print(f"Variable '{name}' not found.")
-            return
+        return var
+
+    def _create_widget_for_variable(self, var) -> object | None:
+        """Return the correct widget based on the variable type."""
+        index = self._n_dock_open
+        if isinstance(var, nap.TsGroup):
+            return TsGroupWidget(var, index=index, set_parent=True)
+        elif isinstance(var, nap.Tsd):
+            return TsdWidget(var, index=index, set_parent=True)
+        elif isinstance(var, nap.TsdFrame):
+            return TsdFrameWidget(var, index=index, set_parent=True)
+        elif isinstance(var, nap.TsdTensor):
+            return TsdTensorWidget(var, index=index, set_parent=True)
+        elif isinstance(var, nap.Ts):
+            return TsWidget(var, index=index, set_parent=True)
+        elif isinstance(var, VideoWidget):
+            return var  # already a widget
         else:
-            index = self._n_dock_open
+            print(f"Variable of type '{type(var)}' is not supported for plotting.")
+            return None
 
-            # Getting the pynaviz widget class
-            if isinstance(var, nap.TsGroup):
-                widget = TsGroupWidget(var, index=index, set_parent=True)
-            elif isinstance(var, nap.Tsd):
-                widget = TsdWidget(var, index=index, set_parent=True)
-            elif isinstance(var, nap.TsdFrame):
-                widget = TsdFrameWidget(var, index=index, set_parent=True)
-            elif isinstance(var, nap.TsdTensor):
-                widget = TsdTensorWidget(var, index=index, set_parent=True)
-            elif isinstance(var, nap.Ts):
-                widget = TsWidget(var, index=index, set_parent=True)
-            elif isinstance(var, VideoWidget):
-                widget = var  # already a widget
-            else:
-                print(f"Variable '{name}' of type '{type(var)}' is not supported for plotting.")
-                return # unsupported type
+    def _create_dock(self, name: str, widget: object) -> QDockWidget:
+        """Create and configure the QDockWidget with title bar and controls."""
+        index = self._n_dock_open
+        dock = QDockWidget()
+        dock.setWidget(widget)
+        dock.setObjectName(f"{name}_{index}")
 
-            # Instantiating the dock widget
-            dock = QDockWidget()
-            dock.setWidget(widget)
+        # Add name and close button to the widget's button container
+        layout = widget.button_container.layout()
+        label = QLabel(name)
+        layout.addWidget(label)
+        layout.addStretch()
 
-            # Adding the name of the variable to the button container
-            layout = widget.button_container.layout()
-            label = QLabel(name)
-            # label.setStyleSheet("font-weight: bold; font-size: 12pt;")
-            layout.addWidget(label)
-            layout.addStretch()
+        close_btn = QPushButton()
+        close_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
+        close_btn.setFixedSize(12, 12)
+        close_btn.clicked.connect(dock.close)
+        layout.addWidget(close_btn)
 
-            # Adding the close button to the button container
-            close_btn = QPushButton()
-            close_btn.setIcon(
-                self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton)
-            )
-            close_btn.setFixedSize(12, 12)
-            close_btn.clicked.connect(dock.close)
-            layout.addWidget(close_btn)
+        dock.setTitleBarWidget(widget.button_container)
+        return dock
 
-            # Setting the button container as the title bar
-            dock.setTitleBarWidget(widget.button_container)
+    def _add_dock_to_gui(self, dock: QDockWidget) -> None:
+        """Add dock to the GUI and balance right docks vertically."""
+        self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
-            # Adding name to dock widget
-            dock.setObjectName(name+"_"+str(index))
+        # Balance heights of all right docks
+        right_docks = [
+            d for d in self.gui.findChildren(QDockWidget)
+            if self.gui.dockWidgetArea(d) == Qt.DockWidgetArea.RightDockWidgetArea
+        ]
+        if right_docks:
+            sizes_h = [1] * len(right_docks)
+            self.gui.resizeDocks(right_docks, sizes_h, Qt.Orientation.Vertical)
 
-            # Adding the dock widget to the GUI window.
-            self.gui.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
-
-            # balance all right docks equally
-            right_docks = [
-                d for d in self.gui.findChildren(QDockWidget)
-                if self.gui.dockWidgetArea(d) == Qt.DockWidgetArea.RightDockWidgetArea
-            ]
-
-            if right_docks:
-                # Horizontal = width distribution (central vs right area).
-                # Using larger size for the newest dock nudges the main splitter to allocate width.
-                sizes_w = [1] * len(right_docks)
-                sizes_w[right_docks.index(dock)] = 300  # request ~300 "units" for the new one
-                # self.gui.resizeDocks(right_docks, sizes_w, Qt.Orientation.Horizontal)
-
-                # B) Distribute HEIGHT among right-docks (stacked vertically)
-                sizes_h = [1] * len(right_docks)  # equal heights
-                self.gui.resizeDocks(right_docks, sizes_h, Qt.Orientation.Vertical)
-
-            # Adding controller and render to control group
-            self.ctrl_group.add(widget.plot, index)
-            self._n_dock_open += 1
+    def _register_controller(self, widget: object) -> None:
+        """Register the widget's plot in the controller group."""
+        self.ctrl_group.add(widget.plot, self._n_dock_open)
 
     def _toggle_help_box(self):
         # If the box exists and is visible, close it
