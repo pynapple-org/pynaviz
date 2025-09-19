@@ -1,9 +1,9 @@
 import base64
 import json
 import os
+import re
 import sys
 from datetime import datetime
-import re
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
@@ -21,16 +21,18 @@ from PyQt6.QtWidgets import (
     QStyle,
     QToolBar,
     QVBoxLayout,
-    QWidget, QSizePolicy,
+    QWidget,
 )
 
 from pynaviz.controller_group import ControllerGroup
 from pynaviz.qt.widget_plot import (
+    IntervalSetWidget,
     TsdFrameWidget,
     TsdTensorWidget,
     TsdWidget,
     TsGroupWidget,
-    TsWidget, VideoWidget, IntervalSetWidget,
+    TsWidget,
+    VideoWidget,
 )
 
 DOCK_LIST_STYLESHEET = """
