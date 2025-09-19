@@ -9,7 +9,7 @@ import numpy as np
 import pygfx
 from pygfx import Camera, PanZoomController, Renderer, Viewport
 
-from .events import SyncEvent, SwitchEvent
+from .events import SwitchEvent, SyncEvent
 from .utils import RenderTriggerSource, _get_event_handle
 
 
