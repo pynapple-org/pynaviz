@@ -251,6 +251,24 @@ class SpanController(CustomController):
         # To make sure all controller stays in sync
         self._send_sync_event(update_type="pan", current_time=new_position[0])
 
+    def go_to(self, target_time: float):
+        """
+        Directly set the camera's x-axis position to a specified target time.
+
+        Parameters
+        ----------
+        target_time (float): The target time to set the camera's x-axis position.
+
+        """
+        camera_state = self._get_camera_state()
+        new_position = np.array(camera_state["position"]).copy()
+        new_position[0] = target_time
+        self._set_camera_state(dict(position=new_position))
+        self._update_cameras()
+        self._update_plots()
+        self.renderer_request_draw()
+        # To make sure all controller stays in sync
+        self._send_sync_event(update_type="pan", current_time=target_time)
 
 class SpanYLockController(SpanController):
     """
@@ -401,6 +419,7 @@ class GetController(CustomController):
         elif "current_time" in event.kwargs:
             self._current_time = event.kwargs["current_time"]
             index = np.searchsorted(self.data.index, self._current_time, side="right") - 1
+            index = np.clip(index, 0, len(self.data.index) - 1)
             new_t = self.data.t[index]
 
         if new_t is not None:

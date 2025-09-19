@@ -72,6 +72,7 @@ class BaseWidget(QWidget):
         if self._playing and hasattr(self, "plot"):
             self.plot.controller.advance(0.025)
 
+
 class TsGroupWidget(BaseWidget):
 
     def __init__(self, data, index=None, size=(640, 480), set_parent=True):
@@ -161,6 +162,7 @@ class TsWidget(BaseWidget):
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
         self.layout.addWidget(self.plot.canvas)
+
 
 class IntervalSetWidget(BaseWidget):
 

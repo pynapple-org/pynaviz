@@ -381,7 +381,6 @@ class PlotTsd(_BasePlot):
         self.canvas.request_draw(self.animate)
 
 
-
 class PlotTsdFrame(_BasePlot):
     """
     Visualization of a multi-columns pynapple time series (``nap.TsdFrame``).
@@ -783,7 +782,7 @@ class PlotTsdFrame(_BasePlot):
         markersize: float = 10.0,
     ) -> None:
         """
-        Plot one metadata column versus another as a line plot.
+        Plot one column versus another as a line plot.
 
         Parameters
         ----------
@@ -1098,6 +1097,27 @@ class PlotTs(_BasePlot):
         # Request continuous redrawing with animation
         self.canvas.request_draw(self.animate)
 
+    def jump_next(self) -> None:
+        """
+        Jump to the next timestamp in the data.
+        """
+        current_t = self.controller._get_camera_state()["position"][0]
+        index = np.searchsorted(self.data.index.values, current_t, side="right")
+        index = np.clip(index, 0, len(self.data) - 1)
+        new_t = self.data.index.values[index]
+        if new_t > current_t:
+            self.controller.go_to(new_t)
+
+    def jump_previous(self) -> None:
+        """
+        Jump to the previous timestamp in the data.
+        """
+        current_t = self.controller._get_camera_state()["position"][0]
+        index = np.searchsorted(self.data.index.values, current_t, side="left") - 1
+        index = np.clip(index, 0, len(self.data) - 1)
+        new_t = self.data.index.values[index]
+        if new_t < current_t:
+            self.controller.go_to(new_t)
 
 class PlotIntervalSet(_BasePlot):
     """
@@ -1234,5 +1254,25 @@ class PlotIntervalSet(_BasePlot):
             self._manager.group_by(values)
             self._update("group_by")
 
+    def jump_next(self) -> None:
+        """
+        Jump to the start of the next interval in the data.
+        """
+        current_t = self.controller._get_camera_state()["position"][0]
+        index = np.searchsorted(self.data.start, current_t, side="right")
+        index = np.clip(index, 0, len(self.data) - 1)
+        new_t = self.data.start[index]
+        if new_t > current_t:
+            self.controller.go_to(new_t)
 
+    def jump_previous(self) -> None:
+        """
+        Jump to the start of the previous interval in the data.
+        """
+        current_t = self.controller._get_camera_state()["position"][0]
+        index = np.searchsorted(self.data.start, current_t, side="left") - 1
+        index = np.clip(index, 0, len(self.data) - 1)
+        new_t = self.data.start[index]
+        if new_t < current_t:
+            self.controller.go_to(new_t)
 

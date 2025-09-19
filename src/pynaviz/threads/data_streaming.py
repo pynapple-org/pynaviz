@@ -41,8 +41,10 @@ class TsdFrameStreaming:
         self.window_size = window_size
 
         # Determine how many points fall in a window of size `window_size`
-        slice_ = data._get_slice(0, window_size)
-        self._max_n = (slice_.stop - slice_.start) + 1
+        self._slice_ = data._get_slice(0, window_size)
+        self._max_n = (self._slice_.stop - self._slice_.start) + 1
+
+        self._flushed = False # To keep tracked if the data has been flushed at least once
 
     def get_slice(self, start: float, end: float) -> slice:
         """
@@ -83,24 +85,37 @@ class TsdFrameStreaming:
         **kwargs :
             Additional arguments passed to the callback (not used in this base class).
         """
-        slice_ = self.get_slice(position[0] - width / 2, position[0] + width / 2)
+        new_slice_ = self.get_slice(position[0] - width / 2, position[0] + width / 2)
 
-        # print(position[0] - width / 2, position[0] + width / 2)
-        # print(slice_, slice_.stop - slice_.start, self._max_n)
+        # print(self._slice_, new_slice_)
 
-        # Edge cases
-        if slice_.start == 0 or slice_.stop == self.data.shape[0]:
-            self._callback(slice_)
-
-        if slice_.step is not None and slice_.step > 1:
-            # Zooming out — reduced resolution
-            self._callback(slice_)
-        elif (slice_.step is None or slice_.step == 1) and (slice_.stop - slice_.start) == self._max_n:
-            # Panning — full-resolution window
-            self._callback(slice_)
+        if new_slice_ == self._slice_:
+            if not self._flushed:
+                self._flushed = True
+                self._callback(new_slice_)
+            return
         else:
-            # Zooming in — resolution higher than base window, currently ignored
-            pass
+            if new_slice_.start > self._slice_.start and new_slice_.stop < self._slice_.stop:
+                self._flushed = False
+                return  # zooming in, ignore for now
+            else:
+                self._callback(new_slice_)
+                self._slice_ = new_slice_
+                self._flushed = True
+
+        # # Edge cases
+        # if slice_.start == 0 or slice_.stop == self.data.shape[0]:
+        #     self._callback(slice_)
+        #
+        # if slice_.step is not None and slice_.step > 1:
+        #     # Zooming out — reduced resolution
+        #     self._callback(slice_)
+        # elif (slice_.step is None or slice_.step == 1) and (slice_.stop - slice_.start) == self._max_n:
+        #     # Panning — full-resolution window
+        #     self._callback(slice_)
+        # else:
+        #     # Zooming in — resolution higher than base window, currently ignored
+        #     pass
 
     def __len__(self) -> int:
         """

@@ -1,15 +1,19 @@
 import os
+import sys
 from pathlib import Path
 
+import numpy as np
 import pynapple as nap
+
 from one.api import ONE
 
 # from brainbox.io.one import SpikeSortingLoader
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget
+from tqdm import tqdm
 
 import pynaviz as viz
 
-app = QApplication([])
+# app = QApplication([])
 
 # ------------------------------------------------------------------------------------
 # Load IBL session
@@ -33,14 +37,17 @@ for label in ["left", "body", "right"]:
     licks = one.load_object(eid, f"{label}Camera", collection="alf", attribute=["times*"])["times"]
     videos[label] = (times, video_path)
 
+
+
+
 # Events and intervals
 timings = one.load_object(eid, "trials", collection="alf")
 licks = nap.Ts(one.load_object(eid, "licks", collection="alf")["times"])
 reactions = nap.Ts(timings["firstMovement_times"])
 trials = nap.IntervalSet(timings["intervals"])
 
-# Spikes
-# ssl = SpikeSortingLoader(eid=eid, one=one)
+# # Spikes
+# ssl = c(eid=eid, one=one)
 # spikes, clusters, channels = ssl.load_spike_sorting()
 # clusters = ssl.merge_clusters(spikes, clusters, channels)
 # clusters = nap.TsGroup(
@@ -91,28 +98,44 @@ trials = nap.IntervalSet(timings["intervals"])
 # # intervals
 # raster.plot.add_interval_sets(trials, colors="white", alpha=0.2)
 # videos
-videos = [
-    viz.VideoWidget(video_path=video_path, t=times)
-    for times, video_path in videos.values()
-]
-# link
-viz.controller_group.ControllerGroup([video.plot for video in videos])# + [raster.plot])
 
-# Main window
-window = QWidget()
+# videos = [
+#     viz.VideoWidget(video_path=video_path, t=times)
+#     for times, video_path in videos.values()
+# ]
+# vars = {name:var for name, var in zip(["left_video", "body_video", "right_video"], videos)}
+# vars["trials"] = trials
+# vars["licks"] = licks
 
-# Top row: horizontal layout for videos
-top_layout = QHBoxLayout()
-for video in videos:
-    top_layout.addWidget(video)
 
-# Overall layout: vertical, stacking videos on top of raster
-main_layout = QVBoxLayout()
-main_layout.addLayout(top_layout)  # Add videos at the top
-# main_layout.addWidget(raster)  # Raster goes at the bottom
 
-window.setLayout(main_layout)
-window.show()
+from pynaviz import scope
 
-if __name__ == "__main__":
-    app.exit(app.exec())
+
+
+
+scope(globals(), layout_path="layout_2025-09-19_14-28.json")
+
+
+# # link
+# viz.controller_group.ControllerGroup([video.plot for video in videos])# + [raster.plot])
+#
+# # Main window
+# window = QWidget()
+#
+# # Top row: horizontal layout for videos
+# top_layout = QHBoxLayout()
+# for video in videos:
+#     top_layout.addWidget(video)
+#
+# # Overall layout: vertical, stacking videos on top of raster
+# main_layout = QVBoxLayout()
+# main_layout.addLayout(top_layout)  # Add videos at the top
+# # main_layout.addWidget(raster)  # Raster goes at the bottom
+#
+# window.setLayout(main_layout)
+# window.show()
+#
+# if __name__ == "__main__":
+#     app.exit(app.exec())
+
