@@ -2,10 +2,12 @@ import numpy as np
 import os
 import pynapple as nap
 from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout
+from sklearn.manifold import Isomap
+
 import pynaviz as viz
 import sys
 from scipy.ndimage import gaussian_filter1d
-from sklearn.decomposition import KernelPCA
+from sklearn.decomposition import KernelPCA, PCA
 from matplotlib.pyplot import *
 
 from pynaviz import scope
@@ -26,7 +28,9 @@ units = units[units.SI > 0.3]
 units.order = np.argsort(units.peak.sort_values().index.values)
 
 count = units.count(0.1, ry.time_support).smooth(0.2)
-imap = KernelPCA(n_components=2, kernel='cosine').fit_transform(count)
+# imap = KernelPCA(n_components=2, kernel='cosine').fit_transform(count)
+# imap = PCA(n_components=2).fit_transform(count)
+imap = Isomap(n_components=2).fit_transform(count)
 imap = nap.TsdFrame(t=count.t, d=imap)
 # units.order = np.sort(units.peak)
 

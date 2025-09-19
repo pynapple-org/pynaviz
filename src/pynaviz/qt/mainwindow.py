@@ -3,6 +3,7 @@ import json
 import os
 import sys
 from datetime import datetime
+import re
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
@@ -29,7 +30,7 @@ from pynaviz.qt.widget_plot import (
     TsdTensorWidget,
     TsdWidget,
     TsGroupWidget,
-    TsWidget, VideoWidget,
+    TsWidget, VideoWidget, IntervalSetWidget,
 )
 
 DOCK_LIST_STYLESHEET = """
@@ -183,7 +184,12 @@ class MainDock(QDockWidget):
         layout.addLayout(button_layout)
 
         self.setWidget(container)
-        self.setFixedWidth(self.listWidget.sizeHintForColumn(0) + 50)
+        self.setFixedWidth(
+            max(
+                self.listWidget.sizeHintForColumn(0) + 50,
+                toolbar.sizeHint().width() + 20
+            )
+        )
 
         self.gui.addDockWidget(
             Qt.DockWidgetArea.LeftDockWidgetArea, self, Qt.Orientation.Horizontal
@@ -280,6 +286,8 @@ class MainDock(QDockWidget):
             return TsdTensorWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.Ts):
             return TsWidget(var, index=index, set_parent=True)
+        elif isinstance(var, nap.IntervalSet):
+            return IntervalSetWidget(var, index=index, set_parent=True)
         elif isinstance(var, VideoWidget):
             return var  # already a widget
         else:
@@ -365,7 +373,7 @@ class MainDock(QDockWidget):
                             "pos": (d.x(), d.y()),
                             "size": (d.width(), d.height()),
                             "dtype": d.widget().plot.data.__class__.__name__,
-                            "varname": name.split("_")[0],
+                            "varname": re.sub(r'_\d+$', '', name),
                             "index": int(name.split("_")[-1]),
                             "name": name
                             }

@@ -95,9 +95,10 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
             gfx.ImageBasicMaterial(clim=(0, 1)),
         )
 
+        img_height = self.texture.size[1]
         self.time_text = gfx.Text(
             text="0.0",
-            font_size=0.5,
+            font_size=img_height * 0.05,
             anchor="bottom-left",
             material=gfx.TextMaterial(
                 color="#B4F8C8", outline_color="#000", outline_thickness=0.15
@@ -129,7 +130,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     def _set_time_text(self, frame_index: int):
         """Update the on-screen time text based on the current frame index."""
         if self.time_text:
-            self.time_text.set_text(str(self.data.t[frame_index]))
+            self.time_text.set_text(str(np.round(self.data.t[frame_index], 4)))
 
     def set_frame(self, target_time: float):
         """

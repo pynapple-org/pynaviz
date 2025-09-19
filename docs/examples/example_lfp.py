@@ -16,79 +16,9 @@ from PyQt6.QtWidgets import QApplication, QDockWidget, QMenu, QDialog
 from pynaviz.qt.mainwindow import MainWindow, MainDock
 from matplotlib.pyplot import *
 from PIL import ImageGrab
-
-def get_action_by_object_name(menu: QMenu, name: str) -> QAction | None:
-    for action in menu.actions():
-        if action.objectName() == name:
-            return action
-    return None
-
-def grab_window(win):
-    """Capture the visible pixels of the Qt window and return a PIL image."""
-    rect = win.frameGeometry()
-    top_left = rect.topLeft()
-    x, y, w, h = top_left.x(), top_left.y(), rect.width(), rect.height()
-    bbox = (x, y, x + w, y + h)
-    return ImageGrab.grab(bbox=bbox)
-
-def click_on_item(list_widget, item_number, win, app, frames, durations):
-    item = list_widget.item(item_number)
-    rect = list_widget.visualItemRect(item)
-    pos = rect.center()
-    QTest.mouseClick(list_widget.viewport(),
-                     Qt.MouseButton.LeftButton,
-                     pos=pos)
-    QTest.qWait(1000)
-    frames.append(grab_window(win))
-    durations.append(800)
-    return item
-
-def add_dock_widget(list_widget, win, app, frames, durations, item_number=0):
-    item = click_on_item(list_widget, item_number, win, app, frames, durations)
-    app.processEvents()
-    list_widget.itemDoubleClicked.emit(item)
-    app.processEvents()
-    QTest.qWait(1000)
-    frames.append(grab_window(win))
-    durations.append(800)
-
-def flash_widget(widget, duration=200):
-    orig_style = widget.styleSheet()
-    widget.setStyleSheet("border: 2px solid red;")  # highlight
-    QTimer.singleShot(duration, lambda: widget.setStyleSheet(orig_style))
-
-def click_on_action(action_text, win, frames, durations):
-    frames.append(grab_window(win))
-    durations.append(800)
-    menu = next((w for w in QApplication.topLevelWidgets()
-                 if isinstance(w, QMenu) and w.isVisible()), None)
-    # Find the QAction by visible text
-    act = next((a for a in menu.actions() if a.text().replace("&", "") == action_text), None)
-    if not act:
-        raise ValueError(f"Menu item '{action_text}' not found")
-    # Click inside the action rectangle
-    rect = menu.actionGeometry(act)
-    # Schedule dialog handling after a short delay
-    QTimer.singleShot(1000, lambda: dialog_selection(win, frames, durations))
-    QTest.mouseClick(menu, Qt.MouseButton.LeftButton, pos=rect.center())
-    # Wait for dialog to appear and handle it
+from utils import grab_window, click_on_item, add_dock_widget, move_and_resize_dock, save_gif
 
 
-
-def dialog_selection(win, frames, durations):
-    frames.append(grab_window(win))
-    durations.append(800)
-
-    dialog = next((w for w in QApplication.topLevelWidgets()
-                   if isinstance(w, QDialog) and w.isVisible()), None)
-    if dialog is None:
-        raise RuntimeError("No dialog found")
-    # Find the OK button
-    ok_button = dialog.ok_button
-    ok_button.setStyleSheet("border: 2px solid red;")
-    frames.append(grab_window(win))
-    durations.append(800)
-    QTest.mouseClick(ok_button, Qt.MouseButton.LeftButton)
 
 def loadXML(path):
     listdir = os.listdir(path)
@@ -206,7 +136,7 @@ def main():
     durations.append(800)
 
     # # --- Action 4: play the animation ---
-    duration_ms = 5000  # total recording time
+    duration_ms = 3000  # total recording time
     interval_ms = 50  # grab frame every 200 ms
     num_frames = duration_ms // interval_ms
 
@@ -225,14 +155,8 @@ def main():
     frames.append(grab_window(win))  # grab frame
     durations.append(800)
 
+    save_gif(frames, durations, "example_lfp.gif")
 
-    frames[0].save(
-        "example_lfp.gif",
-        save_all=True,
-        append_images=frames[1:],
-        duration=durations,     # ms per frame
-        loop=0            # 0 = loop forever
-    )
 
     sys.exit(0)
 

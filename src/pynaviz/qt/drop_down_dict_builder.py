@@ -93,7 +93,7 @@ def get_popup_kwargs(popup_name: str, widget: QWidget) -> dict | None:
             widgets=OrderedDict(Metadata=meta, Order=order),
             title="Sort by",
             func=plot.sort_by,
-            ok_cancel_button=False,
+            ok_cancel_button=True,
             parent=widget,
         )
     elif popup_name == "group_by":
@@ -105,7 +105,7 @@ def get_popup_kwargs(popup_name: str, widget: QWidget) -> dict | None:
             widgets=OrderedDict(Metadata=meta),
             title="Group by",
             func=plot.group_by,
-            ok_cancel_button=True,
+            ok_cancel_button=False,
             parent=widget,
         )
     return kwargs

@@ -38,6 +38,8 @@ from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
 from pynaviz.qt.qt_item_models import ChannelListModel, DynamicSelectionListView
 from pynaviz.utils import get_plot_attribute
 
+import pynapple as nap
+
 WIDGET_PARAMS = {
     QComboBox: {
         "name": "setObjectName",
@@ -188,16 +190,16 @@ class DropdownDialog(QDialog):
         if ok_cancel_button:
             self._update_on_selection = False
             button_layout = QHBoxLayout()
-            ok_button = QPushButton("OK")
-            ok_button.setDefault(True)
+            self.ok_button = QPushButton("OK")
+            self.ok_button.setDefault(True)
             cancel_button = QPushButton("Cancel")
 
-            ok_button.clicked.connect(self.accept)
+            self.ok_button.clicked.connect(self.accept)
             cancel_button.clicked.connect(self.reject)
 
             button_layout.addStretch()
             button_layout.addWidget(cancel_button)
-            button_layout.addWidget(ok_button)
+            button_layout.addWidget(self.ok_button)
             main_layout.addLayout(button_layout)
         else:
             self._update_on_selection = True
@@ -267,7 +269,7 @@ class ChannelList(QDialog):
 
 class MenuWidget(QWidget):
     """
-    Menu bar widget that allows channel selection and plot actions.
+    Menu bar widget that allows channel selection, plot actions and time jumping.
 
     Parameters
     ----------
@@ -301,6 +303,17 @@ class MenuWidget(QWidget):
                 self.show_action_menu, "SP_FileDialogDetailedView", icon_size
             )
             layout.addWidget(self.action_button)
+
+        if isinstance(plot._data, (nap.Ts, nap.IntervalSet)):
+            self.left_jump_button = self._make_button(
+                self.jump_previous, "SP_ArrowLeft", icon_size
+            )
+            layout.addWidget(self.left_jump_button)
+
+            self.right_jump_button = self._make_button(
+                self.jump_next, "SP_ArrowRight", icon_size
+            )
+            layout.addWidget(self.right_jump_button)
 
         layout.addStretch()
         self.setLayout(layout)
@@ -360,3 +373,11 @@ class MenuWidget(QWidget):
             dialog = DropdownDialog(**kwargs)
             dialog.setEnabled(True)
             dialog.exec()
+
+    def jump_next(self) -> None:
+        """Jump to the next timestamp or start"""
+        self.plot.jump_next()
+
+    def jump_previous(self) -> None:
+        """ Jump to the previous timestamp or start"""
+        self.plot.jump_previous()
