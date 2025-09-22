@@ -346,6 +346,11 @@ class GetController(CustomController):
         self.buffer = buffer
         self.callback = callback
 
+    def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
+        """Set the visible X and Y ranges for an OrthographicCamera."""
+        if self.camera is not None:
+            self.camera.show_rect(xmin, xmax, ymin, ymax)
+
     @property
     def frame_index(self):
         return self._frame_index
