@@ -261,6 +261,8 @@ class MainDock(QDockWidget):
                 data = base_plot.data
                 if hasattr(data, "time_support"):
                     mx = data.time_support.end[-1]
+                elif isinstance(data, nap.IntervalSet):
+                    mx = data.end[-1]
                 else:
                     mx = getattr(base_plot.data.index, "values", base_plot.data.index)[-1]
                 max_time = max(max_time, mx)
