@@ -113,7 +113,6 @@ class ControllerGroup:
         for ctrl in self._controller_group.values():
             if hasattr(ctrl, "set_xlim"):
                 ctrl.set_xlim(start, end)
-                is_reset = True
             else:
                 ctrl.sync(
                     SyncEvent(
