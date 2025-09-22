@@ -168,6 +168,12 @@ class MainDock(QDockWidget):
 
         # --- play/pause button at bottom ---
         button_layout = QHBoxLayout()
+        self.skipBackwardBtn = QPushButton()
+        self.skipBackwardBtn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaSkipBackward)
+        )
+        self.skipBackwardBtn.clicked.connect(self._skip_backward)
+        button_layout.addWidget(self.skipBackwardBtn)
         self.playPauseBtn = QPushButton()
         self.playPauseBtn.setIcon(
             self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
@@ -182,6 +188,12 @@ class MainDock(QDockWidget):
         )
         self.stopBtn.clicked.connect(self._stop)
         button_layout.addWidget(self.stopBtn)
+        self.skipForwardBtn = QPushButton()
+        self.skipForwardBtn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaSkipForward)
+        )
+        self.skipForwardBtn.clicked.connect(self._skip_forward)
+        button_layout.addWidget(self.skipForwardBtn)
 
         layout.addLayout(button_layout)
 
@@ -233,9 +245,29 @@ class MainDock(QDockWidget):
     def _stop(self):
         if self.playing:
             self._toggle_play()
-        self.ctrl_group.current_time = 0.5
         self.ctrl_group.set_interval(0, 1)
         self._update_time_label(self.ctrl_group.current_time)
+
+    def _skip_backward(self):
+        self.ctrl_group.set_interval(0, 1)
+        self._update_time_label(self.ctrl_group.current_time)
+
+    def _skip_forward(self):
+        max_time = 0
+        for dock_widget in self.gui.findChildren(QDockWidget):
+            # if not isinstance(dock_widget, QWidget):
+            base_plot = getattr(dock_widget.widget(), "plot", None)
+            if base_plot is not None:
+                data = base_plot.data
+                if hasattr(data, "time_support"):
+                    mx = data.time_support.end[-1]
+                else:
+                    mx = getattr(base_plot.data.index, "values", base_plot.data.index)[-1]
+                max_time = max(max_time, mx)
+
+        self.ctrl_group.set_interval(max_time, None)
+        self._update_time_label(self.ctrl_group.current_time)
+
 
     def add_dock_widget(self, item: object) -> None:
         name = self._extract_variable_name(item)
@@ -309,11 +341,26 @@ class MainDock(QDockWidget):
         layout.addWidget(label)
         layout.addStretch()
 
-        close_btn = widget.button_container._make_button(dock.close, "SP_TitleBarCloseButton", 15)
+        # Connect close button with cleanup
+        close_btn = QPushButton()
+        close_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
+        close_btn.setFixedSize(15, 15)
+        close_btn.clicked.connect(lambda: self._cleanup_and_close_dock(dock))
+
         layout.addWidget(close_btn)
         widget.button_container.setMinimumHeight(15)
         dock.setTitleBarWidget(widget.button_container)
         return dock
+
+    def _cleanup_and_close_dock(self, dock):
+        """Properly clean up and close a dock widget"""
+        # Remove from controller group if registered
+        widget = dock.widget()
+        if hasattr(widget, 'plot'):
+            # remove from controls
+            ctrl_id = widget.plot.controller._controller_id
+            self.ctrl_group.remove(ctrl_id)
+        dock.deleteLater()
 
     def _add_dock_to_gui(self, dock: QDockWidget) -> None:
         """Add dock to the GUI and balance right docks vertically."""
