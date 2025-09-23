@@ -6,11 +6,13 @@ import sys
 from datetime import datetime
 
 import pynapple as nap
-from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
+    QComboBox,
     QDockWidget,
+    QDoubleSpinBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -21,7 +23,7 @@ from PyQt6.QtWidgets import (
     QStyle,
     QToolBar,
     QVBoxLayout,
-    QWidget, QDoubleSpinBox, QComboBox
+    QWidget,
 )
 
 from pynaviz.controller_group import ControllerGroup
