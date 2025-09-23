@@ -4,9 +4,10 @@ import os
 import re
 import sys
 from datetime import datetime
+from enum import Enum
 
 import pynapple as nap
-from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
+from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
@@ -21,7 +22,7 @@ from PyQt6.QtWidgets import (
     QStyle,
     QToolBar,
     QVBoxLayout,
-    QWidget,
+    QWidget, QDoubleSpinBox, QComboBox
 )
 
 from pynaviz.controller_group import ControllerGroup
@@ -49,6 +50,12 @@ DOCK_LIST_STYLESHEET = """
 
     }
 """
+
+class SpinboxChangeSource(Enum):
+    USER = 0
+    PLAYING = 1
+    UNIT_CHANGE = 2
+
 
 class HelpBox(QFrame):
     def __init__(self, parent=None):
@@ -92,6 +99,7 @@ class HelpBox(QFrame):
         return super().eventFilter(obj, event)
 
 class MainDock(QDockWidget):
+    spinbox_value_changed = pyqtSignal(float, SpinboxChangeSource)
 
     def __init__(self, pynavar, gui, layout_path=None):
         """
@@ -159,12 +167,37 @@ class MainDock(QDockWidget):
         layout.addWidget(self.listWidget)
 
         # --- Timer ---
-        self.time_label = QLabel("0.0 s")
-        self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        font = self.time_label.font()
-        font.setPointSize(12)
-        self.time_label.setFont(font)
-        layout.addWidget(self.time_label)
+        time_layout = QHBoxLayout()
+        self.time_spin_box = QDoubleSpinBox()
+        self.time_spin_box.setStyleSheet("font-size: 10pt;")
+        self.time_spin_box.setMinimum(-1e12)
+        self.time_spin_box.setMaximum(1e12)
+        self.time_spin_box.setValue(0.5)
+        self.time_spin_box.valueChanged.connect(
+            lambda value: self._emit_spinbox_change(value, SpinboxChangeSource.USER)
+        )
+        time_layout.addWidget(self.time_spin_box, 1)  # stretch factor = 1
+
+        self.time_unit_combo = QComboBox()
+        self.time_unit_combo.setStyleSheet("font-size: 10pt;")
+        self.time_unit_combo.addItem('us', 1e6)  # text, data
+        self.time_unit_combo.addItem('ms', 1e3)
+        self.time_unit_combo.addItem('s', 1.0)
+        self.time_unit_combo.setCurrentIndex(2)  # default to seconds
+        self.time_unit_combo.setFixedWidth(55)
+        self.time_unit_combo.currentIndexChanged.connect(self._on_unit_changed)
+        time_layout.addWidget(self.time_unit_combo, 0)  # stretch factor = 0
+
+        time_layout.addStretch()
+        layout.addLayout(time_layout)
+
+
+        # self.time_label = QLabel("0.0 s")
+        # self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # font = self.time_label.font()
+        # font.setPointSize(12)
+        # self.time_label.setFont(font)
+        # layout.addWidget(self.time_label)
 
         # --- play/pause button at bottom ---
         button_layout = QHBoxLayout()
@@ -227,8 +260,28 @@ class MainDock(QDockWidget):
             self.ctrl_group.advance(delta=delta)
             self._update_time_label(self.ctrl_group.current_time)
 
+    def _emit_spinbox_change(self, value: float, source_flag: SpinboxChangeSource):
+        """Emit custom signal with source flag"""
+        self.spinbox_value_changed.emit(value, source_flag)
+
+    def _on_unit_changed(self):
+        """When user changes units, update the spinbox display"""
+        multiplier = self.time_unit_combo.currentData()
+        display_value = self.ctrl_group.current_time * multiplier
+        self.time_spin_box.blockSignals(True)  # Prevent recursion
+        self.time_spin_box.setValue(display_value)
+        self.time_spin_box.blockSignals(False)
+
+    def _on_spinbox_changed(self, value: float, source: SpinboxChangeSource):
+        """Handle spinbox changes based on source enum"""
+        if source == SpinboxChangeSource.USER and not self.playing:
+            multiplier = self.time_unit_combo.currentData()
+            self.ctrl_group.set_interval(value / multiplier, None)
+
+
     def _update_time_label(self, current_time):
-        self.time_label.setText(f"{current_time:.5f} s")
+        time_multiplier = self.time_unit_combo.currentData()
+        self.time_spin_box.setValue(time_multiplier * current_time)
 
     def _stop(self):
         if self.playing:
