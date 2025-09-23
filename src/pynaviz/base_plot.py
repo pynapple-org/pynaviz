@@ -20,7 +20,7 @@ from wgpu.gui.auto import run
 from .controller import GetController, SpanController, SpanYLockController
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
-from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis, _match_set_xlim
+from .synchronization_rules import _match_pan_on_x_axis, _match_set_xlim, _match_zoom_on_x_axis
 from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import (
