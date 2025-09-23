@@ -75,3 +75,34 @@ def _match_zoom_on_x_axis(update_event: SyncEvent, camera_state: dict) -> dict:
     new_position = new_position + v1 - v2
 
     return dict(position=new_position, width=other_cam_state["width"])
+
+
+def _match_set_xlim(update_event: SyncEvent, camera_state: dict) -> dict:
+
+    if update_event.update_type not in ["set_xlim"]:
+        raise ValueError(
+            f"Update rule/event mismatch. Update rule `_match_set_xlim` requires an event of type `'set_xlim'`."
+        )
+
+    other_cam_state = update_event.kwargs["cam_state"]
+    # pan to the same x position
+    x_pos = other_cam_state["position"][0]
+    new_position = np.array(camera_state["position"]).copy()
+    new_position[0] = x_pos
+
+    # apply the zoom
+    extent = 0.5 * (camera_state["width"] + camera_state["height"])
+    new_extent = 0.5 * (other_cam_state["width"] + camera_state["height"])
+
+    rot = camera_state["rotation"]
+    fov = camera_state["fov"]
+    distance = fov_distance_factor(fov) * extent
+    v1 = la.vec_transform_quat((0, 0, -distance), rot)
+
+    distance = fov_distance_factor(fov) * new_extent
+    v2 = la.vec_transform_quat((0, 0, -distance), rot)
+    new_position = new_position + v1 - v2
+    print("new", dict(position=new_position, width=other_cam_state["width"]))
+    print("old", other_cam_state)
+    print("")
+    return dict(position=new_position, width=other_cam_state["width"])

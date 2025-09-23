@@ -110,23 +110,14 @@ class ControllerGroup:
             )
 
     def _set_from_start_end(self, start, end):
+        is_set = False
         for ctrl in self._controller_group.values():
             if hasattr(ctrl, "set_xlim"):
                 ctrl.set_xlim(start, end)
-            else:
-                ctrl.sync(
-                    SyncEvent(
-                        type="sync",
-                        controller_id=ctrl.controller_id,
-                        update_type="pan",
-                        sync_extra_args={
-                            "args": (),
-                            "kwargs": {
-                                "current_time": (end + start) / 2.
-                            }
-                        }
-                    )
-                )
+                is_set = True
+                break
+        if not is_set:
+            self._set_to_time(start)
 
 
     def sync_controllers(self, event):
