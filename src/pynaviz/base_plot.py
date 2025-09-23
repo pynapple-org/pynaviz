@@ -152,12 +152,12 @@ class _BasePlot(IntervalSetInterface):
 
     @property
     def cmap(self):
-        return self._cmap
+        return self._manager.cmap_name
 
     @cmap.setter
     def cmap(self, value):
         if isinstance(value, Colormap) and hasattr(value, "name"):
-            self._cmap = value.name
+            self._manager.cmap_name = value.name
         elif not isinstance(value, str):
             warnings.warn(
                 message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.",
@@ -172,7 +172,7 @@ class _BasePlot(IntervalSetInterface):
                 stacklevel=2,
             )
             return
-        self._cmap = value
+        self._manager.cmap_name = value
 
     def animate(self):
         """
@@ -309,6 +309,7 @@ class _BasePlot(IntervalSetInterface):
 
                 # Request a redraw of the canvas to reflect the new colors
                 self.canvas.request_draw(self.animate)
+        self._manager.color_by_metadata_name = metadata_name
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         pass
