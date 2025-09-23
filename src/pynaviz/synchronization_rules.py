@@ -102,7 +102,4 @@ def _match_set_xlim(update_event: SyncEvent, camera_state: dict) -> dict:
     distance = fov_distance_factor(fov) * new_extent
     v2 = la.vec_transform_quat((0, 0, -distance), rot)
     new_position = new_position + v1 - v2
-    print("new", dict(position=new_position, width=other_cam_state["width"]))
-    print("old", other_cam_state)
-    print("")
     return dict(position=new_position, width=other_cam_state["width"])
