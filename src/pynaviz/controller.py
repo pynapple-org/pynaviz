@@ -250,6 +250,9 @@ class SpanController(CustomController):
         camera_state = self._get_camera_state()
         new_position = np.array(camera_state["position"]).copy()
         new_position[0] += delta
+        # note: self._update_cameras is based on self._last_cam_state.
+        # The width of self._last_cam_state can differ from that of camera_state["width"].
+        # Provide both position and width for the desired update.
         self._set_camera_state(dict(position=new_position, width=camera_state["width"]))
         self._update_cameras()
         self._update_plots()
