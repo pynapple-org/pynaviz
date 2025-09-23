@@ -249,7 +249,13 @@ class MainDock(QDockWidget):
         self._update_time_label(self.ctrl_group.current_time)
 
     def _skip_backward(self):
-        self.ctrl_group.set_interval(0, 1)
+        width = None
+        for ctrl in self.ctrl_group._controller_group.values():
+            if hasattr(ctrl, "get_xlim"):
+                xlim = ctrl.get_xlim()
+                width = xlim[1] - xlim[0]
+                break
+        self.ctrl_group.set_interval(0, width)
         self._update_time_label(self.ctrl_group.current_time)
 
     def _skip_forward(self):
