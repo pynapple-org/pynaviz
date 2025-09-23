@@ -46,7 +46,8 @@ class _PlotManager:
         self.y_ticks = None
         self.cmap_name = None
         self.color_by_metadata_name = None
-
+        self.vmin = 0.
+        self.vmax = 100.
     @property
     def offset(self) -> np.ndarray:
         """
@@ -219,6 +220,8 @@ class _PlotManager:
             'y_ticks': self.y_ticks,  # Already serializable (dict or None)
             'cmap_name': self.cmap_name,
             'color_by_metadata_name': self.color_by_metadata_name,
+            'vmin': self.vmin,
+            'vmax': self.vmax,
         }
 
     @classmethod
@@ -253,6 +256,8 @@ class _PlotManager:
         instance.y_ticks = state['y_ticks']
         instance.cmap_name = state['cmap_name']
         instance.color_by_metadata_name = state['color_by_metadata_name']
+        instance.vmin = state['vmin']
+        instance.vmax = state['vmax']
 
         return instance
 

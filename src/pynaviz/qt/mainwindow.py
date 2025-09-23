@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from datetime import datetime
+import numpy as np
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
@@ -237,7 +238,7 @@ class MainDock(QDockWidget):
         self.ctrl_group.set_interval(0, 1)
         self._update_time_label(self.ctrl_group.current_time)
 
-    def add_dock_widget(self, item: object) -> None:
+    def add_dock_widget(self, item: object, plot_manager: dict | None = None) -> None:
         name = self._extract_variable_name(item)
         if not name:
             return
@@ -249,6 +250,20 @@ class MainDock(QDockWidget):
         widget = self._create_widget_for_variable(var)
         if widget is None:
             return
+        # restore manager if any
+        if plot_manager is not None:
+            current_manager = widget.plot._manager
+            restored_manager = widget.plot._manager.from_state(plot_manager)
+            if np.all(current_manager.index == restored_manager.index):
+                widget.plot._manager = restored_manager
+                widget.plot._update("sort_by")
+                widget.plot.color_by(
+                    restored_manager.color_by_metadata_name,
+                    restored_manager.cmap_name,
+                    vmin=restored_manager.vmin,
+                    vmax=restored_manager.vmax,
+                )
+
 
         dock = self._create_dock(name, widget)
         self._add_dock_to_gui(dock)
@@ -377,7 +392,8 @@ class MainDock(QDockWidget):
                             "dtype": d.widget().plot.data.__class__.__name__,
                             "varname": re.sub(r'_\d+$', '', name),
                             "index": int(name.split("_")[-1]),
-                            "name": name
+                            "name": name,
+                            "plot_manager": d.widget().plot._manager.get_state(),
                             }
                     docks.append(info)
                     order.append(int(name.split("_")[-1]))
@@ -418,9 +434,10 @@ class MainDock(QDockWidget):
         # 1) add every dock with the potential variable. Order them by number in the name
         for widget in payload.get("docks", []):
             if widget['varname'] in self.pynavar:
-                self.add_dock_widget(widget['varname'])
+                self.add_dock_widget(widget['varname'], plot_manager=widget["plot_manager"])
             assert self.gui.findChild(QDockWidget,
                                       widget['name']) is not None, f"Dock {widget['name']} was not created."
+
 
         # 2) Restore geometry first, then layout
         geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))

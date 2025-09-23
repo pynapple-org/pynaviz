@@ -773,6 +773,9 @@ class PlotTsdFrame(_BasePlot):
                 self.graphic.geometry.colors.update_full()
                 # Request a redraw of the canvas to reflect the new colors
                 self.canvas.request_draw(self.animate)
+        self._manager.color_by_metadata_name = metadata_name
+        self._manager.vmin = vmin
+        self._manager.vmax = vmax
 
     def plot_x_vs_y(
         self,
