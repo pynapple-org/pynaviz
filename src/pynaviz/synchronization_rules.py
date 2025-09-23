@@ -81,7 +81,7 @@ def _match_set_xlim(update_event: SyncEvent, camera_state: dict) -> dict:
 
     if update_event.update_type not in ["set_xlim"]:
         raise ValueError(
-            f"Update rule/event mismatch. Update rule `_match_set_xlim` requires an event of type `'set_xlim'`."
+            "Update rule/event mismatch. Update rule `_match_set_xlim` requires an event of type `'set_xlim'`."
         )
 
     other_cam_state = update_event.kwargs["cam_state"]
