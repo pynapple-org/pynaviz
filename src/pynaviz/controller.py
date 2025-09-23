@@ -158,6 +158,10 @@ class SpanController(CustomController):
         self.camera.local.x = x_center
         self._update_plots()
         self.renderer_request_draw()
+        self._send_sync_event(
+            update_type="set_xlim",
+            cam_state=self._get_camera_state(),
+        )
 
     def set_ylim(self, ymin: float, ymax: float):
         """Set the visible Y range for an OrthographicCamera."""
@@ -246,7 +250,7 @@ class SpanController(CustomController):
         camera_state = self._get_camera_state()
         new_position = np.array(camera_state["position"]).copy()
         new_position[0] += delta
-        self._set_camera_state(dict(position=new_position))
+        self._set_camera_state(dict(position=new_position, width=camera_state["width"]))
         self._update_cameras()
         self._update_plots()
         self.renderer_request_draw()
