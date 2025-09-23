@@ -281,7 +281,10 @@ class MainDock(QDockWidget):
 
     def _update_time_label(self, current_time):
         time_multiplier = self.time_unit_combo.currentData()
+        self.time_spin_box.blockSignals(True)
         self.time_spin_box.setValue(time_multiplier * current_time)
+        self.time_spin_box.blockSignals(False)
+
 
     def _stop(self):
         if self.playing:
