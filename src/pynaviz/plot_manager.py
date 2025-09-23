@@ -5,7 +5,7 @@ The manager gives context for which action has been applied to the visual.
 
 import numpy as np
 from pynapple.core.metadata_class import _Metadata
-
+from .threads.metadata_to_color_maps import MetadataMappingThread
 
 class _PlotManager:
     """
@@ -44,6 +44,8 @@ class _PlotManager:
         self._grouped = False
         self._sorting_mode = "ascending"
         self.y_ticks = None
+        self.cmap_name = None
+        self.color_by_metadata_name = None
 
     @property
     def offset(self) -> np.ndarray:
@@ -189,3 +191,68 @@ class _PlotManager:
         self._grouped = False
         self._sorted = False
         self.y_ticks = None
+
+    def get_state(self) -> dict:
+        """
+        Returns the current state of the plot manager in a serializable format.
+
+        Returns
+        -------
+        dict
+            Dictionary containing all information needed to restore the current
+            visual state, including sorting, grouping, scaling, and visibility.
+        """
+        if hasattr(self.index, "tolist"):
+            index = self.index.tolist()
+        else:
+            index = list(self.index)
+        return {
+            'index': index,  # Convert to list for JSON serialization
+            'groups': self.data['groups'].tolist(),
+            'order': self.data['order'].tolist(),
+            'visible': self.data['visible'].tolist(),
+            'offset': self.data['offset'].tolist(),
+            'scale': self.data['scale'].tolist(),
+            '_sorted': self._sorted,
+            '_grouped': self._grouped,
+            '_sorting_mode': self._sorting_mode,
+            'y_ticks': self.y_ticks,  # Already serializable (dict or None)
+            'cmap_name': self.cmap_name,
+            'color_by_metadata_name': self.color_by_metadata_name,
+        }
+
+    @classmethod
+    def from_state(cls, state: dict) -> '_PlotManager':
+        """
+        Creates a new PlotManager instance from a previously saved state.
+
+        Parameters
+        ----------
+        state : dict
+            Dictionary containing the saved state from get_state() method.
+
+        Returns
+        -------
+        _PlotManager
+            New instance with the restored state.
+        """
+        # Create instance with the saved index
+        instance = cls(state['index'])
+
+        # Restore all data arrays
+        instance.data['groups'] = np.array(state['groups'], dtype=int)
+        instance.data['order'] = np.array(state['order'], dtype=int)
+        instance.data['visible'] = np.array(state['visible'], dtype=bool)
+        instance.data['offset'] = np.array(state['offset'])
+        instance.data['scale'] = np.array(state['scale'])
+
+        # Restore state flags
+        instance._sorted = state['_sorted']
+        instance._grouped = state['_grouped']
+        instance._sorting_mode = state['_sorting_mode']
+        instance.y_ticks = state['y_ticks']
+        instance.cmap_name = state['cmap_name']
+        instance.color_by_metadata_name = state['color_by_metadata_name']
+
+        return instance
+
