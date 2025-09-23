@@ -4,7 +4,6 @@ import os
 import re
 import sys
 from datetime import datetime
-from enum import Enum
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer, pyqtSignal
@@ -51,10 +50,6 @@ DOCK_LIST_STYLESHEET = """
     }
 """
 
-class SpinboxChangeSource(Enum):
-    USER = 0
-    PLAYING = 1
-    UNIT_CHANGE = 2
 
 
 class HelpBox(QFrame):
@@ -99,7 +94,6 @@ class HelpBox(QFrame):
         return super().eventFilter(obj, event)
 
 class MainDock(QDockWidget):
-    spinbox_value_changed = pyqtSignal(float, SpinboxChangeSource)
 
     def __init__(self, pynavar, gui, layout_path=None):
         """
@@ -170,11 +164,11 @@ class MainDock(QDockWidget):
         time_layout = QHBoxLayout()
         self.time_spin_box = QDoubleSpinBox()
         self.time_spin_box.setStyleSheet("font-size: 10pt;")
-        self.time_spin_box.setMinimum(-1e12)
-        self.time_spin_box.setMaximum(1e12)
+        self.time_spin_box.setMinimum(0)
+        self.time_spin_box.setMaximum(1)
         self.time_spin_box.setValue(0.5)
         self.time_spin_box.valueChanged.connect(
-            lambda value: self._emit_spinbox_change(value, SpinboxChangeSource.USER)
+            self._on_spinbox_changed
         )
         time_layout.addWidget(self.time_spin_box, 1)  # stretch factor = 1
 
@@ -272,10 +266,6 @@ class MainDock(QDockWidget):
             self.ctrl_group.advance(delta=delta)
             self._update_time_label(self.ctrl_group.current_time)
 
-    def _emit_spinbox_change(self, value: float, source_flag: SpinboxChangeSource):
-        """Emit custom signal with source flag"""
-        self.spinbox_value_changed.emit(value, source_flag)
-
     def _on_unit_changed(self):
         """When user changes units, update the spinbox display"""
         multiplier = self.time_unit_combo.currentData()
@@ -284,16 +274,20 @@ class MainDock(QDockWidget):
         self.time_spin_box.setValue(display_value)
         self.time_spin_box.blockSignals(False)
 
-    def _on_spinbox_changed(self, value: float, source: SpinboxChangeSource):
+    def _on_spinbox_changed(self, value: float):
         """Handle spinbox changes based on source enum"""
-        if source == SpinboxChangeSource.USER and not self.playing:
-            multiplier = self.time_unit_combo.currentData()
-            self.ctrl_group.set_interval(value / multiplier, None)
+        print("spinbox changed", value)
+        multiplier = self.time_unit_combo.currentData()
+        self.ctrl_group.set_interval(value / multiplier, None)
 
 
     def _update_time_label(self, current_time):
         time_multiplier = self.time_unit_combo.currentData()
         self.time_spin_box.blockSignals(True)
+        min_time, max_time = self._get_max_min_time()
+        if max_time != -float("inf") and min_time != float("inf"):
+            self.time_spin_box.setMinimum(min_time * time_multiplier)
+            self.time_spin_box.setMaximum(max_time * time_multiplier)
         self.time_spin_box.setValue(time_multiplier * current_time)
         self.time_spin_box.blockSignals(False)
 
@@ -304,33 +298,45 @@ class MainDock(QDockWidget):
         self.ctrl_group.set_interval(0, 1)
         self._update_time_label(self.ctrl_group.current_time)
 
-    def _skip_backward(self):
-        width = None
-        for ctrl in self.ctrl_group._controller_group.values():
-            if hasattr(ctrl, "get_xlim"):
-                xlim = ctrl.get_xlim()
-                width = xlim[1] - xlim[0]
-                break
-        self.ctrl_group.set_interval(0, width)
-        self._update_time_label(self.ctrl_group.current_time)
-
-    def _skip_forward(self):
-        max_time = 0
+    def _get_max_min_time(self) -> tuple[float, float]:
+        max_time = -float("inf")
+        min_time = float("inf")
         for dock_widget in self.gui.findChildren(QDockWidget):
             # if not isinstance(dock_widget, QWidget):
             base_plot = getattr(dock_widget.widget(), "plot", None)
             if base_plot is not None:
                 data = base_plot.data
                 if hasattr(data, "time_support"):
+                    mn = data.time_support.start[0]
                     mx = data.time_support.end[-1]
                 elif isinstance(data, nap.IntervalSet):
+                    mn = data.start[0]
                     mx = data.end[-1]
                 else:
+                    mn = getattr(base_plot.data.index, "values", base_plot.data.index)[0]
                     mx = getattr(base_plot.data.index, "values", base_plot.data.index)[-1]
+                min_time = min(min_time, mn)
                 max_time = max(max_time, mx)
+        return min_time, max_time
 
-        self.ctrl_group.set_interval(max_time, None)
-        self._update_time_label(self.ctrl_group.current_time)
+    def _skip_backward(self):
+        min_time, _ = self._get_max_min_time()
+        if min_time != -float("inf"):
+            width = None
+            for ctrl in self.ctrl_group._controller_group.values():
+                if hasattr(ctrl, "get_xlim"):
+                    xlim = ctrl.get_xlim()
+                    width = xlim[1] - xlim[0]
+                    break
+            self.ctrl_group.set_interval(min_time, min_time + width)
+            self._update_time_label(self.ctrl_group.current_time)
+
+
+    def _skip_forward(self):
+        _, max_time = self._get_max_min_time()
+        if max_time != float("inf"):
+            self.ctrl_group.set_interval(max_time, None)
+            self._update_time_label(self.ctrl_group.current_time)
 
 
     def add_dock_widget(self, item: object) -> None:
@@ -350,6 +356,11 @@ class MainDock(QDockWidget):
         self._add_dock_to_gui(dock)
         self._register_controller(widget)
         self._n_dock_open += 1
+        min_time, max_time = self._get_max_min_time()
+        if max_time != -float("inf") and min_time != float("inf"):
+            time_multiplier = self.time_unit_combo.currentData()
+            self.time_spin_box.setMinimum(min_time * time_multiplier)
+            self.time_spin_box.setMaximum(max_time * time_multiplier)
 
     def _extract_variable_name(self, item: object) -> str | None:
         """Return the variable name from a QListWidgetItem or a string."""
