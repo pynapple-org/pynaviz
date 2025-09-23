@@ -62,7 +62,7 @@ class ControllerGroup:
         viewport.renderer.add_event_handler(self.sync_controllers, "sync")
         viewport.renderer.add_event_handler(self.switch_controller, "switch")
 
-    def set_interval(self, start: Union[int, float], end: Union[int, float]):
+    def set_interval(self, start: Union[int, float], end: Union[int, float, None]):
         """
         Sets a new time interval for all controllers in the group.
 
@@ -70,20 +70,30 @@ class ControllerGroup:
         ----------
         start : int or float
             The start of the new time interval.
-        end : int or float
-            The end of the new time interval.
+        end : int or float or None
+            The end of the new time interval. If None, go to start.
 
         Raises
         ------
         ValueError
             If start is greater than end.
         """
-        if start > end:
+        if end is not None and start > end:
             raise ValueError("`start` must not be greater than `end`.")
 
         self.interval = (start, end)
-        self.current_time = start + (end - start)/2
+        if end is None:
+            self._set_to_time(start)
+            self.current_time = start
+        else:
+            self._set_from_start_end(start, end)
+            self.current_time = start + (end - start) / 2
 
+        # Call the callback if provided
+        if self.callback is not None:
+            self.callback(self.current_time)
+
+    def _set_to_time(self, time):
         for ctrl in self._controller_group.values():
             ctrl.sync(
                 SyncEvent(
@@ -93,15 +103,22 @@ class ControllerGroup:
                     sync_extra_args={
                         "args": (),
                         "kwargs": {
-                            "current_time": self.current_time
+                            "current_time": time
                         }
                     }
                 )
             )
 
-        # Call the callback if provided
-        if self.callback is not None:
-            self.callback(self.current_time)
+    def _set_from_start_end(self, start, end):
+        is_set = False
+        for ctrl in self._controller_group.values():
+            if hasattr(ctrl, "set_xlim"):
+                ctrl.set_xlim(start, end)
+                is_set = True
+                break
+        if not is_set:
+            self._set_to_time(start)
+
 
     def sync_controllers(self, event):
         """
