@@ -517,7 +517,6 @@ class PlotTsdFrame(_BasePlot):
                 self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
                 self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
         else:
-            # print("Flushing\n")
             if slice_ is None:
                 slice_ = self._stream.get_slice(*self.controller.get_xlim())
 
@@ -551,7 +550,7 @@ class PlotTsdFrame(_BasePlot):
                 for sl in self._buffer_slices.values():
                     self._positions[sl.stop + right_offset : sl.stop, 0:2] = np.nan
 
-            self.graphic.geometry.positions.set_data(self._positions)
+        self.graphic.geometry.positions.set_data(self._positions)
 
     def _get_min_max(self):
         """
