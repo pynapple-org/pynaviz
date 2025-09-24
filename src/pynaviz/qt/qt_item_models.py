@@ -1,5 +1,4 @@
 from typing import Any
-from collections import OrderedDict
 
 import pynapple as nap
 from PyQt6.QtCore import (
@@ -8,11 +7,9 @@ from PyQt6.QtCore import (
     QItemSelectionModel,
     Qt,
     QTimer,
-    pyqtSignal, QAbstractTableModel, QModelIndex,
+    pyqtSignal,
 )
-from PyQt6.QtWidgets import QListView, QStyledItemDelegate, QComboBox, QSpinBox
-
-from pynaviz.utils import GRADED_COLOR_LIST
+from PyQt6.QtWidgets import QListView
 
 
 class DynamicSelectionListView(QListView):
