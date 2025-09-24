@@ -268,7 +268,7 @@ class MainDock(QDockWidget):
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-pause"))
         else:
             # Switch to play icon
-            self.timer.stop()  # 40 FPS
+            self.timer.stop()
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-start"))
 
     def _play(self, delta=0.025):
