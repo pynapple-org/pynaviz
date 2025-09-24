@@ -64,7 +64,6 @@ class CustomController(ABC, PanZoomController):
         else:
             raise TypeError("When provided, `dict_sync_funcs` must be a dictionary of callables.")
 
-
     @property
     def controller_id(self):
         return self._controller_id
@@ -106,28 +105,6 @@ class CustomController(ABC, PanZoomController):
                     sync_extra_args=dict(args=(), kwargs={}),
                 )
             )
-
-    def set_xlim(self, xmin: float, xmax: float):
-        """Set the visible X range for an OrthographicCamera.
-        #TODO THIS SHOULD DEPEND ON THE CURRENT SYNC STATUS
-        """
-        width = xmax - xmin
-        x_center = (xmax + xmin) / 2
-        self.camera.width = width
-        self.camera.local.x = x_center
-
-    def set_ylim(self, ymin: float, ymax: float):
-        """Set the visible Y range for an OrthographicCamera."""
-        height = ymax - ymin
-        y_center = (ymax + ymin) / 2
-        self.camera.height = height
-        self.camera.local.y = y_center
-
-    def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
-        """Set the visible X and Y ranges for an OrthographicCamera."""
-        # self.camera.show_rect(xmin, xmax, ymin, ymax)
-        self.set_xlim(xmin, xmax)
-        self.set_ylim(ymin, ymax)
 
     def get_xlim(self):
         """Return the current x boundaries"""
@@ -171,6 +148,35 @@ class SpanController(CustomController):
             dict_sync_funcs=dict_sync_funcs,
         )
         self._plot_callbacks = plot_callbacks if plot_callbacks is not None else []
+
+    def set_xlim(self, xmin: float, xmax: float):
+        """Set the visible X range for an OrthographicCamera.
+        """
+        width = xmax - xmin
+        x_center = (xmax + xmin) / 2
+        self.camera.width = width
+        self.camera.local.x = x_center
+        self._update_plots()
+        self.renderer_request_draw()
+        self._send_sync_event(
+            update_type="set_xlim",
+            cam_state=self._get_camera_state(),
+        )
+
+    def set_ylim(self, ymin: float, ymax: float):
+        """Set the visible Y range for an OrthographicCamera."""
+        height = ymax - ymin
+        y_center = (ymax + ymin) / 2
+        self.camera.height = height
+        self.camera.local.y = y_center
+        self._update_plots()
+        self.renderer_request_draw()
+
+    def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
+        """Set the visible X and Y ranges for an OrthographicCamera."""
+        # self.camera.show_rect(xmin, xmax, ymin, ymax)
+        self.set_xlim(xmin, xmax)
+        self.set_ylim(ymin, ymax)
 
     def _add_callback(self, func):
         if isinstance(func, Callable):
@@ -244,7 +250,10 @@ class SpanController(CustomController):
         camera_state = self._get_camera_state()
         new_position = np.array(camera_state["position"]).copy()
         new_position[0] += delta
-        self._set_camera_state(dict(position=new_position))
+        # note: self._update_cameras is based on self._last_cam_state.
+        # The width of self._last_cam_state can differ from that of camera_state["width"].
+        # Provide both position and width for the desired update.
+        self._set_camera_state(dict(position=new_position, width=camera_state["width"]))
         self._update_cameras()
         self._update_plots()
         self.renderer_request_draw()
@@ -342,6 +351,11 @@ class GetController(CustomController):
 
         self.buffer = buffer
         self.callback = callback
+
+    def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
+        """Set the visible X and Y ranges for an OrthographicCamera."""
+        if self.camera is not None:
+            self.camera.show_rect(xmin, xmax, ymin, ymax)
 
     @property
     def frame_index(self):
