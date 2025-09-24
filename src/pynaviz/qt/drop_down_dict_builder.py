@@ -2,6 +2,7 @@ import bisect
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QComboBox, QWidget
 
 from pynaviz.utils import GRADED_COLOR_LIST
@@ -20,8 +21,7 @@ def _get_meta_combo(widget):
     return meta
 
 
-def get_popup_kwargs(popup_name: str, widget: QWidget) -> dict | None:
-
+def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -> dict | None:
     plot = getattr(widget, "plot", None)
     if plot is None:
         return
@@ -106,6 +106,21 @@ def get_popup_kwargs(popup_name: str, widget: QWidget) -> dict | None:
             title="Group by",
             func=plot.group_by,
             ok_cancel_button=False,
+            parent=widget,
+        )
+    elif popup_name == "add_interval_set":
+        keys = [bytes(k).decode() for k in action.dynamicPropertyNames()]
+        cols = {
+            "type": QComboBox,
+            "name": "add_interval_set",
+            "items": keys,
+            "values": [action.property(k) for k in keys],
+            "current_index": 0}
+        kwargs = dict(
+            widgets=OrderedDict(IntervalSet=cols),
+            title="Add interval_set",
+            func=plot.add_interval_sets,
+            ok_cancel_button=True,
             parent=widget,
         )
     return kwargs

@@ -18,6 +18,7 @@ from typing import Any, Callable
 import numpy as np
 import pynapple as nap
 from PyQt6.QtCore import QPoint, QSize, Qt
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -36,6 +37,7 @@ from PyQt6.QtWidgets import (
 )
 
 from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
+from pynaviz.qt.interval_sets_table import IntervalSetsDialog, IntervalSetsModel
 from pynaviz.qt.qt_item_models import ChannelListModel, DynamicSelectionListView
 from pynaviz.utils import get_plot_attribute
 
@@ -255,7 +257,6 @@ class ChannelList(QDialog):
         self.setWindowTitle("Channel List")
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setFixedSize(300, 150)
-
         self.view = DynamicSelectionListView(self)
         self.view.setSelectionMode(self.view.SelectionMode.ExtendedSelection)
         self.view.setModel(model)
@@ -268,7 +269,7 @@ class ChannelList(QDialog):
 
 class MenuWidget(QWidget):
     """
-    Menu bar widget that allows channel selection, plot actions and time jumping.
+    Menu bar widget that allows all possible actions
 
     Parameters
     ----------
@@ -276,55 +277,84 @@ class MenuWidget(QWidget):
         Metadata associated with the plot.
     plot : _BasePlot
         The plot instance this menu is attached to.
+    interval_sets : dict, optional
+        Dictionary of interval sets that can be added to the plot.
     """
 
-    def __init__(self, metadata: Any, plot: Any):
+    def __init__(self, metadata: Any, plot: Any, interval_sets: dict | None = None):
         super().__init__()
         self.metadata = metadata
         self.plot = plot
-        self.channel_model = ChannelListModel(self.plot)
+        self.channel_model = ChannelListModel(self.plot.data)
         self.channel_model.checkStateChanged.connect(self._request_draw)
+        self.icon_size = 15
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        icon_size = 15
+        # Channel selection available
         if hasattr(plot._data, "metadata"):
-            self.select_button = self._make_button(
-                self.show_select_menu, "SP_DialogApplyButton", icon_size
+            self._add_button_to_layout(
+                layout=layout,
+                attr_name="select_button",
+                callback=self.show_select_menu,
+                icon_name="SP_DialogApplyButton",
+                icon_size=self.icon_size
             )
-            layout.addWidget(self.select_button)
 
+        # Action menu for plot operations
+        self.action_funcs = {}
         if metadata is not None and hasattr(metadata, "shape") and np.prod(metadata.shape):
-            self.action_button = self._make_button(
-                self.show_action_menu, "SP_FileDialogDetailedView", icon_size
-            )
-            layout.addWidget(self.action_button)
+            self.action_funcs = {
+                "color_by": "Color by",
+                "group_by": "Group by",
+                "sort_by": "Sort by",
+            }
+        if interval_sets is not None and isinstance(interval_sets, dict) and len(interval_sets):
+            if not all(isinstance(v, nap.IntervalSet) for v in interval_sets.values()):
+                raise ValueError("All values in interval_sets must be nap.IntervalSet instances.")
+            self.action_funcs["select_interval_set"] = "Select IntervalSet"
+            self._interval_sets_model = IntervalSetsModel(interval_sets)
+            self._interval_sets_model.checkStateChanged.connect(self._set_interval_set)
+            self._interval_sets = interval_sets
 
+        # Add the action button only if there are actions to show
+        if len(self.action_funcs):
+            self._add_button_to_layout(
+                layout=layout,
+                attr_name="action_button",
+                callback=self.show_action_menu,
+                icon_name="SP_FileDialogDetailedView",
+                icon_size=self.icon_size
+            )
+
+        # Navigation buttons for time-based data
         if isinstance(plot._data, (nap.Ts, nap.IntervalSet)):
-            self.left_jump_button = self._make_button(
-                self.jump_previous, "SP_ArrowLeft", icon_size
+            self._add_button_to_layout(
+                layout=layout,
+                attr_name="left_jump_button",
+                callback=self.jump_previous,
+                icon_name="SP_ArrowLeft",
+                icon_size=self.icon_size
             )
-            layout.addWidget(self.left_jump_button)
-
-            self.right_jump_button = self._make_button(
-                self.jump_next, "SP_ArrowRight", icon_size
+            self._add_button_to_layout(
+                layout=layout,
+                attr_name="right_jump_button",
+                callback=self.jump_next,
+                icon_name="SP_ArrowRight",
+                icon_size=self.icon_size
             )
-            layout.addWidget(self.right_jump_button)
 
         layout.addStretch()
         self.setLayout(layout)
         self._action_menu()
 
-    def _request_draw(self) -> None:
-        """Request a redraw of the plot when channel states change."""
-        widget = self.sender()
-        materials = get_plot_attribute(self.plot, "material")
-        for index, val in getattr(widget, "checks", {}).items():
-            materials[index].opacity = val
-        self.plot.canvas.request_draw(self.plot.animate)
+    def _add_button_to_layout(self, layout, attr_name, callback, icon_name, icon_size):
+        button = self._make_button(callback, icon_name, icon_size)
+        setattr(self, attr_name, button)
+        layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignLeft)
 
     def _make_button(
         self, menu_to_show: Callable, icon_name: str, icon_size: int = 20
@@ -346,9 +376,7 @@ class MenuWidget(QWidget):
     def _action_menu(self) -> None:
         """Creates the action menu with plot operation entries."""
         self.action_menu = QMenu()
-        for name, func_name in zip(
-            ["Color by", "Group by", "Sort by"], ["color_by", "group_by", "sort_by"]
-        ):
+        for func_name, name in self.action_funcs.items():
             action = self.action_menu.addAction(name)
             action.setObjectName(func_name)
             action.triggered.connect(self._popup_menu)
@@ -363,11 +391,19 @@ class MenuWidget(QWidget):
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.exec()
 
+    def show_select_iset_menu(self) -> None:
+        """Opens the interval set selection dialog."""
+        dialog = IntervalSetsDialog(self._interval_sets_model, parent=self)
+        dialog.show()
+
     def _popup_menu(self) -> None:
         """Opens a dropdown dialog based on selected action."""
-        action = self.sender()
+        action: QAction | None = self.sender()
         popup_name = action.objectName()
-        kwargs = get_popup_kwargs(popup_name, self)
+        if popup_name == "select_interval_set":
+            self.show_select_iset_menu()
+            return
+        kwargs = get_popup_kwargs(popup_name, self, action)
         if kwargs is not None:
             dialog = DropdownDialog(**kwargs)
             dialog.setEnabled(True)
@@ -380,3 +416,24 @@ class MenuWidget(QWidget):
     def jump_previous(self) -> None:
         """ Jump to the previous timestamp or start"""
         self.plot.jump_previous()
+
+    def _request_draw(self) -> None:
+        """Request a redraw of the plot when channel states change."""
+        widget = self.sender()
+        materials = get_plot_attribute(self.plot, "material")
+        for index, val in getattr(widget, "checks", {}).items():
+            materials[index].opacity = val
+        self.plot.canvas.request_draw(self.plot.animate)
+
+    def _set_interval_set(self, name, colors, alpha, checked) -> None:
+        """Add or remove IntervalSet from the plot based on selection."""
+        if checked:
+            # If already present, update the parameters
+            if name in self.plot._epochs:
+                self.plot.update_interval_set(name, colors=colors, alpha=alpha)
+                self.plot.canvas.request_draw(self.plot.animate)
+            else:
+                self.plot.add_interval_sets(self._interval_sets[name], colors=colors, alpha=alpha, labels=name)
+        else:
+            self.plot.remove_interval_set(name)
+            self.plot.canvas.request_draw(self.plot.animate)

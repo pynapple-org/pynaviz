@@ -16,8 +16,9 @@ tsg = nap.TsGroup({
     ) for i in range(10)}, metadata={"label": np.random.randn(10)})
 tsdframe = nap.TsdFrame(t=np.arange(10000), d=np.random.randn(10000, 10), metadata={"label": np.random.randn(10)})
 tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
+ts = nap.Ts(t=np.arange(10))
+iset = nap.IntervalSet(start=np.arange(0, 1000, 10), end=np.arange(5, 1005, 10))
 
-
-v = viz.PlotTsd(tsd1)
+v = viz.PlotIntervalSet(iset)
 v.show()
 
