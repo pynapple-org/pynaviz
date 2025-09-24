@@ -249,7 +249,6 @@ class MainDock(QDockWidget):
         self.playing = False
         self.timer = QTimer()
         self.timer.timeout.connect(self._play)
-        self.timer.start(25) # 40 FPS
 
         shortcut = QShortcut(QKeySequence("Space"), self)
         shortcut.activated.connect(self._toggle_play)
@@ -265,15 +264,16 @@ class MainDock(QDockWidget):
         self.playing = not self.playing
         if self.playing:
             # Switch to pause icon
+            self.timer.start(25)  # 40 FPS
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-pause"))
         else:
             # Switch to play icon
+            self.timer.stop()  # 40 FPS
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-start"))
 
     def _play(self, delta=0.025):
-        if self.playing:
-            self.ctrl_group.advance(delta=delta)
-            self._update_time_label(self.ctrl_group.current_time)
+        self.ctrl_group.advance(delta=delta)
+        self._update_time_label(self.ctrl_group.current_time)
 
     def _on_unit_changed(self):
         """When user changes units, update the spinbox display"""
