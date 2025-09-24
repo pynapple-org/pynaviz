@@ -10,11 +10,12 @@ from PyQt6.QtWidgets import (
     QDialog,
     QDoubleSpinBox,
     QHBoxLayout,
+    QHeaderView,
     QPushButton,
     QStyledItemDelegate,
     QTableView,
     QVBoxLayout,
-    QWidget, QHeaderView,
+    QWidget,
 )
 
 from pynaviz.utils import GRADED_COLOR_LIST
@@ -40,10 +41,12 @@ class IntervalSetsModel(QAbstractTableModel):
         ]
 
     # ---- model dimensions ----
-    def rowCount(self, parent=QModelIndex()):
+    def rowCount(self, parent=None):
+        if parent is None:
+            parent = QModelIndex()
         return len(self.rows)
 
-    def columnCount(self, parent=QModelIndex()):
+    def columnCount(self, parent=None):
         return 3
 
     def headerData(self, section, orientation, role):
@@ -56,9 +59,12 @@ class IntervalSetsModel(QAbstractTableModel):
         r = self.rows[row]
 
         if role == Qt.ItemDataRole.DisplayRole or role == Qt.ItemDataRole.EditRole:
-            if col == 0:   return r["name"]
-            if col == 1:   return r["colors"]
-            if col == 2:   return r["alpha"]
+            if col == 0:
+                return r["name"]
+            if col == 1:
+                return r["colors"]
+            if col == 2:
+                return r["alpha"]
 
         if role == Qt.ItemDataRole.CheckStateRole and col == 0:
             return Qt.CheckState.Checked if r["checked"] else Qt.CheckState.Unchecked
@@ -116,8 +122,9 @@ class ComboDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         combo = QComboBox(parent)
         combo.addItems(GRADED_COLOR_LIST)
+        row = index.row()
         combo.currentTextChanged.connect(
-            lambda text, row=index.row(): self.valueChanged.emit(row, text)
+            lambda text: self.valueChanged.emit(row, text)
         )
         return combo
 
