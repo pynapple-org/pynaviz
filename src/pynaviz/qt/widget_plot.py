@@ -22,6 +22,14 @@ from ..base_plot import (
 from .widget_menu import MenuWidget
 
 
+def expand_with_time_support(time_support, interval_sets):
+    if isinstance(interval_sets, dict):
+        interval_sets["Time Support"] = time_support
+        return interval_sets
+    else:
+        return {"Time Support": time_support}
+
+
 class BaseWidget(QWidget):
     def __init__(self, size: Tuple[int, int] = (800, 600)) -> None:
         # Ensure a QApplication instance exists.
@@ -83,6 +91,7 @@ class TsGroupWidget(BaseWidget):
         self.plot = PlotTsGroup(data, index=index, parent=parent)
 
         # Top level menu container
+        interval_sets = expand_with_time_support(data.time_support, interval_sets)
         self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot, interval_sets=interval_sets)
 
         # Add overlay and canvas to layout
@@ -100,6 +109,7 @@ class TsdWidget(BaseWidget):
         self.plot = PlotTsd(data, index=index, parent=parent)
 
         # Top level menu container
+        interval_sets = expand_with_time_support(data.time_support, interval_sets)
         self.button_container = MenuWidget(metadata=None, plot=self.plot, interval_sets=interval_sets)
 
         # Add overlay and canvas to layout
@@ -117,6 +127,7 @@ class TsdFrameWidget(BaseWidget):
         self.plot = PlotTsdFrame(data, index=index, parent=parent)
 
         # Top level menu container
+        interval_sets = expand_with_time_support(data.time_support, interval_sets)
         self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot, interval_sets=interval_sets)
 
         # Add custom menu items
@@ -149,7 +160,7 @@ class TsdTensorWidget(BaseWidget):
 
 class TsWidget(BaseWidget):
 
-    def __init__(self, data, index=None, size=(640, 480), set_parent=True):
+    def __init__(self, data, index=None, size=(640, 480), set_parent=True, interval_sets=None):
         super().__init__(size=size)
 
         # Canvas
@@ -157,6 +168,7 @@ class TsWidget(BaseWidget):
         self.plot = PlotTs(data, index=index, parent=parent)
 
         # Top level menu container
+        interval_sets = expand_with_time_support(data.time_support, interval_sets)
         self.button_container = MenuWidget(metadata=None, plot=self.plot)
 
         # Add overlay and canvas to layout

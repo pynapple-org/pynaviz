@@ -84,7 +84,6 @@ class IntervalSetsModel(QAbstractTableModel):
         role : Qt.ItemDataRole
             The role of the data to set.
         """
-        print(index, value, role)
         row, col = index.row(), index.column()
         r = self.rows[row]
 
