@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
     QStyle,
     QToolBar,
     QVBoxLayout,
-    QWidget, QSpacerItem,
+    QWidget,
 )
 
 from pynaviz.controller_group import ControllerGroup

@@ -1,17 +1,21 @@
-from typing import Any
-from collections import OrderedDict
 
-import pynapple as nap
 from PyQt6.QtCore import (
-    QAbstractListModel,
-    QEvent,
-    QItemSelectionModel,
+    QAbstractTableModel,
+    QModelIndex,
     Qt,
-    QTimer,
-    pyqtSignal, QAbstractTableModel, QModelIndex,
+    pyqtSignal,
 )
-from PyQt6.QtWidgets import QListView, QStyledItemDelegate, QComboBox, QSpinBox, QDialog, QWidget, QTableView, \
-    QVBoxLayout, QHeaderView, QDoubleSpinBox, QHBoxLayout, QPushButton
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QHBoxLayout,
+    QPushButton,
+    QStyledItemDelegate,
+    QTableView,
+    QVBoxLayout,
+    QWidget, QHeaderView,
+)
 
 from pynaviz.utils import GRADED_COLOR_LIST
 
@@ -170,6 +174,12 @@ class IntervalSetsDialog(QDialog):
 
         self.view = QTableView(self)
         self.view.setModel(model)
+        header = self.view.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        header.setStretchLastSection(True)
+        self.view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
+
         color_delegate = ComboDelegate(self.view)
         color_delegate.valueChanged.connect(
             lambda row, text: model.setData(
@@ -190,7 +200,7 @@ class IntervalSetsDialog(QDialog):
         )
         self.view.setItemDelegateForColumn(2, alpha_delegate)
 
-        self.view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # self.view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         layout = QVBoxLayout()
         layout.addWidget(self.view)

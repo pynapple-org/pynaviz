@@ -33,11 +33,11 @@ from PyQt6.QtWidgets import (
     QSpacerItem,
     QStyle,
     QVBoxLayout,
-    QWidget, QTableView,
+    QWidget,
 )
 
 from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
-from pynaviz.qt.interval_sets_table import IntervalSetsModel, IntervalSetsDialog
+from pynaviz.qt.interval_sets_table import IntervalSetsDialog, IntervalSetsModel
 from pynaviz.qt.qt_item_models import ChannelListModel, DynamicSelectionListView
 from pynaviz.utils import get_plot_attribute
 
