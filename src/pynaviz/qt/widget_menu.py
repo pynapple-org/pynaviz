@@ -427,7 +427,6 @@ class MenuWidget(QWidget):
 
     def _set_interval_set(self, name, colors, alpha, checked) -> None:
         """Add or remove IntervalSet from the plot based on selection."""
-        print(name, colors, alpha, checked)
         if checked:
             # If already present, update the parameters
             if name in self.plot._epochs:
