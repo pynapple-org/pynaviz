@@ -253,7 +253,7 @@ class MainDock(QDockWidget):
         # restore manager if any
         if plot_manager is not None:
             current_manager = widget.plot._manager
-            restored_manager = widget.plot._manager.from_state(plot_manager)
+            restored_manager = current_manager.from_state(plot_manager)
             if np.all(current_manager.index == restored_manager.index):
                 widget.plot._manager = restored_manager
                 widget.plot._update("sort_by")
