@@ -360,6 +360,44 @@ class MainDock(QDockWidget):
         self.help_box.move(btn_pos)
         self.help_box.show()
 
+    def save_layout(self, file_name="layout.json"):
+        if not file_name.lower().endswith(".json"):
+            file_name += ".json"
+
+        geom = bytes(self.gui.saveGeometry())
+        state = bytes(self.gui.saveState(version=0))  # Potentially add package versioning later
+
+        all_docks = self.gui.findChildren(QDockWidget)
+        docks = []
+        order = []
+        for d in all_docks:
+            name = d.objectName()
+            if name != "MainDock":
+                info = {"visible": d.isVisible(),
+                        "floating": d.isFloating(),
+                        "area": self.gui.dockWidgetArea(d).name,
+                        "pos": (d.x(), d.y()),
+                        "size": (d.width(), d.height()),
+                        "dtype": d.widget().plot.data.__class__.__name__,
+                        "varname": re.sub(r'_\d+$', '', name),
+                        "index": int(name.split("_")[-1]),
+                        "name": name,
+                        "plot_manager": d.widget().plot._manager.get_state(),
+                        }
+                docks.append(info)
+                order.append(int(name.split("_")[-1]))
+        docks = [x for _, x in sorted(zip(order, docks))]
+
+        payload = {
+            "version": 0,
+            "geometry_b64": base64.b64encode(geom).decode("ascii"),
+            "state_b64": base64.b64encode(state).decode("ascii"),
+            "docks": docks,
+        }
+        with open(file_name, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+        print(f"Layout saved to {file_name}")
+
     def _save_layout(self):
         print("Saving layout...")
         dt = datetime.now().strftime("%Y-%m-%d_%H-%M")
@@ -371,43 +409,7 @@ class MainDock(QDockWidget):
             "Layout Files (*.json)"
         )
         if file_name:
-
-            if not file_name.lower().endswith(".json"):
-                file_name += ".json"
-
-            geom = bytes(self.gui.saveGeometry())
-            state = bytes(self.gui.saveState(version=0)) # Potentially add package versioning later
-
-            all_docks = self.gui.findChildren(QDockWidget)
-            docks = []
-            order = []
-            for d in all_docks:
-                name = d.objectName()
-                if name != "MainDock":
-                    info = {"visible": d.isVisible(),
-                            "floating": d.isFloating(),
-                            "area": self.gui.dockWidgetArea(d).name,
-                            "pos": (d.x(), d.y()),
-                            "size": (d.width(), d.height()),
-                            "dtype": d.widget().plot.data.__class__.__name__,
-                            "varname": re.sub(r'_\d+$', '', name),
-                            "index": int(name.split("_")[-1]),
-                            "name": name,
-                            "plot_manager": d.widget().plot._manager.get_state(),
-                            }
-                    docks.append(info)
-                    order.append(int(name.split("_")[-1]))
-            docks = [x for _, x in sorted(zip(order, docks))]
-
-            payload = {
-                "version": 0,
-                "geometry_b64": base64.b64encode(geom).decode("ascii"),
-                "state_b64": base64.b64encode(state).decode("ascii"),
-                "docks": docks,
-            }
-            with open(file_name, "w", encoding="utf-8") as f:
-                json.dump(payload, f, indent=2)
-            print(f"Layout saved to {file_name}")
+            self.save_layout(file_name)
 
     def _restore_layout(self, file_name):
         with open(file_name, "r", encoding="utf-8") as f:
