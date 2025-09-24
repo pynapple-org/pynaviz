@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from datetime import datetime
+from typing import Union
 
 import numpy as np
 import pynapple as nap
@@ -11,7 +12,9 @@ from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
+    QComboBox,
     QDockWidget,
+    QDoubleSpinBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -51,6 +54,8 @@ DOCK_LIST_STYLESHEET = """
     }
 """
 
+
+
 class HelpBox(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -65,7 +70,10 @@ class HelpBox(QFrame):
             "Reset view: r\n\n"
             "Specific to TsdFrame:\n"
             "Increase contrast: i\n"
-            "Decrease contrast: d\n"
+            "Decrease contrast: d\n\n"
+            "Specific to IntervalSet & Timestamps:\n"
+            "Jump to next interval/timestamp: n or ->\n"
+            "Jump to previous interval/timestamp: p or <-\n"
         )
 
         # Frameless floating box
@@ -94,13 +102,13 @@ class HelpBox(QFrame):
 
 class MainDock(QDockWidget):
 
-    def __init__(self, pynavar, gui, layout_path=None):
+    def __init__(self, variables, gui, layout_path=None):
         """
         Main dock widget containing the list of variables and the play/pause button.
 
         Parameters
         ----------
-        pynavar:
+        variables:
             Dictionary of pynapple variables.
         gui:
             MainWindow instance.
@@ -109,7 +117,7 @@ class MainDock(QDockWidget):
         """
         super(MainDock, self).__init__()
         self.setObjectName("MainDock")
-        self.pynavar = pynavar
+        self.variables = variables
         self._n_dock_open = 0
         self.gui = gui
         self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
@@ -151,24 +159,58 @@ class MainDock(QDockWidget):
 
         # --- list widget ---
         layout.addWidget(QLabel("Variables"))
+        self._interval_set_keys = []
         self.listWidget = QListWidget()
-        for k in pynavar.keys():
+        for k in variables.keys():
             if k != "data":
                 self.listWidget.addItem(k)
+                if isinstance(variables[k], nap.IntervalSet):
+                    self._interval_set_keys.append(k) # Storing interval set keys for add_interval_set action
         self.listWidget.itemDoubleClicked.connect(self.add_dock_widget)
-        # self.listWidget.setStyleSheet(DOCK_LIST_STYLESHEET)
+
         layout.addWidget(self.listWidget)
 
         # --- Timer ---
-        self.time_label = QLabel("0.0 s")
-        self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        font = self.time_label.font()
-        font.setPointSize(12)
-        self.time_label.setFont(font)
-        layout.addWidget(self.time_label)
+        time_layout = QHBoxLayout()
+        self.time_spin_box = QDoubleSpinBox()
+        self.time_spin_box.setStyleSheet("font-size: 10pt;")
+        self.time_spin_box.setMinimum(0)
+        self.time_spin_box.setMaximum(1)
+        self.time_spin_box.setValue(0.5)
+        self.time_spin_box.valueChanged.connect(
+            self._on_spinbox_changed
+        )
+        time_layout.addWidget(self.time_spin_box, 1)  # stretch factor = 1
+
+        self.time_unit_combo = QComboBox()
+        self.time_unit_combo.setStyleSheet("font-size: 10pt;")
+        self.time_unit_combo.addItem('us', 1e6)  # text, data
+        self.time_unit_combo.addItem('ms', 1e3)
+        self.time_unit_combo.addItem('s', 1.0)
+        self.time_unit_combo.setCurrentIndex(2)  # default to seconds
+        self.time_unit_combo.setFixedWidth(55)
+        self.time_unit_combo.currentIndexChanged.connect(self._on_unit_changed)
+        time_layout.addWidget(self.time_unit_combo, 0)  # stretch factor = 0
+
+        time_layout.addStretch()
+        layout.addLayout(time_layout)
+
+
+        # self.time_label = QLabel("0.0 s")
+        # self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # font = self.time_label.font()
+        # font.setPointSize(12)
+        # self.time_label.setFont(font)
+        # layout.addWidget(self.time_label)
 
         # --- play/pause button at bottom ---
         button_layout = QHBoxLayout()
+        self.skipBackwardBtn = QPushButton()
+        self.skipBackwardBtn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaSkipBackward)
+        )
+        self.skipBackwardBtn.clicked.connect(self._skip_backward)
+        button_layout.addWidget(self.skipBackwardBtn)
         self.playPauseBtn = QPushButton()
         self.playPauseBtn.setIcon(
             self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
@@ -183,6 +225,12 @@ class MainDock(QDockWidget):
         )
         self.stopBtn.clicked.connect(self._stop)
         button_layout.addWidget(self.stopBtn)
+        self.skipForwardBtn = QPushButton()
+        self.skipForwardBtn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaSkipForward)
+        )
+        self.skipForwardBtn.clicked.connect(self._skip_forward)
+        button_layout.addWidget(self.skipForwardBtn)
 
         layout.addLayout(button_layout)
 
@@ -228,15 +276,76 @@ class MainDock(QDockWidget):
             self.ctrl_group.advance(delta=delta)
             self._update_time_label(self.ctrl_group.current_time)
 
+    def _on_unit_changed(self):
+        """When user changes units, update the spinbox display"""
+        multiplier = self.time_unit_combo.currentData()
+        display_value = self.ctrl_group.current_time * multiplier
+        self.time_spin_box.blockSignals(True)  # Prevent recursion
+        self.time_spin_box.setValue(display_value)
+        self.time_spin_box.blockSignals(False)
+
+    def _on_spinbox_changed(self, value: float):
+        """Handle spinbox changes based on source enum"""
+        multiplier = self.time_unit_combo.currentData()
+        self.ctrl_group.set_interval(value / multiplier, None)
+
+
     def _update_time_label(self, current_time):
-        self.time_label.setText(f"{current_time:.5f} s")
+        time_multiplier = self.time_unit_combo.currentData()
+        self.time_spin_box.blockSignals(True)
+        min_time, max_time = self._get_max_min_time()
+        if max_time != -float("inf") and min_time != float("inf"):
+            self.time_spin_box.setMinimum(min_time * time_multiplier)
+            self.time_spin_box.setMaximum(max_time * time_multiplier)
+        self.time_spin_box.setValue(time_multiplier * current_time)
+        self.time_spin_box.blockSignals(False)
+
 
     def _stop(self):
         if self.playing:
             self._toggle_play()
-        self.ctrl_group.current_time = 0.5
         self.ctrl_group.set_interval(0, 1)
         self._update_time_label(self.ctrl_group.current_time)
+
+    def _get_max_min_time(self) -> tuple[float, float]:
+        max_time = -float("inf")
+        min_time = float("inf")
+        for dock_widget in self.gui.findChildren(QDockWidget):
+            # if not isinstance(dock_widget, QWidget):
+            base_plot = getattr(dock_widget.widget(), "plot", None)
+            if base_plot is not None:
+                data = base_plot.data
+                if hasattr(data, "time_support"):
+                    mn = data.time_support.start[0]
+                    mx = data.time_support.end[-1]
+                elif isinstance(data, nap.IntervalSet):
+                    mn = data.start[0]
+                    mx = data.end[-1]
+                else:
+                    mn = getattr(base_plot.data.index, "values", base_plot.data.index)[0]
+                    mx = getattr(base_plot.data.index, "values", base_plot.data.index)[-1]
+                min_time = min(min_time, mn)
+                max_time = max(max_time, mx)
+        return min_time, max_time
+
+    def _skip_backward(self):
+        min_time, _ = self._get_max_min_time()
+        if min_time != -float("inf"):
+            width = None
+            for ctrl in self.ctrl_group._controller_group.values():
+                if hasattr(ctrl, "get_xlim"):
+                    xlim = ctrl.get_xlim()
+                    width = xlim[1] - xlim[0]
+                    break
+            self.ctrl_group.set_interval(min_time, min_time + width)
+            self._update_time_label(self.ctrl_group.current_time)
+
+
+    def _skip_forward(self):
+        _, max_time = self._get_max_min_time()
+        if max_time != float("inf"):
+            self.ctrl_group.set_interval(max_time, None)
+            self._update_time_label(self.ctrl_group.current_time)
 
     def add_dock_widget(self, item: object, plot_manager: dict | None = None) -> None:
         name = self._extract_variable_name(item)
@@ -269,13 +378,18 @@ class MainDock(QDockWidget):
         self._add_dock_to_gui(dock)
         self._register_controller(widget)
         self._n_dock_open += 1
+        min_time, max_time = self._get_max_min_time()
+        if max_time != -float("inf") and min_time != float("inf"):
+            time_multiplier = self.time_unit_combo.currentData()
+            self.time_spin_box.setMinimum(min_time * time_multiplier)
+            self.time_spin_box.setMaximum(max_time * time_multiplier)
 
     def _extract_variable_name(self, item: object) -> str | None:
         """Return the variable name from a QListWidgetItem or a string."""
         if hasattr(item, "text"):
             return item.text()
         elif isinstance(item, str):
-            if item not in self.pynavar:
+            if item not in self.variables:
                 print(f"Variable '{item}' not found.")
                 return None
             return item
@@ -284,8 +398,8 @@ class MainDock(QDockWidget):
             return None
 
     def _get_variable(self, name: str):
-        """Fetch the variable from pynavar and validate."""
-        var = self.pynavar.get(name, None)
+        """Fetch the variable from variables and validate."""
+        var = self.variables.get(name, None)
         if var is None:
             print(f"Variable '{name}' not found.")
         return var
@@ -294,11 +408,14 @@ class MainDock(QDockWidget):
         """Return the correct widget based on the variable type."""
         index = self._n_dock_open
         if isinstance(var, nap.TsGroup):
-            return TsGroupWidget(var, index=index, set_parent=True)
+            interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
+            return TsGroupWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.Tsd):
-            return TsdWidget(var, index=index, set_parent=True)
+            interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
+            return TsdWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdFrame):
-            return TsdFrameWidget(var, index=index, set_parent=True)
+            interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
+            return TsdFrameWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdTensor):
             return TsdTensorWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.Ts):
@@ -324,11 +441,26 @@ class MainDock(QDockWidget):
         layout.addWidget(label)
         layout.addStretch()
 
-        close_btn = widget.button_container._make_button(dock.close, "SP_TitleBarCloseButton", 15)
+        # Connect close button with cleanup
+        close_btn = QPushButton()
+        close_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
+        close_btn.setFixedSize(15, 15)
+        close_btn.clicked.connect(lambda: self._cleanup_and_close_dock(dock))
+
         layout.addWidget(close_btn)
         widget.button_container.setMinimumHeight(15)
         dock.setTitleBarWidget(widget.button_container)
         return dock
+
+    def _cleanup_and_close_dock(self, dock):
+        """Properly clean up and close a dock widget"""
+        # Remove from controller group if registered
+        widget = dock.widget()
+        if hasattr(widget, 'plot'):
+            # remove from controls
+            ctrl_id = widget.plot.controller._controller_id
+            self.ctrl_group.remove(ctrl_id)
+        dock.deleteLater()
 
     def _add_dock_to_gui(self, dock: QDockWidget) -> None:
         """Add dock to the GUI and balance right docks vertically."""
@@ -435,7 +567,7 @@ class MainDock(QDockWidget):
 
         # 1) add every dock with the potential variable. Order them by number in the name
         for widget in payload.get("docks", []):
-            if widget['varname'] in self.pynavar:
+            if widget['varname'] in self.variables:
                 self.add_dock_widget(widget['varname'], plot_manager=widget["plot_manager"])
             assert self.gui.findChild(QDockWidget,
                                       widget['name']) is not None, f"Dock {widget['name']} was not created."
@@ -453,6 +585,7 @@ class MainDock(QDockWidget):
         file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
         if file_name:
             self._restore_layout(file_name)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -472,24 +605,35 @@ class MainWindow(QMainWindow):
         self.setDockNestingEnabled(True)
 
 
-def get_pynapple_variables(variables=None):
-    tmp = variables.copy()
-    pynavar = {}
-    for k, v in tmp.items():
+def get_pynapple_variables(
+    variables: dict | list | tuple | None = None
+) -> dict:
+    if isinstance(variables, (list, tuple)):
+        # Try to get variable names from the calling frame
+        import inspect
+        frame = inspect.currentframe().f_back
+        names = [name for name, val in frame.f_locals.items() if val is variables]
+        var_name = names[0] if names else "var"
+        variables = {f"{var_name}_{i}": v for i, v in enumerate(variables)}
+    elif isinstance(variables, dict):
+        variables = variables.copy()
+    else:
+        return {}
+
+    result: dict = {}
+    for k, v in variables.items():
         if hasattr(v, "__module__"):
             if "pynapple" in v.__module__ and k[0] != "_":
-                pynavar[k] = v
-
+                result[k] = v
             if "pynaviz" in v.__module__ and k[0] != "_":
-                pynavar[k] = v
+                result[k] = v
+    return result
 
-    return pynavar
 
-
-def scope(variables, layout_path=None):
+def scope(variables: Union[dict, list, tuple], layout_path: str = None):
 
     # Filtering for pynapple variables
-    pynavar = get_pynapple_variables(variables)
+    variables = get_pynapple_variables(variables)
 
     global app
     app = QApplication.instance()
@@ -498,7 +642,7 @@ def scope(variables, layout_path=None):
 
     gui = MainWindow()
 
-    MainDock(pynavar, gui, layout_path=layout_path)
+    MainDock(variables, gui, layout_path=layout_path)
 
     gui.show()
 
