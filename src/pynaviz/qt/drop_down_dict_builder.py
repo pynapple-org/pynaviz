@@ -29,8 +29,9 @@ def get_popup_kwargs(popup_name: str, widget: QWidget) -> dict | None:
     if popup_name == "color_by":
         metadata = getattr(widget, "metadata", None)
         cmap = getattr(plot, "cmap", None)
+        cmap = "viridis" if cmap is None else cmap
         # safety in case no metadata is available
-        if metadata is None or cmap is None:
+        if metadata is None:
             return
 
         meta = _get_meta_combo(widget)
