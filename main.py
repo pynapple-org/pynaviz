@@ -21,6 +21,8 @@ tsdframe = nap.TsdFrame(
     d=np.random.randn(1000, 10), metadata={"area": ["pfc"]*4 + ["ppc"]*6, "type": ["exc", "inh"]*5, "channel": np.arange(10)})
 tsdtensor = nap.TsdTensor(t=np.arange(10000)/30, d=np.random.randn(10000, 10, 10))
 
-interval_set = nap.IntervalSet(np.arange(0, 100, 2)*0.1, np.arange(0, 100, 2)*0.1+0.1)
 
-scope(globals(), layout_path="layout.json")
+iset = nap.IntervalSet(start=np.arange(0, 1000, 10), end=np.arange(5, 1005, 10))
+
+
+scope(globals())

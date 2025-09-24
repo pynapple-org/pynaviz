@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from datetime import datetime
+from typing import Union
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
@@ -68,7 +69,10 @@ class HelpBox(QFrame):
             "Reset view: r\n\n"
             "Specific to TsdFrame:\n"
             "Increase contrast: i\n"
-            "Decrease contrast: d\n"
+            "Decrease contrast: d\n\n"
+            "Specific to IntervalSet & Timestamps:\n"
+            "Jump to next interval/timestamp: n or ->\n"
+            "Jump to previous interval/timestamp: p or <-\n"
         )
 
         # Frameless floating box
@@ -97,13 +101,13 @@ class HelpBox(QFrame):
 
 class MainDock(QDockWidget):
 
-    def __init__(self, pynavar, gui, layout_path=None):
+    def __init__(self, variables, gui, layout_path=None):
         """
         Main dock widget containing the list of variables and the play/pause button.
 
         Parameters
         ----------
-        pynavar:
+        variables:
             Dictionary of pynapple variables.
         gui:
             MainWindow instance.
@@ -112,7 +116,7 @@ class MainDock(QDockWidget):
         """
         super(MainDock, self).__init__()
         self.setObjectName("MainDock")
-        self.pynavar = pynavar
+        self.variables = variables
         self._n_dock_open = 0
         self.gui = gui
         self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
@@ -154,12 +158,15 @@ class MainDock(QDockWidget):
 
         # --- list widget ---
         layout.addWidget(QLabel("Variables"))
+        self._interval_set_keys = []
         self.listWidget = QListWidget()
-        for k in pynavar.keys():
+        for k in variables.keys():
             if k != "data":
                 self.listWidget.addItem(k)
+                if isinstance(variables[k], nap.IntervalSet):
+                    self._interval_set_keys.append(k) # Storing interval set keys for add_interval_set action
         self.listWidget.itemDoubleClicked.connect(self.add_dock_widget)
-        # self.listWidget.setStyleSheet(DOCK_LIST_STYLESHEET)
+
         layout.addWidget(self.listWidget)
 
         # --- Timer ---
@@ -368,7 +375,7 @@ class MainDock(QDockWidget):
         if hasattr(item, "text"):
             return item.text()
         elif isinstance(item, str):
-            if item not in self.pynavar:
+            if item not in self.variables:
                 print(f"Variable '{item}' not found.")
                 return None
             return item
@@ -377,8 +384,8 @@ class MainDock(QDockWidget):
             return None
 
     def _get_variable(self, name: str):
-        """Fetch the variable from pynavar and validate."""
-        var = self.pynavar.get(name, None)
+        """Fetch the variable from variables and validate."""
+        var = self.variables.get(name, None)
         if var is None:
             print(f"Variable '{name}' not found.")
         return var
@@ -387,11 +394,14 @@ class MainDock(QDockWidget):
         """Return the correct widget based on the variable type."""
         index = self._n_dock_open
         if isinstance(var, nap.TsGroup):
-            return TsGroupWidget(var, index=index, set_parent=True)
+            interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
+            return TsGroupWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.Tsd):
-            return TsdWidget(var, index=index, set_parent=True)
+            interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
+            return TsdWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdFrame):
-            return TsdFrameWidget(var, index=index, set_parent=True)
+            interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
+            return TsdFrameWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdTensor):
             return TsdTensorWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.Ts):
@@ -540,7 +550,7 @@ class MainDock(QDockWidget):
 
         # 1) add every dock with the potential variable. Order them by number in the name
         for widget in payload.get("docks", []):
-            if widget['varname'] in self.pynavar:
+            if widget['varname'] in self.variables:
                 self.add_dock_widget(widget['varname'])
             assert self.gui.findChild(QDockWidget,
                                       widget['name']) is not None, f"Dock {widget['name']} was not created."
@@ -557,6 +567,7 @@ class MainDock(QDockWidget):
         file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
         if file_name:
             self._restore_layout(file_name)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -576,24 +587,35 @@ class MainWindow(QMainWindow):
         self.setDockNestingEnabled(True)
 
 
-def get_pynapple_variables(variables=None):
-    tmp = variables.copy()
-    pynavar = {}
-    for k, v in tmp.items():
+def get_pynapple_variables(
+    variables: dict | list | tuple | None = None
+) -> dict:
+    if isinstance(variables, (list, tuple)):
+        # Try to get variable names from the calling frame
+        import inspect
+        frame = inspect.currentframe().f_back
+        names = [name for name, val in frame.f_locals.items() if val is variables]
+        var_name = names[0] if names else "var"
+        variables = {f"{var_name}_{i}": v for i, v in enumerate(variables)}
+    elif isinstance(variables, dict):
+        variables = variables.copy()
+    else:
+        return {}
+
+    result: dict = {}
+    for k, v in variables.items():
         if hasattr(v, "__module__"):
             if "pynapple" in v.__module__ and k[0] != "_":
-                pynavar[k] = v
-
+                result[k] = v
             if "pynaviz" in v.__module__ and k[0] != "_":
-                pynavar[k] = v
+                result[k] = v
+    return result
 
-    return pynavar
 
-
-def scope(variables, layout_path=None):
+def scope(variables: Union[dict, list, tuple], layout_path: str = None):
 
     # Filtering for pynapple variables
-    pynavar = get_pynapple_variables(variables)
+    variables = get_pynapple_variables(variables)
 
     global app
     app = QApplication.instance()
@@ -602,7 +624,7 @@ def scope(variables, layout_path=None):
 
     gui = MainWindow()
 
-    MainDock(pynavar, gui, layout_path=layout_path)
+    MainDock(variables, gui, layout_path=layout_path)
 
     gui.show()
 

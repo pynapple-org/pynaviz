@@ -99,22 +99,23 @@ trials = nap.IntervalSet(timings["intervals"])
 # raster.plot.add_interval_sets(trials, colors="white", alpha=0.2)
 # videos
 
-# videos = [
-#     viz.VideoWidget(video_path=video_path, t=times)
-#     for times, video_path in videos.values()
-# ]
-# vars = {name:var for name, var in zip(["left_video", "body_video", "right_video"], videos)}
-# vars["trials"] = trials
-# vars["licks"] = licks
+videos = [
+    viz.VideoWidget(video_path=video_path, t=times)
+    for times, video_path in videos.values()
+]
+vars = {name:var for name, var in zip(["left_video", "body_video", "right_video"], videos)}
+vars["trials"] = trials
+vars["licks"] = licks
 
 
 
 from pynaviz import scope
 
 
+# videos['licks'] = licks
+# videos['trials'] = trials
 
-
-scope(globals(), layout_path="layout_2025-09-19_14-28.json")
+scope(vars, layout_path="layout_2025-09-19_14-28.json")
 
 
 # # link
