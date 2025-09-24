@@ -278,7 +278,6 @@ class MainDock(QDockWidget):
 
     def _on_spinbox_changed(self, value: float):
         """Handle spinbox changes based on source enum"""
-        print("spinbox changed", value)
         multiplier = self.time_unit_combo.currentData()
         self.ctrl_group.set_interval(value / multiplier, None)
 
