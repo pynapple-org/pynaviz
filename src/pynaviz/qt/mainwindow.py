@@ -4,8 +4,8 @@ import os
 import re
 import sys
 from datetime import datetime
-import numpy as np
 
+import numpy as np
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
