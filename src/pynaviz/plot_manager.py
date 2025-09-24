@@ -5,7 +5,7 @@ The manager gives context for which action has been applied to the visual.
 
 import numpy as np
 from pynapple.core.metadata_class import _Metadata
-from .threads.metadata_to_color_maps import MetadataMappingThread
+
 
 class _PlotManager:
     """
