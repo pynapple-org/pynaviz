@@ -20,7 +20,7 @@ from wgpu.gui.auto import run
 from .controller import GetController, SpanController, SpanYLockController
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
-from .synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
+from .synchronization_rules import _match_pan_on_x_axis, _match_set_xlim, _match_zoom_on_x_axis
 from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import (
@@ -35,6 +35,7 @@ dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
     "zoom": _match_zoom_on_x_axis,
     "zoom_to_point": _match_zoom_on_x_axis,
+    "set_xlim": _match_set_xlim,
 }
 
 spike_sdf = """
@@ -517,7 +518,6 @@ class PlotTsdFrame(_BasePlot):
                 self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
                 self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
         else:
-            # print("Flushing\n")
             if slice_ is None:
                 slice_ = self._stream.get_slice(*self.controller.get_xlim())
 
@@ -551,7 +551,7 @@ class PlotTsdFrame(_BasePlot):
                 for sl in self._buffer_slices.values():
                     self._positions[sl.stop + right_offset : sl.stop, 0:2] = np.nan
 
-            self.graphic.geometry.positions.set_data(self._positions)
+        self.graphic.geometry.positions.set_data(self._positions)
 
     def _get_min_max(self):
         """
