@@ -75,7 +75,7 @@ class BaseWidget(QWidget):
 
 class TsGroupWidget(BaseWidget):
 
-    def __init__(self, data, index=None, size=(640, 480), set_parent=True):
+    def __init__(self, data, index=None, size=(640, 480), set_parent=True, interval_sets=None):
         super().__init__(size=size)
 
         # Canvas
@@ -83,7 +83,7 @@ class TsGroupWidget(BaseWidget):
         self.plot = PlotTsGroup(data, index=index, parent=parent)
 
         # Top level menu container
-        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
+        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot, interval_sets=interval_sets)
 
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
@@ -92,7 +92,7 @@ class TsGroupWidget(BaseWidget):
 
 class TsdWidget(BaseWidget):
 
-    def __init__(self, data, index=None, size=(640, 480), set_parent=True):
+    def __init__(self, data, index=None, size=(640, 480), set_parent=True, interval_sets=None):
         super().__init__(size=size)
 
         # Canvas
@@ -100,7 +100,7 @@ class TsdWidget(BaseWidget):
         self.plot = PlotTsd(data, index=index, parent=parent)
 
         # Top level menu container
-        self.button_container = MenuWidget(metadata=None, plot=self.plot)
+        self.button_container = MenuWidget(metadata=None, plot=self.plot, interval_sets=interval_sets)
 
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
@@ -109,7 +109,7 @@ class TsdWidget(BaseWidget):
 
 class TsdFrameWidget(BaseWidget):
 
-    def __init__(self, data, index=None, size=(640, 480), set_parent=True):
+    def __init__(self, data, index=None, size=(640, 480), set_parent=True, interval_sets=None):
         super().__init__(size=size)
 
         # Canvas
@@ -117,7 +117,7 @@ class TsdFrameWidget(BaseWidget):
         self.plot = PlotTsdFrame(data, index=index, parent=parent)
 
         # Top level menu container
-        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
+        self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot, interval_sets=interval_sets)
 
         # Add custom menu items
         self.button_container.action_menu.addSeparator()
