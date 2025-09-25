@@ -1,3 +1,5 @@
+from typing import Any
+
 import pynapple as nap
 from PyQt6.QtCore import (
     QAbstractListModel,
@@ -11,6 +13,7 @@ from PyQt6.QtWidgets import QDialog, QListView, QVBoxLayout, QWidget
 
 
 class DynamicSelectionListView(QListView):
+    """A QListView that allows dynamic selection of multiple items with checkboxes."""
 
     def on_check_state_changed(self, changed_row):
         selected_rows = [
@@ -65,31 +68,26 @@ class DynamicSelectionListView(QListView):
 
 
 class ChannelListModel(QAbstractListModel):
+    """A model to handle the list of channels with checkboxes."""
+
     checkStateChanged = pyqtSignal(int)
 
-    def __init__(self, plot):
+    def __init__(self, data: Any):
         super().__init__()
-        self._plot = plot
 
-        if isinstance(plot.data, nap.TsGroup):
-            self.checks = {i: True for i in plot.data.keys()}
-        elif isinstance(plot.data, nap.TsdFrame):
-            self.checks = {i: True for i in plot.data.columns}
-        elif isinstance(plot.data, nap.IntervalSet):
-            self.checks = {i: True for i in plot.data.index}
+        if isinstance(data, nap.TsGroup):
+            self.checks = {i: True for i in data.keys()}
+        elif isinstance(data, nap.TsdFrame):
+            self.checks = {i: True for i in data.columns}
+        elif isinstance(data, nap.IntervalSet):
+            self.checks = {i: True for i in data.index}
+        elif isinstance(data, dict) and all(
+            isinstance(v, nap.IntervalSet) for v in data.values()
+        ):
+            self.checks = {i: False for i in range(len(data))}
 
     def rowCount(self, parent=None):
         return len(self.checks.keys())
-
-    def data(self, index, role=None):
-        row = index.row()
-        if role == Qt.ItemDataRole.DisplayRole:
-            return row
-        elif role == Qt.ItemDataRole.CheckStateRole:
-            return (
-                Qt.CheckState.Checked if self.checks[row] else Qt.CheckState.Unchecked
-            )
-        return None
 
     def flags(self, index):
         """Flags that determines what one can do with the items."""
@@ -99,7 +97,30 @@ class ChannelListModel(QAbstractListModel):
             | Qt.ItemFlag.ItemIsSelectable  # makes item selectable
         )
 
+    def data(self, index, role=None):
+        """What to display in the list view."""
+        row = index.row()
+        if role == Qt.ItemDataRole.DisplayRole:
+            return row
+        elif role == Qt.ItemDataRole.CheckStateRole:
+            return (
+                Qt.CheckState.Checked if self.checks[row] else Qt.CheckState.Unchecked
+            )
+        return None
+
     def setData(self, index, value, role):
+        """
+        Write data to the model.
+
+        Parameters
+        ----------
+        index : QModelIndex
+            The index of the item to modify.
+        value : Any
+            The new value to set.
+        role : Qt.ItemDataRole
+            The role of the data to set.
+        """
         if role == Qt.ItemDataRole.CheckStateRole:
             value = value.value if hasattr(value, "value") else value
             state = int(value) == Qt.CheckState.Checked.value
@@ -113,6 +134,9 @@ class ChannelListModel(QAbstractListModel):
 
 
 class ChannelList(QDialog):
+
+    checkStateChanged = pyqtSignal(int)
+    
     """
     A dialog listing selectable channels (e.g., for visibility toggling).
 
@@ -143,6 +167,9 @@ class ChannelList(QDialog):
 
 
 
+#######################
+# Unused for now, but might be useful later
+#######################
 
 #
 #

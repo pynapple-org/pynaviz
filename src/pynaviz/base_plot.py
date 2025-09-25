@@ -1112,11 +1112,29 @@ class PlotTs(_BasePlot):
         # - the spike train graphic
         self.scene.add(self.ruler_x, self.ruler_ref_time, self.graphic)
 
+        # Connect key event handler for jumping to next/previous timestamp
+        self.renderer.add_event_handler(self._jump, "key_down")
+
         # Adjust camera to show full data range:
         self.camera.show_rect(0, 1, -0.1, 1.0)
 
         # Request continuous redrawing with animation
         self.canvas.request_draw(self.animate)
+
+    def _jump(self, event):
+        """
+        Handle key events for jumping to next/previous timestamp.
+
+        Parameters
+        ----------
+        event : gfx.Event
+            Key event containing type and pressed key.
+        """
+        if event.type == "key_down":
+            if event.key == "ArrowRight" or event.key == "n":
+                self.jump_next()
+            elif event.key == "ArrowLeft" or event.key == "p":
+                self.jump_previous()
 
     def jump_next(self) -> None:
         """
@@ -1186,9 +1204,10 @@ class PlotIntervalSet(_BasePlot):
 
         # Connect specific event handler for IntervalSet
         self.renderer.add_event_handler(self._reset, "key_down")
+        self.renderer.add_event_handler(self._jump, "key_down")
 
         # By default, showing only the first second.
-        self.controller.set_view(0, 1, -0.05, 1)
+        self.controller.set_view(0, 1, -0.1, 1)
 
         self.canvas.request_draw(self.animate)
 
@@ -1285,6 +1304,21 @@ class PlotIntervalSet(_BasePlot):
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values)
             self._update("group_by")
+
+    def _jump(self, event):
+        """
+        Handle key events for jumping to next/previous interval.
+
+        Parameters
+        ----------
+        event : gfx.Event
+            Key event containing type and pressed key.
+        """
+        if event.type == "key_down":
+            if event.key == "ArrowRight" or event.key == "n":
+                self.jump_next()
+            elif event.key == "ArrowLeft" or event.key == "p":
+                self.jump_previous()
 
     def jump_next(self) -> None:
         """
