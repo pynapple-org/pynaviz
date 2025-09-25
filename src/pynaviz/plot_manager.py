@@ -46,6 +46,23 @@ class _PlotManager:
         self.y_ticks = None
 
     @property
+    def visible(self) -> np.ndarray:
+        """
+        Visibility status of each visual element.
+
+        Returns
+        -------
+        np.ndarray
+            Boolean array indicating visibility (True = visible, False = hidden).
+        """
+        return self.data["visible"]
+
+    @visible.setter
+    def visible(self, values: np.ndarray) -> None:
+        "There is no callback when setting visibility."
+        self.data["visible"] = values
+
+    @property
     def offset(self) -> np.ndarray:
         """
         Vertical offsets applied to each visual element (e.g., for line plots).
