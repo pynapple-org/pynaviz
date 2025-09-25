@@ -16,35 +16,27 @@ def map_numeric_arrays(
     vmax: float = 100.0,
     cmap: Colormap = colormaps["rainbow"],
 ):
-    """
-    Map numerical array to colors.
+    mn = np.nanpercentile(values, vmin, method="closest_observation")
+    mx = np.nanpercentile(values, vmax, method="closest_observation")
 
-    Parameters
-    ----------
-    values:
-        A numeric one dimensional array or pandas series.
-    vmin:
-        Min percentile, between 0 and 100.
-    vmax:
-        Max percentile, between 0 and 100.
-    cmap:
-        A colormap.
-
-    Returns
-    -------
-    :
-        A dictionary containing the color maps, keys are metadata entries, values are colors.
-
-    """
-    # truncate between percentiles
-    values = np.clip(
-        values,
-        np.nanpercentile(values, vmin, method="closest_observation"),
-        np.nanpercentile(values, vmax, method="closest_observation"),
-    )
+    # Get unique values and their colors in one go
     unq_vals = np.unique(values)
-    col_val = np.linspace(0, 1, unq_vals.shape[0])
-    return {v: pygfx.Color(cmap(c)) for v, c in zip(unq_vals, col_val)}
+    unq_clipped = np.clip(unq_vals, mn, mx)
+    unq_clipped_sorted = np.unique(unq_clipped)  # for colormap range
+
+    # Map clipped values to [0,1] range
+    if len(unq_clipped_sorted) == 1:
+        normalized = np.full(len(unq_vals), 0.5)
+    else:
+        # Find position of each clipped value in the sorted unique range
+        indices = np.searchsorted(unq_clipped_sorted, unq_clipped)
+        normalized = indices / (len(unq_clipped_sorted) - 1)
+
+    # Create the mapping dictionary
+    colors = cmap(normalized)
+    map_dict = {val: pygfx.Color(color) for val, color in zip(unq_vals, colors)}
+
+    return map_dict
 
 
 def map_non_color_string_array(values, cmap=colormaps["rainbow"]):
