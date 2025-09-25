@@ -8,7 +8,6 @@ based on metadata and plotting context.
 
 Main Classes:
 - DropdownDialog: Dynamically generates a dialog with labeled input widgets.
-- ChannelList: Provides a selectable list view of plotting channels.
 - MenuWidget: UI component to attach interactive actions and selections to a plot.
 """
 
@@ -36,7 +35,7 @@ from PyQt6.QtWidgets import (
 )
 
 from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
-from pynaviz.qt.qt_item_models import ChannelListModel, DynamicSelectionListView
+from pynaviz.qt.widget_list_selection import ChannelListModel, DynamicSelectionListView, ChannelList
 from pynaviz.utils import get_plot_attribute
 
 WIDGET_PARAMS = {
@@ -119,7 +118,7 @@ class DropdownDialog(QDialog):
     ):
         super().__init__(parent=parent)
         self.setWindowTitle(title)
-        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self.setWindowModality(Qt.WindowModality.NonModal)
 
         num_cols = min(len(widgets), 3)
         num_rows = len(widgets) // num_cols
@@ -238,34 +237,6 @@ class DropdownDialog(QDialog):
         return super().accept()
 
 
-class ChannelList(QDialog):
-    """
-    A dialog listing selectable channels (e.g., for visibility toggling).
-
-    Parameters
-    ----------
-    model : ChannelListModel
-        Data model that holds the list of channel states.
-    parent : QWidget, optional
-        Parent widget.
-    """
-
-    def __init__(self, model: ChannelListModel, parent: QWidget | None = None):
-        super().__init__(parent)
-        self.setWindowTitle("Channel List")
-        self.setWindowModality(Qt.WindowModality.ApplicationModal)
-        self.setFixedSize(300, 150)
-
-        self.view = DynamicSelectionListView(self)
-        self.view.setSelectionMode(self.view.SelectionMode.ExtendedSelection)
-        self.view.setModel(model)
-        model.checkStateChanged.connect(self.view.on_check_state_changed)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.view)
-        self.setLayout(layout)
-
-
 class MenuWidget(QWidget):
     """
     Menu bar widget that allows channel selection, plot actions and time jumping.
@@ -283,7 +254,7 @@ class MenuWidget(QWidget):
         self.metadata = metadata
         self.plot = plot
         self.channel_model = ChannelListModel(self.plot)
-        self.channel_model.checkStateChanged.connect(self._request_draw)
+        self.channel_model.checkStateChanged.connect(self._change_visibility)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -318,13 +289,14 @@ class MenuWidget(QWidget):
         self.setLayout(layout)
         self._action_menu()
 
-    def _request_draw(self) -> None:
+    def _change_visibility(self) -> None:
         """Request a redraw of the plot when channel states change."""
         widget = self.sender()
-        materials = get_plot_attribute(self.plot, "material")
-        for index, val in getattr(widget, "checks", {}).items():
-            materials[index].opacity = val
-        self.plot.canvas.request_draw(self.plot.animate)
+        visibility= np.array([val for val in getattr(widget, "checks", []).values()])
+        if hasattr(self.plot, "_manager"):
+            self.plot._manager.visible = visibility
+        if hasattr(self.plot, "_update"):
+            self.plot._update("toggle_visibility")
 
     def _make_button(
         self, menu_to_show: Callable, icon_name: str, icon_size: int = 20
@@ -361,7 +333,7 @@ class MenuWidget(QWidget):
     def show_select_menu(self) -> None:
         """Opens the channel list selection dialog."""
         dialog = ChannelList(self.channel_model, parent=self)
-        dialog.exec()
+        dialog.show()
 
     def _popup_menu(self) -> None:
         """Opens a dropdown dialog based on selected action."""
@@ -371,7 +343,7 @@ class MenuWidget(QWidget):
         if kwargs is not None:
             dialog = DropdownDialog(**kwargs)
             dialog.setEnabled(True)
-            dialog.exec()
+            dialog.show()
 
     def jump_next(self) -> None:
         """Jump to the next timestamp or start"""
