@@ -1,6 +1,8 @@
 from typing import Literal
 import time
 
+import pdb
+
 import pynaviz as viz
 import pytest
 import pynapple as nap
@@ -12,18 +14,8 @@ from pynaviz import TsdWidget, IntervalSetWidget, TsdFrameWidget, TsGroupWidget,
 from pynaviz.qt.mainwindow import MainDock
 
 
-@pytest.fixture
-def app_main_window_dock():
-    """
-    Set up an app, a MainWindow and a MainDock.
-
-    Set up a MainWindow and populate it with test data:
-    - TsdFrame with metadata area, type and channel.
-    - TsdTensor of white noise.
-    - TsGroup for testing timestamp data
-    - IntervalSet for testing intervals
-    """
-    # Create test data
+@pytest.fixture()
+def nap_vars():
     tsdframe = nap.TsdFrame(
         t=np.arange(1000) / 30,
         d=np.random.randn(1000, 10),
@@ -59,7 +51,19 @@ def app_main_window_dock():
         'tsgroup': tsgroup,
         'interval_set': interval_set
     }
+    return variables
 
+@pytest.fixture
+def app__main_window__dock(nap_vars):
+    """
+    Set up an app, a MainWindow and a MainDock.
+
+    Set up a MainWindow and populate it with test data:
+    - TsdFrame with metadata area, type and channel.
+    - TsdTensor of white noise.
+    - TsGroup for testing timestamp data
+    - IntervalSet for testing intervals
+    """
     # Set up Qt application (ensure it's headless for testing)
     if not QApplication.instance():
         app = QApplication(sys.argv)
@@ -70,9 +74,9 @@ def app_main_window_dock():
 
     main_window = viz.qt.mainwindow.MainWindow()
 
-    dock = viz.qt.mainwindow.MainDock(variables, main_window)
+    dock = viz.qt.mainwindow.MainDock(nap_vars, main_window)
 
-    return app, main_window, dock, variables
+    return app, main_window, dock, nap_vars
 
 
 def apply_action(
@@ -110,13 +114,15 @@ def apply_action(
         - "set_time"
     action_kwargs:
         The kwargs for the action method.
+    app:
+        The QtApplication used for simulating playing the gui.
     """
     if action_type is None:
         return
     action_kwargs = action_kwargs or {}
 
     if action_type not in ["play_pause", "stop", "set_time"]:
-        # add the underscore for private method, clear unnecesary kwargs
+        # add the underscore for private method, clear unnecessary kwargs
         if action_type in ["skip_forward", "skip_backward"]:
             action_type = "_" + action_type
             if action_kwargs:
@@ -172,9 +178,33 @@ def apply_action(
 @pytest.mark.parametrize(
     "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
 )
-def test_save_load_layout(app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs):
-    app, main_window, dock = app__main_window__dock
+def test_save_load_layout(app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
+    app, main_window, dock, variables = app__main_window__dock
     # add widgets
-    for index in dock.listWidget.count():
-        dock.add_dock_widget(dock.listWidget.item(index))
-    apply_action()
+    widget = None
+    for varname in variables.keys():
+        dock_widget = dock.add_dock_widget(varname)
+        if varname == "tsdframe":
+            widget = dock_widget.widget()
+    # debug purposes, should not trigger.
+    assert widget is not None, "tsdframe widget not created."
+
+    apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None, action_kwargs=group_by_kwargs, app=app)
+    apply_action(widget=widget, action_type="sort_by" if sort_by_kwargs is not None else None, action_kwargs=sort_by_kwargs, app=app)
+    apply_action(widget=widget, action_type="color_by" if color_by_kwargs is not None else None, action_kwargs=color_by_kwargs, app=app)
+
+    layout_path = tmp_path / "layout.json"
+    layout_dict_orig = dock._get_layout_dict()
+    dock.save_layout(layout_path)
+
+    # load a main window with the same configs.
+    main_window_new = viz.qt.mainwindow.MainWindow()
+    dock_new = viz.qt.mainwindow.MainDock(variables, main_window_new, layout_path=layout_path)
+    layout_dict_new = dock_new._get_layout_dict()
+    print("\nold", layout_dict_orig)
+    print("new", layout_dict_new)
+    # discard geometry bytes, the initial window position may differ
+    layout_dict_new.pop("geometry_b64")
+    layout_dict_orig.pop("geometry_b64")
+    # check dict
+    assert layout_dict_orig == layout_dict_new
