@@ -1,3 +1,6 @@
+from typing import Literal
+import time
+
 import pynaviz as viz
 import pytest
 import pynapple as nap
@@ -5,16 +8,173 @@ import numpy as np
 import sys
 from PyQt6.QtWidgets import QApplication, QDockWidget
 
+from pynaviz import TsdWidget, IntervalSetWidget, TsdFrameWidget, TsGroupWidget, TsdTensorWidget
+from pynaviz.qt.mainwindow import MainDock
+
 
 @pytest.fixture
-def setup_main_gui():
+def app_main_window_dock():
+    """
+    Set up an app, a MainWindow and a MainDock.
+
+    Set up a MainWindow and populate it with test data:
+    - TsdFrame with metadata area, type and channel.
+    - TsdTensor of white noise.
+    - TsGroup for testing timestamp data
+    - IntervalSet for testing intervals
+    """
+    # Create test data
     tsdframe = nap.TsdFrame(
         t=np.arange(1000) / 30,
         d=np.random.randn(1000, 10),
-        metadata={"area": ["pfc"] * 4 + ["ppc"] * 6, "type": ["exc", "inh"] * 5, "channel": np.arange(10)})
-    tsdtensor = nap.TsdTensor(t=np.arange(10000) / 30, d=np.random.randn(10000, 10, 10))
-    app = QApplication(sys.argv)
-    gui = viz.qt.mainwindow.MainWindow()
+        metadata={
+            "area": ["pfc"] * 4 + ["ppc"] * 6,
+            "type": ["exc", "inh"] * 5,
+            "channel": np.arange(10)
+        }
+    )
 
-def test_save_load_layout():
-    pass
+    tsdtensor = nap.TsdTensor(
+        t=np.arange(10000) / 30,
+        d=np.random.randn(10000, 10, 10)
+    )
+
+    # Create TsGroup with some spikes
+    spike_times = {
+        0: nap.Ts(t=np.sort(np.random.uniform(0, 30, 100))),
+        1: nap.Ts(t=np.sort(np.random.uniform(0, 30, 150))),
+        2: nap.Ts(t=np.sort(np.random.uniform(0, 30, 80))),
+    }
+    tsgroup = nap.TsGroup(spike_times, area=['pfc', 'mstd', 'ppc'], type=['exc', 'inh', 'exc'])
+
+    # Create IntervalSet
+    interval_set = nap.IntervalSet(
+        start=np.array([0, 10, 20]),
+        end=np.array([5, 15, 25])
+    )
+
+    variables = {
+        'tsdframe': tsdframe,
+        'tsdtensor': tsdtensor,
+        'tsgroup': tsgroup,
+        'interval_set': interval_set
+    }
+
+    # Set up Qt application (ensure it's headless for testing)
+    if not QApplication.instance():
+        app = QApplication(sys.argv)
+        # Make headless for testing
+        app.setQuitOnLastWindowClosed(False)
+    else:
+        app = QApplication.instance()
+
+    main_window = viz.qt.mainwindow.MainWindow()
+
+    dock = viz.qt.mainwindow.MainDock(variables, main_window)
+
+    return app, main_window, dock, variables
+
+
+def apply_action(
+        widget: MainDock | TsdWidget | TsdFrameWidget | TsdTensorWidget | IntervalSetWidget | TsGroupWidget,
+        action_type: Literal[
+            "group_by",
+            "sort_by",
+            "color_by",
+            "skip_forward",
+            "skip_backward",
+            "set_time",
+            "play_pause",
+            "stop"
+        ],
+        action_kwargs: dict | None,
+        app: QApplication,
+):
+    """
+    Apply a specific action to the dock/widgets.
+
+    Parameters:
+    -----------
+    widget:
+        The widget to apply the action to.
+    action_type :
+        (action_type, widget, action_kwargs) or None for no action.
+        Action types:
+        - "group_by"
+        - "sort_by"
+        - "color_by"
+        - "skip_forward"
+        - "skip_backward"
+        - "play_pause"
+        - "stop"
+        - "set_time"
+    action_kwargs:
+        The kwargs for the action method.
+    """
+    if action_type is None:
+        return
+    action_kwargs = action_kwargs or {}
+
+    if action_type not in ["play_pause", "stop", "set_time"]:
+        # add the underscore for private method, clear unnecesary kwargs
+        if action_type in ["skip_forward", "skip_backward"]:
+            action_type = "_" + action_type
+            if action_kwargs:
+                print("No kwargs needed for skip_forward or skip_backward")
+            action_kwargs = {}
+        if hasattr(widget.plot, action_type):
+            # group_by, sort_by, color_by are action of _BasePlot
+            action = getattr(widget.plot, action_type)
+            action(**action_kwargs)
+        elif hasattr(widget, action_type):
+            # the rest of the actions are of dock
+            action = getattr(widget, action_type)
+            action(**action_kwargs)
+        else:
+            raise AttributeError(f"{widget} has no action {action_type}.")
+
+    elif action_type == "set_time":
+        time_to_set = action_kwargs.get("time", None)
+        if time_to_set is None:
+            raise ValueError("'set_time' action requires a 'time' kwarg.")
+        # Set specific time
+        widget.ctrl_group.set_interval(action_kwargs["time"], None)
+        widget._update_time_label(widget.ctrl_group.current_time)
+
+    elif action_type == "play_pause":
+        # make sure that we are in the correct config
+        widget.playing = False
+        widget._toggle_play()
+        # for debugging purposes
+        assert widget.playing is True, "not toggled correctly"
+
+        # Run event loop for specified duration
+        start_time = time.time()
+        duration = 1
+        while time.time() - start_time < duration:
+            app.processEvents()
+            time.sleep(0.01)
+
+        widget._toggle_play()
+        assert widget.playing is False, "not paused correctly"
+        print("\ncurrent_time after playing: ", widget.ctrl_group.current_time)
+
+    elif action_type == "stop":
+        # Stop playback
+        widget._stop()
+
+@pytest.mark.parametrize(
+    "group_by_kwargs", [None, dict(metadata_name="area")]
+)
+@pytest.mark.parametrize(
+    "sort_by_kwargs", [None, dict(metadata_name="channel")]
+)
+@pytest.mark.parametrize(
+    "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
+)
+def test_save_load_layout(app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs):
+    app, main_window, dock = app__main_window__dock
+    # add widgets
+    for index in dock.listWidget.count():
+        dock.add_dock_widget(dock.listWidget.item(index))
+    apply_action()
