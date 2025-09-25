@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from pynaviz.audiovideo.video_plot import PlotBaseVideoTensor
 from pynaviz.controller_group import ControllerGroup
 from pynaviz.qt.widget_plot import (
     IntervalSetWidget,
@@ -607,10 +608,11 @@ def get_pynapple_variables(
         if hasattr(v, "__module__"):
             if "pynapple" in v.__module__ and k[0] != "_":
                 result[k] = v
-            if "pynaviz" in v.__module__ and k[0] != "_":
-                result[k] = v
-    return result
 
+            if "pynaviz" in v.__module__ and k[0] != "_" and isinstance(v, PlotBaseVideoTensor):
+                result[k] = v
+
+    return result
 
 def scope(variables: Union[dict, list, tuple], layout_path: str = None):
 
