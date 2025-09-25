@@ -4,10 +4,8 @@ the instantiation of _BasePlot. Methods of _BasePlot for acting on the
 objects should be tested in the public classes.
 """
 
-import numpy as np
 import pygfx as gfx
 import pynapple as nap
-import pytest
 
 from pynaviz.base_plot import _BasePlot
 
