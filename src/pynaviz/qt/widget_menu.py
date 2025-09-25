@@ -35,8 +35,10 @@ from PyQt6.QtWidgets import (
 )
 
 from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
-from pynaviz.qt.widget_list_selection import ChannelListModel, DynamicSelectionListView, ChannelList
-from pynaviz.utils import get_plot_attribute
+from pynaviz.qt.widget_list_selection import (
+    ChannelList,
+    ChannelListModel,
+)
 
 WIDGET_PARAMS = {
     QComboBox: {

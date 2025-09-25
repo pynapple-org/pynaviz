@@ -1205,7 +1205,8 @@ class PlotIntervalSet(_BasePlot):
         """
         Update function for sort_by and group_by
         """
-        if action_name in ["sort_by", "group_by"]:
+        if action_name in ["sort_by", "group_by"] or action_name is None:
+            # Update the scale only if one action has been performed
             # Grabbing the material object
             geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
