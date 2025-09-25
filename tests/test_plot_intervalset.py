@@ -2,6 +2,7 @@
 Test for IntervalSet.
 """
 import pathlib
+import sys
 
 import numpy as np
 import pygfx as gfx
@@ -9,12 +10,9 @@ import pytest
 from PIL import Image
 
 import pynaviz as viz
-import sys
-
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from config import IntervalSetConfig
-
 
 
 def test_plot_iset_init(dummy_intervalset):

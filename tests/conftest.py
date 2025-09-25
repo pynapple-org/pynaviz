@@ -4,10 +4,12 @@ Testing configurations for the pynaviz library.
 This module contains test fixtures required to set up
 and verify the functionality of modules in the pynaviz library.
 """
+import os
+import sys
+
 import numpy as np
 import pytest
-import sys
-import os
+
 from pynaviz.events import SyncEvent
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

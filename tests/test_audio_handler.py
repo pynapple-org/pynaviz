@@ -5,7 +5,9 @@ import av
 import numpy as np
 import pytest
 from numpy.typing import NDArray
+
 from pynaviz.audiovideo import audio_handling
+
 
 @pytest.fixture(scope="module")
 def fully_decoded_audio(request) -> Tuple[pathlib.Path, List[NDArray], List[int], List[av.AudioFrame], List[int]]:
