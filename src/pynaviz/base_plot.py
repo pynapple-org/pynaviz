@@ -599,7 +599,7 @@ class PlotTsdFrame(_BasePlot):
         if event.type == "key_down":
             if event.key == "r":
                 if isinstance(self.controller, SpanController):
-                    self._manager.reset()
+                    self._manager.reset(self)
                     self._flush()
 
                 if isinstance(self.controller, GetController):
@@ -612,7 +612,7 @@ class PlotTsdFrame(_BasePlot):
                     self.controller.enabled = True
                     self._initialize_graphic()
                     self.scene.add(self.graphic)
-                    self._manager.reset()
+                    self._manager.reset(self)
                     self._flush()
 
                 minmax = self._get_min_max()
@@ -967,7 +967,7 @@ class PlotTsGroup(_BasePlot):
         if event.type == "key_down" and event.key == "r":
             if isinstance(self.controller, SpanController):
                 # Reset the internal plot manager (sorting, grouping, etc.)
-                self._manager.reset()
+                self._manager.reset(self)
                 self._manager.data["offset"] = self.data.index
                 self._flush()
 
@@ -1201,7 +1201,7 @@ class PlotIntervalSet(_BasePlot):
         """
         if event.type == "key_down":
             if event.key == "r":
-                self._manager.reset()
+                self._manager.reset(self)
                 self._update()
 
     def _update(self, action_name: str = None):

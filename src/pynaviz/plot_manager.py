@@ -225,12 +225,15 @@ class _PlotManager:
         if was_grouped or was_sorted:
             self.scale = self.scale + (self.scale * factor)
 
-    def reset(self) -> None:
+    def reset(self, base_plot: "_BasePlot", index=None) -> None:
         """
         Resets offset and scale to default values (0 and 1 respectively).
         """
-        self.data["offset"] = np.zeros(len(self.index))
-        self.data["scale"] = np.ones(len(self.index))
+        if index is None:
+            index = self.index
+        # Offset of PlotTsGroup is np.arange, the others np.zeros
+        self.data["offset"] = base_plot._initialize_offset(index)
+        self.data["scale"] = np.ones(len(index))
         self.y_ticks = None
         self._actions = {
             "group_by": None,
@@ -275,8 +278,7 @@ class _PlotManager:
         state.update(dict(_actions=serializable_actions))
         return state
 
-    @classmethod
-    def from_state(cls, base_plot: "_BasePlot", state: dict, index: list | None=None) -> '_PlotManager':
+    def from_state(self, base_plot: "_BasePlot", state: dict, index: list | None=None) -> '_PlotManager':
         """
         Creates a new PlotManager instance from a previously saved state.
 
@@ -297,23 +299,21 @@ class _PlotManager:
         """
         # Create instance with the saved index & order etc.
         if index is None:
-            instance = cls(state["index"], base_plot)
+            self.reset(base_plot, index=state["index"])
             # Restore all data arrays
-            instance.data['groups'] = np.array(state['groups'], dtype=int)
-            instance.data['order'] = np.array(state['order'], dtype=int)
-            instance.data['visible'] = np.array(state['visible'], dtype=bool)
-            instance.data['offset'] = np.array(state['offset'])
-            instance.data['scale'] = np.array(state['scale'])
+            self.data['groups'] = np.array(state['groups'], dtype=int)
+            self.data['order'] = np.array(state['order'], dtype=int)
+            self.data['visible'] = np.array(state['visible'], dtype=bool)
+            self.data['offset'] = np.array(state['offset'])
+            self.data['scale'] = np.array(state['scale'])
             # Restore other params & actions configs
-            instance.y_ticks = state['y_ticks']
-            instance._actions = state['_actions']
+            self.y_ticks = state['y_ticks']
+            self._actions = state['_actions']
         else:
-            instance = cls(index, base_plot)
-            # replace instance
-            base_plot._manager = instance
+            self.reset(base_plot, index=index)
             for action, kwargs in state['_actions'].items():
                 attr = getattr(base_plot, action, None)
                 if kwargs is not None and attr is not None:
                     attr(**kwargs)
-        return instance
+        return self
 
