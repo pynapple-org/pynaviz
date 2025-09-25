@@ -87,6 +87,65 @@ class IntervalSetInterface:
         if all(f != self._update_all_isets for f in self.controller._plot_callbacks):
             self.controller._plot_callbacks.append(self._update_all_isets)
 
+    def update_interval_set(self, name: str, colors: str | pygfx.Color, alpha: float) -> None:
+        """
+        Update the color and transparency of an existing interval set.
+
+        Parameters
+        ----------
+        name:
+            The label of the interval set to be updated.
+        colors:
+            The new color of the interval set.
+        alpha:
+            The new transparency level, between 0 and 1.
+        """
+        if name not in self._epochs:
+            warnings.warn(
+                message=f"Epochs {name} is not available. Available epochs: {list(self._epochs.keys())}.",
+                category=UserWarning,
+                stacklevel=2,
+            )
+            return
+        if name not in self._interval_rects:
+            warnings.warn(
+                message=f"Interval set {name} has not been plotted yet. Use `add_interval_sets` instead.",
+                category=UserWarning,
+                stacklevel=2,
+            )
+            return
+        if isinstance(colors, str):
+            colors = pygfx.Color(colors)
+        self._update_rectangles(self._interval_rects[name], colors, alpha)
+
+    def remove_interval_set(self, label: str) -> None:
+        """
+        Remove an interval set from the plot.
+
+        Parameters
+        ----------
+        label:
+            The label of the interval set to be removed.
+        """
+        if label not in self._epochs:
+            warnings.warn(
+                message=f"Epochs {label} is not available. Available epochs: {list(self._epochs.keys())}.",
+                category=UserWarning,
+                stacklevel=2,
+            )
+            return
+        if label in self._interval_rects:
+            for rect in self._interval_rects[label].values():
+                self.scene.remove(rect)
+            del self._interval_rects[label]
+            self.canvas.request_draw(self.animate)
+        del self._epochs[label]
+        # remove the control action if no interval set is left
+        if len(self._interval_rects) == 0 and any(
+            f == self._update_all_isets for f in self.controller._plot_callbacks
+        ):
+            self.controller._plot_callbacks.remove(self._update_all_isets)
+
     def _plot_intervals(
         self,
         labels: Iterable[str] | str,
@@ -149,7 +208,8 @@ class IntervalSetInterface:
                     self._interval_rects[label], color, transparency
                 )
 
-    def _update_all_isets(self):
+    def _update_all_isets(self, *args, **kwargs):
+        """Update all interval sets rectangles."""
         for rectangles in self._interval_rects.values():
             self._update_rectangles(rectangles)
 
