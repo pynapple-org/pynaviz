@@ -430,6 +430,7 @@ class GetController(CustomController):
         new_t = None
         if "cam_state" in event.kwargs:
             new_t = event.kwargs["cam_state"]["position"][0]
+            self._current_time = new_t
         elif "current_time" in event.kwargs:
             self._current_time = event.kwargs["current_time"]
             index = np.searchsorted(self.data.index, self._current_time, side="right") - 1
