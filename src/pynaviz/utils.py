@@ -72,13 +72,20 @@ def get_plot_attribute(
     if graphic is None:
         print(f"{plot} doesn't have a graphic.")
         return None
-    filter_graphic = filter_graphic or {c: True for c in graphic}
-    dict_attr: dict = {
-        c: getattr(graphic[c], attr_name)
-        for c in graphic
-        if hasattr(graphic[c], attr_name) and filter_graphic[c]
-    }
-    return dict_attr
+    if isinstance(graphic, dict):
+        filter_graphic = filter_graphic or {c: True for c in graphic}
+        dict_attr: dict = {
+            c: getattr(graphic[c], attr_name)
+            for c in graphic
+            if hasattr(graphic[c], attr_name) and filter_graphic[c]
+        }
+        return dict_attr
+    else:
+        if hasattr(graphic, attr_name):
+            return getattr(graphic, attr_name)
+        else:
+            print(f"{graphic} doesn't have attribute {attr_name}.")
+            return None
 
 
 def trim_kwargs(func, kwargs):
