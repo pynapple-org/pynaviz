@@ -20,7 +20,6 @@ from PIL import Image
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import config
-
 import pynaviz as viz
 
 # Define base paths

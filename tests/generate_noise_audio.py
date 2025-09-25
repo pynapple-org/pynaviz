@@ -1,6 +1,7 @@
-import numpy as np
-import av
 import pathlib
+
+import av
+import numpy as np
 
 EXTENSION_TO_CODEC = {
     ".wav": "pcm_s16le",    # raw PCM

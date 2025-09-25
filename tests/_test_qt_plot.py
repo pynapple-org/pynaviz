@@ -1,7 +1,7 @@
-import sys
 import pytest
-from PyQt6.QtWidgets import QApplication
+
 import pynaviz as viz
+
 
 @pytest.fixture
 def data(request):
@@ -26,7 +26,7 @@ def data(request):
     ], indirect=["data"]
 )
 def test_myapp_starts(func, data):
-    v = getattr(viz, func)(data)
+    getattr(viz, func)(data)
     # v.render()
     # v.show()
     # assert widget.isVisible()
