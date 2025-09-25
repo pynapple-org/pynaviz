@@ -7,7 +7,7 @@ from PyQt6.QtCore import (
     QTimer,
     pyqtSignal,
 )
-from PyQt6.QtWidgets import QListView, QDialog, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QDialog, QListView, QVBoxLayout, QWidget
 
 
 class DynamicSelectionListView(QListView):
