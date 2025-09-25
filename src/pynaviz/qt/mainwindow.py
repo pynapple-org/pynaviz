@@ -4,9 +4,9 @@ import os
 import re
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Union
 
-import numpy as np
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
@@ -347,7 +347,7 @@ class MainDock(QDockWidget):
             self.ctrl_group.set_interval(max_time, None)
             self._update_time_label(self.ctrl_group.current_time)
 
-    def add_dock_widget(self, item: object, plot_manager: dict | None = None) -> None:
+    def add_dock_widget(self, item: object, manager_state_dict: dict | None = None) -> QDockWidget:
         name = self._extract_variable_name(item)
         if not name:
             return
@@ -359,19 +359,13 @@ class MainDock(QDockWidget):
         widget = self._create_widget_for_variable(var)
         if widget is None:
             return
+
         # restore manager if any
-        if plot_manager is not None:
+        if manager_state_dict is not None:
             current_manager = widget.plot._manager
-            restored_manager = current_manager.from_state(plot_manager)
-            if np.all(current_manager.index == restored_manager.index):
-                widget.plot._manager = restored_manager
-                widget.plot._update("sort_by")
-                widget.plot.color_by(
-                    restored_manager.color_by_metadata_name,
-                    restored_manager.cmap_name,
-                    vmin=restored_manager.vmin,
-                    vmax=restored_manager.vmax,
-                )
+            # restore the manager
+            widget.plot._manager = current_manager.from_state(widget.plot, manager_state_dict, index=current_manager.index)
+
 
 
         dock = self._create_dock(name, widget)
@@ -383,6 +377,7 @@ class MainDock(QDockWidget):
             time_multiplier = self.time_unit_combo.currentData()
             self.time_spin_box.setMinimum(min_time * time_multiplier)
             self.time_spin_box.setMaximum(max_time * time_multiplier)
+        return dock
 
     def _extract_variable_name(self, item: object) -> str | None:
         """Return the variable name from a QListWidgetItem or a string."""
@@ -492,10 +487,7 @@ class MainDock(QDockWidget):
         self.help_box.move(btn_pos)
         self.help_box.show()
 
-    def save_layout(self, file_name="layout.json"):
-        if not file_name.lower().endswith(".json"):
-            file_name += ".json"
-
+    def _get_layout_dict(self):
         geom = bytes(self.gui.saveGeometry())
         state = bytes(self.gui.saveState(version=0))  # Potentially add package versioning later
 
@@ -505,6 +497,7 @@ class MainDock(QDockWidget):
         for d in all_docks:
             name = d.objectName()
             if name != "MainDock":
+                print(d.widget().plot._manager.get_state())
                 info = {"visible": d.isVisible(),
                         "floating": d.isFloating(),
                         "area": self.gui.dockWidgetArea(d).name,
@@ -514,7 +507,7 @@ class MainDock(QDockWidget):
                         "varname": re.sub(r'_\d+$', '', name),
                         "index": int(name.split("_")[-1]),
                         "name": name,
-                        "plot_manager": d.widget().plot._manager.get_state(),
+                        "manager_state_dict": d.widget().plot._manager.get_state(),
                         }
                 docks.append(info)
                 order.append(int(name.split("_")[-1]))
@@ -526,6 +519,13 @@ class MainDock(QDockWidget):
             "state_b64": base64.b64encode(state).decode("ascii"),
             "docks": docks,
         }
+        return payload
+
+    def save_layout(self, file_name="layout.json"):
+        file_name = Path(file_name).with_suffix(".json")
+
+        payload = self._get_layout_dict()
+
         with open(file_name, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2)
         print(f"Layout saved to {file_name}")
@@ -568,7 +568,7 @@ class MainDock(QDockWidget):
         # 1) add every dock with the potential variable. Order them by number in the name
         for widget in payload.get("docks", []):
             if widget['varname'] in self.variables:
-                self.add_dock_widget(widget['varname'], plot_manager=widget["plot_manager"])
+                self.add_dock_widget(widget['varname'], manager_state_dict=widget["manager_state_dict"])
             assert self.gui.findChild(QDockWidget,
                                       widget['name']) is not None, f"Dock {widget['name']} was not created."
 
