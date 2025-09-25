@@ -136,7 +136,7 @@ class ChannelListModel(QAbstractListModel):
 class ChannelList(QDialog):
 
     checkStateChanged = pyqtSignal(int)
-    
+
     """
     A dialog listing selectable channels (e.g., for visibility toggling).
 

@@ -36,16 +36,12 @@ from PyQt6.QtWidgets import (
 )
 
 from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
-
+from pynaviz.qt.interval_sets_table import IntervalSetsDialog, IntervalSetsModel
 from pynaviz.qt.widget_list_selection import (
     ChannelList,
     ChannelListModel,
 )
-
-from pynaviz.qt.interval_sets_table import IntervalSetsDialog, IntervalSetsModel
-
 from pynaviz.utils import get_plot_attribute
-
 
 WIDGET_PARAMS = {
     QComboBox: {
