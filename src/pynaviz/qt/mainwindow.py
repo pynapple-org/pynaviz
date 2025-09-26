@@ -577,6 +577,7 @@ class MainDock(QDockWidget):
                             "dtype": d.widget().plot.data.__class__.__name__,
                             "key_path": d.property("key_path"),
                             "index": int(name.split("_")[-1]),
+                            "open_file_list": list(self.gui._open_file_list),
                             "name": name
                             }
                     print(info)
@@ -728,15 +729,17 @@ class MainWindow(QMainWindow):
                 print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
             elif file_type in ["Pynapple"]:
                 new_vars.update({name: nap.load_file(name)})
+                self._open_file_paths.add(name.as_posix())
             elif file_type in ["NWB"]:
                 data = nap.load_file(name)
                 nap_obj_dict = {}
                 for key in data.keys():
                     nap_obj_dict[key] = data[key]
                 new_vars.update({name.stem + name.suffix: nap_obj_dict})
-
+                self._open_file_paths.add(name.as_posix())
             elif file_type == "Video":
                 new_vars.update({name: PlotVideo(name)})
+                self._open_file_paths.add(name.as_posix())
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
         variables.update(new_vars)
