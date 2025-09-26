@@ -37,7 +37,7 @@ def nap_vars():
         1: nap.Ts(t=np.sort(np.random.uniform(0, 30, 150))),
         2: nap.Ts(t=np.sort(np.random.uniform(0, 30, 80))),
     }
-    tsgroup = nap.TsGroup(spike_times, area=['pfc', 'mstd', 'ppc'], type=['exc', 'inh', 'exc'])
+    tsgroup = nap.TsGroup(spike_times, area=['pfc', 'pfc', 'ppc'], type=['exc', 'inh', 'exc'], channel=[1, 2, 3])
 
     # Create IntervalSet
     interval_set = nap.IntervalSet(
@@ -178,20 +178,24 @@ def apply_action(
 @pytest.mark.parametrize(
     "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
 )
-def test_save_load_layout_tsdframe(app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
+@pytest.mark.parametrize("apply_to", [("tsgroup",), ("tsdframe", ), ("tsgroup", "tsdframe")])
+def test_save_load_layout_tsdframe(apply_to, app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
     app, main_window, dock, variables = app__main_window__dock
     # add widgets
     widget = None
     for varname in variables.keys():
         dock_widget = dock.add_dock_widget(varname)
-        if varname == "tsdframe":
+        if varname in apply_to:
             widget = dock_widget.widget()
-    # debug purposes, should not trigger.
-    assert widget is not None, "tsdframe widget not created."
+            apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None,
+                         action_kwargs=group_by_kwargs, app=app)
+            apply_action(widget=widget, action_type="sort_by" if sort_by_kwargs is not None else None,
+                         action_kwargs=sort_by_kwargs, app=app)
+            apply_action(widget=widget, action_type="color_by" if color_by_kwargs is not None else None,
+                         action_kwargs=color_by_kwargs, app=app)
 
-    apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None, action_kwargs=group_by_kwargs, app=app)
-    apply_action(widget=widget, action_type="sort_by" if sort_by_kwargs is not None else None, action_kwargs=sort_by_kwargs, app=app)
-    apply_action(widget=widget, action_type="color_by" if color_by_kwargs is not None else None, action_kwargs=color_by_kwargs, app=app)
+    # debug purposes, should not trigger.
+    assert widget is not None, "widget not created."
 
     layout_path = tmp_path / "layout.json"
     layout_dict_orig = dock._get_layout_dict()
@@ -219,23 +223,23 @@ def test_save_load_layout_tsdframe(app__main_window__dock, color_by_kwargs, grou
 @pytest.mark.parametrize(
     "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
 )
-def test_save_load_layout_tsdframe_screenshots(app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
+@pytest.mark.parametrize("apply_to", [("tsgroup",), ("tsdframe", ), ("tsgroup", "tsdframe")])
+def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
     app, main_window, dock, variables = app__main_window__dock
     # add widgets
     widget = None
     for varname in variables.keys():
         dock_widget = dock.add_dock_widget(varname)
-        if varname == "tsdframe":
+        if varname in apply_to:
             widget = dock_widget.widget()
+            apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None,
+                         action_kwargs=group_by_kwargs, app=app)
+            apply_action(widget=widget, action_type="sort_by" if sort_by_kwargs is not None else None,
+                         action_kwargs=sort_by_kwargs, app=app)
+            apply_action(widget=widget, action_type="color_by" if color_by_kwargs is not None else None,
+                         action_kwargs=color_by_kwargs, app=app)
     # debug purposes, should not trigger.
-    assert widget is not None, "tsdframe widget not created."
-
-    apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None,
-                 action_kwargs=group_by_kwargs, app=app)
-    apply_action(widget=widget, action_type="sort_by" if sort_by_kwargs is not None else None,
-                 action_kwargs=sort_by_kwargs, app=app)
-    apply_action(widget=widget, action_type="color_by" if color_by_kwargs is not None else None,
-                 action_kwargs=color_by_kwargs, app=app)
+    assert widget is not None, "widget not created."
 
     layout_path = tmp_path / "layout.json"
     dock.save_layout(layout_path)
@@ -261,6 +265,7 @@ def test_save_load_layout_tsdframe_screenshots(app__main_window__dock, color_by_
 
     for k, img in orig_screenshots.items():
         np.testing.assert_allclose(img, new_screenshots[k], atol=1)
+
 
 
 
