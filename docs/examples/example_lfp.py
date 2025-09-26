@@ -91,7 +91,7 @@ def main():
     frames.append(grab_window(win))
     durations.append(800)
 
-    list_widget = ctrl_dock.listWidget
+    list_widget = ctrl_dock.treeWidget
 
     # --- Add docks ---
     add_dock_widget(list_widget, win, app, frames, durations, item_number=0) # eeg

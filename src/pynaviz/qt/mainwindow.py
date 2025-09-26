@@ -2,9 +2,10 @@ import base64
 import json
 import os
 import re
+import pathlib
 import sys
 from datetime import datetime
-from typing import Union
+from typing import Union, Literal
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
@@ -18,7 +19,8 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QListWidget,
+    QTreeWidget,
+    QTreeWidgetItem,
     QMainWindow,
     QPushButton,
     QStyle,
@@ -27,9 +29,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from pynaviz.audiovideo.video_plot import PlotBaseVideoTensor
-from pynaviz.controller_group import ControllerGroup
-from pynaviz.qt.widget_plot import (
+from ..audiovideo.video_plot import PlotBaseVideoTensor
+from ..controller_group import ControllerGroup
+from .widget_plot import (
     IntervalSetWidget,
     TsdFrameWidget,
     TsdTensorWidget,
@@ -38,6 +40,7 @@ from pynaviz.qt.widget_plot import (
     TsWidget,
     VideoWidget,
 )
+from ..audiovideo import PlotVideo
 
 DOCK_LIST_STYLESHEET = """
     * {
@@ -55,6 +58,41 @@ DOCK_LIST_STYLESHEET = """
 """
 
 
+def get_children_dict(parent: QTreeWidget | QTreeWidgetItem):
+    """Helper function to get children as a dictionary"""
+    children = {}
+
+    if isinstance(parent, QTreeWidget):
+        count = parent.topLevelItemCount()
+        for i in range(count):
+            child = parent.topLevelItem(i)
+            children[child.text(0)] = child
+    else:
+        count = parent.childCount()
+        for i in range(count):
+            child = parent.child(i)
+            children[child.text(0)] = child
+
+    return children
+
+def _get_item_key_path(item: QTreeWidgetItem, key_path:None|list=None) -> list:
+    if key_path is None:
+        key_path = [item.text(0)]
+    parent = item.parent()
+    if parent is not None:
+        key_path.append(parent.text(0))
+        key_path = _get_item_key_path(parent, key_path)
+    else:
+        key_path = key_path[::-1]
+    return key_path
+
+def _get_variable_from_key_path(variables: dict, key_path: list[str]):
+    var = variables
+    for key in key_path:
+        var = var.get(key, None)
+        if var is None:
+            break
+    return var
 
 class HelpBox(QFrame):
     def __init__(self, parent=None):
@@ -158,17 +196,13 @@ class MainDock(QDockWidget):
 
 
         # --- list widget ---
-        layout.addWidget(QLabel("Variables"))
-        self._interval_set_keys = []
-        self.listWidget = QListWidget()
-        for k in variables.keys():
-            if k != "data":
-                self.listWidget.addItem(k)
-                if isinstance(variables[k], nap.IntervalSet):
-                    self._interval_set_keys.append(k) # Storing interval set keys for add_interval_set action
-        self.listWidget.itemDoubleClicked.connect(self.add_dock_widget)
+        self._interval_set_key_paths = []
+        self.treeWidget = QTreeWidget()
+        self.treeWidget.setHeaderLabel("Variables")
+        self.treeWidget.itemDoubleClicked.connect(self.on_item_double_clicked)
+        self._add_items_to_tree_widget(variables)
 
-        layout.addWidget(self.listWidget)
+        layout.addWidget(self.treeWidget)
 
         # --- Timer ---
         time_layout = QHBoxLayout()
@@ -237,7 +271,7 @@ class MainDock(QDockWidget):
         self.setWidget(container)
         self.setFixedWidth(
             max(
-                self.listWidget.sizeHintForColumn(0) + 50,
+                self.treeWidget.sizeHintForColumn(0) + 50,
                 toolbar.sizeHint().width() + 20
             )
         )
@@ -260,6 +294,37 @@ class MainDock(QDockWidget):
         # Loading layout if provided
         if layout_path is not None and os.path.isfile(layout_path):
             self._restore_layout(layout_path)
+
+    def on_item_double_clicked(self, item, column):
+        """Handle double-click only for leaf items"""
+        if item.childCount() == 0:  # This is a leaf item
+            self.add_dock_widget(item)
+
+    def _add_items_to_tree_widget(self, item_dict: dict, parent: None | QTreeWidgetItem = None, clear: bool = False):
+        if clear:
+            self.treeWidget.clear()
+            self._interval_set_key_paths = []
+
+        if parent is None:
+            parent = self.treeWidget
+
+        # Get existing children
+        children = get_children_dict(parent)
+
+        for key, value in item_dict.items():
+            if key in children:
+                child = children[key]
+                # Make sure it is another sub-tree with elements
+                assert isinstance(value, dict), ("Variable name for vars at the same level of a tree must be unique."
+                                                 f"\nName '{key}' is not unique")
+                self._add_items_to_tree_widget(value, parent=child, clear=False)
+            else:
+                # Create new item
+                item = QTreeWidgetItem(parent, [key])
+                if isinstance(value, dict):
+                    self._add_items_to_tree_widget(value, parent=item, clear=False)
+                elif isinstance(value, nap.IntervalSet):
+                    self._interval_set_key_paths.append(_get_item_key_path(item))
 
     def _toggle_play(self):
         self.playing = not self.playing
@@ -348,20 +413,20 @@ class MainDock(QDockWidget):
             self._update_time_label(self.ctrl_group.current_time)
 
 
-    def add_dock_widget(self, item: object) -> None:
-        name = self._extract_variable_name(item)
-        if not name:
+    def add_dock_widget(self, item: QTreeWidgetItem | list[str]) -> None:
+        key_path = self._extract_variable_path(item)
+        if not key_path:
             return
 
-        var = self._get_variable(name)
+        var = self._get_variable(key_path)
         if var is None:
             return
 
         widget = self._create_widget_for_variable(var)
         if widget is None:
             return
-
-        dock = self._create_dock(name, widget)
+        name = "/".join(key_path)
+        dock = self._create_dock(name, widget, key_path)
         self._add_dock_to_gui(dock)
         self._register_controller(widget)
         self._n_dock_open += 1
@@ -371,37 +436,37 @@ class MainDock(QDockWidget):
             self.time_spin_box.setMinimum(min_time * time_multiplier)
             self.time_spin_box.setMaximum(max_time * time_multiplier)
 
-    def _extract_variable_name(self, item: object) -> str | None:
+    @staticmethod
+    def _extract_variable_path(item: QTreeWidgetItem | list[str]) -> list[str] | None:
         """Return the variable name from a QListWidgetItem or a string."""
-        if hasattr(item, "text"):
-            return item.text()
-        elif isinstance(item, str):
-            if item not in self.variables:
-                print(f"Variable '{item}' not found.")
-                return None
+
+        if isinstance(item, QTreeWidgetItem):
+            return _get_item_key_path(item)
+        elif isinstance(item, list):
             return item
         else:
             print("Invalid item type for dock widget.")
             return None
 
-    def _get_variable(self, name: str):
+    def _get_variable(self, key_path: list[str]):
         """Fetch the variable from variables and validate."""
-        var = self.variables.get(name, None)
+        var = _get_variable_from_key_path(self.variables, key_path)
         if var is None:
-            print(f"Variable '{name}' not found.")
+            print(f"Variable {'/'.join(key_path)} not found.")
         return var
 
     def _create_widget_for_variable(self, var) -> object | None:
         """Return the correct widget based on the variable type."""
+        # TODO: grab iset only from the same tree level.
         index = self._n_dock_open
         if isinstance(var, nap.TsGroup):
-            interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
+            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self._interval_set_key_paths}
             return TsGroupWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.Tsd):
-            interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
+            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self._interval_set_key_paths}
             return TsdWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdFrame):
-            interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
+            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self._interval_set_key_paths}
             return TsdFrameWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdTensor):
             return TsdTensorWidget(var, index=index, set_parent=True)
@@ -415,12 +480,13 @@ class MainDock(QDockWidget):
             print(f"Variable of type '{type(var)}' is not supported for plotting.")
             return None
 
-    def _create_dock(self, name: str, widget: object) -> QDockWidget:
+    def _create_dock(self, name: str, widget: object, key_path: list[str]) -> QDockWidget:
         """Create and configure the QDockWidget with title bar and controls."""
         index = self._n_dock_open
         dock = QDockWidget()
         dock.setWidget(widget)
         dock.setObjectName(f"{name}_{index}")
+        dock.setProperty("key_path", key_path)
 
         # Add name and close button to the widget's button container
         layout = widget.button_container.layout()
@@ -509,10 +575,11 @@ class MainDock(QDockWidget):
                             "pos": (d.x(), d.y()),
                             "size": (d.width(), d.height()),
                             "dtype": d.widget().plot.data.__class__.__name__,
-                            "varname": re.sub(r'_\d+$', '', name),
+                            "key_path": d.property("key_path"),
                             "index": int(name.split("_")[-1]),
                             "name": name
                             }
+                    print(info)
                     docks.append(info)
                     order.append(int(name.split("_")[-1]))
             docks = [x for _, x in sorted(zip(order, docks))]
@@ -551,8 +618,10 @@ class MainDock(QDockWidget):
 
         # 1) add every dock with the potential variable. Order them by number in the name
         for widget in payload.get("docks", []):
-            if widget['varname'] in self.variables:
-                self.add_dock_widget(widget['varname'])
+            var = _get_variable_from_key_path(self.variables, widget['key_path'])
+            if var is not None:
+                print(f"Adding var from path {widget['key_path']}.")
+                self.add_dock_widget(widget['key_path'])
             assert self.gui.findChild(QDockWidget,
                                       widget['name']) is not None, f"Dock {widget['name']} was not created."
 
@@ -571,6 +640,15 @@ class MainDock(QDockWidget):
 
 
 class MainWindow(QMainWindow):
+
+    _file_extensions = {
+            "Pynapple": [".npz"],
+            "NWB": [".nwb"],
+            "Video": [".avi", ".mp4", ".mkv"],
+            # uncomment above when PlotAudio is available.
+            # "Audio": [".mp3", ".wav", ".flac"]
+        }
+
     def __init__(self):
         # HACK to ensure that closeEvent is called only twice (seems like a
         # Qt bug).
@@ -586,6 +664,81 @@ class MainWindow(QMainWindow):
         # self.setFont(font)
         # Enable nested docking (so docks can be stacked)
         self.setDockNestingEnabled(True)
+        self.create_menu_bar()
+        self._open_file_paths = set()
+
+    def create_menu_bar(self):
+        menubar = self.menuBar()
+
+        # Create File menu
+        file_menu = menubar.addMenu("&File")
+
+        # Open action
+        open_action = QAction("&Open File...", self)
+        open_action.setShortcut(QKeySequence.StandardKey.Open)  # Ctrl+O
+        open_action.setStatusTip("Open an existing file")
+        open_action.triggered.connect(self.open_file)
+        file_menu.addAction(open_action)
+
+    def open_file(self):
+        extensions = self._file_extensions
+        # create the formatted string for QFileDialog ext
+        ext_string = "All ("
+        for ext in (v for exts in extensions.values() for v in exts):
+            ext_string += f"*{ext} "
+        ext_string = ext_string[:-1] + ");;"
+
+        for ext_name, ext_list in extensions.items():
+            ext_string += ext_name + " ("
+            for ext in ext_list:
+                ext_string += f"*{ext} "
+            ext_string = ext_string[:-1] + ");;"
+        ext_string = ext_string[:-2]
+
+        filenames, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Open Files",
+            "",
+            ext_string
+        )
+        self._load_multiple_files(filenames)
+
+    def _load_multiple_files(self, filenames: list[str]):
+        # find main dock
+        dock = self.findChildren(MainDock)
+        if len(dock) != 1:
+            raise RuntimeError("MainWindow must have at most one dock.")
+        dock_widget = dock[0]
+
+        # create the variable dict
+        def get_type(name: pathlib.Path) -> None | Literal["Pynapple", "NWB", "Video"]:
+            file_type = None
+            for tp, exts in self._file_extensions:
+                if name.suffix in exts:
+                    file_type = tp
+                    break
+            return file_type
+
+        variables = dock_widget.variables
+        for name in filenames:
+            name = pathlib.Path(name)
+            file_type = get_type(name)
+            if file_type is None:
+                print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
+            elif file_type in ["Pynapple"]:
+                variables[name.stem] = nap.load_file(name)
+            elif file_type in ["NWB"]:
+                data = nap.load_file(name)
+                variables.update({key: val for key, val in data.items()})
+            elif file_type == "Video":
+                variables[name.stem] = PlotVideo(name)
+            else:
+                raise TypeError(f"Developer forgot to add file type `{file_type}` to teh loader.")
+
+
+
+
+
 
 
 def get_pynapple_variables(
