@@ -178,7 +178,7 @@ def apply_action(
 @pytest.mark.parametrize(
     "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
 )
-def test_save_load_layout(app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
+def test_save_load_layout_tsdframe(app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
     app, main_window, dock, variables = app__main_window__dock
     # add widgets
     widget = None
@@ -208,3 +208,60 @@ def test_save_load_layout(app__main_window__dock, color_by_kwargs, group_by_kwar
     layout_dict_orig.pop("geometry_b64")
     # check dict
     assert layout_dict_orig == layout_dict_new
+
+
+@pytest.mark.parametrize(
+    "group_by_kwargs", [None, dict(metadata_name="area")]
+)
+@pytest.mark.parametrize(
+    "sort_by_kwargs", [None, dict(metadata_name="channel")]
+)
+@pytest.mark.parametrize(
+    "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
+)
+def test_save_load_layout_tsdframe_screenshots(app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
+    app, main_window, dock, variables = app__main_window__dock
+    # add widgets
+    widget = None
+    for varname in variables.keys():
+        dock_widget = dock.add_dock_widget(varname)
+        if varname == "tsdframe":
+            widget = dock_widget.widget()
+    # debug purposes, should not trigger.
+    assert widget is not None, "tsdframe widget not created."
+
+    apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None,
+                 action_kwargs=group_by_kwargs, app=app)
+    apply_action(widget=widget, action_type="sort_by" if sort_by_kwargs is not None else None,
+                 action_kwargs=sort_by_kwargs, app=app)
+    apply_action(widget=widget, action_type="color_by" if color_by_kwargs is not None else None,
+                 action_kwargs=color_by_kwargs, app=app)
+
+    layout_path = tmp_path / "layout.json"
+    dock.save_layout(layout_path)
+
+    # Take screenshots
+    orig_screenshots = {}
+    for i, d in enumerate(dock.gui.findChildren(QDockWidget)):
+        if d.objectName() != "MainDock":
+            base_plot = d.widget().plot
+            base_plot.renderer.render(base_plot.scene, base_plot.camera)
+            orig_screenshots[i, base_plot.__class__.__name__] = base_plot.renderer.snapshot()
+
+    # load a main window with the same configs.
+    main_window_new = viz.qt.mainwindow.MainWindow()
+    dock_new = viz.qt.mainwindow.MainDock(variables, main_window_new, layout_path=layout_path)
+    # Take screenshots
+    new_screenshots = {}
+    for i, d in enumerate(dock_new.gui.findChildren(QDockWidget)):
+        if d.objectName() != "MainDock":
+            base_plot = d.widget().plot
+            base_plot.renderer.render(base_plot.scene, base_plot.camera)
+            new_screenshots[i, base_plot.__class__.__name__] = base_plot.renderer.snapshot()
+
+    for k, img in orig_screenshots.items():
+        np.testing.assert_allclose(img, new_screenshots[k], atol=1)
+
+
+
+
