@@ -11,6 +11,15 @@ if TYPE_CHECKING:
     from .base_plot import _BasePlot
 
 
+def to_python_type(val):
+    if hasattr(val, 'item'):  # numpy scalar
+        return val.item()
+    elif hasattr(val, 'tolist'):
+        return val.tolist()
+    else:
+        return val
+
+
 class _PlotManager:
     """
     Manages the plotting state for visual elements like TsGroup, TsdFrame, and IntervalSet.
@@ -261,7 +270,7 @@ class _PlotManager:
         """
         serializable_actions = {
             action: {
-                k: v.tolist() if hasattr(v, "tolist()") else v
+                k: to_python_type(v) if hasattr(v, "tolist()") else v
                 for k, v in kwargs.items()
             } if kwargs is not None else None
             for action, kwargs in self._actions.items()
