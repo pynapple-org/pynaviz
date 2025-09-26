@@ -56,7 +56,10 @@ def nap_vars():
         1: nap.Ts(t=np.sort(np.random.uniform(0, 30, 150))),
         2: nap.Ts(t=np.sort(np.random.uniform(0, 30, 80))),
     }
-    tsgroup = nap.TsGroup(spike_times, area=['pfc', 'pfc', 'ppc'], type=['exc', 'inh', 'exc'], channel=[2, 1, 3])
+    tsgroup = nap.TsGroup(
+        spike_times,
+        metadata=dict(area=['pfc', 'pfc', 'ppc'], type=['exc', 'inh', 'exc'], channel=[2, 1, 3])
+    )
 
     # Create IntervalSet
     interval_set = nap.IntervalSet(
