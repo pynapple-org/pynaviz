@@ -12,6 +12,26 @@ from PyQt6.QtWidgets import QApplication, QDockWidget
 
 from pynaviz import TsdWidget, IntervalSetWidget, TsdFrameWidget, TsGroupWidget, TsdTensorWidget
 from pynaviz.qt.mainwindow import MainDock
+from PyQt6.QtGui import QImage
+
+def pixmap_to_array(pixmap):
+    """Convert QPixmap to numpy array"""
+    # Convert to QImage first
+    qimage = pixmap.toImage()
+
+    # Convert to RGB format if needed
+    qimage = qimage.convertToFormat(QImage.Format.Format_RGB888)
+
+    # Get image dimensions
+    width = qimage.width()
+    height = qimage.height()
+
+    # Get raw data and convert to numpy array
+    ptr = qimage.bits()
+    ptr.setsize(height * width * 3)
+    arr = np.frombuffer(ptr, np.uint8).reshape((height, width, 3))
+
+    return arr
 
 
 @pytest.fixture()
@@ -22,7 +42,7 @@ def nap_vars():
         metadata={
             "area": ["pfc"] * 4 + ["ppc"] * 6,
             "type": ["exc", "inh"] * 5,
-            "channel": np.arange(10)
+            "channel": np.random.permutation(np.arange(10))
         }
     )
 
@@ -37,7 +57,7 @@ def nap_vars():
         1: nap.Ts(t=np.sort(np.random.uniform(0, 30, 150))),
         2: nap.Ts(t=np.sort(np.random.uniform(0, 30, 80))),
     }
-    tsgroup = nap.TsGroup(spike_times, area=['pfc', 'pfc', 'ppc'], type=['exc', 'inh', 'exc'], channel=[1, 2, 3])
+    tsgroup = nap.TsGroup(spike_times, area=['pfc', 'pfc', 'ppc'], type=['exc', 'inh', 'exc'], channel=[2, 1, 3])
 
     # Create IntervalSet
     interval_set = nap.IntervalSet(
@@ -265,8 +285,9 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
 
     for k, img in orig_screenshots.items():
         np.testing.assert_allclose(img, new_screenshots[k], atol=1)
-
-
-
-
-
+    # make sure there are no extra widgets
+    assert len(orig_screenshots) == len(new_screenshots)
+    # test layout
+    main_orig = pixmap_to_array(main_window.grab())
+    main_new = pixmap_to_array(main_window_new.grab())
+    np.testing.assert_allclose(main_orig, main_new, atol=1)
