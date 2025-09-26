@@ -1,18 +1,17 @@
-from typing import Literal
-import time
-
-import pdb
-
-import pynaviz as viz
-import pytest
-import pynapple as nap
-import numpy as np
 import sys
+import time
+from typing import Literal
+
+import numpy as np
+import pynapple as nap
+import pytest
+from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import QApplication, QDockWidget
 
-from pynaviz import TsdWidget, IntervalSetWidget, TsdFrameWidget, TsGroupWidget, TsdTensorWidget
+import pynaviz as viz
+from pynaviz import IntervalSetWidget, TsdFrameWidget, TsdTensorWidget, TsdWidget, TsGroupWidget
 from pynaviz.qt.mainwindow import MainDock
-from PyQt6.QtGui import QImage
+
 
 def pixmap_to_array(pixmap):
     """Convert QPixmap to numpy array"""

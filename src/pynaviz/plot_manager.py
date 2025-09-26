@@ -69,6 +69,7 @@ class _PlotManager:
     def is_grouped(self) -> bool:
         return self._actions["group_by"] is not None
 
+    @property
     def visible(self) -> np.ndarray:
         """
         Visibility status of each visual element.
