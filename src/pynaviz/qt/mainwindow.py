@@ -713,28 +713,34 @@ class MainWindow(QMainWindow):
         # create the variable dict
         def get_type(name: pathlib.Path) -> None | Literal["Pynapple", "NWB", "Video"]:
             file_type = None
-            for tp, exts in self._file_extensions:
+            for tp, exts in self._file_extensions.items():
                 if name.suffix in exts:
                     file_type = tp
                     break
             return file_type
 
         variables = dock_widget.variables
+        new_vars = {}
         for name in filenames:
             name = pathlib.Path(name)
             file_type = get_type(name)
             if file_type is None:
                 print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
             elif file_type in ["Pynapple"]:
-                variables[name.stem] = nap.load_file(name)
+                new_vars.update({name: nap.load_file(name)})
             elif file_type in ["NWB"]:
                 data = nap.load_file(name)
-                variables.update({key: val for key, val in data.items()})
-            elif file_type == "Video":
-                variables[name.stem] = PlotVideo(name)
-            else:
-                raise TypeError(f"Developer forgot to add file type `{file_type}` to teh loader.")
+                nap_obj_dict = {}
+                for key in data.keys():
+                    nap_obj_dict[key] = data[key]
+                new_vars.update({name.stem + name.suffix: nap_obj_dict})
 
+            elif file_type == "Video":
+                new_vars.update({name: PlotVideo(name)})
+            else:
+                raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
+        variables.update(new_vars)
+        dock_widget._add_items_to_tree_widget(new_vars)
 
 
 
