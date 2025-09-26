@@ -518,6 +518,7 @@ class PlotTsdFrame(_BasePlot):
                 self._positions[sl, 1] = self.data.d[:, i].astype("float32")
                 self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
                 self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
+
         else:
             if slice_ is None:
                 slice_ = self._stream.get_slice(*self.controller.get_xlim())
@@ -624,18 +625,29 @@ class PlotTsdFrame(_BasePlot):
         Update function for sort_by and group_by. Because of mode of sort_by, it's not possible
         to just update the buffer.
         """
-        # Update the scale only if one action has been performed
-        if self._manager.is_sorted ^ self._manager.is_grouped:
-            self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
+        if action_name in ["sort_by", "group_by"]:
+            # Update the scale only if one action has been performed
+            if self._manager.is_sorted ^ self._manager.is_grouped:
+                self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
 
-        # Specific to PloTsdFrame, the first row should be at 1.
-        self._manager.offset = self._manager.offset + 1 - self._manager.offset.min()
+            # Specific to PloTsdFrame, the first row should be at 1.
+            self._manager.offset = self._manager.offset + 1 - self._manager.offset.min()
 
-        # Update the buffer
-        self._flush()
+            # Update the buffer
+            self._flush()
 
-        # Update camera to fit the full y range
-        self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+            # Update camera to fit the full y range
+            self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+
+        if action_name in ["toggle_visibility"]:
+            # No need to flush. Just change the colors buffer
+            new_colors = self.graphic.geometry.colors.data.copy()
+            for c, sl in self._buffer_slices.items():
+                if not self._manager.data.loc[c]["visible"]:
+                    new_colors[sl, -1] = 0.0
+                else:
+                    new_colors[sl, -1] = 1.0
+            self.graphic.geometry.colors.set_data(new_colors)
 
         self.canvas.request_draw(self.animate)
 
@@ -975,7 +987,7 @@ class PlotTsGroup(_BasePlot):
             self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
             self.canvas.request_draw(self.animate)
 
-    def _update(self, action_name):
+    def _update(self, action_name=None):
         """
         Update the raster after sorting or grouping operations.
 
@@ -984,10 +996,19 @@ class PlotTsGroup(_BasePlot):
         action_name : str
             The action performed ("sort_by" or "group_by").
         """
-        self._flush()
+        if action_name in ["sort_by", "group_by"]:
+            self._flush()
+            # Ensure camera spans the full y range
+            self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
 
-        # Ensure camera spans the full y range
-        self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
+        if action_name in ["toggle_visibility"]:
+            # No need to flush. Just change the colors buffer
+            for c in self.graphic:
+                if not self._manager.data.loc[c]["visible"]:
+                    self.graphic[c].material.opacity = 0.0
+                else:
+                    self.graphic[c].material.opacity = 1.0
+
         self.canvas.request_draw(self.animate)
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
@@ -1208,18 +1229,28 @@ class PlotIntervalSet(_BasePlot):
         """
         Update function for sort_by and group_by
         """
-        # Grabbing the material object
-        geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
+        if action_name in ["sort_by", "group_by"] or action_name is None:
+            # Update the scale only if one action has been performed
+            # Grabbing the material object
+            geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
-        for c in geometries:
-            geometries[c].positions.data[:2, 1] = self._manager.data.loc[c][
-                "offset"
-            ].astype("float32")
-            geometries[c].positions.data[2:, 1] = (
-                self._manager.data.loc[c]["offset"].astype("float32") + 1
-            )
+            for c in geometries:
+                geometries[c].positions.data[:2, 1] = self._manager.data.loc[c][
+                    "offset"
+                ].astype("float32")
+                geometries[c].positions.data[2:, 1] = (
+                    self._manager.data.loc[c]["offset"].astype("float32") + 1
+                )
 
-            geometries[c].positions.update_full()
+                geometries[c].positions.update_full()
+
+        if action_name in ["toggle_visibility"]:
+            # No need to flush. Just change the colors buffer
+            for c in self.graphic:
+                if not self._manager.data.loc[c]["visible"]:
+                    self.graphic[c].material.opacity = 0.0
+                else:
+                    self.graphic[c].material.opacity = 1.0
 
         # Update camera to fit the full y range
         ymax = np.max(self._manager.offset) + 1
