@@ -11,15 +11,6 @@ if TYPE_CHECKING:
     from .base_plot import _BasePlot
 
 
-def to_python_type(val):
-    if hasattr(val, 'item'):  # numpy scalar
-        return val.item()
-    elif hasattr(val, 'tolist'):
-        return val.tolist()
-    else:
-        return val
-
-
 class _PlotManager:
     """
     Manages the plotting state for visual elements like TsGroup, TsdFrame, and IntervalSet.
