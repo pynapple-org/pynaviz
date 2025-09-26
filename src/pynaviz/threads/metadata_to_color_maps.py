@@ -16,6 +16,25 @@ def map_numeric_arrays(
     vmax: float = 100.0,
     cmap: Colormap = colormaps["rainbow"],
 ):
+    """
+    Map numerical array to colors.
+    Parameters
+    ----------
+    values:
+        A numeric one dimensional array or pandas series.
+    vmin:
+        Min percentile, between 0 and 100.
+    vmax:
+        Max percentile, between 0 and 100.
+    cmap:
+        A colormap.
+
+    Returns
+    -------
+    :
+        A dictionary containing the color maps, keys are metadata entries, values are colors.
+
+    """
     mn = np.nanpercentile(values, vmin, method="closest_observation")
     mx = np.nanpercentile(values, vmax, method="closest_observation")
 
