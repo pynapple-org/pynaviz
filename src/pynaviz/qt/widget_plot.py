@@ -20,6 +20,7 @@ from ..base_plot import (
     PlotTsGroup,
 )
 from .widget_menu import MenuWidget
+import pynapple as nap
 
 
 def expand_with_time_support(time_support, interval_sets):
@@ -137,24 +138,7 @@ class TsdFrameWidget(BaseWidget):
         xvy_action.triggered.connect(self.button_container._popup_menu)
 
         # Add overlay and canvas to layout
-        self.layout.addWidget(self.button_container)
-        self.layout.addWidget(self.plot.canvas)
-
-
-class TsdTensorWidget(BaseWidget):
-
-    def __init__(self, data, index=None, size=(640, 480), set_parent=True):
-        super().__init__(size=size)
-
-        # Canvas
-        parent = self if set_parent else None
-        self.plot = PlotTsdTensor(data, index=index, parent=parent)
-
-        # Top level menu container
-        self.button_container = MenuWidget(metadata=None, plot=self.plot)
-
-        # Add overlay and canvas to layout
-        self.layout.addWidget(self.button_container)
+        self.layout.addWidget(self.button_container, 0)
         self.layout.addWidget(self.plot.canvas)
 
 
@@ -189,6 +173,44 @@ class IntervalSetWidget(BaseWidget):
         self.button_container = MenuWidget(metadata=data.metadata, plot=self.plot)
 
          # Add overlay and canvas to layout
+        self.layout.addWidget(self.button_container)
+        self.layout.addWidget(self.plot.canvas)
+
+
+class TsdTensorWidget(BaseWidget):
+
+    def __init__(self, data: nap.TsdTensor,
+                 index: int =None,
+                 size: tuple =(640, 480),
+                 set_parent: bool=True,
+                 tsdframe: nap.TsdFrame =None):
+        """
+        Widget for visualizing TsdTensor data with optional overlay of TsdFrame data.
+
+        Parameters
+        ----------
+        data : TsdTensor
+            The TsdTensor data to visualize.
+        index : int, optional
+            Used when included in a ControllerGroup to identify the widget.
+        size : tuple, optional
+            Initial size of the widget (width, height).
+        set_parent : bool, optional
+            Whether to set the widget as the parent of the plot (default is True).
+        tsdframe : TsdFrame, optional
+            TsdFrame object to overlay on the TsdTensor plot.
+
+        """
+        super().__init__(size=size)
+
+        # Canvas
+        parent = self if set_parent else None
+        self.plot = PlotTsdTensor(data, index=index, parent=parent)
+
+        # Top level menu container
+        self.button_container = MenuWidget(metadata=None, plot=self.plot, tsdframe=tsdframe)
+
+        # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
         self.layout.addWidget(self.plot.canvas)
 

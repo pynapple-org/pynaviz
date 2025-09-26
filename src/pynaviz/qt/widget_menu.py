@@ -37,6 +37,7 @@ from PyQt6.QtWidgets import (
 
 from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
 from pynaviz.qt.interval_sets_table import IntervalSetsDialog, IntervalSetsModel
+from pynaviz.qt.tsdframe_selection import TsdFrameDialog
 from pynaviz.qt.widget_list_selection import (
     ChannelList,
     ChannelListModel,
@@ -253,10 +254,12 @@ class MenuWidget(QWidget):
     plot : _BasePlot
         The plot instance this menu is attached to.
     interval_sets : dict, optional
-        Dictionary of interval sets that can be added to the plot.
+        Dictionary of interval sets that can be added to the plot. Specific to Tsd, TsdFrame and TsGroup plots.
+    tsdframe : nap.TsdFrame, optional
+        TsdFrame object for overlaying on TsdTensor plot or VideoWidget plot.
     """
 
-    def __init__(self, metadata: Any, plot: Any, interval_sets: dict | None = None):
+    def __init__(self, metadata: Any, plot: Any, interval_sets: dict | None = None, tsdframe: nap.TsdFrame | None = None):
         super().__init__()
         self.metadata = metadata
         self.plot = plot
@@ -296,6 +299,11 @@ class MenuWidget(QWidget):
             self._interval_sets_model.checkStateChanged.connect(self._set_interval_set)
             self._interval_sets = interval_sets
 
+        if tsdframe is not None and isinstance(tsdframe, nap.TsdFrame):
+            self.action_funcs["overlay_time_series"] = "Overlay time series"
+            self._tsdframe = tsdframe
+            self._overlay_points = {}
+
         # Add the action button only if there are actions to show
         if len(self.action_funcs):
             self._add_button_to_layout(
@@ -325,6 +333,10 @@ class MenuWidget(QWidget):
 
         layout.addStretch()
         self.setLayout(layout)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Fixed
+        )
         self._action_menu()
 
     def _change_visibility(self) -> None:
@@ -376,6 +388,11 @@ class MenuWidget(QWidget):
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.show()
 
+    def show_select_tsdframe_menu(self) -> None:
+        """Opens the TsdFrame overlay selection dialog."""
+        dialog = TsdFrameDialog(self._tsdframe, parent=self, overlay_func=self._overlay_time_series)
+        dialog.show()
+
     def show_select_iset_menu(self) -> None:
         """Opens the interval set selection dialog."""
         dialog = IntervalSetsDialog(self._interval_sets_model, parent=self)
@@ -387,6 +404,9 @@ class MenuWidget(QWidget):
         popup_name = action.objectName()
         if popup_name == "select_interval_set":
             self.show_select_iset_menu()
+            return
+        if popup_name == "overlay_time_series":
+            self.show_select_tsdframe_menu()
             return
         kwargs = get_popup_kwargs(popup_name, self, action)
         if kwargs is not None:
@@ -422,3 +442,19 @@ class MenuWidget(QWidget):
         else:
             self.plot.remove_interval_set(name)
             self.plot.canvas.request_draw(self.plot.animate)
+
+    def _overlay_time_series(self, x_col, y_col, color, size, checked) -> None:
+        """Add or remove TsdFrame overlay from the plot based on selection."""
+        # Create a name by combining x and y columns
+        name = f"{x_col}_{y_col}"
+
+        if name in self._overlay_points:
+            # If the same selection is made again, ignore
+            if self._overlay_points[name] == (x_col, y_col, color, size, checked):
+                return
+        else:
+            self.plot.superpose_time_series(
+                self._tsdframe.loc[[int(x_col), int(y_col)]],
+                color=color,
+                markersize=size)
+

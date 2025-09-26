@@ -1,5 +1,6 @@
 """
-Video display
+Module for time-synchronized video plotting using pygfx and multiprocessing.
+
 """
 
 import abc
@@ -118,6 +119,10 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
             callback=self._update_buffer,
         )
 
+        # List to hold time series points that can be superposed
+        self._time_points = []
+        self.controller._add_callback(self._update_time_points)
+
         self.canvas.request_draw(
             draw_function=lambda: self.renderer.render(self.scene, self.camera)
         )
@@ -164,6 +169,57 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
             Source of the event triggering the update.
         """
         pass
+
+    def _update_time_points(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
+        """
+        Update the positions of any superposed time series points based on the current frame.
+
+        Parameters
+        ----------
+        frame_index : int
+            Current frame index.
+        event_type : RenderTriggerSource, optional
+            Source of the event triggering the update.
+        """
+        if len(self._time_points):
+            time_array = getattr(self.data.index, "values", self.data.index)
+            current_time = time_array[frame_index]
+            new_coords = np.ones((1, 3), dtype="float32")
+            for point in self._time_points:
+                new_coords[0,0:2] = point[1].get(current_time).astype("float32")
+                point[0].geometry.positions.set_data(new_coords)
+
+    def superpose_time_series(self, tsdframe: nap.TsdFrame,
+                              color: str = "red",
+                              thickness: float = 2,
+                              markersize: float = 10):
+        """
+        Superpose a time series on top of the video plot. Argument tsdframe should have
+        only 2 columns.
+
+        Parameters
+        ----------
+        tsdframe : nap.TsdFrame
+            Time series data to overlay.
+        color : str, default='red'
+            Color of the time series line.
+        """
+        if not isinstance(tsdframe, nap.TsdFrame):
+            raise ValueError("tsdframe must be a nap.TsdFrame instance.")
+
+        if tsdframe.shape[1] != 2:
+            raise ValueError("tsdframe must have exactly 2 columns for x and y coordinates.")
+
+        current_xy = tsdframe.get(self.controller._get_frame_time())
+        xy = np.hstack((current_xy, 1), dtype="float32")[None, :]
+        time_point = gfx.Points(
+            gfx.Geometry(positions=xy),
+            gfx.PointsMaterial(size=markersize, color=color, opacity=1),
+        )
+        self._time_points.append((time_point, tsdframe))
+        self.scene.add(time_point)
+
+        self.controller.renderer_request_draw()
 
 
 class PlotTsdTensor(PlotBaseVideoTensor):

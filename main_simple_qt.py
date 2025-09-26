@@ -26,9 +26,10 @@ tsdframe = nap.TsdFrame(
 ts = nap.Ts(t=np.arange(10))
 
 
-v = viz.TsdFrameWidget(tsdframe)
+# v = viz.TsdFrameWidget(tsdframe)
 # # v = viz.TsdWidget(tsd1)
 # v = viz.TsWidget(ts)
 
+v = viz.TsdTensorWidget(tsdtensor, tsdframe=tsdframe)
 v.show()
 
