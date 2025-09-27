@@ -1,11 +1,11 @@
 import base64
 import json
 import os
-import re
 import pathlib
+import re
 import sys
 from datetime import datetime
-from typing import Union, Literal
+from typing import Literal, Union
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
@@ -19,16 +19,17 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QTreeWidget,
-    QTreeWidgetItem,
     QMainWindow,
     QPushButton,
     QStyle,
     QToolBar,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
+from ..audiovideo import PlotVideo
 from ..audiovideo.video_plot import PlotBaseVideoTensor
 from ..controller_group import ControllerGroup
 from .widget_plot import (
@@ -40,7 +41,6 @@ from .widget_plot import (
     TsWidget,
     VideoWidget,
 )
-from ..audiovideo import PlotVideo
 
 DOCK_LIST_STYLESHEET = """
     * {
@@ -425,8 +425,8 @@ class MainDock(QDockWidget):
         widget = self._create_widget_for_variable(var)
         if widget is None:
             return
-        name = "/".join(key_path)
-        dock = self._create_dock(name, widget, key_path)
+        widget_name = "/".join(key_path)
+        dock = self._create_dock(widget_name, widget, key_path)
         self._add_dock_to_gui(dock)
         self._register_controller(widget)
         self._n_dock_open += 1
@@ -482,10 +482,9 @@ class MainDock(QDockWidget):
 
     def _create_dock(self, name: str, widget: object, key_path: list[str]) -> QDockWidget:
         """Create and configure the QDockWidget with title bar and controls."""
-        index = self._n_dock_open
         dock = QDockWidget()
         dock.setWidget(widget)
-        dock.setObjectName(f"{name}_{index}")
+        dock.setObjectName(f"{name}_{self._n_dock_open}")
         dock.setProperty("key_path", key_path)
 
         # Add name and close button to the widget's button container
@@ -577,7 +576,6 @@ class MainDock(QDockWidget):
                             "dtype": d.widget().plot.data.__class__.__name__,
                             "key_path": d.property("key_path"),
                             "index": int(name.split("_")[-1]),
-                            "open_file_list": list(self.gui._open_file_list),
                             "name": name
                             }
                     print(info)
@@ -590,6 +588,7 @@ class MainDock(QDockWidget):
                 "geometry_b64": base64.b64encode(geom).decode("ascii"),
                 "state_b64": base64.b64encode(state).decode("ascii"),
                 "docks": docks,
+                "file_paths": list(self.gui._open_file_paths),
             }
             with open(file_name, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2)
@@ -617,16 +616,30 @@ class MainDock(QDockWidget):
         self._n_dock_open = 0
         assert len(self.ctrl_group._controller_group) == 0, "Controller group not empty after removing all docks."
 
-        # 1) add every dock with the potential variable. Order them by number in the name
+        # 1) Reload the files
+        file_paths = payload.get("file_paths", [])
+        self.gui._load_multiple_files(file_paths)
+
+        # 2) add every dock with the potential variable. Order them by number in the name
         for widget in payload.get("docks", []):
             var = _get_variable_from_key_path(self.variables, widget['key_path'])
             if var is not None:
                 print(f"Adding var from path {widget['key_path']}.")
                 self.add_dock_widget(widget['key_path'])
-            assert self.gui.findChild(QDockWidget,
-                                      widget['name']) is not None, f"Dock {widget['name']} was not created."
 
-        # 2) Restore geometry first, then layout
+            # Note: simply matching the widget name stored in the payload results in a bug
+            # when the following happens:
+            # 1. Open > 1 docks
+            # 2. Close any dock but the last -> now the last dock name is varname_N but N-1 docks are opened
+            # 3. Save layout and close, this will store widget["name"] == varname_N
+            # 4. Try to reopen loading the layout.
+            #    The last dock name will be varname_{N-1} but widget["name"] is varname_N
+            # To prevent this, adjust the index.
+            dock_name = re.sub(r"_\d+$", f"_{self._n_dock_open-1}", widget['name'])
+            assert self.gui.findChild(QDockWidget,
+                                      dock_name) is not None, f"Dock {dock_name} was not created."
+
+        # 3) Restore geometry first, then layout
         geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))
         state = QByteArray.fromBase64(payload["state_b64"].encode("ascii"))
 
