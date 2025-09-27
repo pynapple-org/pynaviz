@@ -6,7 +6,12 @@ import pytest
 from PyQt6.QtWidgets import QApplication, QComboBox, QDoubleSpinBox
 
 from pynaviz.qt.qt_item_models import ChannelListModel
-from pynaviz.qt.widget_menu import ChannelList, DropdownDialog, MenuWidget, widget_factory
+from pynaviz.qt.widget_menu import (
+    ChannelList,
+    DropdownDialog,
+    MenuWidget,
+    widget_factory,
+)
 
 
 # Initialize QApplication once per test session
