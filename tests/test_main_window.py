@@ -9,7 +9,13 @@ from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import QApplication, QDockWidget
 
 import pynaviz as viz
-from pynaviz import IntervalSetWidget, TsdFrameWidget, TsdTensorWidget, TsdWidget, TsGroupWidget
+from pynaviz import (
+    IntervalSetWidget,
+    TsdFrameWidget,
+    TsdTensorWidget,
+    TsdWidget,
+    TsGroupWidget,
+)
 from pynaviz.qt.mainwindow import MainDock
 
 
