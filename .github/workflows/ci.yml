@@ -66,10 +66,14 @@ jobs:
           nox --no-venv -s linters
       - name: Test examples
         env:
+          PYGFX_WGPU_ADAPTER_NAME: llvmpipe  # Force software rendering like PyGFX CI
           PYGFX_EXPECT_LAVAPIPE: true
-          QT_QPA_PLATFORM: offscreen
+          DISPLAY: ':99.0'
         run: |
-          WGPU_FORCE_OFFSCREEN=1 pytest -v tests/
+          # Install xvfb (virtual framebuffer)
+          sudo apt-get install -y xvfb
+          # Run tests with virtual display
+          xvfb-run -a pytest -v tests/
 
   check:
     if: always()

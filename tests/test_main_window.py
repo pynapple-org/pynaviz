@@ -1,10 +1,6 @@
-import json
-import os
 import sys
 import time
-from pathlib import Path
 from typing import Literal
-from unittest.mock import patch
 
 import numpy as np
 import pynapple as nap
@@ -22,76 +18,6 @@ from pynaviz import (
 )
 from pynaviz.qt.mainwindow import MainDock
 
-
-@pytest.fixture(autouse=True)
-def mock_qt_geometry_for_headless():
-    """Mock Qt widget geometry methods using real values from local testing.
-
-    Values based on actual widget dimensions:
-    - Main widgets: 640x480
-    - Dock widgets: 127x480 or 640x480
-    - All widgets positioned at (0,0)
-    """
-    if os.environ.get('QT_QPA_PLATFORM') == 'offscreen' or os.environ.get('CI'):
-        with patch('PyQt6.QtWidgets.QWidget.width', return_value=640), \
-                patch('PyQt6.QtWidgets.QWidget.height', return_value=480), \
-                patch('PyQt6.QtWidgets.QWidget.x', return_value=0), \
-                patch('PyQt6.QtWidgets.QWidget.y', return_value=0), \
-                patch('PyQt6.QtWidgets.QMainWindow.saveState', return_value=b'mock_window_state'), \
-                patch('PyQt6.QtWidgets.QMainWindow.restoreState', return_value=True):
-            yield
-    else:
-        yield
-
-@pytest.fixture(autouse=True)
-def mock_wgpu_display_for_headless():
-    """Mock WGPU display detection functions that fail in headless CI environments"""
-    if os.environ.get('QT_QPA_PLATFORM') == 'offscreen' or os.environ.get('CI'):
-        with patch('wgpu.gui._gui_utils.get_alt_x11_display', return_value=1), \
-             patch('wgpu.gui._gui_utils.get_alt_wayland_display', return_value=1), \
-             patch('PyQt6.QtWidgets.QWidget.winId', return_value=12345):
-            yield
-    else:
-        yield
-
-
-def capture_widget_geometry(widget, widget_name="widget"):
-    """Capture real widget geometry values when running locally"""
-    if os.environ.get('QT_QPA_PLATFORM') != 'offscreen' and not os.environ.get('CI'):
-        geometry_data = {
-            'widget_name': widget_name,
-            'width': widget.width(),
-            'height': widget.height(),
-            'x': widget.x(),
-            'y': widget.y(),
-            'size': {'width': widget.size().width(), 'height': widget.size().height()},
-            'rect': {
-                'x': widget.rect().x(),
-                'y': widget.rect().y(),
-                'width': widget.rect().width(),
-                'height': widget.rect().height()
-            }
-        }
-
-        # Save to file for later use in CI
-        geom_dir = Path(__file__).parent / "geom_save"
-        geom_dir.mkdir(exist_ok=True)
-        geometry_file = geom_dir / f'{widget_name}_test_geometry_values.json'
-
-        if geometry_file.exists():
-            with open(geometry_file, 'r') as f:
-                all_data = json.load(f)
-        else:
-            all_data = {}
-
-        all_data[widget_name] = geometry_data
-
-        with open(geometry_file, 'w') as f:
-            json.dump(all_data, f, indent=2)
-
-        print(f"Captured geometry for {widget_name}: {geometry_data}")
-        return geometry_data
-    return None
 
 def pixmap_to_array(pixmap):
     """Convert QPixmap to numpy array"""
