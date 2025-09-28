@@ -44,6 +44,8 @@ jobs:
             libxcb-keysyms1 \
             libxcb-render-util0 \
             libxcb-xinerama0 \
+            libxcb-randr0 \
+            x11-utilsxinerama0 \
             libxkbcommon-x11-0 \
             libglib2.0-0 \
             mesa-vulkan-drivers
@@ -70,8 +72,6 @@ jobs:
           PYGFX_EXPECT_LAVAPIPE: true
           DISPLAY: ':99.0'
         run: |
-          # Install required packages (following the working example)
-          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
           # Start Xvfb manually (like the working example)
           /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
           # Run tests
