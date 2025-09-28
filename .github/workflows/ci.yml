@@ -66,14 +66,16 @@ jobs:
           nox --no-venv -s linters
       - name: Test examples
         env:
-          PYGFX_WGPU_ADAPTER_NAME: llvmpipe  # Force software rendering like PyGFX CI
+          PYGFX_WGPU_ADAPTER_NAME: llvmpipe
           PYGFX_EXPECT_LAVAPIPE: true
           DISPLAY: ':99.0'
         run: |
-          # Install xvfb (virtual framebuffer)
-          sudo apt-get install -y xvfb
-          # Run tests with virtual display
-          xvfb-run -a pytest -v tests/
+          # Install required packages (following the working example)
+          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
+          # Start Xvfb manually (like the working example)
+          /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
+          # Run tests
+          pytest -v tests/
 
   check:
     if: always()
