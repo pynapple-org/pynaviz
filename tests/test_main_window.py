@@ -311,6 +311,14 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
     # make sure there are no extra widgets
     assert len(orig_screenshots) == len(new_screenshots)
 
+    # Force both windows to identical states before grabbing
+    main_window.show()
+    main_window.raise_()
+    main_window.activateWindow()
+    app.processEvents()
+    time.sleep(0.2)
+    main_orig = pixmap_to_array(main_window.grab())
+
     main_window_new.show()
     main_window_new.raise_()
     main_window_new.activateWindow()
@@ -319,4 +327,25 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
     app.processEvents()
     main_new = pixmap_to_array(main_window_new.grab())
 
-    np.testing.assert_allclose(main_orig, main_new, atol=1)
+    try:
+        np.testing.assert_allclose(main_orig, main_new, atol=1)
+    except AssertionError:
+        # Save images for inspection
+        from PIL import Image
+
+        # Convert to PIL Images and save
+        orig_img = Image.fromarray(main_orig.astype('uint8'))
+        new_img = Image.fromarray(main_new.astype('uint8'))
+
+        # Create difference image
+        diff = np.abs(main_orig.astype(int) - main_new.astype(int))
+        diff_img = Image.fromarray(diff.astype('uint8'))
+
+        # Save with test-specific names
+        test_name = f"{apply_to}_{color_by_kwargs}_{group_by_kwargs}_{sort_by_kwargs}".replace(' ', '_')
+        orig_img.save(f"/tmp/original_{test_name}.png")
+        new_img.save(f"/tmp/new_{test_name}.png")
+        diff_img.save(f"/tmp/diff_{test_name}.png")
+
+        # Re-raise the assertion error
+        raise
