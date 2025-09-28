@@ -288,12 +288,6 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
     time.sleep(0.2)
     main_orig = pixmap_to_array(main_window.grab())
 
-    # Close first window completely
-    main_window.close()
-    dock.close()
-    app.processEvents()
-    time.sleep(0.1)
-
     # load a main window with the same configs.
     main_window_new = viz.qt.mainwindow.MainWindow()
     dock_new = viz.qt.mainwindow.MainDock(variables, main_window_new, layout_path=layout_path)
@@ -312,13 +306,6 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
     assert len(orig_screenshots) == len(new_screenshots)
 
     # Force both windows to identical states before grabbing
-    main_window.show()
-    main_window.raise_()
-    main_window.activateWindow()
-    app.processEvents()
-    time.sleep(0.2)
-    main_orig = pixmap_to_array(main_window.grab())
-
     main_window_new.show()
     main_window_new.raise_()
     main_window_new.activateWindow()
