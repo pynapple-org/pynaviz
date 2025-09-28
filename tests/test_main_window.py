@@ -297,7 +297,7 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
     assert len(orig_screenshots) == len(new_screenshots)
     # test layout
     app.processEvents()
-    time.sleep(0.1)
+    time.sleep(1.)
     main_orig = pixmap_to_array(main_window.grab())
     main_new = pixmap_to_array(main_window_new.grab())
     np.testing.assert_allclose(main_orig, main_new, atol=1)
