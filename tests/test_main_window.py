@@ -105,7 +105,7 @@ def nap_vars():
     }
     return variables
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def app__main_window__dock(nap_vars):
     """
     Set up an app, a MainWindow and a MainDock.
