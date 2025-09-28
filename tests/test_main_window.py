@@ -265,6 +265,25 @@ def verify_layout_structure(original_window, restored_window):
         assert orig_area == new_area, f"Widget {orig_dock.objectName()} in wrong area"
 
 
+def verify_layout_geometry(original_window, restored_window):
+    """Verify relative positioning and sizing"""
+
+    for orig_dock in original_window.findChildren(QDockWidget):
+        new_dock = restored_window.findChild(QDockWidget, orig_dock.objectName())
+
+        # Compare relative sizes (not absolute pixels)
+        orig_size = orig_dock.size()
+        new_size = new_dock.size()
+
+        # Allow some tolerance for window manager differences
+        assert abs(orig_size.width() - new_size.width()) < 10
+        assert abs(orig_size.height() - new_size.height()) < 10
+
+        # Compare dock widget properties
+        assert orig_dock.isFloating() == new_dock.isFloating()
+        assert orig_dock.isVisible() == new_dock.isVisible()
+
+
 @pytest.mark.parametrize(
     "group_by_kwargs", [None, dict(metadata_name="area")]
 )
@@ -323,3 +342,4 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
 
     # verify the qt layout struct
     verify_layout_structure(main_window, main_window_new)
+    verify_layout_geometry(main_window, main_window_new)
