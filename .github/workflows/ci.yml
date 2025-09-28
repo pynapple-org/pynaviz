@@ -44,11 +44,11 @@ jobs:
             libxcb-keysyms1 \
             libxcb-render-util0 \
             libxcb-xinerama0 \
-            libxcb-randr0 \
-            x11-utilsxinerama0 \
             libxkbcommon-x11-0 \
             libglib2.0-0 \
-            mesa-vulkan-drivers
+            mesa-vulkan-drivers \
+            libxcb-randr0 \
+            x11-utils
 
       - name: Install dependencies
         run: |
