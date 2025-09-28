@@ -296,8 +296,47 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
     # make sure there are no extra widgets
     assert len(orig_screenshots) == len(new_screenshots)
     # test layout
+    print(f"First window size: {main_window.size()}")
+    print(f"Second window size: {main_window_new.size()}")
+    print(f"First window visible: {main_window.isVisible()}")
+    print(f"Second window visible: {main_window_new.isVisible()}")
+
+    # Check if windows have same content
+    print(f"First window widgets: {len(main_window.findChildren(QDockWidget))}")
+    print(f"Second window widgets: {len(main_window_new.findChildren(QDockWidget))}")
+
+    # Force both windows to identical states before grabbing
+    main_window.show()
+    main_window.raise_()
+    main_window.activateWindow()
     app.processEvents()
-    time.sleep(1.)
+    time.sleep(0.2)
     main_orig = pixmap_to_array(main_window.grab())
+
+    print(f"First window size: {main_window.size()}")
+    print(f"Second window size: {main_window_new.size()}")
+    print(f"First window visible: {main_window.isVisible()}")
+    print(f"Second window visible: {main_window_new.isVisible()}")
+
+    # Check if windows have same content
+    print(f"First window widgets: {len(main_window.findChildren(QDockWidget))}")
+    print(f"Second window widgets: {len(main_window_new.findChildren(QDockWidget))}")
+
+    main_window_new.show()
+    main_window_new.raise_()
+    main_window_new.activateWindow()
+    app.processEvents()
+    time.sleep(0.2)
+    app.processEvents()
     main_new = pixmap_to_array(main_window_new.grab())
+
+    print(f"First window size: {main_window.size()}")
+    print(f"Second window size: {main_window_new.size()}")
+    print(f"First window visible: {main_window.isVisible()}")
+    print(f"Second window visible: {main_window_new.isVisible()}")
+
+    # Check if windows have same content
+    print(f"First window widgets: {len(main_window.findChildren(QDockWidget))}")
+    print(f"Second window widgets: {len(main_window_new.findChildren(QDockWidget))}")
+
     np.testing.assert_allclose(main_orig, main_new, atol=1)
