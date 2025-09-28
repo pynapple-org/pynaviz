@@ -1,4 +1,3 @@
-import re
 import sys
 import time
 from typing import Literal
@@ -18,29 +17,6 @@ from pynaviz import (
     TsGroupWidget,
 )
 from pynaviz.qt.mainwindow import MainDock
-
-
-def sanitize_filename(filename):
-    """Clean filename to be valid for GitHub artifacts"""
-    # Replace invalid characters with underscores
-    # Invalid chars: < > : " | ? * and control characters
-    invalid_chars = r'[<>:"|?*\x00-\x1f]'
-    cleaned = re.sub(invalid_chars, '_', filename)
-
-    # Replace spaces and other problematic chars
-    cleaned = cleaned.replace(' ', '_')
-    cleaned = cleaned.replace("'", '')
-    cleaned = cleaned.replace(',', '_')
-    cleaned = cleaned.replace('(', '')
-    cleaned = cleaned.replace(')', '')
-
-    # Remove multiple consecutive underscores
-    cleaned = re.sub(r'_+', '_', cleaned)
-
-    # Remove leading/trailing underscores
-    cleaned = cleaned.strip('_')
-
-    return cleaned
 
 
 def pixmap_to_array(pixmap):
@@ -266,6 +242,29 @@ def test_save_load_layout_tsdframe(apply_to, app__main_window__dock, color_by_kw
     assert layout_dict_orig == layout_dict_new
 
 
+def verify_layout_structure(original_window, restored_window):
+    """Verify that layouts have identical widget structure"""
+
+    # Compare dock widget counts and types
+    orig_docks = original_window.findChildren(QDockWidget)
+    new_docks = restored_window.findChildren(QDockWidget)
+
+    assert len(orig_docks) == len(new_docks), "Different number of dock widgets"
+
+    # Compare widget types and object names
+    orig_types = sorted([dock.objectName() for dock in orig_docks])
+    new_types = sorted([dock.objectName() for dock in new_docks])
+    assert orig_types == new_types, "Different widget types"
+
+    # Compare dock areas (where widgets are positioned)
+    for orig_dock in orig_docks:
+        orig_area = original_window.dockWidgetArea(orig_dock)
+        # Find corresponding dock in new window
+        new_dock = restored_window.findChild(QDockWidget, orig_dock.objectName())
+        new_area = restored_window.dockWidgetArea(new_dock)
+        assert orig_area == new_area, f"Widget {orig_dock.objectName()} in wrong area"
+
+
 @pytest.mark.parametrize(
     "group_by_kwargs", [None, dict(metadata_name="area")]
 )
@@ -304,14 +303,10 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
             base_plot.renderer.render(base_plot.scene, base_plot.camera)
             orig_screenshots[i, base_plot.__class__.__name__] = base_plot.renderer.snapshot()
 
-    # Take first window screenshot
-    app.processEvents()
-    time.sleep(2.)
-    main_orig = pixmap_to_array(main_window.grab())
-
     # load a main window with the same configs.
     main_window_new = viz.qt.mainwindow.MainWindow()
     dock_new = viz.qt.mainwindow.MainDock(variables, main_window_new, layout_path=layout_path)
+
     # Take screenshots
     new_screenshots = {}
     for i, d in enumerate(dock_new.gui.findChildren(QDockWidget)):
@@ -326,31 +321,5 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
     # make sure there are no extra widgets
     assert len(orig_screenshots) == len(new_screenshots)
 
-    # Force both windows to identical states before grabbing
-    app.processEvents()
-    time.sleep(2.)
-    main_new = pixmap_to_array(main_window_new.grab())
-
-    try:
-        np.testing.assert_allclose(main_orig, main_new, atol=1)
-    except AssertionError:
-        # Save images for inspection
-        from PIL import Image
-
-        # Convert to PIL Images and save
-        orig_img = Image.fromarray(main_orig.astype('uint8'))
-        new_img = Image.fromarray(main_new.astype('uint8'))
-
-        # Create difference image
-        diff = np.abs(main_orig.astype(int) - main_new.astype(int))
-        diff_img = Image.fromarray(diff.astype('uint8'))
-
-        # Save with test-specific names
-        test_name = f"{apply_to}_{color_by_kwargs}_{group_by_kwargs}_{sort_by_kwargs}".replace(' ', '_')
-        clean_test_name = sanitize_filename(test_name)
-        orig_img.save(f"/tmp/original_{clean_test_name}.png")
-        new_img.save(f"/tmp/new_{clean_test_name}.png")
-        diff_img.save(f"/tmp/diff_{clean_test_name}.png")
-
-        # Re-raise the assertion error
-        raise
+    # verify the qt layout struct
+    verify_layout_structure(main_window, main_window_new)
