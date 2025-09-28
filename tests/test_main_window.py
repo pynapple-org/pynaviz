@@ -1,3 +1,4 @@
+import re
 import sys
 import time
 from typing import Literal
@@ -17,6 +18,29 @@ from pynaviz import (
     TsGroupWidget,
 )
 from pynaviz.qt.mainwindow import MainDock
+
+
+def sanitize_filename(filename):
+    """Clean filename to be valid for GitHub artifacts"""
+    # Replace invalid characters with underscores
+    # Invalid chars: < > : " | ? * and control characters
+    invalid_chars = r'[<>:"|?*\x00-\x1f]'
+    cleaned = re.sub(invalid_chars, '_', filename)
+
+    # Replace spaces and other problematic chars
+    cleaned = cleaned.replace(' ', '_')
+    cleaned = cleaned.replace("'", '')
+    cleaned = cleaned.replace(',', '_')
+    cleaned = cleaned.replace('(', '')
+    cleaned = cleaned.replace(')', '')
+
+    # Remove multiple consecutive underscores
+    cleaned = re.sub(r'_+', '_', cleaned)
+
+    # Remove leading/trailing underscores
+    cleaned = cleaned.strip('_')
+
+    return cleaned
 
 
 def pixmap_to_array(pixmap):
@@ -319,9 +343,10 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
 
         # Save with test-specific names
         test_name = f"{apply_to}_{color_by_kwargs}_{group_by_kwargs}_{sort_by_kwargs}".replace(' ', '_')
-        orig_img.save(f"/tmp/original_{test_name}.png")
-        new_img.save(f"/tmp/new_{test_name}.png")
-        diff_img.save(f"/tmp/diff_{test_name}.png")
+        clean_test_name = sanitize_filename(test_name)
+        orig_img.save(f"/tmp/original_{clean_test_name}.png")
+        new_img.save(f"/tmp/new_{clean_test_name}.png")
+        diff_img.save(f"/tmp/diff_{clean_test_name}.png")
 
         # Re-raise the assertion error
         raise
