@@ -43,6 +43,18 @@ def mock_qt_geometry_for_headless():
     else:
         yield
 
+@pytest.fixture(autouse=True)
+def mock_wgpu_display_for_headless():
+    """Mock WGPU display detection functions that fail in headless CI environments"""
+    if os.environ.get('QT_QPA_PLATFORM') == 'offscreen' or os.environ.get('CI'):
+        with patch('wgpu.gui._gui_utils.get_alt_x11_display', return_value=1), \
+             patch('wgpu.gui._gui_utils.get_alt_wayland_display', return_value=1), \
+             patch('PyQt6.QtWidgets.QWidget.winId', return_value=12345):
+            yield
+    else:
+        yield
+
+
 def capture_widget_geometry(widget, widget_name="widget"):
     """Capture real widget geometry values when running locally"""
     if os.environ.get('QT_QPA_PLATFORM') != 'offscreen' and not os.environ.get('CI'):
