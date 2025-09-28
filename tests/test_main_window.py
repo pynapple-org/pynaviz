@@ -241,10 +241,6 @@ def test_save_load_layout_tsdframe(apply_to, app__main_window__dock, color_by_kw
     # check dict
     assert layout_dict_orig == layout_dict_new
 
-    # # For each widget you create, capture its geometry (this is use)
-    # for i, dock_widget in enumerate(main_window.findChildren(QDockWidget)):
-    #     capture_widget_geometry(dock_widget, f"dock_widget_{i}")
-
 
 @pytest.mark.parametrize(
     "group_by_kwargs", [None, dict(metadata_name="area")]
@@ -300,6 +296,8 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
     # make sure there are no extra widgets
     assert len(orig_screenshots) == len(new_screenshots)
     # test layout
+    app.processEvents()
+    time.sleep(0.1)
     main_orig = pixmap_to_array(main_window.grab())
     main_new = pixmap_to_array(main_window_new.grab())
     np.testing.assert_allclose(main_orig, main_new, atol=1)
