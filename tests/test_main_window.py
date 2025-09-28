@@ -5,7 +5,6 @@ from typing import Literal
 import numpy as np
 import pynapple as nap
 import pytest
-from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import QApplication, QDockWidget
 
 import pynaviz as viz
@@ -17,26 +16,6 @@ from pynaviz import (
     TsGroupWidget,
 )
 from pynaviz.qt.mainwindow import MainDock
-
-
-def pixmap_to_array(pixmap):
-    """Convert QPixmap to numpy array"""
-    # Convert to QImage first
-    qimage = pixmap.toImage()
-
-    # Convert to RGB format if needed
-    qimage = qimage.convertToFormat(QImage.Format.Format_RGB888)
-
-    # Get image dimensions
-    width = qimage.width()
-    height = qimage.height()
-
-    # Get raw data and convert to numpy array
-    ptr = qimage.bits()
-    ptr.setsize(height * width * 3)
-    arr = np.frombuffer(ptr, np.uint8).reshape((height, width, 3))
-
-    return arr
 
 
 @pytest.fixture()
