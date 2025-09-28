@@ -18,6 +18,69 @@ from pynaviz import (
 )
 from pynaviz.qt.mainwindow import MainDock
 
+import json
+import os
+from pathlib import Path
+from unittest.mock import patch
+
+
+@pytest.fixture(autouse=True)
+def mock_qt_geometry_for_headless():
+    """Mock Qt widget geometry methods using real values from local testing.
+
+    Values based on actual widget dimensions:
+    - Main widgets: 640x480
+    - Dock widgets: 127x480 or 640x480
+    - All widgets positioned at (0,0)
+    """
+    if os.environ.get('QT_QPA_PLATFORM') == 'offscreen' or os.environ.get('CI'):
+        with patch('PyQt6.QtWidgets.QWidget.width', return_value=640), \
+                patch('PyQt6.QtWidgets.QWidget.height', return_value=480), \
+                patch('PyQt6.QtWidgets.QWidget.x', return_value=0), \
+                patch('PyQt6.QtWidgets.QWidget.y', return_value=0), \
+                patch('PyQt6.QtWidgets.QMainWindow.saveState', return_value=b'mock_window_state'), \
+                patch('PyQt6.QtWidgets.QMainWindow.restoreState', return_value=True):
+            yield
+    else:
+        yield
+
+def capture_widget_geometry(widget, widget_name="widget"):
+    """Capture real widget geometry values when running locally"""
+    if os.environ.get('QT_QPA_PLATFORM') != 'offscreen' and not os.environ.get('CI'):
+        geometry_data = {
+            'widget_name': widget_name,
+            'width': widget.width(),
+            'height': widget.height(),
+            'x': widget.x(),
+            'y': widget.y(),
+            'size': {'width': widget.size().width(), 'height': widget.size().height()},
+            'rect': {
+                'x': widget.rect().x(),
+                'y': widget.rect().y(),
+                'width': widget.rect().width(),
+                'height': widget.rect().height()
+            }
+        }
+
+        # Save to file for later use in CI
+        geom_dir = Path(__file__).parent / "geom_save"
+        geom_dir.mkdir(exist_ok=True)
+        geometry_file = geom_dir / f'{widget_name}_test_geometry_values.json'
+
+        if geometry_file.exists():
+            with open(geometry_file, 'r') as f:
+                all_data = json.load(f)
+        else:
+            all_data = {}
+
+        all_data[widget_name] = geometry_data
+
+        with open(geometry_file, 'w') as f:
+            json.dump(all_data, f, indent=2)
+
+        print(f"Captured geometry for {widget_name}: {geometry_data}")
+        return geometry_data
+    return None
 
 def pixmap_to_array(pixmap):
     """Convert QPixmap to numpy array"""
@@ -240,6 +303,10 @@ def test_save_load_layout_tsdframe(apply_to, app__main_window__dock, color_by_kw
     layout_dict_orig.pop("geometry_b64")
     # check dict
     assert layout_dict_orig == layout_dict_new
+
+    # # For each widget you create, capture its geometry (this is use)
+    # for i, dock_widget in enumerate(main_window.findChildren(QDockWidget)):
+    #     capture_widget_geometry(dock_widget, f"dock_widget_{i}")
 
 
 @pytest.mark.parametrize(
