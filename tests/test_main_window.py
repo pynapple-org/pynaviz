@@ -305,10 +305,8 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
             orig_screenshots[i, base_plot.__class__.__name__] = base_plot.renderer.snapshot()
 
     # Take first window screenshot
-    main_window.repaint()  # Force immediate repaint
-    main_window.update()  # Schedule paint events
-    app.processEvents()  # Process all paint events
-    time.sleep(0.3)
+    app.processEvents()
+    time.sleep(2.)
     main_orig = pixmap_to_array(main_window.grab())
 
     # load a main window with the same configs.
@@ -329,10 +327,8 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
     assert len(orig_screenshots) == len(new_screenshots)
 
     # Force both windows to identical states before grabbing
-    main_window_new.repaint()  # Force immediate repaint
-    main_window_new.update()  # Schedule paint events
-    app.processEvents()  # Process all paint events
-    time.sleep(0.3)
+    app.processEvents()
+    time.sleep(2.)
     main_new = pixmap_to_array(main_window_new.grab())
 
     try:
