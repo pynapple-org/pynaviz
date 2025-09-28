@@ -1,6 +1,10 @@
+import json
+import os
 import sys
 import time
+from pathlib import Path
 from typing import Literal
+from unittest.mock import patch
 
 import numpy as np
 import pynapple as nap
@@ -17,11 +21,6 @@ from pynaviz import (
     TsGroupWidget,
 )
 from pynaviz.qt.mainwindow import MainDock
-
-import json
-import os
-from pathlib import Path
-from unittest.mock import patch
 
 
 @pytest.fixture(autouse=True)
