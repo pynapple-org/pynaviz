@@ -765,7 +765,7 @@ class MainWindow(QMainWindow):
                 new_vars.update({name.stem + name.suffix: nap_obj_dict})
                 self._open_file_paths.add(name.as_posix())
             elif file_type == "Video":
-                new_vars.update({name: PlotVideo(name)})
+                new_vars.update({name.stem + name.suffix: PlotVideo(name)})
                 self._open_file_paths.add(name.as_posix())
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
