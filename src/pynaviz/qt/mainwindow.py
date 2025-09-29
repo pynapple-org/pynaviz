@@ -592,7 +592,6 @@ class MainDock(QDockWidget):
                             "index": int(name.split("_")[-1]),
                             "name": name
                             }
-                    print(info)
                     docks.append(info)
                     order.append(int(name.split("_")[-1]))
             docks = [x for _, x in sorted(zip(order, docks))]
@@ -755,19 +754,17 @@ class MainWindow(QMainWindow):
                 print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
             elif file_type in ["Pynapple"]:
                 new_vars.update({name.stem + name.suffix: nap.load_file(name)})
-                self._open_file_paths.add(name.as_posix())
             elif file_type in ["NWB"]:
                 data: nap.NWBFile = nap.load_file(name)
                 nap_obj_dict = {}
                 for key in data.keys():
                     nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
                 new_vars.update({name.stem + name.suffix: nap_obj_dict})
-                self._open_file_paths.add(name.as_posix())
             elif file_type == "Video":
                 new_vars.update({name.stem + name.suffix: VideoWidget(name)})
-                self._open_file_paths.add(name.as_posix())
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
+            self._open_file_paths.add(name.as_posix())
         variables.update(new_vars)
         dock_widget._add_items_to_tree_widget(new_vars)
 
