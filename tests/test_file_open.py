@@ -150,7 +150,7 @@ def test_load_files(shared_test_files, qapp):
             np.testing.assert_array_equal(var.plot.data.get(1), expected[name].get(1))
         # NWB are dicts.
         elif name == "dict":
-            for key, val in var.items():
+            for val in var.values():
                 assert isinstance(val, viz.qt.mainwindow.NWBReference)
                 assert val.nwb_file.path == expected[name].path
                 assert isinstance(val.nwb_file, expected[name].__class__)
