@@ -756,7 +756,7 @@ class MainWindow(QMainWindow):
             if file_type is None:
                 print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
             elif file_type in ["Pynapple"]:
-                new_vars.update({name: nap.load_file(name)})
+                new_vars.update({name.stem + name.suffix: nap.load_file(name)})
                 self._open_file_paths.add(name.as_posix())
             elif file_type in ["NWB"]:
                 data: nap.NWBFile = nap.load_file(name)
