@@ -30,7 +30,6 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ..audiovideo import PlotVideo
 from ..audiovideo.video_plot import PlotBaseVideoTensor
 from ..controller_group import ControllerGroup
 from .widget_plot import (
@@ -765,7 +764,7 @@ class MainWindow(QMainWindow):
                 new_vars.update({name.stem + name.suffix: nap_obj_dict})
                 self._open_file_paths.add(name.as_posix())
             elif file_type == "Video":
-                new_vars.update({name.stem + name.suffix: PlotVideo(name)})
+                new_vars.update({name.stem + name.suffix: VideoWidget(name)})
                 self._open_file_paths.add(name.as_posix())
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
