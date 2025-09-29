@@ -321,8 +321,6 @@ class MainDock(QDockWidget):
             parent = self.treeWidget
 
         # Get existing children
-        import pdb
-        pdb.set_trace()
         children = get_children_dict(parent)
 
         for key, value in item_dict.items():
