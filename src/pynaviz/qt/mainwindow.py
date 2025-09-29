@@ -4,6 +4,7 @@ import os
 import pathlib
 import re
 import sys
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Union
 
@@ -56,6 +57,17 @@ DOCK_LIST_STYLESHEET = """
 
     }
 """
+
+
+@dataclass
+class NWBReference:
+    """Store reference to NWB file object and variable key.
+
+    Keeps the NWB file (and its IO handle) alive to prevent HDF5 datasets
+    from being closed during garbage collection.
+    """
+    nwb_file: nap.io.NWBFile
+    key: str
 
 
 def get_children_dict(parent: QTreeWidget | QTreeWidgetItem):
@@ -474,6 +486,9 @@ class MainDock(QDockWidget):
             return TsWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.IntervalSet):
             return IntervalSetWidget(var, index=index, set_parent=True)
+        elif isinstance(var, NWBReference):
+            var = var.nwb_file[var.key]
+            return self._create_widget_for_variable(var)
         elif isinstance(var, VideoWidget):
             return var  # already a widget
         else:
@@ -744,10 +759,10 @@ class MainWindow(QMainWindow):
                 new_vars.update({name: nap.load_file(name)})
                 self._open_file_paths.add(name.as_posix())
             elif file_type in ["NWB"]:
-                data = nap.load_file(name)
+                data: nap.NWBFile = nap.load_file(name)
                 nap_obj_dict = {}
                 for key in data.keys():
-                    nap_obj_dict[key] = data[key]
+                    nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
                 new_vars.update({name.stem + name.suffix: nap_obj_dict})
                 self._open_file_paths.add(name.as_posix())
             elif file_type == "Video":
@@ -757,10 +772,6 @@ class MainWindow(QMainWindow):
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
         variables.update(new_vars)
         dock_widget._add_items_to_tree_widget(new_vars)
-
-
-
-
 
 
 def get_pynapple_variables(
