@@ -321,6 +321,8 @@ class MainDock(QDockWidget):
             parent = self.treeWidget
 
         # Get existing children
+        import pdb
+        pdb.set_trace()
         children = get_children_dict(parent)
 
         for key, value in item_dict.items():
@@ -735,8 +737,8 @@ class MainWindow(QMainWindow):
     def _load_multiple_files(self, filenames: list[str]):
         # find main dock
         dock = self.findChildren(MainDock)
-        if len(dock) != 1:
-            raise RuntimeError("MainWindow must have at most one dock.")
+        if len(dock) < 1:
+            raise RuntimeError("MainWindow should have at least one dock.")
         dock_widget = dock[0]
 
         # create the variable dict
@@ -747,7 +749,6 @@ class MainWindow(QMainWindow):
                     file_type = tp
                     break
             return file_type
-
         variables = dock_widget.variables
         new_vars = {}
         for name in filenames:
