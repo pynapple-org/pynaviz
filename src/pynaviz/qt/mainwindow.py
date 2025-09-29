@@ -176,7 +176,7 @@ class MainDock(QDockWidget):
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
+        layout.setSpacing(0)
 
         # Toolbar
         toolbar = QToolBar("Main Toolbar")
