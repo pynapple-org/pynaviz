@@ -15,7 +15,7 @@ def linters_fix(session):
     session.run("ruff", "check", "src", "--ignore", "D", "--fix")
     session.run("ruff", "check", "tests", "--ignore", "D", "--fix")
 
-@nox.session(name="tests", reuse_venv=True)
+@nox.session(name="tests", python=["3.11"], reuse_venv=True)
 def tests(session):
     """Run the test suite."""
     # session.log("install")
