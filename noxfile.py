@@ -71,6 +71,7 @@ def tests(session):
                 "PYGFX_WGPU_ADAPTER_NAME": "llvmpipe",
                 "PYGFX_EXPECT_LAVAPIPE": "true",
                 "DISPLAY": ":99.0",
+                "QT_QPA_PLATFORM": "offscreen",
             },
             external=True,  # xvfb-run is not a Python package
         )
