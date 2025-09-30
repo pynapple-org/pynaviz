@@ -13,7 +13,8 @@ tsdframe = nap.TsdFrame(
     t=np.arange(1000),
     d=np.stack((np.arange(1000)%10,
                 np.arange(1000)%10)
-                ).T
+                ).T,
+    columns = ["x", "y"]
 )
 
 tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))

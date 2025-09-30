@@ -36,8 +36,8 @@ from PyQt6.QtWidgets import (
 )
 
 from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
-from pynaviz.qt.interval_sets_table import IntervalSetsDialog, IntervalSetsModel
-from pynaviz.qt.tsdframe_selection import TsdFrameDialog
+from pynaviz.qt.interval_sets_selection import IntervalSetsDialog, IntervalSetsModel
+from pynaviz.qt.tsdframe_selection import TsdFramesModel, TsdFramesDialog
 from pynaviz.qt.widget_list_selection import (
     ChannelList,
     ChannelListModel,
@@ -255,12 +255,16 @@ class MenuWidget(QWidget):
         The plot instance this menu is attached to.
     interval_sets : dict, optional
         Dictionary of interval sets that can be added to the plot. Specific to Tsd, TsdFrame and TsGroup plots.
-    tsdframe : nap.TsdFrame, optional
+    tsdframes : dict, optional
         TsdFrame object for overlaying on TsdTensor plot or VideoWidget plot.
     """
 
-    def __init__(self, metadata: Any, plot: Any, interval_sets: dict | None = None, tsdframe: nap.TsdFrame | None = None):
+    def __init__(self, metadata: Any, plot: Any, interval_sets: dict | None = None, tsdframes: dict | None = None):
         super().__init__()
+        self._interval_sets = None
+        self._interval_sets_model = None
+        self._tsdframes = None
+        self._tsdframes_model = None
         self.metadata = metadata
         self.plot = plot
 
@@ -291,18 +295,14 @@ class MenuWidget(QWidget):
                 "group_by": "Group by",
                 "sort_by": "Sort by",
             }
-        if interval_sets is not None and isinstance(interval_sets, dict) and len(interval_sets):
-            if not all(isinstance(v, nap.IntervalSet) for v in interval_sets.values()):
-                raise ValueError("All values in interval_sets must be nap.IntervalSet instances.")
-            self.action_funcs["select_interval_set"] = "Select IntervalSet"
-            self._interval_sets_model = IntervalSetsModel(interval_sets)
-            self._interval_sets_model.checkStateChanged.connect(self._set_interval_set)
-            self._interval_sets = interval_sets
 
-        if tsdframe is not None and isinstance(tsdframe, nap.TsdFrame):
-            self.action_funcs["overlay_time_series"] = "Overlay time series"
-            self._tsdframe = tsdframe
-            self._overlay_points = {}
+        # IntervalSet selection available
+        if interval_sets is not None and isinstance(interval_sets, dict) and len(interval_sets):
+            self._set_interval_sets(interval_sets)
+
+        # TsdFrame overlay available
+        if tsdframes is not None and isinstance(tsdframes, dict) and len(tsdframes):
+            self._set_tsdframes(tsdframes)
 
         # Add the action button only if there are actions to show
         if len(self.action_funcs):
@@ -338,6 +338,24 @@ class MenuWidget(QWidget):
             QSizePolicy.Policy.Fixed
         )
         self._action_menu()
+
+    def _set_interval_sets(self, interval_sets: dict) -> None:
+        """Set or update the IntervalSet overlays available for selection."""
+        if not all(isinstance(v, nap.IntervalSet) for v in interval_sets.values()):
+            raise ValueError("All values in interval_sets must be nap.IntervalSet instances.")
+        self.action_funcs["select_interval_set"] = "Select IntervalSet"
+        self._interval_sets_model = IntervalSetsModel(interval_sets)
+        self._interval_sets_model.checkStateChanged.connect(self._set_interval_set)
+        self._interval_sets = interval_sets
+
+    def _set_tsdframes(self, tsdframes: dict) -> None:
+        """Set or update the TsdFrame overlays available for selection."""
+        if not all(isinstance(v, nap.TsdFrame) for v in tsdframes.values()):
+            raise ValueError("All values in tsdframes must be nap.TsdFrame instances.")
+        self.action_funcs["overlay_time_series"] = "Overlay points"
+        self._tsdframes_model = TsdFramesModel(tsdframes)
+        self._tsdframes_model.checkStateChanged.connect(self._overlay_time_series)
+        self._tsdframes = tsdframes
 
     def _change_visibility(self) -> None:
         """Request a redraw of the plot when channel states change."""
@@ -388,9 +406,9 @@ class MenuWidget(QWidget):
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.show()
 
-    def show_select_tsdframe_menu(self) -> None:
+    def show_overlay_menu(self, popup_name) -> None:
         """Opens the TsdFrame overlay selection dialog."""
-        dialog = TsdFrameDialog(self._tsdframe, parent=self, overlay_func=self._overlay_time_series)
+        dialog = TsdFramesDialog(self._tsdframes_model, parent=self)
         dialog.show()
 
     def show_select_iset_menu(self) -> None:
@@ -405,8 +423,8 @@ class MenuWidget(QWidget):
         if popup_name == "select_interval_set":
             self.show_select_iset_menu()
             return
-        if popup_name == "overlay_time_series":
-            self.show_select_tsdframe_menu()
+        if popup_name in ["overlay_time_series", "overlay_skeleton"]:
+            self.show_overlay_menu(popup_name)
             return
         kwargs = get_popup_kwargs(popup_name, self, action)
         if kwargs is not None:
@@ -443,18 +461,24 @@ class MenuWidget(QWidget):
             self.plot.remove_interval_set(name)
             self.plot.canvas.request_draw(self.plot.animate)
 
-    def _overlay_time_series(self, x_col, y_col, color, size, checked) -> None:
+    def _overlay_time_series(self, name, color, markersize, thickness, checked) -> None:
         """Add or remove TsdFrame overlay from the plot based on selection."""
-        # Create a name by combining x and y columns
-        name = f"{x_col}_{y_col}"
-
-        if name in self._overlay_points:
-            # If the same selection is made again, ignore
-            if self._overlay_points[name] == (x_col, y_col, color, size, checked):
-                return
+        if checked:
+            # If already present, update the parameters
+            if name in self.plot.points:
+                self.plot.points[name].set_color(color)
+                self.plot.points[name].set_markersize(markersize)
+                self.plot.points[name].set_thickness(thickness)
+                self.plot.canvas.request_draw(self.plot.animate)
+            else:
+                self.plot.superpose_points(self._tsdframes[name], color, markersize, thickness, label=name)
         else:
-            self.plot.superpose_time_series(
-                self._tsdframe.loc[[int(x_col), int(y_col)]],
-                color=color,
-                markersize=size)
+            if name in self.plot.points:
+                self.plot.scene.remove(self.plot.points[name].points)
+                if hasattr(self.plot.points[name], "lines"):
+                    self.plot.scene.remove(self.plot.points[name].lines)
+                del self.plot.points[name]
+            self.plot.canvas.request_draw(self.plot.animate)
+
+
 
