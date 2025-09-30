@@ -47,7 +47,6 @@ jobs:
             libxkbcommon-x11-0 \
             libglib2.0-0 \
             mesa-vulkan-drivers
-          
 
       - name: Install nox
         run: python -m pip install --upgrade pip nox
@@ -75,5 +74,3 @@ jobs:
         uses: re-actors/alls-green@v1.2.2
         with:
           jobs: ${{ toJSON(needs) }}
-
-
