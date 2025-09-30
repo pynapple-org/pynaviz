@@ -11,6 +11,7 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
+from .. import VideoHandler
 from ..audiovideo import PlotTsdTensor, PlotVideo
 from ..base_plot import (
     PlotIntervalSet,
@@ -183,7 +184,7 @@ class TsdTensorWidget(BaseWidget):
                  index: int =None,
                  size: tuple =(640, 480),
                  set_parent: bool=True,
-                 tsdframe: nap.TsdFrame =None):
+                 tsdframes: dict = None):
         """
         Widget for visualizing TsdTensor data with optional overlay of TsdFrame data.
 
@@ -197,7 +198,7 @@ class TsdTensorWidget(BaseWidget):
             Initial size of the widget (width, height).
         set_parent : bool, optional
             Whether to set the widget as the parent of the plot (default is True).
-        tsdframe : TsdFrame, optional
+        tsdframes : dict of TsdFrame, optional
             TsdFrame object to overlay on the TsdTensor plot.
 
         """
@@ -208,7 +209,7 @@ class TsdTensorWidget(BaseWidget):
         self.plot = PlotTsdTensor(data, index=index, parent=parent)
 
         # Top level menu container
-        self.button_container = MenuWidget(metadata=None, plot=self.plot, tsdframe=tsdframe)
+        self.button_container = MenuWidget(metadata=None, plot=self.plot, tsdframes=tsdframes)
 
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
@@ -217,15 +218,40 @@ class TsdTensorWidget(BaseWidget):
 
 class VideoWidget(BaseWidget):
 
-    def __init__(self, video_path: str | pathlib.Path, t: Optional[NDArray] = None, stream_index: int=0, index=None, size=(640, 480), set_parent=True):
+    def __init__(self, video: str | pathlib.Path | VideoHandler,
+                 t: Optional[NDArray] = None,
+                 stream_index: int=0,
+                 index=None,
+                 size=(640, 480),
+                 set_parent=True,
+                 tsdframes: dict = None):
+        """
+        Widget for visualizing video data with optional overlay of TsdFrame data.
+        Parameters
+        ----------
+        video : str or pathlib.Path or VideoHandler
+            Path to the video file or a VideoHandler object.
+        t : array-like, optional
+            Array of timestamps corresponding to video frames.
+        stream_index : int, optional
+            Index of the video stream to use (default is 0).
+        index : int, optional
+            Used when included in a ControllerGroup to identify the widget.
+        size : tuple, optional
+            Initial size of the widget (width, height).
+        set_parent : bool, optional
+            Whether to set the widget as the parent of the plot (default is True).
+        tsdframes : dict of TsdFrame, optional
+            TsdFrame object to overlay on the video plot.
+        """
         super().__init__(size=size)
 
         # Canvas
         parent = self if set_parent else None
-        self.plot = PlotVideo(video_path=video_path, t=t, stream_index=stream_index, index=index, parent=parent)
+        self.plot = PlotVideo(video=video, t=t, stream_index=stream_index, index=index, parent=parent)
 
         # Top level menu container
-        self.button_container = MenuWidget(metadata=None, plot=self.plot)
+        self.button_container = MenuWidget(metadata=None, plot=self.plot, tsdframes=tsdframes)
 
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)

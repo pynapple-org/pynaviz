@@ -22,6 +22,7 @@ import pygfx as gfx
 import pynapple as nap
 from numpy.typing import NDArray
 
+from .skeleton_plot import PlotPoints
 from ..base_plot import _BasePlot
 from ..controller import GetController
 from .video_handling import VideoHandler
@@ -120,8 +121,8 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         )
 
         # List to hold time series points that can be superposed
-        self._time_points = []
-        self.controller._add_callback(self._update_time_points)
+        self.points = {}
+        self.controller._add_callback(self._update_extra_objects)
 
         self.canvas.request_draw(
             draw_function=lambda: self.renderer.render(self.scene, self.camera)
@@ -170,7 +171,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         """
         pass
 
-    def _update_time_points(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
+    def _update_extra_objects(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
         """
         Update the positions of any superposed time series points based on the current frame.
 
@@ -181,43 +182,54 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         event_type : RenderTriggerSource, optional
             Source of the event triggering the update.
         """
-        if len(self._time_points):
+        if len(self.points):
             time_array = getattr(self.data.index, "values", self.data.index)
             current_time = time_array[frame_index]
-            new_coords = np.ones((1, 3), dtype="float32")
-            for point in self._time_points:
-                new_coords[0,0:2] = point[1].get(current_time).astype("float32")
-                point[0].geometry.positions.set_data(new_coords)
+            for points in self.points.values():
+                points.update(current_time)
 
-    def superpose_time_series(self, tsdframe: nap.TsdFrame,
-                              color: str = "red",
-                              thickness: float = 2,
-                              markersize: float = 10):
+    def superpose_points(self, tsdframe: nap.TsdFrame,
+                         color = None,
+                         markersize: float = 10,
+                         thickness: float = 2,
+                         label: Optional[str] = None
+                         ):
         """
-        Superpose a time series on top of the video plot. Argument tsdframe should have
-        only 2 columns.
+        Superpose a set of points on top of the video plot. Argument tsdframe should
+        be a nap.Tsdframe with multiple of 2 columns (x1, y1, x2, y2, ...).
+        The label of the columns doesn't matter.
 
         Parameters
         ----------
         tsdframe : nap.TsdFrame
             Time series data to overlay.
-        color : str, default='red'
-            Color of the time series line.
+        color : str or rgba tuple, optional
+            Color of the set of points.
+        markersize : float, default=10
+            Size of the set of points.
+        thickness : float, default=2
+            Thickness of the lines connecting the points.
+        label : str, optional
+            Label for the set of points. If None, a default label is assigned.
         """
         if not isinstance(tsdframe, nap.TsdFrame):
             raise ValueError("tsdframe must be a nap.TsdFrame instance.")
 
-        if tsdframe.shape[1] != 2:
-            raise ValueError("tsdframe must have exactly 2 columns for x and y coordinates.")
+        if tsdframe.shape[1] % 2 != 0:
+            raise ValueError("tsdframe must have multiple of 2 columns for x and y coordinates.")
 
-        current_xy = tsdframe.get(self.controller._get_frame_time())
-        xy = np.hstack((current_xy, 1), dtype="float32")[None, :]
-        time_point = gfx.Points(
-            gfx.Geometry(positions=xy),
-            gfx.PointsMaterial(size=markersize, color=color, opacity=1),
-        )
-        self._time_points.append((time_point, tsdframe))
-        self.scene.add(time_point)
+        if label is None:
+            label = f"points_{len(self.points) + 1}"
+
+        self.points[label] = PlotPoints(
+                tsdframe = tsdframe,
+                initial_time = self.controller._get_frame_time(),
+                scene=self.scene,
+                color=color,
+                markersize = markersize,
+                thickness = thickness
+            )
+
 
         self.controller.renderer_request_draw()
 
@@ -253,7 +265,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
     def __init__(
         self,
-        video_path: str | pathlib.Path,
+        video: str | pathlib.Path | VideoHandler,
         t: Optional[NDArray] = None,
         stream_index: int = 0,
         index=None,
@@ -264,10 +276,10 @@ class PlotVideo(PlotBaseVideoTensor):
 
         Parameters
         ----------
-        video_path : str or pathlib.Path
-            Path to the video file to be visualized.
+        video : str or pathlib.Path or VideoHandler
+            Path to the video file to be visualized or a VideoHandler object.
         t : NDArray, optional
-            Optional time vector to use for syncing frames.
+            Time vector to use for syncing frames.
         stream_index : int, default=0
             Index of the stream to read in the video file.
         index : int, optional
@@ -276,8 +288,14 @@ class PlotVideo(PlotBaseVideoTensor):
             Parent GUI container or widget.
         """
         self._closed = False
-        data = VideoHandler(video_path, time=t, stream_index=stream_index)
+        if isinstance(video, (str, pathlib.Path)):
+            data = VideoHandler(video, time=t, stream_index=stream_index)
+        else:
+            if not isinstance(video, VideoHandler):
+                raise ValueError("video must be a file path or a VideoHandler instance.")
+            data = video
         self._data = data
+        video_path = data.video_path
         super().__init__(data, index=index, parent=parent)
 
         # Shared memory setup for multiprocessing frame exchange

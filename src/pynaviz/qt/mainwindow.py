@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import pathlib
 import re
 import sys
 from datetime import datetime
@@ -27,6 +28,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from pynaviz import VideoHandler
 from pynaviz.audiovideo.video_plot import PlotBaseVideoTensor
 from pynaviz.controller_group import ControllerGroup
 from pynaviz.qt.widget_plot import (
@@ -160,12 +162,16 @@ class MainDock(QDockWidget):
         # --- list widget ---
         layout.addWidget(QLabel("Variables"))
         self._interval_set_keys = []
+        self._tsdframe_keys = []
         self.listWidget = QListWidget()
         for k in variables.keys():
             if k != "data":
                 self.listWidget.addItem(k)
                 if isinstance(variables[k], nap.IntervalSet):
                     self._interval_set_keys.append(k) # Storing interval set keys for add_interval_set action
+                if isinstance(variables[k], nap.TsdFrame):
+                    self._tsdframe_keys.append(k) # Storing tsdframe keys for point and skeleton overlay
+
         self.listWidget.itemDoubleClicked.connect(self.add_dock_widget)
 
         layout.addWidget(self.listWidget)
@@ -404,13 +410,23 @@ class MainDock(QDockWidget):
             interval_sets = {k: self.variables[k] for k in self._interval_set_keys}
             return TsdFrameWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdTensor):
-            return TsdTensorWidget(var, index=index, set_parent=True)
+            tsdframes = {k:self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+            return TsdTensorWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
         elif isinstance(var, nap.Ts):
             return TsWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.IntervalSet):
             return IntervalSetWidget(var, index=index, set_parent=True)
-        elif isinstance(var, VideoWidget):
-            return var  # already a widget
+        elif isinstance(var, VideoHandler):
+            tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+            return VideoWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
+        elif isinstance(var, (str, pathlib.Path)):
+            try:
+                tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+                video_widget = VideoWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
+                return video_widget
+            except Exception as e:
+                print(f"Error loading video from '{var}': {e}")
+                return None
         else:
             print(f"Variable of type '{type(var)}' is not supported for plotting.")
             return None
@@ -609,8 +625,14 @@ def get_pynapple_variables(
             if "pynapple" in v.__module__ and k[0] != "_":
                 result[k] = v
 
-            if "pynaviz" in v.__module__ and k[0] != "_" and isinstance(v, PlotBaseVideoTensor):
+            if "pynaviz" in v.__module__ and k[0] != "_" and isinstance(v, VideoHandler):
                 result[k] = v
+
+        if isinstance(v, (str, pathlib.Path)) and os.path.isfile(v):
+            ext = os.path.splitext(v)[1].lower()
+            if ext in [".mp4", ".avi", ".mov", ".mkv"]:
+                result[k] = v
+
 
     return result
 

@@ -1,6 +1,8 @@
 from .audiovideo import (
     PlotTsdTensor,
     PlotVideo,
+    VideoHandler,
+    AudioHandler
 )
 from .base_plot import (
     PlotIntervalSet,
