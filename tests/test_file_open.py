@@ -116,18 +116,7 @@ def shared_test_files(tmp_path_factory):
     return data_dir, video_file, nwb_file, expected_output
 
 
-@pytest.fixture(scope="function")
-def qapp():
-    """Ensure QApplication exists."""
-    if not QApplication.instance():
-        app = QApplication(sys.argv)
-        app.setQuitOnLastWindowClosed(False)
-    else:
-        app = QApplication.instance()
-    return app
-
-
-def test_load_files(shared_test_files, qapp):
+def test_load_files(shared_test_files, qtbot):
     """Test loading files directly via _load_multiple_files."""
     path_dir, video_path, nwb_file,  expected = shared_test_files
     all_files = (*path_dir.iterdir(), video_path, nwb_file)
@@ -159,7 +148,7 @@ def test_load_files(shared_test_files, qapp):
 
 
 @patch('pynaviz.qt.mainwindow.QFileDialog.getOpenFileNames')
-def test_open_file_dialog(mock_dialog, shared_test_files, qapp):
+def test_open_file_dialog(mock_dialog, shared_test_files, qtbot):
     """Test the open_file method with mocked dialog."""
     path_dir, video_file, nwb_file, expected = shared_test_files
 
