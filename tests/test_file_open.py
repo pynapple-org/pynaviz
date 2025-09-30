@@ -116,7 +116,7 @@ def shared_test_files(tmp_path_factory):
     return data_dir, video_file, nwb_file, expected_output
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def qapp():
     """Ensure QApplication exists."""
     if not QApplication.instance():
