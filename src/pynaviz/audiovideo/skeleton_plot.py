@@ -4,7 +4,6 @@ import numpy as np
 import pygfx as gfx
 
 
-
 class PlotPoints:
     """
     A streaming skeleton with pygfx Points and Lines.

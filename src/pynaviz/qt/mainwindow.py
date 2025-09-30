@@ -29,7 +29,6 @@ from PyQt6.QtWidgets import (
 )
 
 from pynaviz import VideoHandler
-from pynaviz.audiovideo.video_plot import PlotBaseVideoTensor
 from pynaviz.controller_group import ControllerGroup
 from pynaviz.qt.widget_plot import (
     IntervalSetWidget,

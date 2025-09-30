@@ -22,9 +22,9 @@ import pygfx as gfx
 import pynapple as nap
 from numpy.typing import NDArray
 
-from .skeleton_plot import PlotPoints
 from ..base_plot import _BasePlot
 from ..controller import GetController
+from .skeleton_plot import PlotPoints
 from .video_handling import VideoHandler
 from .video_worker import RenderTriggerSource, video_worker_process
 
