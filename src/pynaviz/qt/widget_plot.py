@@ -6,6 +6,7 @@ import pathlib
 import sys
 from typing import Optional, Tuple
 
+import pynapple as nap
 from numpy._typing import NDArray
 from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QAction, QKeySequence
@@ -21,7 +22,6 @@ from ..base_plot import (
     PlotTsGroup,
 )
 from .widget_menu import MenuWidget
-import pynapple as nap
 
 
 def expand_with_time_support(time_support, interval_sets):

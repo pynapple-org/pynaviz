@@ -37,7 +37,7 @@ from PyQt6.QtWidgets import (
 
 from pynaviz.qt.drop_down_dict_builder import get_popup_kwargs
 from pynaviz.qt.interval_sets_selection import IntervalSetsDialog, IntervalSetsModel
-from pynaviz.qt.tsdframe_selection import TsdFramesModel, TsdFramesDialog
+from pynaviz.qt.tsdframe_selection import TsdFramesDialog, TsdFramesModel
 from pynaviz.qt.widget_list_selection import (
     ChannelList,
     ChannelListModel,

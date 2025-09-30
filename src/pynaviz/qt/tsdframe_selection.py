@@ -1,12 +1,19 @@
-from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, QModelIndex
-from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QComboBox, QPushButton, \
-    QWidget, QSpinBox, QTableView, QHeaderView, QLabel, QStyledItemDelegate, QDoubleSpinBox
-from PyQt6.QtGui import QColor
-from functools import partial
-import sys
-import pynapple as nap
 
-from pynaviz.qt.interval_sets_selection import ComboDelegate, SpinDelegate
+from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
+from PyQt6.QtWidgets import (
+    QDialog,
+    QDoubleSpinBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QPushButton,
+    QStyledItemDelegate,
+    QTableView,
+    QVBoxLayout,
+    QWidget,
+)
+
+from pynaviz.qt.interval_sets_selection import ComboDelegate
 from pynaviz.utils import GRADED_COLOR_LIST
 
 

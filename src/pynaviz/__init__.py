@@ -1,9 +1,4 @@
-from .audiovideo import (
-    PlotTsdTensor,
-    PlotVideo,
-    VideoHandler,
-    AudioHandler
-)
+from .audiovideo import AudioHandler, PlotTsdTensor, PlotVideo, VideoHandler
 from .base_plot import (
     PlotIntervalSet,
     PlotTs,
@@ -19,7 +14,9 @@ __all__ = [
     "PlotTsdTensor",
     "PlotTsGroup",
     "PlotTs",
-    "PlotVideo"
+    "PlotVideo",
+    "AudioHandler",
+    "VideoHandler",
 ]
 
 try:
