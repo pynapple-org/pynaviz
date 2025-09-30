@@ -64,9 +64,6 @@ jobs:
         run: nox -s linters
 
       - name: Run tests
-        env:
-          PYGFX_EXPECT_LAVAPIPE: true
-          QT_QPA_PLATFORM: offscreen
         run: nox -s tests
 
   check:
