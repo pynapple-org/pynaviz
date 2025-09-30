@@ -1,11 +1,9 @@
-import sys
-import time
 from typing import Literal
 
 import numpy as np
 import pynapple as nap
 import pytest
-from PyQt6.QtWidgets import QApplication, QDockWidget
+from PyQt6.QtWidgets import QDockWidget
 
 import pynaviz as viz
 from pynaviz import (
@@ -60,10 +58,11 @@ def nap_vars():
     }
     return variables
 
+
 @pytest.fixture(scope='function')
-def app__main_window__dock(nap_vars):
+def main_window__dock(nap_vars, qtbot):
     """
-    Set up an app, a MainWindow and a MainDock.
+    Set up a MainWindow and a MainDock.
 
     Set up a MainWindow and populate it with test data:
     - TsdFrame with metadata area, type and channel.
@@ -71,19 +70,13 @@ def app__main_window__dock(nap_vars):
     - TsGroup for testing timestamp data
     - IntervalSet for testing intervals
     """
-    # Set up Qt application (ensure it's headless for testing)
-    if not QApplication.instance():
-        app = QApplication(sys.argv)
-        # Make headless for testing
-        app.setQuitOnLastWindowClosed(False)
-    else:
-        app = QApplication.instance()
-
     main_window = viz.qt.mainwindow.MainWindow()
+    qtbot.addWidget(main_window)
 
     dock = viz.qt.mainwindow.MainDock(nap_vars, main_window)
+    qtbot.addWidget(dock)
 
-    return app, main_window, dock, nap_vars
+    return main_window, dock, nap_vars
 
 
 def apply_action(
@@ -99,7 +92,7 @@ def apply_action(
             "stop"
         ],
         action_kwargs: dict | None,
-        app: QApplication,
+        qtbot,
 ):
     """
     Apply a specific action to the dock/widgets.
@@ -121,8 +114,8 @@ def apply_action(
         - "set_time"
     action_kwargs:
         The kwargs for the action method.
-    app:
-        The QtApplication used for simulating playing the gui.
+    qtbot:
+        The qtbot fixture from pytest-qt.
     """
     if action_type is None:
         return
@@ -162,11 +155,7 @@ def apply_action(
         assert widget.playing is True, "not toggled correctly"
 
         # Run event loop for specified duration
-        start_time = time.time()
-        duration = 1
-        while time.time() - start_time < duration:
-            app.processEvents()
-            time.sleep(0.01)
+        qtbot.wait(1000)  # Wait 1 second
 
         widget._toggle_play()
         assert widget.playing is False, "not paused correctly"
@@ -175,6 +164,7 @@ def apply_action(
     elif action_type == "stop":
         # Stop playback
         widget._stop()
+
 
 @pytest.mark.parametrize(
     "group_by_kwargs", [None, dict(metadata_name="area")]
@@ -185,9 +175,10 @@ def apply_action(
 @pytest.mark.parametrize(
     "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
 )
-@pytest.mark.parametrize("apply_to", [("tsgroup",), ("tsdframe", ), ("tsgroup", "tsdframe")])
-def test_save_load_layout_tsdframe(apply_to, app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
-    app, main_window, dock, variables = app__main_window__dock
+@pytest.mark.parametrize("apply_to", [("tsgroup",), ("tsdframe",), ("tsgroup", "tsdframe")])
+def test_save_load_layout_tsdframe(apply_to, main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs,
+                                   tmp_path, qtbot):
+    main_window, dock, variables = main_window__dock
     # add widgets
     widget = None
     for varname in variables.keys():
@@ -195,11 +186,11 @@ def test_save_load_layout_tsdframe(apply_to, app__main_window__dock, color_by_kw
         if varname in apply_to:
             widget = dock_widget.widget()
             apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None,
-                         action_kwargs=group_by_kwargs, app=app)
+                         action_kwargs=group_by_kwargs, qtbot=qtbot)
             apply_action(widget=widget, action_type="sort_by" if sort_by_kwargs is not None else None,
-                         action_kwargs=sort_by_kwargs, app=app)
+                         action_kwargs=sort_by_kwargs, qtbot=qtbot)
             apply_action(widget=widget, action_type="color_by" if color_by_kwargs is not None else None,
-                         action_kwargs=color_by_kwargs, app=app)
+                         action_kwargs=color_by_kwargs, qtbot=qtbot)
 
     # debug purposes, should not trigger.
     assert widget is not None, "widget not created."
@@ -210,7 +201,11 @@ def test_save_load_layout_tsdframe(apply_to, app__main_window__dock, color_by_kw
 
     # load a main window with the same configs.
     main_window_new = viz.qt.mainwindow.MainWindow()
+    qtbot.addWidget(main_window_new)
+
     dock_new = viz.qt.mainwindow.MainDock(variables, main_window_new, layout_path=layout_path)
+    qtbot.addWidget(dock_new)
+
     layout_dict_new = dock_new._get_layout_dict()
     print("\nold", layout_dict_orig)
     print("new", layout_dict_new)
@@ -272,9 +267,10 @@ def verify_layout_geometry(original_window, restored_window):
 @pytest.mark.parametrize(
     "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
 )
-@pytest.mark.parametrize("apply_to", [("tsgroup",), ("tsdframe", ), ("tsgroup", "tsdframe")])
-def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs, tmp_path):
-    app, main_window, dock, variables = app__main_window__dock
+@pytest.mark.parametrize("apply_to", [("tsgroup",), ("tsdframe",), ("tsgroup", "tsdframe")])
+def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, color_by_kwargs, group_by_kwargs,
+                                               sort_by_kwargs, tmp_path, qtbot):
+    main_window, dock, variables = main_window__dock
     # add widgets
     widget = None
     for varname in variables.keys():
@@ -282,11 +278,11 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
         if varname in apply_to:
             widget = dock_widget.widget()
             apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None,
-                         action_kwargs=group_by_kwargs, app=app)
+                         action_kwargs=group_by_kwargs, qtbot=qtbot)
             apply_action(widget=widget, action_type="sort_by" if sort_by_kwargs is not None else None,
-                         action_kwargs=sort_by_kwargs, app=app)
+                         action_kwargs=sort_by_kwargs, qtbot=qtbot)
             apply_action(widget=widget, action_type="color_by" if color_by_kwargs is not None else None,
-                         action_kwargs=color_by_kwargs, app=app)
+                         action_kwargs=color_by_kwargs, qtbot=qtbot)
     # debug purposes, should not trigger.
     assert widget is not None, "widget not created."
 
@@ -303,7 +299,10 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, app__main_window__dock,
 
     # load a main window with the same configs.
     main_window_new = viz.qt.mainwindow.MainWindow()
+    qtbot.addWidget(main_window_new)
+
     dock_new = viz.qt.mainwindow.MainDock(variables, main_window_new, layout_path=layout_path)
+    qtbot.addWidget(dock_new)
 
     # Take screenshots
     new_screenshots = {}
