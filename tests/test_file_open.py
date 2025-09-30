@@ -1,12 +1,11 @@
 import pathlib
-import sys
 from unittest.mock import patch
 
 import fsspec
 import numpy as np
 import pynapple as nap
 import pytest
-from PyQt6.QtWidgets import QApplication, QDockWidget
+from PyQt6.QtWidgets import QDockWidget
 
 import pynaviz as viz
 
