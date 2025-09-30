@@ -46,7 +46,12 @@ jobs:
             libxcb-xinerama0 \
             libxkbcommon-x11-0 \
             libglib2.0-0 \
-            mesa-vulkan-drivers
+            mesa-vulkan-drivers \
+            libdbus-1-3 \
+            libxcb-cursor0 \
+            libxcb-randr0 \
+            x11-utils \
+            xvfb
 
       - name: Install nox
         run: python -m pip install --upgrade pip nox
