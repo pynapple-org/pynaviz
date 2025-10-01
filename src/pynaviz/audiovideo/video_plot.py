@@ -410,6 +410,8 @@ class PlotVideo(PlotBaseVideoTensor):
         event_type : RenderTriggerSource, optional
             Source of the triggering event.
         """
+        if self._debug:
+            print(f"update buffer: {id(self)}({id(self.controller)}) - {event_type} - {frame_index}")
         if event_type != RenderTriggerSource.SET_FRAME:
             self.frame_ready.clear()
             while not self.request_queue.empty():
@@ -440,6 +442,11 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.frame_ready.clear()
                 try:
                     trigger_source = self.response_queue.get(timeout=0.05)
+                    while not self._pending_ui_update_queue.empty():
+                        try:
+                            self._pending_ui_update_queue.get_nowait()
+                        except queue.Empty:
+                            break
                     self._pending_ui_update_queue.put((frame_index, trigger_source))
                 except queue.Empty:
                     continue
@@ -469,12 +476,14 @@ class PlotVideo(PlotBaseVideoTensor):
                 if self._debug:
                     print("keypress", current_time, frame_index)
                 del self._last_jump_index
+                print(f"render loop: {id(self)}- {RenderTriggerSource.LOCAL_KEY} - send sync pan - {current_time}")
                 self.controller._send_sync_event(update_type="pan", current_time=current_time)
 
             elif trigger_source == RenderTriggerSource.ZOOM_TO_POINT:
                 current_time = self.controller._get_frame_time()
                 if self._debug:
                     print("zoom", current_time, frame_index)
+                print(f"render loop: {id(self)} - {RenderTriggerSource.ZOOM_TO_POINT} - send sync pan - {current_time}")
                 self.controller._send_sync_event(update_type="pan", current_time=current_time)
 
         except queue.Empty:
