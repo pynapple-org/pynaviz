@@ -21,9 +21,10 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMenu,
+    QMenuBar,
     QPushButton,
     QStyle,
-    QToolBar,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
@@ -138,6 +139,13 @@ class HelpBox(QFrame):
         label.setWordWrap(True)
         layout.addWidget(label)
 
+        # Add close button
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.close)
+        close_button.setFixedWidth(100)
+        close_button.setStyleSheet("margin-top: 10px;")
+        layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignRight)
+
         # Track clicks outside
         if parent:
             parent.installEventFilter(self)
@@ -179,31 +187,31 @@ class MainDock(QDockWidget):
         layout.setSpacing(0)
 
         # Toolbar
-        toolbar = QToolBar("Main Toolbar")
-        toolbar.setMovable(False)  # fixed position like a menu bar
+        menu_bar = QMenuBar()
 
-        # Save action
-        save_action = QAction(QIcon.fromTheme("document-save"), "Save layout", self)
-        save_action.triggered.connect(self._save_layout)
-        save_action.setShortcut(QKeySequence("Ctrl+S"))
-        toolbar.addAction(save_action)
+        # Add "File" menu
+        file_menu = QMenu("&File", menu_bar)
+        open_action = QAction("&Open...", gui)
+        open_action.setShortcut(QKeySequence("Ctrl+O"))
+        open_action.triggered.connect(gui.open_file)  # Connect to the function
+        file_menu.addAction(open_action)
+        file_menu.addSeparator()
+        file_menu.addAction("&Load layout", self._load_layout)
+        file_menu.addAction("&Save layout", self._save_layout)
+        file_menu.addSeparator()
+        file_menu.addAction("&Exit", gui.close)
 
-        # Load action
-        load_action = QAction(QIcon.fromTheme("document-open"), "Load layout", self)
-        load_action.triggered.connect(self._load_layout)
-        load_action.setShortcut(QKeySequence("Ctrl+O"))
-        toolbar.addAction(load_action)
-
-        # Help action
+        # Add "Help" menu
+        help_menu = QMenu("&Help", menu_bar)
+        help_menu.addAction("&Shortcuts", self._toggle_help_box)
+        help_menu.addAction("&About")
         self.help_box = None
-        self.help_action = QAction(QIcon.fromTheme("help-about"), "Help", self)
-        self.help_action.triggered.connect(self._toggle_help_box)
-        toolbar.addAction(self.help_action)
-        self.help_button = toolbar.widgetForAction(self.help_action)
-        layout.addWidget(toolbar)
-        for action in [save_action, load_action, self.help_action]:
-            button = toolbar.widgetForAction(action)
-            button.setFixedWidth(25)
+
+        # Add menus to the menu bar
+        menu_bar.addMenu(file_menu)
+        menu_bar.addMenu(help_menu)
+
+        layout.addWidget(menu_bar)
 
 
         # --- list widget ---
@@ -283,7 +291,7 @@ class MainDock(QDockWidget):
         self.setFixedWidth(
             max(
                 self.treeWidget.sizeHintForColumn(0) + 50,
-                toolbar.sizeHint().width() + 20
+                menu_bar.sizeHint().width() + 20
             )
         )
 
@@ -554,7 +562,7 @@ class MainDock(QDockWidget):
         self.help_box = HelpBox(parent=self)
 
         # Position it below the button
-        btn_pos = self.help_button.mapToGlobal(QPoint(0, self.help_button.height()))
+        btn_pos = self.mapToGlobal(QPoint(0, 0))
         self.help_box.move(btn_pos)
         self.help_box.show()
 
@@ -691,21 +699,8 @@ class MainWindow(QMainWindow):
         # self.setFont(font)
         # Enable nested docking (so docks can be stacked)
         self.setDockNestingEnabled(True)
-        self.create_menu_bar()
         self._open_file_paths = set()
 
-    def create_menu_bar(self):
-        menubar = self.menuBar()
-
-        # Create File menu
-        file_menu = menubar.addMenu("&File")
-
-        # Open action
-        open_action = QAction("&Open File...", self)
-        open_action.setShortcut(QKeySequence.StandardKey.Open)  # Ctrl+O
-        open_action.setStatusTip("Open an existing file")
-        open_action.triggered.connect(self.open_file)
-        file_menu.addAction(open_action)
 
     def open_file(self):
         extensions = self._file_extensions
