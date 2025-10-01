@@ -1,7 +1,6 @@
 from typing import Literal
 
 import numpy as np
-import pynapple as nap
 import pytest
 from PyQt6.QtWidgets import QDockWidget
 
@@ -12,55 +11,55 @@ from pynaviz import (
     TsdTensorWidget,
     TsdWidget,
     TsGroupWidget,
+    TsWidget,
 )
 from pynaviz.qt.mainwindow import MainDock
 
-
-@pytest.fixture()
-def nap_vars():
-    tsdframe = nap.TsdFrame(
-        t=np.arange(1000) / 30,
-        d=np.random.randn(1000, 10),
-        metadata={
-            "area": ["pfc"] * 4 + ["ppc"] * 6,
-            "type": ["exc", "inh"] * 5,
-            "channel": np.random.permutation(np.arange(10))
-        }
-    )
-
-    tsdtensor = nap.TsdTensor(
-        t=np.arange(10000) / 30,
-        d=np.random.randn(10000, 10, 10)
-    )
-
-    # Create TsGroup with some spikes
-    spike_times = {
-        0: nap.Ts(t=np.sort(np.random.uniform(0, 30, 100))),
-        1: nap.Ts(t=np.sort(np.random.uniform(0, 30, 150))),
-        2: nap.Ts(t=np.sort(np.random.uniform(0, 30, 80))),
-    }
-    tsgroup = nap.TsGroup(
-        spike_times,
-        metadata=dict(area=['pfc', 'pfc', 'ppc'], type=['exc', 'inh', 'exc'], channel=[2, 1, 3])
-    )
-
-    # Create IntervalSet
-    interval_set = nap.IntervalSet(
-        start=np.array([0, 10, 20]),
-        end=np.array([5, 15, 25])
-    )
-
-    variables = {
-        'tsdframe': tsdframe,
-        'tsdtensor': tsdtensor,
-        'tsgroup': tsgroup,
-        'interval_set': interval_set
-    }
-    return variables
+# @pytest.fixture()
+# def nap_vars():
+#     tsdframe = nap.TsdFrame(
+#         t=np.arange(1000) / 30,
+#         d=np.random.randn(1000, 10),
+#         metadata={
+#             "area": ["pfc"] * 4 + ["ppc"] * 6,
+#             "type": ["exc", "inh"] * 5,
+#             "channel": np.random.permutation(np.arange(10))
+#         }
+#     )
+#
+#     tsdtensor = nap.TsdTensor(
+#         t=np.arange(10000) / 30,
+#         d=np.random.randn(10000, 10, 10)
+#     )
+#
+#     # Create TsGroup with some spikes
+#     spike_times = {
+#         0: nap.Ts(t=np.sort(np.random.uniform(0, 30, 100))),
+#         1: nap.Ts(t=np.sort(np.random.uniform(0, 30, 150))),
+#         2: nap.Ts(t=np.sort(np.random.uniform(0, 30, 80))),
+#     }
+#     tsgroup = nap.TsGroup(
+#         spike_times,
+#         metadata=dict(area=['pfc', 'pfc', 'ppc'], type=['exc', 'inh', 'exc'], channel=[2, 1, 3])
+#     )
+#
+#     # Create IntervalSet
+#     interval_set = nap.IntervalSet(
+#         start=np.array([0, 10, 20]),
+#         end=np.array([5, 15, 25])
+#     )
+#
+#     variables = {
+#         'tsdframe': tsdframe,
+#         'tsdtensor': tsdtensor,
+#         'tsgroup': tsgroup,
+#         'interval_set': interval_set
+#     }
+#     return variables
 
 
 @pytest.fixture(scope='function')
-def main_window__dock(nap_vars, qtbot):
+def main_window__dock(variables, qtbot):
     """
     Set up a MainWindow and a MainDock.
 
@@ -73,14 +72,14 @@ def main_window__dock(nap_vars, qtbot):
     main_window = viz.qt.mainwindow.MainWindow()
     qtbot.addWidget(main_window)
 
-    dock = viz.qt.mainwindow.MainDock(nap_vars, main_window)
+    dock = viz.qt.mainwindow.MainDock(variables, main_window)
     qtbot.addWidget(dock)
 
-    return main_window, dock, nap_vars
+    return main_window, dock, variables
 
 
 def apply_action(
-        widget: MainDock | TsdWidget | TsdFrameWidget | TsdTensorWidget | IntervalSetWidget | TsGroupWidget,
+        widget: MainDock | TsdWidget | TsdFrameWidget | TsdTensorWidget | IntervalSetWidget | TsGroupWidget | TsWidget,
         action_type: Literal[
             "group_by",
             "sort_by",
@@ -167,7 +166,7 @@ def apply_action(
 
 
 @pytest.mark.parametrize(
-    "group_by_kwargs", [None, dict(metadata_name="area")]
+    "group_by_kwargs", [None, dict(metadata_name="group")]
 )
 @pytest.mark.parametrize(
     "sort_by_kwargs", [None, dict(metadata_name="channel")]
@@ -207,8 +206,8 @@ def test_save_load_layout_tsdframe(apply_to, main_window__dock, color_by_kwargs,
     qtbot.addWidget(dock_new)
 
     layout_dict_new = dock_new._get_layout_dict()
-    print("\nold", layout_dict_orig)
-    print("new", layout_dict_new)
+    # print("\nold", layout_dict_orig)
+    # print("new", layout_dict_new)
     # discard geometry bytes, the initial window position may differ
     layout_dict_new.pop("geometry_b64")
     layout_dict_orig.pop("geometry_b64")
@@ -259,7 +258,7 @@ def verify_layout_geometry(original_window, restored_window):
 
 
 @pytest.mark.parametrize(
-    "group_by_kwargs", [None, dict(metadata_name="area")]
+    "group_by_kwargs", [None, dict(metadata_name="group")]
 )
 @pytest.mark.parametrize(
     "sort_by_kwargs", [None, dict(metadata_name="channel")]
