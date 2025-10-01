@@ -38,16 +38,15 @@ tsdtensor = nap.TsdTensor(t=np.arange(10000)/30, d=np.random.randn(10000, 10, 10
 
 iset = nap.IntervalSet(start=np.arange(0, 1000, 10), end=np.arange(5, 1005, 10))
 
-video_path = "/mnt/home/gviejo/pynaviz/docs/examples/m3v1mp4.mp4"
+video_path = "examples/m3v1mp4.mp4"
 v = viz.VideoHandler(video_path)
 
 
-df = pd.read_hdf("/mnt/home/gviejo/pynaviz/docs/examples/m3v1mp4DLC_Resnet50_openfieldOct30shuffle1_snapshot_best-70.h5")
+df = pd.read_hdf("examples/m3v1mp4DLC_Resnet50_openfieldOct30shuffle1_snapshot_best-70.h5")
 df.columns = [f"{bodypart}_{coord}" for _, bodypart, coord in df.columns]
 df = df[[c for c in df.columns if c.endswith(("_x", "_y"))]]
 y_col = [c for c in df.columns if c.endswith("_y")]
 df[y_col] = df[y_col]*-1 + 480 # Flipping y axis
 skeleton = nap.TsdFrame(t=df.index.values/30, d=df.values, columns=df.columns)
 
-
-scope(globals())
+scope(globals(), layout_path="layout.json")
