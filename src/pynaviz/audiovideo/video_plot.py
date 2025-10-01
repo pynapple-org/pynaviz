@@ -261,7 +261,7 @@ class PlotVideo(PlotBaseVideoTensor):
     from disk to GPU via pygfx. It also supports real-time interaction and frame-based control.
     """
 
-    _debug = True
+    _debug = False
 
     def __init__(
         self,
