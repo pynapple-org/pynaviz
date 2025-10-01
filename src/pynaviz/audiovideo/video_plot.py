@@ -261,7 +261,7 @@ class PlotVideo(PlotBaseVideoTensor):
     from disk to GPU via pygfx. It also supports real-time interaction and frame-based control.
     """
 
-    _debug = False
+    _debug = True
 
     def __init__(
         self,
@@ -439,6 +439,7 @@ class PlotVideo(PlotBaseVideoTensor):
             with self.buffer_lock, self.worker_lock:
                 self.texture.data[:] = self.shared_frame
                 frame_index = int(self.shared_index[0])
+                self._update_extra_objects(frame_index)
                 self.frame_ready.clear()
                 try:
                     trigger_source = self.response_queue.get(timeout=0.05)
@@ -448,6 +449,7 @@ class PlotVideo(PlotBaseVideoTensor):
                         except queue.Empty:
                             break
                     self._pending_ui_update_queue.put((frame_index, trigger_source))
+
                 except queue.Empty:
                     continue
             self._needs_redraw.set()
@@ -472,7 +474,7 @@ class PlotVideo(PlotBaseVideoTensor):
             self.controller.renderer_request_draw()
 
             if trigger_source == RenderTriggerSource.LOCAL_KEY and hasattr(self, "_last_jump_index"):
-                current_time = self._data.t[frame_index]
+                current_time = self.controller._get_frame_time()
                 if self._debug:
                     print("keypress", current_time, frame_index)
                 del self._last_jump_index
