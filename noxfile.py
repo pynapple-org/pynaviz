@@ -1,3 +1,4 @@
+import os
 import pathlib
 import shutil
 
@@ -60,7 +61,7 @@ def tests(session):
     )
     session.log("Run Tests...")
 
-    if shutil.which("xvfb-run"):
+    if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
         # CI environment - use xvfb
         session.run(
             "xvfb-run",
