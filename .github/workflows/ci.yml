@@ -46,30 +46,29 @@ jobs:
             libxcb-xinerama0 \
             libxkbcommon-x11-0 \
             libglib2.0-0 \
-            mesa-vulkan-drivers
+            mesa-vulkan-drivers \
+            libdbus-1-3 \
+            libxcb-cursor0 \
+            libxcb-randr0 \
+            x11-utils \
+            xvfb
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install ".[dev]"
-      - name: Generate video and audio samples
-        run: |
-          python tests/generate_numbered_video.py
-          python tests/generate_noise_audio.py
-      - name: Generate Screenshots
-#        env:
-#          PYTHONPATH: ${{ github.workspace }}
-        run: |
-          python tests/generate_screenshots.py --type all --path tests/screenshots
-      - name: Run nox
-        run: |
-          nox --no-venv -s linters
-      - name: Test examples
-        env:
-          PYGFX_EXPECT_LAVAPIPE: true
-          QT_QPA_PLATFORM: offscreen
-        run: |
-          WGPU_FORCE_OFFSCREEN=1 pytest -v tests/
+      - name: Install nox
+        run: python -m pip install --upgrade pip nox
+
+      - name: Cache nox environments
+        uses: actions/cache@v4
+        with:
+          path: .nox
+          key: nox-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            nox-${{ runner.os }}-py${{ matrix.python-version }}-
+
+      - name: Run linters
+        run: nox -s linters
+
+      - name: Run tests
+        run: nox -s tests
 
   check:
     if: always()
@@ -80,5 +79,3 @@ jobs:
         uses: re-actors/alls-green@v1.2.2
         with:
           jobs: ${{ toJSON(needs) }}
-
-

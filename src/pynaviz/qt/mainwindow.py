@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Union
 
 import pynapple as nap
@@ -347,8 +348,7 @@ class MainDock(QDockWidget):
             self.ctrl_group.set_interval(max_time, None)
             self._update_time_label(self.ctrl_group.current_time)
 
-
-    def add_dock_widget(self, item: object) -> None:
+    def add_dock_widget(self, item: object, manager_state_dict: dict | None = None) -> QDockWidget:
         name = self._extract_variable_name(item)
         if not name:
             return
@@ -361,6 +361,14 @@ class MainDock(QDockWidget):
         if widget is None:
             return
 
+        # restore manager if any
+        if manager_state_dict is not None:
+            current_manager = widget.plot._manager
+            # restore the manager
+            widget.plot._manager = current_manager.from_state(widget.plot, manager_state_dict, index=current_manager.index)
+
+
+
         dock = self._create_dock(name, widget)
         self._add_dock_to_gui(dock)
         self._register_controller(widget)
@@ -370,6 +378,7 @@ class MainDock(QDockWidget):
             time_multiplier = self.time_unit_combo.currentData()
             self.time_spin_box.setMinimum(min_time * time_multiplier)
             self.time_spin_box.setMaximum(max_time * time_multiplier)
+        return dock
 
     def _extract_variable_name(self, item: object) -> str | None:
         """Return the variable name from a QListWidgetItem or a string."""
@@ -479,6 +488,49 @@ class MainDock(QDockWidget):
         self.help_box.move(btn_pos)
         self.help_box.show()
 
+    def _get_layout_dict(self):
+        geom = bytes(self.gui.saveGeometry())
+        state = bytes(self.gui.saveState(version=0))  # Potentially add package versioning later
+
+        all_docks = self.gui.findChildren(QDockWidget)
+        docks = []
+        order = []
+        for d in all_docks:
+            name = d.objectName()
+            if name != "MainDock":
+                print(d.widget().plot._manager.get_state())
+                info = {"visible": d.isVisible(),
+                        "floating": d.isFloating(),
+                        "area": self.gui.dockWidgetArea(d).name,
+                        "pos": (d.x(), d.y()),
+                        "size": (d.width(), d.height()),
+                        "dtype": d.widget().plot.data.__class__.__name__,
+                        "varname": re.sub(r'_\d+$', '', name),
+                        "index": int(name.split("_")[-1]),
+                        "name": name,
+                        "manager_state_dict": d.widget().plot._manager.get_state(),
+                        }
+                docks.append(info)
+                order.append(int(name.split("_")[-1]))
+        docks = [x for _, x in sorted(zip(order, docks))]
+
+        payload = {
+            "version": 0,
+            "geometry_b64": base64.b64encode(geom).decode("ascii"),
+            "state_b64": base64.b64encode(state).decode("ascii"),
+            "docks": docks,
+        }
+        return payload
+
+    def save_layout(self, file_name="layout.json"):
+        file_name = Path(file_name).with_suffix(".json")
+
+        payload = self._get_layout_dict()
+
+        with open(file_name, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+        print(f"Layout saved to {file_name}")
+
     def _save_layout(self):
         print("Saving layout...")
         dt = datetime.now().strftime("%Y-%m-%d_%H-%M")
@@ -490,42 +542,7 @@ class MainDock(QDockWidget):
             "Layout Files (*.json)"
         )
         if file_name:
-
-            if not file_name.lower().endswith(".json"):
-                file_name += ".json"
-
-            geom = bytes(self.gui.saveGeometry())
-            state = bytes(self.gui.saveState(version=0)) # Potentially add package versioning later
-
-            all_docks = self.gui.findChildren(QDockWidget)
-            docks = []
-            order = []
-            for d in all_docks:
-                name = d.objectName()
-                if name != "MainDock":
-                    info = {"visible": d.isVisible(),
-                            "floating": d.isFloating(),
-                            "area": self.gui.dockWidgetArea(d).name,
-                            "pos": (d.x(), d.y()),
-                            "size": (d.width(), d.height()),
-                            "dtype": d.widget().plot.data.__class__.__name__,
-                            "varname": re.sub(r'_\d+$', '', name),
-                            "index": int(name.split("_")[-1]),
-                            "name": name
-                            }
-                    docks.append(info)
-                    order.append(int(name.split("_")[-1]))
-            docks = [x for _, x in sorted(zip(order, docks))]
-
-            payload = {
-                "version": 0,
-                "geometry_b64": base64.b64encode(geom).decode("ascii"),
-                "state_b64": base64.b64encode(state).decode("ascii"),
-                "docks": docks,
-            }
-            with open(file_name, "w", encoding="utf-8") as f:
-                json.dump(payload, f, indent=2)
-            print(f"Layout saved to {file_name}")
+            self.save_layout(file_name)
 
     def _restore_layout(self, file_name):
         with open(file_name, "r", encoding="utf-8") as f:
@@ -552,17 +569,24 @@ class MainDock(QDockWidget):
         # 1) add every dock with the potential variable. Order them by number in the name
         for widget in payload.get("docks", []):
             if widget['varname'] in self.variables:
-                self.add_dock_widget(widget['varname'])
-            assert self.gui.findChild(QDockWidget,
-                                      widget['name']) is not None, f"Dock {widget['name']} was not created."
+                self.add_dock_widget(widget['varname'], manager_state_dict=widget["manager_state_dict"])
+
+                if self.gui.findChild(QDockWidget, widget['name']) is None:
+                    raise RuntimeError(f"Dock {widget['name']} was not created.")
+            else:
+                print(f"Variable '{widget['varname']}' not found. Skipping dock.")
+
 
         # 2) Restore geometry first, then layout
         geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))
         state = QByteArray.fromBase64(payload["state_b64"].encode("ascii"))
 
-        self.gui.restoreGeometry(geom)
-        ok = self.gui.restoreState(state, payload.get("version", 0))
-        print("restoreState ok:", ok)
+        try:
+            self.gui.restoreGeometry(geom)
+            ok = self.gui.restoreState(state, payload.get("version", 0))
+            print("restoreState ok:", ok)
+        except Exception as e:
+            print("Error restoring layout:", e)
 
     def _load_layout(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
