@@ -426,9 +426,8 @@ class GetController(CustomController):
         self.frame_index = frame_index
 
         # update buffer and sync
+        self._current_time = target_time  # Target time is not necessarily frame time
         self._update_buffer(event_type=RenderTriggerSource.SET_FRAME)
-        self._send_sync_event(update_type="pan", current_time=current_t)
-        self._current_time = target_time # Target time is not necessarily frame time
 
     def sync(self, event):
         """Get a new data point and update the texture"""
