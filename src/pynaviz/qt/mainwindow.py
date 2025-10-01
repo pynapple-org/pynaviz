@@ -570,17 +570,23 @@ class MainDock(QDockWidget):
         for widget in payload.get("docks", []):
             if widget['varname'] in self.variables:
                 self.add_dock_widget(widget['varname'], manager_state_dict=widget["manager_state_dict"])
-            assert self.gui.findChild(QDockWidget,
-                                      widget['name']) is not None, f"Dock {widget['name']} was not created."
+
+                if self.gui.findChild(QDockWidget, widget['name']) is None:
+                    raise RuntimeError(f"Dock {widget['name']} was not created.")
+            else:
+                print(f"Variable '{widget['varname']}' not found. Skipping dock.")
 
 
         # 2) Restore geometry first, then layout
         geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))
         state = QByteArray.fromBase64(payload["state_b64"].encode("ascii"))
 
-        self.gui.restoreGeometry(geom)
-        ok = self.gui.restoreState(state, payload.get("version", 0))
-        print("restoreState ok:", ok)
+        try:
+            self.gui.restoreGeometry(geom)
+            ok = self.gui.restoreState(state, payload.get("version", 0))
+            print("restoreState ok:", ok)
+        except Exception as e:
+            print("Error restoring layout:", e)
 
     def _load_layout(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
