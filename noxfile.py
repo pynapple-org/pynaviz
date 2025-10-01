@@ -35,7 +35,8 @@ def tests(session):
         session.log("Generating numbered videos...")
         session.run(
             "python",
-            f"{video_dir.parent / 'generate_numbered_video.py'}"
+            f"{video_dir.parent / 'generate_numbered_video.py'}",
+            external=True
         )
     # generate sample audios
     audio_dir = tests_path / "test_audio"
@@ -46,7 +47,8 @@ def tests(session):
         session.log("Generating noise wave audio...")
         session.run(
             "python",
-            f"{audio_dir.parent / 'generate_noise_audio.py'}"
+            f"{audio_dir.parent / 'generate_noise_audio.py'}",
+            external = True
         )
 
     # generate screenshots
@@ -57,6 +59,7 @@ def tests(session):
         gen_screenshot_script.as_posix(),
         "--type", "all",
         # "--path", "tests/screenshots",
+        external=True
     )
     session.log("Run Tests...")
 
@@ -81,4 +84,5 @@ def tests(session):
             env={
                 "WGPU_FORCE_OFFSCREEN": "1",
             },
+            external=True
         )
