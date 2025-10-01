@@ -478,14 +478,12 @@ class PlotVideo(PlotBaseVideoTensor):
                 if self._debug:
                     print("keypress", current_time, frame_index)
                 del self._last_jump_index
-                print(f"render loop: {id(self)}- {RenderTriggerSource.LOCAL_KEY} - send sync pan - {current_time}")
                 self.controller._send_sync_event(update_type="pan", current_time=current_time)
 
             elif trigger_source == RenderTriggerSource.ZOOM_TO_POINT:
                 current_time = self.controller._get_frame_time()
                 if self._debug:
                     print("zoom", current_time, frame_index)
-                print(f"render loop: {id(self)} - {RenderTriggerSource.ZOOM_TO_POINT} - send sync pan - {current_time}")
                 self.controller._send_sync_event(update_type="pan", current_time=current_time)
 
         except queue.Empty:
