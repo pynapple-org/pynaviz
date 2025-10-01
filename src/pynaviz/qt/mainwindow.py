@@ -276,6 +276,7 @@ class MainDock(QDockWidget):
             # Switch to play icon
             self.timer.stop()
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-start"))
+            self.ctrl_group.set_interval(self.ctrl_group.current_time, None)
 
     def _play(self, delta=0.025):
         self.ctrl_group.advance(delta=delta)
