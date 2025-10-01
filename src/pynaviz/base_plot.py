@@ -139,7 +139,7 @@ class _BasePlot(IntervalSetInterface):
             index = data.columns
         else:
             index = []
-        self._manager = _PlotManager(index=index)
+        self._manager = _PlotManager(index=index, base_plot=self)
 
 
     @property
@@ -222,10 +222,6 @@ class _BasePlot(IntervalSetInterface):
             run()
         except Exception:
             pass
-        # if isinstance(self.canvas, pygGlfwWgpuCanvas):
-        #     run()
-        # else:
-        #     pass
 
     def color_by(
         self,
@@ -310,6 +306,7 @@ class _BasePlot(IntervalSetInterface):
 
                 # Request a redraw of the canvas to reflect the new colors
                 self.canvas.request_draw(self.animate)
+        self._manager.color_by(values, metadata_name=metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         pass
@@ -319,6 +316,10 @@ class _BasePlot(IntervalSetInterface):
 
     def close(self):
         self.color_mapping_thread.shutdown()
+
+    @staticmethod
+    def _initialize_offset(index: list) -> np.ndarray:
+        return np.zeros(len(index))
 
 
 class PlotTsd(_BasePlot):
@@ -574,7 +575,7 @@ class PlotTsdFrame(_BasePlot):
         "i" key increase the scale by 50%.
         "d" key decrease the scale by 50%
         """
-        if self._manager._sorted or self._manager._grouped:
+        if self._manager.is_sorted or self._manager.is_grouped:
             if event.type == "key_down":
                 if event.key == "i" or event.key == "d":
                     factor = {"i": 0.5, "d": -0.5}[event.key]
@@ -599,7 +600,7 @@ class PlotTsdFrame(_BasePlot):
         if event.type == "key_down":
             if event.key == "r":
                 if isinstance(self.controller, SpanController):
-                    self._manager.reset()
+                    self._manager.reset(self)
                     self._flush()
 
                 if isinstance(self.controller, GetController):
@@ -612,7 +613,7 @@ class PlotTsdFrame(_BasePlot):
                     self.controller.enabled = True
                     self._initialize_graphic()
                     self.scene.add(self.graphic)
-                    self._manager.reset()
+                    self._manager.reset(self)
                     self._flush()
 
                 minmax = self._get_min_max()
@@ -626,7 +627,7 @@ class PlotTsdFrame(_BasePlot):
         """
         if action_name in ["sort_by", "group_by"]:
             # Update the scale only if one action has been performed
-            if self._manager._sorted ^ self._manager._grouped:
+            if self._manager.is_sorted ^ self._manager.is_grouped:
                 self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
 
             # Specific to PloTsdFrame, the first row should be at 1.
@@ -673,7 +674,7 @@ class PlotTsdFrame(_BasePlot):
         # If metadata found
         if len(values):
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
-            self._manager.sort_by(values, mode)
+            self._manager.sort_by(values, metadata_name=metadata_name, mode=mode)
             self._update("sort_by")
 
     def group_by(self, metadata_name: str, **kwargs):
@@ -695,7 +696,7 @@ class PlotTsdFrame(_BasePlot):
         # If metadata found
         if len(values):
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
-            self._manager.group_by(values)
+            self._manager.group_by(values, metadata_name=metadata_name, **kwargs)
             self._update("group_by")
 
     def color_by(
@@ -784,6 +785,7 @@ class PlotTsdFrame(_BasePlot):
                 self.graphic.geometry.colors.update_full()
                 # Request a redraw of the canvas to reflect the new colors
                 self.canvas.request_draw(self.animate)
+        self._manager.color_by(values, metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
 
     def plot_x_vs_y(
         self,
@@ -928,7 +930,6 @@ class PlotTsGroup(_BasePlot):
         # TODO: Implement streaming logic properly.
         # For now, initialize buffers with the first batch of data.
         self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
-        self._manager.data["offset"] = self.data.index
         self._flush()
 
         # Add rulers (axes and reference line) and all graphics to the scene
@@ -978,7 +979,7 @@ class PlotTsGroup(_BasePlot):
         if event.type == "key_down" and event.key == "r":
             if isinstance(self.controller, SpanController):
                 # Reset the internal plot manager (sorting, grouping, etc.)
-                self._manager.reset()
+                self._manager.reset(self)
                 self._manager.data["offset"] = self.data.index
                 self._flush()
 
@@ -1030,7 +1031,7 @@ class PlotTsGroup(_BasePlot):
 
         if len(values):
             # Sort units in the plot manager by metadata values
-            self._manager.sort_by(values, mode)
+            self._manager.sort_by(values, mode=mode, metadata_name=metadata_name)
             self._update("sort_by")
 
     def group_by(self, metadata_name: str, **kwargs):
@@ -1051,8 +1052,12 @@ class PlotTsGroup(_BasePlot):
 
         if len(values):
             # Group units in the plot manager by metadata values
-            self._manager.group_by(values)
+            self._manager.group_by(values, metadata_name=metadata_name, **kwargs)
             self._update("group_by")
+
+    @staticmethod
+    def _initialize_offset(index: list) -> np.ndarray:
+        return np.arange(len(index))
 
 
 class PlotTs(_BasePlot):
@@ -1217,7 +1222,7 @@ class PlotIntervalSet(_BasePlot):
         """
         if event.type == "key_down":
             if event.key == "r":
-                self._manager.reset()
+                self._manager.reset(self)
                 self._update()
 
     def _update(self, action_name: str = None):
@@ -1279,7 +1284,7 @@ class PlotIntervalSet(_BasePlot):
         if len(values):
 
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
-            self._manager.sort_by(values, mode)
+            self._manager.sort_by(values, mode=mode, metadata_name=metadata_name)
             self._update("sort_by")
 
     def group_by(self, metadata_name: str, **kwargs):
@@ -1302,7 +1307,7 @@ class PlotIntervalSet(_BasePlot):
         if len(values):
 
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
-            self._manager.group_by(values)
+            self._manager.group_by(values, metadata_name=metadata_name, **kwargs)
             self._update("group_by")
 
     def _jump(self, event):
