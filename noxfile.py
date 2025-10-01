@@ -22,7 +22,7 @@ def linters_fix(session):
 def tests(session):
     """Run the test suite."""
     # session.log("install")
-    session.install("-e", ".[dev]")
+    session.install("-e", ".[dev]", external=True)
     tests_path = pathlib.Path(__file__).parent.resolve() / "tests"
 
     # generate sample videos
@@ -35,8 +35,7 @@ def tests(session):
         session.log("Generating numbered videos...")
         session.run(
             "python",
-            f"{video_dir.parent / 'generate_numbered_video.py'}",
-            external=True
+            f"{video_dir.parent / 'generate_numbered_video.py'}"
         )
     # generate sample audios
     audio_dir = tests_path / "test_audio"
@@ -47,8 +46,7 @@ def tests(session):
         session.log("Generating noise wave audio...")
         session.run(
             "python",
-            f"{audio_dir.parent / 'generate_noise_audio.py'}",
-            external = True
+            f"{audio_dir.parent / 'generate_noise_audio.py'}"
         )
 
     # generate screenshots
@@ -59,7 +57,6 @@ def tests(session):
         gen_screenshot_script.as_posix(),
         "--type", "all",
         # "--path", "tests/screenshots",
-        external=True
     )
     session.log("Run Tests...")
 
@@ -74,8 +71,7 @@ def tests(session):
                 "PYGFX_WGPU_ADAPTER_NAME": "llvmpipe",
                 "PYGFX_EXPECT_LAVAPIPE": "true",
                 "DISPLAY": ":99.0",
-            },
-            external=True,  # xvfb-run is not a Python package
+            }
         )
 
     else:
@@ -83,6 +79,5 @@ def tests(session):
             "pytest",
             env={
                 "WGPU_FORCE_OFFSCREEN": "1",
-            },
-            external=True
+            }
         )
