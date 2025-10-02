@@ -350,7 +350,7 @@ class GetController(CustomController):
             self._current_time = None
 
         self.buffer = buffer
-        self.callback = callback
+        self._plot_callbacks = [callback] if callback is not None else []
 
     def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
         """Set the visible X and Y ranges for an OrthographicCamera."""
@@ -373,8 +373,13 @@ class GetController(CustomController):
         time_array = getattr(self.data.index, "values", self.data.index)
         return time_array[self.frame_index]
 
+    def _add_callback(self, func):
+        if isinstance(func, Callable):
+            self._plot_callbacks.append(func)
+
     def _update_buffer(self, event_type: Optional[RenderTriggerSource] = None):
-        self.callback(self.frame_index, event_type)
+        for update_func in  self._plot_callbacks:
+            update_func(self.frame_index, event_type)
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         """Should convert the jump of time to camera position
@@ -421,9 +426,10 @@ class GetController(CustomController):
         self.frame_index = frame_index
 
         # update buffer and sync
+        self._current_time = target_time  # Target time is not necessarily frame time
         self._update_buffer(event_type=RenderTriggerSource.SET_FRAME)
         self._send_sync_event(update_type="pan", current_time=current_t)
-        self._current_time = target_time # Target time is not necessarily frame time
+
 
     def sync(self, event):
         """Get a new data point and update the texture"""
@@ -455,6 +461,5 @@ class GetController(CustomController):
 
         """
         self._current_time += delta
+        # set frame sends a sync
         self.set_frame(self._current_time)
-        # To make sure all controller stays in sync
-        self._send_sync_event(update_type="pan", current_time=self._current_time)
