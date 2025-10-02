@@ -430,6 +430,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.texture.data[:] = frame
                 self._set_time_text(frame_index)
                 self.texture.update_full()
+                self._update_extra_objects(frame_index)
 
     def _update_buffer_thread(self):
         """Background thread that listens for ready frames and updates the buffer."""
