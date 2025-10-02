@@ -59,7 +59,7 @@ from pynaviz.qt.mainwindow import MainDock
 
 
 @pytest.fixture(scope='function')
-def main_window__dock(variables, qtbot):
+def main_window__dock(nap_var, qtbot):
     """
     Set up a MainWindow and a MainDock.
 
@@ -72,10 +72,10 @@ def main_window__dock(variables, qtbot):
     main_window = viz.qt.mainwindow.MainWindow()
     qtbot.addWidget(main_window)
 
-    dock = viz.qt.mainwindow.MainDock(variables, main_window)
+    dock = viz.qt.mainwindow.MainDock(nap_var, main_window)
     qtbot.addWidget(dock)
 
-    return main_window, dock, variables
+    return main_window, dock, nap_var
 
 
 def apply_action(
@@ -177,11 +177,13 @@ def apply_action(
 @pytest.mark.parametrize("apply_to", [("tsgroup",), ("tsdframe",), ("tsgroup", "tsdframe")])
 def test_save_load_layout_tsdframe(apply_to, main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs,
                                    tmp_path, qtbot):
+
     main_window, dock, variables = main_window__dock
     # add widgets
     widget = None
+
     for varname in variables.keys():
-        dock_widget = dock.add_dock_widget(varname)
+        dock_widget = dock.add_dock_widget([varname])
         if varname in apply_to:
             widget = dock_widget.widget()
             apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None,
@@ -196,7 +198,7 @@ def test_save_load_layout_tsdframe(apply_to, main_window__dock, color_by_kwargs,
 
     layout_path = tmp_path / "layout.json"
     layout_dict_orig = dock._get_layout_dict()
-    dock.save_layout(layout_path)
+    dock._save_layout(layout_path)
 
     # load a main window with the same configs.
     main_window_new = viz.qt.mainwindow.MainWindow()
@@ -272,8 +274,9 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, colo
     main_window, dock, variables = main_window__dock
     # add widgets
     widget = None
+
     for varname in variables.keys():
-        dock_widget = dock.add_dock_widget(varname)
+        dock_widget = dock.add_dock_widget([varname])
         if varname in apply_to:
             widget = dock_widget.widget()
             apply_action(widget=widget, action_type="group_by" if group_by_kwargs is not None else None,
@@ -286,7 +289,8 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, colo
     assert widget is not None, "widget not created."
 
     layout_path = tmp_path / "layout.json"
-    dock.save_layout(layout_path)
+    dock._save_layout(layout_path)
+
 
     # Take screenshots
     orig_screenshots = {}
