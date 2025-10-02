@@ -7,7 +7,6 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Union
-from pathlib import Path
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
@@ -583,14 +582,13 @@ class MainDock(QDockWidget):
         for d in all_docks:
             name = d.objectName()
             if name != "MainDock":
-                print(d.widget().plot._manager.get_state())
                 info = {"visible": d.isVisible(),
                         "floating": d.isFloating(),
                         "area": self.gui.dockWidgetArea(d).name,
                         "pos": (d.x(), d.y()),
                         "size": (d.width(), d.height()),
                         "dtype": d.widget().plot.data.__class__.__name__,
-                        "varname": re.sub(r'_\d+$', '', name),
+                        "key_path": d.property("key_path"),
                         "index": int(name.split("_")[-1]),
                         "name": name,
                         "manager_state_dict": d.widget().plot._manager.get_state(),
@@ -608,20 +606,22 @@ class MainDock(QDockWidget):
         }
         return payload
 
-    def _save_layout(self):
+    def _save_layout(self, file_name: str | pathlib.Path | None = None):
         print("Saving layout...")
-        dt = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        default_file = os.path.join(os.getcwd(), f"layout_{dt}.json")
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Layout",
-            default_file,  # suggested file name
-            "Layout Files (*.json)"
-        )
+        if file_name is None:
+            dt = datetime.now().strftime("%Y-%m-%d_%H-%M")
+            default_file = os.path.join(os.getcwd(), f"layout_{dt}.json")
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Layout",
+                default_file,  # suggested file name
+                "Layout Files (*.json)"
+            )
+
         if file_name:
 
-            if not file_name.lower().endswith(".json"):
-                file_name += ".json"
+            file_name = pathlib.Path(file_name) if not isinstance(file_name, str) else file_name
+            file_name = file_name.with_suffix(".json")
 
             payload = self._get_layout_dict()
 
