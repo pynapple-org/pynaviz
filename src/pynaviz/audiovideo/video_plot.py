@@ -122,7 +122,6 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
 
         # List to hold time series points that can be superposed
         self.points = {}
-        self.controller._add_callback(self._update_extra_objects)
 
         self.canvas.request_draw(
             draw_function=lambda: self.renderer.render(self.scene, self.camera)
@@ -242,6 +241,7 @@ class PlotTsdTensor(PlotBaseVideoTensor):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
         self._data = data
         super().__init__(data, index=index, parent=parent)
+        self.controller._add_callback(self._update_extra_objects)
 
     def _get_initial_texture_data(self):
         """Return the first frame as the initial texture."""
