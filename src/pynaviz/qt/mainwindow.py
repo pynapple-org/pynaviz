@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ..audiovideo.video_plot import PlotBaseVideoTensor
+from ..audiovideo import VideoHandler
 from ..controller_group import ControllerGroup
 from .widget_plot import (
     IntervalSetWidget,
@@ -214,12 +214,21 @@ class MainDock(QDockWidget):
         layout.addWidget(menu_bar)
 
 
-        # --- list widget ---
+        # --- List of variables ---
+        self._interval_set_keys = []
         self._interval_set_key_paths = []
+        self._tsdframe_keys = []
         self.treeWidget = QTreeWidget()
         self.treeWidget.setHeaderLabel("Variables")
         self.treeWidget.itemDoubleClicked.connect(self.on_item_double_clicked)
         self._add_items_to_tree_widget(variables)
+
+        for k in variables.keys():
+            if k != "data":
+                if isinstance(variables[k], nap.IntervalSet):
+                    self._interval_set_keys.append(k) # Storing interval set keys for add_interval_set action
+                if isinstance(variables[k], nap.TsdFrame):
+                    self._tsdframe_keys.append(k) # Storing tsdframe keys for point and skeleton overlay
 
         layout.addWidget(self.treeWidget)
 
@@ -247,14 +256,6 @@ class MainDock(QDockWidget):
 
         time_layout.addStretch()
         layout.addLayout(time_layout)
-
-
-        # self.time_label = QLabel("0.0 s")
-        # self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # font = self.time_label.font()
-        # font.setPointSize(12)
-        # self.time_label.setFont(font)
-        # layout.addWidget(self.time_label)
 
         # --- play/pause button at bottom ---
         button_layout = QHBoxLayout()
@@ -355,6 +356,7 @@ class MainDock(QDockWidget):
             # Switch to play icon
             self.timer.stop()
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-start"))
+            self.ctrl_group.set_interval(self.ctrl_group.current_time, None)
 
     def _play(self, delta=0.025):
         self.ctrl_group.advance(delta=delta)
@@ -494,11 +496,23 @@ class MainDock(QDockWidget):
             interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self._interval_set_key_paths}
             return TsdFrameWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdTensor):
-            return TsdTensorWidget(var, index=index, set_parent=True)
+            tsdframes = {k:self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+            return TsdTensorWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
         elif isinstance(var, nap.Ts):
             return TsWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.IntervalSet):
             return IntervalSetWidget(var, index=index, set_parent=True)
+        elif isinstance(var, VideoHandler):
+            tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+            return VideoWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
+        elif isinstance(var, (str, pathlib.Path)):
+            try:
+                tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+                video_widget = VideoWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
+                return video_widget
+            except Exception as e:
+                print(f"Error loading video from '{var}': {e}")
+                return None
         elif isinstance(var, NWBReference):
             var = var.nwb_file[var.key]
             return self._create_widget_for_variable(var)
@@ -620,7 +634,7 @@ class MainDock(QDockWidget):
 
         if file_name:
 
-            file_name = pathlib.Path(file_name) if not isinstance(file_name, str) else file_name
+            file_name = pathlib.Path(file_name) if isinstance(file_name, str) else file_name
             file_name = file_name.with_suffix(".json")
 
             payload = self._get_layout_dict()
@@ -810,8 +824,14 @@ def get_pynapple_variables(
             if "pynapple" in v.__module__ and k[0] != "_":
                 result[k] = v
 
-            if "pynaviz" in v.__module__ and k[0] != "_" and isinstance(v, PlotBaseVideoTensor):
+            if "pynaviz" in v.__module__ and k[0] != "_" and isinstance(v, VideoHandler):
                 result[k] = v
+
+        if isinstance(v, (str, pathlib.Path)) and os.path.isfile(v):
+            ext = os.path.splitext(v)[1].lower()
+            if ext in [".mp4", ".avi", ".mov", ".mkv"]:
+                result[k] = v
+
 
     return result
 
