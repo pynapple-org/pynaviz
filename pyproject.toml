@@ -52,7 +52,9 @@ dev = [
     "isort",
     "click",
     "imageio",
-    "pyqt6"
+    "pyqt6",
+    "fsspec",                      # Download file from OSF for testing
+    "aiohttp"
 ]
 docs = [
     "matplotlib",

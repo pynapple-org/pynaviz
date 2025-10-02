@@ -115,7 +115,7 @@ from pynaviz import scope
 # videos['licks'] = licks
 # videos['trials'] = trials
 
-scope(vars, layout_path="layout_2025-09-19_14-28.json")
+scope(vars)
 
 
 # # link
