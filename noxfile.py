@@ -23,7 +23,7 @@ def linters_fix(session):
 def tests(session):
     """Run the test suite."""
     # session.log("install")
-    session.install("-e", ".[dev]")
+    session.install("-e", ".[dev]", external=True)
     tests_path = pathlib.Path(__file__).parent.resolve() / "tests"
 
     # generate sample videos
@@ -75,11 +75,10 @@ def tests(session):
             },
             external=True,  # xvfb-run is not a Python package
         )
-
     else:
         session.run(
             "pytest",
             env={
                 "WGPU_FORCE_OFFSCREEN": "1",
-            },
+            }
         )
