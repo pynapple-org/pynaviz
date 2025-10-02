@@ -31,10 +31,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-
-from pynaviz import VideoHandler
-from pynaviz.controller_group import ControllerGroup
-from ..audiovideo.video_plot import PlotBaseVideoTensor
+from ..audiovideo import VideoHandler
 from ..controller_group import ControllerGroup
 from .widget_plot import (
     IntervalSetWidget,
@@ -637,7 +634,7 @@ class MainDock(QDockWidget):
 
         if file_name:
 
-            file_name = pathlib.Path(file_name) if not isinstance(file_name, str) else file_name
+            file_name = pathlib.Path(file_name) if isinstance(file_name, str) else file_name
             file_name = file_name.with_suffix(".json")
 
             payload = self._get_layout_dict()
