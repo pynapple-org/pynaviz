@@ -29,5 +29,5 @@ tsdtensor = nap.TsdTensor(t=np.arange(10000)/30, d=np.random.randn(10000, 10, 10
 
 iset = nap.IntervalSet(start=np.arange(0, 1000, 10), end=np.arange(5, 1005, 10))
 
-
-scope(globals(), layout_path="layout_2025-09-30_17-19.json")
+# layout_path = "layout.json"
+scope(globals())#, layout_path = "layout.json")
