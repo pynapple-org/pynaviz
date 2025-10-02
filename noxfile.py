@@ -1,5 +1,6 @@
 import os
 import pathlib
+import shutil
 
 import nox
 
@@ -71,9 +72,9 @@ def tests(session):
                 "PYGFX_WGPU_ADAPTER_NAME": "llvmpipe",
                 "PYGFX_EXPECT_LAVAPIPE": "true",
                 "DISPLAY": ":99.0",
-            }
+            },
+            external=True,  # xvfb-run is not a Python package
         )
-
     else:
         session.run(
             "pytest",

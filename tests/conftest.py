@@ -43,7 +43,7 @@ def dummy_tsdtensor():
     return config.TsdTensorConfig.get_data()
 
 @pytest.fixture
-def variables():
+def nap_var():
     return {
         "tsdframe": config.TsdFrameConfig.get_data(),
         "tsd": config.TsdConfig.get_data(),
