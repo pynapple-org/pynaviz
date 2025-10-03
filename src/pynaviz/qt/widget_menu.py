@@ -392,17 +392,35 @@ class MenuWidget(QWidget):
         """Creates the action menu with plot operation entries."""
         self.action_menu = QMenu()
         for func_name, name in self.action_funcs.items():
+            if func_name in ["select_interval_set", "overlay_time_series"]:
+                self.action_menu.addSeparator()
             action = self.action_menu.addAction(name)
             action.setObjectName(func_name)
             action.triggered.connect(self._popup_menu)
 
     def show_action_menu(self) -> None:
         """Displays the action menu below the button."""
+
+        if hasattr(self.plot, "_controllers"):
+            # If 'get' controller is enabled (i.e., in x vs y mode),
+            # Need to disable all others actions
+            if self.plot._controllers["get"].enabled:
+                for act in self.action_menu.actions():
+                    act.setEnabled(act.objectName() == "x_vs_y")
+            else:
+                for act in self.action_menu.actions():
+                    act.setEnabled(True)
+
         pos = self.action_button.mapToGlobal(QPoint(0, self.action_button.height()))
         self.action_menu.exec(pos)
 
     def show_select_menu(self) -> None:
         """Opens the channel list selection dialog."""
+        if hasattr(self.plot, "_controllers"):
+            # If 'get' controller is enabled (i.e., in x vs y mode),
+            # Need to disable channel selection
+            if self.plot._controllers["get"].enabled:
+                return
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.show()
 
@@ -426,6 +444,7 @@ class MenuWidget(QWidget):
         if popup_name in ["overlay_time_series", "overlay_skeleton"]:
             self.show_overlay_menu(popup_name)
             return
+
         kwargs = get_popup_kwargs(popup_name, self, action)
         if kwargs is not None:
             dialog = DropdownDialog(**kwargs)

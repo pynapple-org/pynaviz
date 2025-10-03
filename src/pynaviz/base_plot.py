@@ -613,11 +613,14 @@ class PlotTsdFrame(_BasePlot):
                     self.controller.enabled = True
                     self._initialize_graphic()
                     self.scene.add(self.graphic)
+                    self.scene.add(self.ruler_ref_time)
                     self._manager.reset(self)
                     self._flush()
 
                 minmax = self._get_min_max()
+
                 self.controller.set_ylim(np.min(minmax[:, 0]), np.max(minmax[:, 1]))
+                self.controller.set_xlim(0, 1)
                 self.canvas.request_draw(self.animate)
 
     def _update(self, action_name):
@@ -789,8 +792,8 @@ class PlotTsdFrame(_BasePlot):
 
     def plot_x_vs_y(
         self,
-        x_label: Union[str, int, float],
-        y_label: Union[str, int, float],
+        x_col: Union[str, int, float],
+        y_col: Union[str, int, float],
         color: Union[str, tuple] = "white",
         thickness: float = 1.0,
         markersize: float = 10.0,
@@ -800,9 +803,9 @@ class PlotTsdFrame(_BasePlot):
 
         Parameters
         ----------
-        x_label : str or int or float
+        x_col : str or int or float
             Column name for the x-axis.
-        y_label : str or int or float
+        y_col : str or int or float
             Column name for the y-axis.
         color : str or hex or RGB, default="white"
             Line color.
@@ -811,15 +814,25 @@ class PlotTsdFrame(_BasePlot):
         markersize : float, default=10.0
             Size of the time marker.
         """
+        if x_col not in self.data.columns or y_col not in self.data.columns:
+            raise ValueError(f"Columns {x_col} and {y_col} must be in data columns.")
+
         # Remove time series line graphics from the scene
         self.scene.remove(self.graphic)
+        self.scene.remove(self.time_point) if self.time_point else None
+
+        # Remove intervals if any
+        if len(self._epochs):
+            keys = list(self._epochs.keys())
+            for epoch in keys:
+                self.remove_interval_set(epoch)
 
         # Get current time from the center reference line
         current_time = self.ruler_ref_time.geometry.positions.data[0][0]
         self.scene.remove(self.ruler_ref_time)
 
         # Build new geometry for x-y data
-        xy_values = self.data.loc[[x_label, y_label]].values.astype("float32")
+        xy_values = self.data.loc[[x_col, y_col]].values.astype("float32")
         positions = np.zeros((len(self.data), 3), dtype="float32")
         positions[:, 0:2] = xy_values
 
@@ -831,7 +844,7 @@ class PlotTsdFrame(_BasePlot):
         self.scene.add(self.graphic)
 
         # Create and add a point marker at the current time
-        current_xy = self.data.loc[[x_label, y_label]].get(current_time)
+        current_xy = self.data.loc[[x_col, y_col]].get(current_time)
         xy = np.hstack((current_xy, 1), dtype="float32")[None, :]
         self.time_point = gfx.Points(
             gfx.Geometry(positions=xy),
@@ -846,9 +859,10 @@ class PlotTsdFrame(_BasePlot):
         get_controller = self._controllers["get"]
         get_controller.n_frames = len(self.data)
         get_controller.frame_index = self.data.get_slice(current_time).start
+        get_controller._current_time = current_time
         get_controller.enabled = True
         get_controller._controller_id = controller_id
-        get_controller.data = self.data.loc[[x_label, y_label]]
+        get_controller.data = self.data.loc[[x_col, y_col]]
         get_controller.buffer = self.time_point.geometry.positions
 
         self.controller = get_controller
