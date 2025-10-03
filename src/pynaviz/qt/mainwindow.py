@@ -11,7 +11,7 @@ from typing import Any, Literal, Union
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -29,7 +29,7 @@ from PyQt6.QtWidgets import (
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
-    QWidget,
+    QWidget, QStyleFactory,
 )
 
 from ..audiovideo import VideoHandler
@@ -43,6 +43,7 @@ from .widget_plot import (
     TsWidget,
     VideoWidget,
 )
+from .icons import icon_base64
 
 DOCK_LIST_STYLESHEET = """
     * {
@@ -828,8 +829,6 @@ def _filter_paths(path: str) -> tuple | None:
                 return base_name, data
             else:
                 return None, None
-        else:
-            print(f"File extension '{ext}' not supported for path '{path}'.")
 
     return None, None
 
@@ -890,11 +889,16 @@ def scope(variables: Union[dict, list, tuple], layout_path: str = None):
     if app is None:
         app = QApplication(sys.argv)
 
-    app.setStyle("Fusion")
+    icon_data = QByteArray.fromBase64(icon_base64)
+    pixmap = QPixmap()
+    pixmap.loadFromData(icon_data)
+    icon = QIcon(pixmap)
+
+    app.setWindowIcon(icon)
     app.setApplicationName("Pynaviz")
     app.setOrganizationName("pynapple-org")
     app.setOrganizationDomain("pynaviz.github.io")
-    app.setWindowIcon(QIcon("icons/Pynapple_final_icon.png"))
+    # app.setStyle(QStyleFactory.create("Fusion"))
 
     gui = MainWindow()
 
