@@ -69,12 +69,12 @@ def main():
     frames.append(grab_window(win))
     durations.append(800)
 
-    list_widget = ctrl_dock.listWidget
+    tree_widget = ctrl_dock.treeWidget
 
     # --- Add docks ---
-    add_dock_widget(list_widget, win, app, frames, durations, item_number=0) # units
-    add_dock_widget(list_widget, win, app, frames, durations, item_number=1) # manifold
-    add_dock_widget(list_widget, win, app, frames, durations, item_number=2) # video
+    add_dock_widget(tree_widget, win, app, frames, durations, item_number=0) # units
+    add_dock_widget(tree_widget, win, app, frames, durations, item_number=1) # manifold
+    add_dock_widget(tree_widget, win, app, frames, durations, item_number=2) # video
 
     # --- Resize and move the video dock ---
     move_and_resize_dock(win, app, frames, durations, move_offset=QPoint(500, 0), resize_width=400)

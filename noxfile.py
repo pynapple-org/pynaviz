@@ -1,17 +1,21 @@
+import os
 import pathlib
+import shutil
 
 import nox
 
 
-@nox.session(name="linters")
+@nox.session(name="linters", reuse_venv=True)
 def linters(session):
     """Run linters"""
+    session.install("-e", ".[dev]")
     session.run("ruff", "check", "src", "--ignore", "D")
     session.run("ruff", "check", "tests", "--ignore", "D")
 
-@nox.session(name="linters-fix")
+@nox.session(name="linters-fix", reuse_venv=True)
 def linters_fix(session):
     """Run linters and auto-fix issues"""
+    session.install("-e", ".[dev]")
     session.run("ruff", "check", "src", "--ignore", "D", "--fix")
     session.run("ruff", "check", "tests", "--ignore", "D", "--fix")
 
@@ -19,7 +23,7 @@ def linters_fix(session):
 def tests(session):
     """Run the test suite."""
     # session.log("install")
-    session.install("-e", ".[dev]")
+    session.install("-e", ".[dev]", external=True)
     tests_path = pathlib.Path(__file__).parent.resolve() / "tests"
 
     # generate sample videos
@@ -56,9 +60,25 @@ def tests(session):
         # "--path", "tests/screenshots",
     )
     session.log("Run Tests...")
-    session.run(
-        "pytest",
-        env={
-            "WGPU_FORCE_OFFSCREEN": "1",
-        },
-    )
+
+    if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+        # CI environment - use xvfb
+        session.run(
+            "xvfb-run",
+            "-s", "-screen 0 1920x1200x24 +extension GLX",
+            "pytest", "-v", "tests/",
+            env={
+                "WGPU_FORCE_OFFSCREEN": "1",
+                "PYGFX_WGPU_ADAPTER_NAME": "llvmpipe",
+                "PYGFX_EXPECT_LAVAPIPE": "true",
+                "DISPLAY": ":99.0",
+            },
+            external=True,  # xvfb-run is not a Python package
+        )
+    else:
+        session.run(
+            "pytest",
+            env={
+                "WGPU_FORCE_OFFSCREEN": "1",
+            }
+        )

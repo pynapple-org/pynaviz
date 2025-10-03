@@ -46,10 +46,47 @@ def click_on_item(list_widget, item_number, win, app, frames, durations):
     durations.append(800)
     return item
 
-def add_dock_widget(list_widget, win, app, frames, durations, item_number=0):
-    item = click_on_item(list_widget, item_number, win, app, frames, durations)
+def click_on_tree_item(tree_widget, item_index, win, app, frames, durations, column=0):
+    """Click on a tree widget item by index.
+
+    Parameters
+    ----------
+    tree_widget : QTreeWidget
+        The tree widget
+    item_index : int or tuple
+        If int, gets top-level item at that index.
+        If tuple like (0, 1), gets child item: topLevelItem(0).child(1)
+    column : int
+        Column to click on
+    """
+    # Get the item
+    if isinstance(item_index, int):
+        item = tree_widget.topLevelItem(item_index)
+    elif isinstance(item_index, tuple):
+        item = tree_widget.topLevelItem(item_index[0])
+        for child_idx in item_index[1:]:
+            item = item.child(child_idx)
+    else:
+        raise ValueError("item_index must be int or tuple")
+
+    if item is None:
+        raise ValueError(f"Item not found at index {item_index}")
+
+    # Get visual rectangle and click
+    rect = tree_widget.visualItemRect(item)
+    pos = rect.center()
+    QTest.mouseClick(tree_widget.viewport(),
+                     Qt.MouseButton.LeftButton,
+                     pos=pos)
+    QTest.qWait(1000)
+    frames.append(grab_window(win))
+    durations.append(800)
+    return item
+
+def add_dock_widget(tree_widget, win, app, frames, durations, item_number=0):
+    item = click_on_tree_item(tree_widget, item_number, win, app, frames, durations)
     app.processEvents()
-    list_widget.itemDoubleClicked.emit(item)
+    tree_widget.itemDoubleClicked.emit(item, 0)
     app.processEvents()
     QTest.qWait(1000)
     frames.append(grab_window(win))
