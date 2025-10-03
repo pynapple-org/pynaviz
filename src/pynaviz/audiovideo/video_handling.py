@@ -111,7 +111,8 @@ class VideoHandler(BaseAudioVideo):
 
         self._index_ready = threading.Event()
         self._index_thread.start()
-
+        # decode first frame
+        self.__getitem__(0)
 
     @staticmethod
     def _ts_to_index(ts: float, time: NDArray) -> int:
