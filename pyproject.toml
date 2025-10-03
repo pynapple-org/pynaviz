@@ -29,6 +29,11 @@ dependencies = [
     "av",
 ]
 
+# CLI interface
+[project.scripts]
+pynaviz = "pynaviz.cli:main"
+
+
 # Configure package discovery for setuptools
 [tool.setuptools.packages.find]
 where = ["src"]             # The directory where package modules are located
