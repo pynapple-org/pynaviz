@@ -21,6 +21,7 @@ tsg = nap.TsGroup({
 tsdframe = nap.TsdFrame(
     t=np.arange(1000)/30,
     d=np.random.rand(1000, 10)*500,
+    columns=[f"neuron_{i}" for i in range(10)],
     metadata={"area":
                   ["pfc"]*4 + ["ppc"]*6,
               "type": ["exc", "inh"]*5,

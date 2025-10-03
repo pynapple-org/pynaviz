@@ -77,14 +77,18 @@ class ChannelListModel(QAbstractListModel):
 
         if isinstance(data, nap.TsGroup):
             self.checks = {i: True for i in data.keys()}
+            self.names = list(data.keys())
         elif isinstance(data, nap.TsdFrame):
-            self.checks = {i: True for i in data.columns}
+            self.checks = {i: True for i in range(len(data.columns))}
+            self.names = list(data.columns)
         elif isinstance(data, nap.IntervalSet):
             self.checks = {i: True for i in data.index}
+            self.names = list(data.index)
         elif isinstance(data, dict) and all(
             isinstance(v, nap.IntervalSet) for v in data.values()
         ):
             self.checks = {i: False for i in range(len(data))}
+            self.names = list(range(len(data)))
 
     def rowCount(self, parent=None):
         return len(self.checks.keys())
@@ -101,7 +105,7 @@ class ChannelListModel(QAbstractListModel):
         """What to display in the list view."""
         row = index.row()
         if role == Qt.ItemDataRole.DisplayRole:
-            return row
+            return self.names[row]
         elif role == Qt.ItemDataRole.CheckStateRole:
             return (
                 Qt.CheckState.Checked if self.checks[row] else Qt.CheckState.Unchecked
