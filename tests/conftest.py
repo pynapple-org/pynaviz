@@ -43,6 +43,17 @@ def dummy_tsdtensor():
     return config.TsdTensorConfig.get_data()
 
 @pytest.fixture
+def nap_var():
+    return {
+        "tsdframe": config.TsdFrameConfig.get_data(),
+        "tsd": config.TsdConfig.get_data(),
+        "ts": config.TsConfig.get_data(),
+        "interval_set": config.IntervalSetConfig.get_data(),
+        "tsgroup": config.TsGroupConfig.get_data(),
+        "tsdtensor": config.TsdTensorConfig.get_data(),
+    }
+
+@pytest.fixture
 def camera_state():
     cam_state = {
          'position': np.array([10., -10., 250.]),

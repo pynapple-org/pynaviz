@@ -1,5 +1,6 @@
 """
-Video display
+Module for time-synchronized video plotting using pygfx and multiprocessing.
+
 """
 
 import abc
@@ -23,6 +24,7 @@ from numpy.typing import NDArray
 
 from ..base_plot import _BasePlot
 from ..controller import GetController
+from .skeleton_plot import PlotPoints
 from .video_handling import VideoHandler
 from .video_worker import RenderTriggerSource, video_worker_process
 
@@ -118,6 +120,9 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
             callback=self._update_buffer,
         )
 
+        # List to hold time series points that can be superposed
+        self.points = {}
+
         self.canvas.request_draw(
             draw_function=lambda: self.renderer.render(self.scene, self.camera)
         )
@@ -165,6 +170,68 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         """
         pass
 
+    def _update_extra_objects(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
+        """
+        Update the positions of any superposed time series points based on the current frame.
+
+        Parameters
+        ----------
+        frame_index : int
+            Current frame index.
+        event_type : RenderTriggerSource, optional
+            Source of the event triggering the update.
+        """
+        if len(self.points):
+            time_array = getattr(self.data.index, "values", self.data.index)
+            current_time = time_array[frame_index]
+            for points in self.points.values():
+                points.update(current_time)
+
+    def superpose_points(self, tsdframe: nap.TsdFrame,
+                         color = None,
+                         markersize: float = 10,
+                         thickness: float = 2,
+                         label: Optional[str] = None
+                         ):
+        """
+        Superpose a set of points on top of the video plot. Argument tsdframe should
+        be a nap.Tsdframe with multiple of 2 columns (x1, y1, x2, y2, ...).
+        The label of the columns doesn't matter.
+
+        Parameters
+        ----------
+        tsdframe : nap.TsdFrame
+            Time series data to overlay.
+        color : str or rgba tuple, optional
+            Color of the set of points.
+        markersize : float, default=10
+            Size of the set of points.
+        thickness : float, default=2
+            Thickness of the lines connecting the points.
+        label : str, optional
+            Label for the set of points. If None, a default label is assigned.
+        """
+        if not isinstance(tsdframe, nap.TsdFrame):
+            raise ValueError("tsdframe must be a nap.TsdFrame instance.")
+
+        if tsdframe.shape[1] % 2 != 0:
+            raise ValueError("tsdframe must have multiple of 2 columns for x and y coordinates.")
+
+        if label is None:
+            label = f"points_{len(self.points) + 1}"
+
+        self.points[label] = PlotPoints(
+                tsdframe = tsdframe,
+                initial_time = self.controller._get_frame_time(),
+                scene=self.scene,
+                color=color,
+                markersize = markersize,
+                thickness = thickness
+            )
+
+
+        self.controller.renderer_request_draw()
+
 
 class PlotTsdTensor(PlotBaseVideoTensor):
     """
@@ -174,6 +241,7 @@ class PlotTsdTensor(PlotBaseVideoTensor):
     def __init__(self, data: nap.TsdTensor, index=None, parent=None):
         self._data = data
         super().__init__(data, index=index, parent=parent)
+        self.controller._add_callback(self._update_extra_objects)
 
     def _get_initial_texture_data(self):
         """Return the first frame as the initial texture."""
@@ -197,7 +265,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
     def __init__(
         self,
-        video_path: str | pathlib.Path,
+        video: str | pathlib.Path | VideoHandler,
         t: Optional[NDArray] = None,
         stream_index: int = 0,
         index=None,
@@ -208,10 +276,10 @@ class PlotVideo(PlotBaseVideoTensor):
 
         Parameters
         ----------
-        video_path : str or pathlib.Path
-            Path to the video file to be visualized.
+        video : str or pathlib.Path or VideoHandler
+            Path to the video file to be visualized or a VideoHandler object.
         t : NDArray, optional
-            Optional time vector to use for syncing frames.
+            Time vector to use for syncing frames.
         stream_index : int, default=0
             Index of the stream to read in the video file.
         index : int, optional
@@ -220,8 +288,14 @@ class PlotVideo(PlotBaseVideoTensor):
             Parent GUI container or widget.
         """
         self._closed = False
-        data = VideoHandler(video_path, time=t, stream_index=stream_index)
+        if isinstance(video, (str, pathlib.Path)):
+            data = VideoHandler(video, time=t, stream_index=stream_index)
+        else:
+            if not isinstance(video, VideoHandler):
+                raise ValueError("video must be a file path or a VideoHandler instance.")
+            data = video
         self._data = data
+        video_path = data.video_path
         super().__init__(data, index=index, parent=parent)
 
         # Shared memory setup for multiprocessing frame exchange
@@ -336,6 +410,8 @@ class PlotVideo(PlotBaseVideoTensor):
         event_type : RenderTriggerSource, optional
             Source of the triggering event.
         """
+        if self._debug:
+            print(f"update buffer: {id(self)}({id(self.controller)}) - {event_type} - {frame_index}")
         if event_type != RenderTriggerSource.SET_FRAME:
             self.frame_ready.clear()
             while not self.request_queue.empty():
@@ -354,6 +430,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.texture.data[:] = frame
                 self._set_time_text(frame_index)
                 self.texture.update_full()
+                self._update_extra_objects(frame_index)
 
     def _update_buffer_thread(self):
         """Background thread that listens for ready frames and updates the buffer."""
@@ -363,10 +440,17 @@ class PlotVideo(PlotBaseVideoTensor):
             with self.buffer_lock, self.worker_lock:
                 self.texture.data[:] = self.shared_frame
                 frame_index = int(self.shared_index[0])
+                self._update_extra_objects(frame_index)
                 self.frame_ready.clear()
                 try:
                     trigger_source = self.response_queue.get(timeout=0.05)
+                    while not self._pending_ui_update_queue.empty():
+                        try:
+                            self._pending_ui_update_queue.get_nowait()
+                        except queue.Empty:
+                            break
                     self._pending_ui_update_queue.put((frame_index, trigger_source))
+
                 except queue.Empty:
                     continue
             self._needs_redraw.set()
@@ -391,7 +475,7 @@ class PlotVideo(PlotBaseVideoTensor):
             self.controller.renderer_request_draw()
 
             if trigger_source == RenderTriggerSource.LOCAL_KEY and hasattr(self, "_last_jump_index"):
-                current_time = self._data.t[frame_index]
+                current_time = self.controller._get_frame_time()
                 if self._debug:
                     print("keypress", current_time, frame_index)
                 del self._last_jump_index

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from PyQt6.QtWidgets import QApplication, QComboBox, QDoubleSpinBox
 
-from pynaviz.qt.qt_item_models import ChannelListModel
+from pynaviz.qt.widget_list_selection import ChannelListModel
 from pynaviz.qt.widget_menu import ChannelList, DropdownDialog, MenuWidget, widget_factory
 
 

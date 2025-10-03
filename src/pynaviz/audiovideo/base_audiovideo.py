@@ -1,3 +1,9 @@
+"""
+Base class for audio and video handling.
+
+Handles opening/closing the stream, seeking, and keyframe extraction.
+"""
+
 import abc
 import pathlib
 import threading
