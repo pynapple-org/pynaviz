@@ -893,14 +893,16 @@ def scope(variables: Union[dict, list, tuple], layout_path: str = None):
     pixmap = QPixmap()
     pixmap.loadFromData(icon_data)
     icon = QIcon(pixmap)
-
     app.setWindowIcon(icon)
     app.setApplicationName("Pynaviz")
     app.setOrganizationName("pynapple-org")
     app.setOrganizationDomain("pynaviz.github.io")
-    # app.setStyle(QStyleFactory.create("Fusion"))
+    # # app.setStyle(QStyleFactory.create("Fusion"))
+    # from qt_material import apply_stylesheet
+    # apply_stylesheet(app, theme='dark_lightgreen.xml')
 
     gui = MainWindow()
+
 
     MainDock(variables, gui, layout_path=layout_path)
 
