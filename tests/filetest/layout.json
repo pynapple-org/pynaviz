@@ -1,0 +1,64 @@
+{
+  "version": 0,
+  "geometry_b64": "AdnQywADAAAAAA/UAAACDwAAFIMAAAVUAAAP1AAAAjUAABSDAAAFVAAAAAEAAAAADwAAAA/UAAACNQAAFIMAAAVU",
+  "state_b64": "AAAA/wAAAAD9AAAAAgAAAAAAAACCAAADIPwBAAAAAfsAAAAQAE0AYQBpAG4ARABvAGMAawEAAAAAAAAAggAAAIIAAACCAAAAAQAABCgAAAMg/AIAAAAC+wAAAFAAQQAyADkAMgA5AC0AMgAwADAANwAxADEALgBuAHcAYgAvAHAAbwBzAGkAdABpAG8AbgBfAHQAaQBtAGUAXwBzAHUAcABwAG8AcgB0AF8AMAEAAAAAAAABjQAAAB0A////+wAAACoAQQAyADkAMgA5AC0AMgAwADAANwAxADEALgBuAHcAYgAvAHIAegBfADEBAAABkwAAAY0AAAAdAP///wAAAAAAAAMgAAAABAAAAAQAAAAIAAAACPwAAAAA",
+  "docks": [
+    {
+      "visible": true,
+      "floating": false,
+      "area": "RightDockWidgetArea",
+      "pos": [
+        136,
+        0
+      ],
+      "size": [
+        1064,
+        397
+      ],
+      "dtype": "IntervalSet",
+      "key_path": [
+        "A2929-200711.nwb",
+        "position_time_support"
+      ],
+      "index": 0,
+      "name": "A2929-200711.nwb/position_time_support_0",
+      "manager_state_dict": {
+        "_actions": {
+          "group_by": null,
+          "sort_by": null,
+          "color_by": null
+        }
+      }
+    },
+    {
+      "visible": true,
+      "floating": false,
+      "area": "RightDockWidgetArea",
+      "pos": [
+        136,
+        403
+      ],
+      "size": [
+        1064,
+        397
+      ],
+      "dtype": "Tsd",
+      "key_path": [
+        "A2929-200711.nwb",
+        "rz"
+      ],
+      "index": 1,
+      "name": "A2929-200711.nwb/rz_1",
+      "manager_state_dict": {
+        "_actions": {
+          "group_by": null,
+          "sort_by": null,
+          "color_by": null
+        }
+      }
+    }
+  ],
+  "file_paths": [
+    "/mnt/home/gviejo/pynaviz/tests/filetest/A2929-200711.nwb"
+  ]
+}
