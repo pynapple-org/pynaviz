@@ -188,12 +188,15 @@ class MainDock(QDockWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Toolbar
-        menu_bar = QMenuBar()
+        # “Menu bar” layout
+        menu_layout = QHBoxLayout()
+        layout.addLayout(menu_layout)
+        # menu_bar = QMenuBar(container)
 
         # Add "File" menu
-        file_menu = QMenu("&File", menu_bar)
-        open_action = QAction("&Open...", gui)
+        file_btn = QPushButton("&File")
+        file_menu = QMenu()
+        open_action = QAction("&Open...")
         open_action.setShortcut(QKeySequence("Ctrl+O"))
         open_action.triggered.connect(gui.open_file)  # Connect to the function
         file_menu.addAction(open_action)
@@ -202,19 +205,17 @@ class MainDock(QDockWidget):
         file_menu.addAction("&Save layout", self._save_layout)
         file_menu.addSeparator()
         file_menu.addAction("&Exit", gui.close)
+        file_btn.setMenu(file_menu)
+        menu_layout.addWidget(file_btn)
 
         # Add "Help" menu
-        help_menu = QMenu("&Help", menu_bar)
+        help_btn = QPushButton("&Help")
+        help_menu = QMenu()
         help_menu.addAction("&Shortcuts", self._toggle_help_box)
         help_menu.addAction("&About")
+        help_btn.setMenu(help_menu)
+        menu_layout.addWidget(help_btn)
         self.help_box = None
-
-        # Add menus to the menu bar
-        menu_bar.addMenu(file_menu)
-        menu_bar.addMenu(help_menu)
-
-        layout.addWidget(menu_bar)
-
 
         # --- List of variables ---
         self._interval_set_keys = []
@@ -294,7 +295,7 @@ class MainDock(QDockWidget):
         self.setFixedWidth(
             max(
                 self.treeWidget.sizeHintForColumn(0) + 50,
-                menu_bar.sizeHint().width() + 20
+                menu_layout.sizeHint().width() + 20
             )
         )
 
@@ -377,7 +378,6 @@ class MainDock(QDockWidget):
         multiplier = self.time_unit_combo.currentData()
         self.ctrl_group.set_interval(value / multiplier, None)
 
-
     def _update_time_label(self, current_time):
         time_multiplier = self.time_unit_combo.currentData()
         self.time_spin_box.blockSignals(True)
@@ -387,7 +387,6 @@ class MainDock(QDockWidget):
             self.time_spin_box.setMaximum(max_time * time_multiplier)
         self.time_spin_box.setValue(time_multiplier * current_time)
         self.time_spin_box.blockSignals(False)
-
 
     def _stop(self):
         if self.playing:
