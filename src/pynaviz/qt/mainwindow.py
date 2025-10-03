@@ -4,9 +4,10 @@ import os
 import pathlib
 import re
 import sys
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Union
+from typing import Any, Literal, Union
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
@@ -690,7 +691,7 @@ class MainDock(QDockWidget):
                 if self.gui.findChild(QDockWidget, dock_name) is None:
                     raise RuntimeError(f"Dock {widget['name']} was not created.")
             else:
-                print(f"Variable '{widget['varname']}' not found. Skipping dock.")
+                print(f"Variable '{widget['name']}' not found. Skipping dock.")
 
         # 3) Restore geometry first, then layout
         geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))
@@ -787,7 +788,12 @@ class MainWindow(QMainWindow):
                 print(f"File {name} does not exist. Skipping.")
                 continue
             elif file_type in ["Pynapple"]:
-                new_vars.update({name.stem + name.suffix: nap.load_file(name)})
+                data = nap.load_file(name)
+                if "pynapple" in data.__module__:
+                    new_vars.update({name.stem + name.suffix: nap.load_file(name)})
+                else:
+                    print(f"File {name} does not contain a pynapple object. See pynapple documentation for saving pynapple objects with npz")
+                    continue
             elif file_type in ["NWB"]:
                 data: nap.NWBFile = nap.load_file(name)
                 nap_obj_dict = {}
@@ -803,37 +809,76 @@ class MainWindow(QMainWindow):
         dock_widget._add_items_to_tree_widget(new_vars)
 
 
+def _filter_paths(path: str) -> tuple | None:
+    """Filter paths and return either a valid video path or a pynapple object."""
+    if os.path.isfile(path):
+        ext = os.path.splitext(path)[1].lower()
+        base_name = os.path.basename(path)
+        if ext in [".mp4", ".avi", ".mov", ".mkv"]:
+            return base_name, path
+        elif ext == ".nwb":
+            data = nap.load_file(path)
+            nap_obj_dict = {}
+            for key in data.keys():
+                nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
+            return base_name, nap_obj_dict
+        elif ext == ".npz":
+            data = nap.load_file(path)
+            if "pynapple" in data.__module__:
+                return base_name, data
+            else:
+                return None, None
+        else:
+            print(f"File extension '{ext}' not supported for path '{path}'.")
+
+    return None, None
+
+def _extract_name_value(v: Any):
+    """Return (base_name, value) if valid, otherwise (None, None)."""
+    if isinstance(v, (str, pathlib.Path)):
+        return _filter_paths(str(v))
+
+    if hasattr(v, "__module__"):
+        if "pynapple" in v.__module__:
+            return v.__class__.__name__, v
+        if "pynaviz" in v.__module__ and isinstance(v, VideoHandler):
+            return v.__class__.__name__, v
+
+    return None, None
+
 def get_pynapple_variables(
     variables: dict | list | tuple | None = None
 ) -> dict:
-    if isinstance(variables, (list, tuple)):
-        # Try to get variable names from the calling frame
-        import inspect
-        frame = inspect.currentframe().f_back
-        names = [name for name, val in frame.f_locals.items() if val is variables]
-        var_name = names[0] if names else "var"
-        variables = {f"{var_name}_{i}": v for i, v in enumerate(variables)}
-    elif isinstance(variables, dict):
-        variables = variables.copy()
-    else:
+
+    if variables is None:
         return {}
 
-    result: dict = {}
-    for k, v in variables.items():
-        if hasattr(v, "__module__"):
-            if "pynapple" in v.__module__ and k[0] != "_":
-                result[k] = v
+    new_vars = {}
 
-            if "pynaviz" in v.__module__ and k[0] != "_" and isinstance(v, VideoHandler):
-                result[k] = v
+    if isinstance(variables, (list, tuple)):
+        name_counters = defaultdict(int)  # keep track of how many times a name was used
 
-        if isinstance(v, (str, pathlib.Path)) and os.path.isfile(v):
-            ext = os.path.splitext(v)[1].lower()
-            if ext in [".mp4", ".avi", ".mov", ".mkv"]:
-                result[k] = v
+        for v in variables:
 
+            base_name, value = _extract_name_value(v)
 
-    return result
+            if base_name is None:
+                continue
+
+            # Ensure unique name by appending _0, _1, etc. if needed
+            count = name_counters[base_name]
+            unique_name = f"{base_name}_{count}" if count > 0 else base_name
+
+            name_counters[base_name] += 1
+            new_vars[unique_name] = value
+
+    elif isinstance(variables, dict):
+        for k, v in variables.items():
+            base_name, value = _extract_name_value(v)
+            if base_name is not None:
+                new_vars[k] = value
+
+    return new_vars
 
 def scope(variables: Union[dict, list, tuple], layout_path: str = None):
 

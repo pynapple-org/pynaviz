@@ -51,5 +51,5 @@ y_col = [c for c in df.columns if c.endswith("_y")]
 df[y_col] = df[y_col]*-1 + 480 # Flipping y axis
 skeleton = nap.TsdFrame(t=df.index.values/30, d=df.values, columns=df.columns)
 
-scope(globals())#, layout_path="layout.json")
-
+scope(globals())
+# scope([tsd1, tsd2, tsg, video_path], layout_path="layout.json")
