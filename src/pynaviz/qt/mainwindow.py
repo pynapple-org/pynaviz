@@ -890,6 +890,12 @@ def scope(variables: Union[dict, list, tuple], layout_path: str = None):
     if app is None:
         app = QApplication(sys.argv)
 
+    app.setStyle("Fusion")
+    app.setApplicationName("Pynaviz")
+    app.setOrganizationName("pynapple-org")
+    app.setOrganizationDomain("pynaviz.github.io")
+    app.setWindowIcon(QIcon("icons/Pynapple_final_icon.png"))
+
     gui = MainWindow()
 
     MainDock(variables, gui, layout_path=layout_path)
