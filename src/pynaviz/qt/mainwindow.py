@@ -159,43 +159,50 @@ class HelpBox(QFrame):
                 self.close()
         return super().eventFilter(obj, event)
 
-class MainDock(QDockWidget):
 
+class VariableDock(QDockWidget):
     def __init__(self, variables, gui):
         """
-        Main dock widget containing the list of variables.
+        Sidebar widget containing the list of variables.
 
         Parameters
         ----------
-        variables:
+        variables : dict
             Dictionary of pynapple variables.
-        gui:
-            MainWindow instance.
+        gui : QMainWindow
+            Reference to the main GUI instance.
         """
-        super().__init__()
+        super().__init__("Variables", gui)
         self.gui = gui
         self.variables = variables
-        self.setObjectName("MainDock")
-        self.setWindowTitle("Variables")
+        self._interval_set_key_paths = []
+        self.setObjectName("VariableDock")
+        # self.setStyleSheet("background-color: #f0f0f0;")
 
-        self.expanded_width = 250
-        self.collapsed_width = 10  # leave only handle visible
-        self.expanded = True
-
+        # --- Dock settings ---
+        self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
         self.setFeatures(
+            # QDockWidget.DockWidgetFeature.DockWidgetClosable |
             QDockWidget.DockWidgetFeature.DockWidgetMovable |
             QDockWidget.DockWidgetFeature.DockWidgetFloatable
         )
 
-        # --- Container widget inside the dock ---
+        # --- Main container inside dock ---
         container = QWidget()
-        container_layout = QHBoxLayout(container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout = QHBoxLayout(container)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        # --- Sidebar content ---
+        # --- Content area ---
+        self.expanded_width = 200
+        self.collapsed_width = 20
+        self.expanded = True
+        self.last_width = self.expanded_width
+
         self.content = QWidget()
         content_layout = QVBoxLayout(self.content)
         content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
 
         # Tree widget
         self.treeWidget = QTreeWidget()
@@ -204,32 +211,42 @@ class MainDock(QDockWidget):
         self._add_items_to_tree_widget(variables)
         content_layout.addWidget(self.treeWidget)
 
-        container_layout.addWidget(self.content)
+        main_layout.addWidget(self.content)
 
         # --- Handle for collapsing ---
         self.handle = QPushButton("◀")
-        self.handle.setFixedWidth(10)
+        self.handle.setFixedWidth(20)
         self.handle.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.handle.setStyleSheet("""
+            QPushButton {
+                border: none;
+                background-color: #d0d0d0;
+            }
+            QPushButton:hover {
+                background-color: #c0c0c0;
+            }
+        """)
         self.handle.clicked.connect(self.toggle)
-        container_layout.addWidget(self.handle)
+        main_layout.addWidget(self.handle)
 
+        # Set container as dock widget content
         self.setWidget(container)
 
-        # Set initial width
-        self.setMinimumWidth(self.expanded_width)
-        self.setMaximumWidth(self.expanded_width)
-
+        self.setFixedWidth(self.expanded_width)
 
     def toggle(self):
+        """Collapse or expand the dock content."""
         if self.expanded:
-            # Collapse: hide content and shrink width
             self.content.hide()
+            self.last_width = self.width()
             self.setFixedWidth(self.collapsed_width)
             self.handle.setText("▶")
         else:
-            # Expand: show content and restore width
             self.content.show()
+            # self.setMinimumWidth(100)
+            # self.setMaximumWidth(16777215)
             self.setFixedWidth(self.expanded_width)
+            self.resize(self.last_width, self.height())
             self.handle.setText("◀")
         self.expanded = not self.expanded
 
@@ -306,6 +323,7 @@ class MainDock(QDockWidget):
         self.gui.add_dock_widget(variable, key_path)
 
 
+
 class MainWindow(QMainWindow):
 
     _file_extensions = {
@@ -343,16 +361,11 @@ class MainWindow(QMainWindow):
         self._create_top_menu_bar()
 
         # ---- Variables Widget ----
-        self.main_dock = MainDock(variables, self)
-
+        self.variable_dock = VariableDock(variables, self)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.variable_dock)#, Qt.Orientation.Horizontal)
 
         # ---- Bottom Status Bar ----
         self._create_status_bar()
-
-        # ---- Add variables dock ----
-        self.addDockWidget(
-            Qt.DockWidgetArea.LeftDockWidgetArea, self.main_dock, Qt.Orientation.Horizontal
-        )
 
         # ---- misc ----
         self.playing = False
@@ -472,7 +485,7 @@ class MainWindow(QMainWindow):
 
     def _load_multiple_files(self, filenames: list[str]):
         # find main dock
-        dock = self.findChildren(MainDock)
+        dock = self.findChildren(VariableWidget)
         if len(dock) < 1:
             raise RuntimeError("MainWindow should have at least one dock.")
         dock_widget = dock[0]
@@ -747,6 +760,7 @@ class MainWindow(QMainWindow):
 
     def _add_dock_to_gui(self, dock: QDockWidget) -> None:
         """Add dock to the GUI and balance right docks vertically."""
+
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
         # Balance heights of all right docks
@@ -758,6 +772,7 @@ class MainWindow(QMainWindow):
             sizes_h = [1] * len(right_docks)
             self.resizeDocks(right_docks, sizes_h, Qt.Orientation.Vertical)
 
+
     def _register_controller(self, widget: object) -> None:
         """Register the widget's plot in the controller group."""
         self.ctrl_group.add(widget.plot, self._n_dock_open)
@@ -767,13 +782,13 @@ class MainWindow(QMainWindow):
         # TODO: grab iset only from the same tree level.
         index = self._n_dock_open
         if isinstance(var, nap.TsGroup):
-            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.main_dock._interval_set_key_paths}
+            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
             return TsGroupWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.Tsd):
-            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.main_dock._interval_set_key_paths}
+            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
             return TsdWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdFrame):
-            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.main_dock._interval_set_key_paths}
+            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
             return TsdFrameWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdTensor):
             tsdframes = {k:self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
@@ -842,12 +857,15 @@ class MainWindow(QMainWindow):
         dock = self._create_dock(widget_name, widget, key_path)
         self._add_dock_to_gui(dock)
         self._register_controller(widget)
+        # This should be increase only after registering the controller and the dock to the GUI
         self._n_dock_open += 1
         min_time, max_time = self._get_max_min_time()
         if max_time != -float("inf") and min_time != float("inf"):
             time_multiplier = self.time_unit_combo.currentData()
             self.time_spin_box.setMinimum(min_time * time_multiplier)
             self.time_spin_box.setMaximum(max_time * time_multiplier)
+
+
         return dock
 
 

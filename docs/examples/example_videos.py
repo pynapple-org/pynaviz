@@ -15,7 +15,7 @@ import pynaviz as viz
 from PyQt6.QtCore import QTimer, Qt, QPoint
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication, QDockWidget, QMenu, QDialog
-from pynaviz.qt.mainwindow import MainWindow, MainDock
+from pynaviz.qt.mainwindow import MainWindow, VariableWidget
 from matplotlib.pyplot import *
 from PIL import ImageGrab
 from utils import grab_window, click_on_item, add_dock_widget, move_and_resize_dock, save_gif
@@ -49,7 +49,7 @@ def main():
     # Initialize the application and main window
     app = QApplication.instance() or QApplication(sys.argv)
     win = MainWindow()
-    ctrl_dock = MainDock(videos, gui=win)
+    ctrl_dock = VariableWidget(videos, gui=win)
     win.show()
 
     # Make sure the window is shown and painted
