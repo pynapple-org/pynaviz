@@ -13,7 +13,7 @@ from pynaviz import (
     TsGroupWidget,
     TsWidget,
 )
-from pynaviz.qt.mainwindow import MainDock
+from pynaviz.qt.mainwindow import VariableWidget
 
 # @pytest.fixture()
 # def nap_vars():
@@ -72,14 +72,14 @@ def main_window__dock(nap_var, qtbot):
     main_window = viz.qt.mainwindow.MainWindow()
     qtbot.addWidget(main_window)
 
-    dock = viz.qt.mainwindow.MainDock(nap_var, main_window)
+    dock = viz.qt.mainwindow.VariableWidget(nap_var, main_window)
     qtbot.addWidget(dock)
 
     return main_window, dock, nap_var
 
 
 def apply_action(
-        widget: MainDock | TsdWidget | TsdFrameWidget | TsdTensorWidget | IntervalSetWidget | TsGroupWidget | TsWidget,
+        widget: VariableWidget | TsdWidget | TsdFrameWidget | TsdTensorWidget | IntervalSetWidget | TsGroupWidget | TsWidget,
         action_type: Literal[
             "group_by",
             "sort_by",
@@ -204,7 +204,7 @@ def test_save_load_layout_tsdframe(apply_to, main_window__dock, color_by_kwargs,
     main_window_new = viz.qt.mainwindow.MainWindow()
     qtbot.addWidget(main_window_new)
 
-    dock_new = viz.qt.mainwindow.MainDock(variables, main_window_new, layout_path=layout_path)
+    dock_new = viz.qt.mainwindow.VariableWidget(variables, main_window_new, layout_path=layout_path)
     qtbot.addWidget(dock_new)
 
     layout_dict_new = dock_new._get_layout_dict()
@@ -304,7 +304,7 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, colo
     main_window_new = viz.qt.mainwindow.MainWindow()
     qtbot.addWidget(main_window_new)
 
-    dock_new = viz.qt.mainwindow.MainDock(variables, main_window_new, layout_path=layout_path)
+    dock_new = viz.qt.mainwindow.VariableWidget(variables, main_window_new, layout_path=layout_path)
     qtbot.addWidget(dock_new)
 
     # Take screenshots

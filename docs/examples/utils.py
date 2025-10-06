@@ -15,7 +15,7 @@ import pynaviz as viz
 from PyQt6.QtCore import QTimer, Qt, QPoint
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication, QDockWidget, QMenu, QDialog
-from pynaviz.qt.mainwindow import MainWindow, MainDock
+from pynaviz.qt.mainwindow import MainWindow, VariableWidget
 from matplotlib.pyplot import *
 from PIL import ImageGrab, Image
 

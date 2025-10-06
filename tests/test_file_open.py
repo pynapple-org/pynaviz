@@ -121,7 +121,7 @@ def test_load_files(shared_test_files, qtbot):
     all_files = (*path_dir.iterdir(), video_path, nwb_file)
 
     main_window = viz.qt.mainwindow.MainWindow()
-    dock = viz.qt.mainwindow.MainDock({}, main_window)
+    dock = viz.qt.mainwindow.VariableWidget({}, main_window)
     main_window._load_multiple_files(all_files)
 
     for var in dock.variables.values():
@@ -158,7 +158,7 @@ def test_open_file_dialog(mock_dialog, shared_test_files, qtbot):
     mock_dialog.return_value = (test_files, "")
 
     main_window = viz.qt.mainwindow.MainWindow()
-    dock = viz.qt.mainwindow.MainDock({}, main_window)
+    dock = viz.qt.mainwindow.VariableWidget({}, main_window)
     main_window.open_file()
 
     # Verify dialog was called correctly
@@ -187,7 +187,7 @@ def test_open_file_dialog(mock_dialog, shared_test_files, qtbot):
         dock.on_item_double_clicked(item, 0)
 
     children = main_window.findChildren(QDockWidget)
-    children = [d.widget() for d in children if not isinstance(d, viz.qt.mainwindow.MainDock)]
+    children = [d.widget() for d in children if not isinstance(d, viz.qt.mainwindow.VariableWidget)]
     assert len(children) == len(flat_items)
     print(set(c.__class__.__name__ for c in children))
     assert set(c.__class__.__name__ for c in children) == {"TsGroupWidget", "TsdWidget", "TsdFrameWidget", "TsdTensorWidget", "VideoWidget", "IntervalSetWidget"}
