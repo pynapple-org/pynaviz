@@ -484,12 +484,6 @@ class MainWindow(QMainWindow):
         self._load_multiple_files(filenames)
 
     def _load_multiple_files(self, filenames: list[str]):
-        # find main dock
-        dock = self.findChildren(VariableWidget)
-        if len(dock) < 1:
-            raise RuntimeError("MainWindow should have at least one dock.")
-        dock_widget = dock[0]
-
         # create the variable dict
         def get_type(name: pathlib.Path) -> None | Literal["Pynapple", "NWB", "Video"]:
             file_type = None
@@ -498,7 +492,7 @@ class MainWindow(QMainWindow):
                     file_type = tp
                     break
             return file_type
-        variables = dock_widget.variables
+
         new_vars = {}
         for name in filenames:
             name = pathlib.Path(name)
@@ -527,8 +521,8 @@ class MainWindow(QMainWindow):
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
             self._open_file_paths.add(name.as_posix())
-        variables.update(new_vars)
-        dock_widget._add_items_to_tree_widget(new_vars)
+        self.variables.update(new_vars)
+        self.variable_dock._add_items_to_tree_widget(new_vars)
 
     def _load_layout(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
