@@ -11,15 +11,9 @@ from typing import Any, Literal, Union
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
-from PyQt6.QtGui import (
-    QAction,
-    QCursor,
-    QFontMetrics,
-    QIcon,
-    QKeySequence,
-    QPixmap,
-    QShortcut,
-)
+
+from PyQt6.QtGui import QAction, QCursor, QFontMetrics, QIcon, QKeySequence, QPixmap, QShortcut
+
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -287,6 +281,7 @@ class VariableDock(QDockWidget):
         # Get existing children
         children = get_children_dict(parent)
 
+
         for key, value in item_dict.items():
             if key in children:
                 child = children[key]
@@ -326,7 +321,7 @@ class VariableDock(QDockWidget):
             print(f"Variable {'/'.join(key_path)} not found.")
         return var
 
-    def add_dock_widget(self, item: QTreeWidgetItem | list[str], manager_state_dict: dict | None = None) -> QDockWidget | None:
+    def add_dock_widget(self, item: QTreeWidgetItem | list[str]) -> QDockWidget | None:
         key_path = self._extract_variable_path(item)
         if not key_path:
             return None
@@ -348,7 +343,7 @@ class MainWindow(QMainWindow):
             # "Audio": [".mp3", ".wav", ".flac"]
         }
 
-    def __init__(self, variables: dict | None = None, layout_path: str | None = None):
+    def __init__(self, variables: dict | None = None, layout_path: str | pathlib.Path | None = None):
         if not QApplication.instance():  # pragma: no cover
             raise RuntimeError("A Qt application must be created.")
         super().__init__()
@@ -364,16 +359,16 @@ class MainWindow(QMainWindow):
 
         # --- List of variables ---
         self._tsdframe_keys = []
-        for k in variables.keys():
+        for k in self.variables.keys():
             if k != "data":
-                if isinstance(variables[k], nap.TsdFrame):
+                if isinstance(self.variables[k], nap.TsdFrame):
                     self._tsdframe_keys.append(k) # Storing tsdframe keys for point and skeleton overlay
 
         # ---- Top Menu Bar ----
         self._create_top_menu_bar()
 
         # ---- Variables Widget ----
-        self.variable_dock = VariableDock(variables, self)
+        self.variable_dock = VariableDock(self.variables, self)
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.variable_dock)#, Qt.Orientation.Horizontal)
 
         # ---- Bottom Status Bar ----
@@ -509,6 +504,10 @@ class MainWindow(QMainWindow):
         for name in filenames:
             name = pathlib.Path(name)
             file_type = get_type(name)
+
+            if name.name in self.variables:
+                continue
+
             if file_type is None:
                 print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
                 continue
@@ -518,7 +517,7 @@ class MainWindow(QMainWindow):
             elif file_type in ["Pynapple"]:
                 data = nap.load_file(name)
                 if "pynapple" in data.__module__:
-                    new_vars.update({name.stem + name.suffix: nap.load_file(name)})
+                    new_vars.update({name.name: nap.load_file(name)})
                 else:
                     print(f"File {name} does not contain a pynapple object. See pynapple documentation for saving pynapple objects with npz")
                     continue
@@ -527,9 +526,9 @@ class MainWindow(QMainWindow):
                 nap_obj_dict = {}
                 for key in data.keys():
                     nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
-                new_vars.update({name.stem + name.suffix: nap_obj_dict})
+                new_vars.update({name.name: nap_obj_dict})
             elif file_type == "Video":
-                new_vars.update({name.stem + name.suffix: name})
+                new_vars.update({name.name: name})
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
             self._open_file_paths.add(name.as_posix())

@@ -1,5 +1,8 @@
 import sys
 
+from pathlib import Path
+
+
 import pytest
 from PyQt6.QtWidgets import QApplication
 
@@ -29,9 +32,11 @@ def test_cli_with_npz(monkeypatch, qtbot):
     """
     Test running pynaviz with a .npz file as input.
     """
+    here = Path(__file__).parent
+    npz_path = here / "filetest" / "tsdframe_minfo.npz"
 
     # Patch CLI args
-    monkeypatch.setattr(sys, "argv", ["pynaviz", "filetest/tsdframe_minfo.npz"])
+    monkeypatch.setattr(sys, "argv", ["pynaviz", str(npz_path)])
     main()
 
     app = QApplication.instance()
@@ -45,12 +50,21 @@ def test_cli_with_layout_and_files(monkeypatch, qtbot):
     Test running pynaviz with a layout.json and multiple files.
     """
 
+    here = Path(__file__).parent
+    layout_path = here / "filetest" / "layout.json"
+    npz_path = here / "filetest" / "tsdframe_minfo.npz"
+    nwb_path = here / "filetest" / "A2929-200711.nwb"
+
     monkeypatch.setattr(
         sys,
         "argv",
-        ["pynaviz", "-l", "filetest/layout.json", "filetest/tsdframe_minfo.npz", "filetest/A2929-200711.nwb"]
+        ["pynaviz", "-l", str(layout_path), str(npz_path), str(nwb_path)]
     )
-    main()
+    try:
+        main()
+    except SystemExit as e:
+        # Catch CLI exit (status 0 means success)
+        assert e.code == 0
 
     app = QApplication.instance()
     assert app is not None
