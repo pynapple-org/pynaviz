@@ -118,13 +118,13 @@ def shared_test_files(tmp_path_factory):
 def test_load_files(shared_test_files, qtbot):
     """Test loading files directly via _load_multiple_files."""
     path_dir, video_path, nwb_file,  expected = shared_test_files
-    all_files = (*path_dir.iterdir(), video_path, nwb_file)
+    all_files = [*path_dir.iterdir(), video_path, nwb_file]
 
-    main_window = viz.qt.mainwindow.MainWindow()
-    dock = viz.qt.mainwindow.VariableWidget({}, main_window)
+    main_window = viz.qt.mainwindow.MainWindow({})
+    # dock = viz.qt.mainwindow.VariableWidget({}, main_window)
     main_window._load_multiple_files(all_files)
 
-    for var in dock.variables.values():
+    for var in main_window.variables.values():
         name = var.__class__.__name__
         if name in ["Tsd", "TsdFrame", "TsdTensor"]:
             np.testing.assert_array_equal(var.t, expected[name].t)
@@ -157,15 +157,14 @@ def test_open_file_dialog(mock_dialog, shared_test_files, qtbot):
     # Mock dialog returns (list of files, selected filter)
     mock_dialog.return_value = (test_files, "")
 
-    main_window = viz.qt.mainwindow.MainWindow()
-    dock = viz.qt.mainwindow.VariableWidget({}, main_window)
+    main_window = viz.qt.mainwindow.MainWindow({})
     main_window.open_file()
 
     # Verify dialog was called correctly
     mock_dialog.assert_called_once()
 
     # Verify files were loaded in the tree widget
-    item_dict, flat_items = tree_widget_to_dict(dock.treeWidget)
+    item_dict, flat_items = tree_widget_to_dict(main_window.variable_dock.treeWidget)
     assert  item_dict == {
         'numbered_video.mp4': None,
         'nwb_file.nwb': {'epochs': None,
@@ -184,10 +183,9 @@ def test_open_file_dialog(mock_dialog, shared_test_files, qtbot):
 
     # simulate dock creation
     for item in flat_items:
-        dock.on_item_double_clicked(item, 0)
+        main_window.variable_dock.on_item_double_clicked(item, 0)
 
     children = main_window.findChildren(QDockWidget)
-    children = [d.widget() for d in children if not isinstance(d, viz.qt.mainwindow.VariableWidget)]
+    children = [d.widget() for d in children if not isinstance(d, viz.qt.mainwindow.VariableDock)]
     assert len(children) == len(flat_items)
-    print(set(c.__class__.__name__ for c in children))
     assert set(c.__class__.__name__ for c in children) == {"TsGroupWidget", "TsdWidget", "TsdFrameWidget", "TsdTensorWidget", "VideoWidget", "IntervalSetWidget"}

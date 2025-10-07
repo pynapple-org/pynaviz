@@ -51,5 +51,6 @@ v = viz.VideoHandler(video_path)
 # df[y_col] = df[y_col]*-1 + 480 # Flipping y axis
 # skeleton = nap.TsdFrame(t=df.index.values/30, d=df.values, columns=df.columns)
 
-scope(globals())
+# scope(globals())
 # scope([tsd1, tsd2, tsg, video_path], layout_path="layout.json")
+scope(["tests/filetest/tsdframe_minfo.npz", "tests/filetest/A2929-200711.nwb"], layout_path="tests/filetest/layout.json")
