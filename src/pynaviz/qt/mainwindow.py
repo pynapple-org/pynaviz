@@ -11,7 +11,7 @@ from typing import Any, Literal, Union
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QPixmap, QCursor
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QPixmap, QCursor, QFontMetrics
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -172,12 +172,22 @@ class VariableDock(QDockWidget):
         gui : QMainWindow
             Reference to the main GUI instance.
         """
-        super().__init__("VariablesDock", gui)
+        super().__init__("Variables", gui)
         self.gui = gui
         self.variables = variables
         self._interval_set_key_paths = []
         self.setObjectName("VariablesDock")
         # self.setStyleSheet("background-color: #f0f0f0;")
+        app = QApplication.instance() or QApplication([])
+        font = app.font()
+        metrics = QFontMetrics(font)
+        if len(variables):
+            text_width = max(metrics.horizontalAdvance(s) for s in variables.keys())
+        else:
+            text_width = 100
+
+        self.collapsed_width = 20
+        self.expanded = True
 
         # --- Dock settings ---
         self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
@@ -194,11 +204,6 @@ class VariableDock(QDockWidget):
         main_layout.setSpacing(0)
 
         # --- Content area ---
-        self.expanded_width = 200
-        self.collapsed_width = 20
-        self.expanded = True
-        self.last_width = self.expanded_width
-
         self.content = QWidget()
         content_layout = QVBoxLayout(self.content)
         content_layout.setContentsMargins(0, 0, 0, 0)
@@ -232,6 +237,9 @@ class VariableDock(QDockWidget):
         # Set container as dock widget content
         self.setWidget(container)
 
+        tree_width = max(self.treeWidget.sizeHintForColumn(0), text_width) + 20
+        self.expanded_width = tree_width + 20
+        self.last_width = self.expanded_width
         self.setFixedWidth(self.expanded_width)
 
     def toggle(self):
@@ -321,7 +329,6 @@ class VariableDock(QDockWidget):
             return
 
         self.gui.add_dock_widget(variable, key_path)
-
 
 
 class MainWindow(QMainWindow):
@@ -763,7 +770,6 @@ class MainWindow(QMainWindow):
         if right_docks:
             sizes_h = [1] * len(right_docks)
             self.resizeDocks(right_docks, sizes_h, Qt.Orientation.Vertical)
-
 
     def _register_controller(self, widget: object) -> None:
         """Register the widget's plot in the controller group."""
