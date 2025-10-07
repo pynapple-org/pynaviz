@@ -41,6 +41,7 @@ API reference
     GetController
 
 .. rubric:: Audio and Video Manipulation
+
 Classes allowing random access to video and audio frames, with ``pynapple``-like ``get`` syntax or by indexing.
 
 .. currentmodule:: pynaviz.audiovideo
@@ -83,7 +84,9 @@ Module including Qt widgets with selection, sorting and coloring by metadata fun
     :nosignatures:
     :recursive:
 
-    qt_item_models
     mainwindow
     widget_plot
     widget_menu
+    widget_list_selection
+    tsdframe_selection
+    interval_sets_selection

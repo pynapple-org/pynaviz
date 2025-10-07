@@ -52,12 +52,8 @@ DOCK_LIST_STYLESHEET = """
         selection-color : yellow;
         selection-background-color : #E69F66;
     }
-
-    QListView {
-        background-color : #272822;
-
-    }
 """
+
 
 
 @dataclass
@@ -176,14 +172,7 @@ class VariableDock(QDockWidget):
         self.variables = variables
         self._interval_set_key_paths = []
         self.setObjectName("VariablesDock")
-        # self.setStyleSheet("background-color: #f0f0f0;")
-        app = QApplication.instance() or QApplication([])
-        font = app.font()
-        metrics = QFontMetrics(font)
-        if len(variables):
-            text_width = max(metrics.horizontalAdvance(s) for s in variables.keys())
-        else:
-            text_width = 100
+        self.setStyleSheet(DOCK_LIST_STYLESHEET)
 
         self.collapsed_width = 20
         self.expanded = True
@@ -235,6 +224,18 @@ class VariableDock(QDockWidget):
 
         # Set container as dock widget content
         self.setWidget(container)
+
+        self._resize_dock()
+
+    def _resize_dock(self):
+        """Resize the dock based on content."""
+        app = QApplication.instance() or QApplication([])
+        font = app.font()
+        metrics = QFontMetrics(font)
+        if len(self.variables):
+            text_width = max(metrics.horizontalAdvance(s) for s in self.variables.keys())
+        else:
+            text_width = 100
 
         tree_width = max(self.treeWidget.sizeHintForColumn(0), text_width) + 20
         self.expanded_width = tree_width + 20
@@ -294,6 +295,8 @@ class VariableDock(QDockWidget):
                     self._add_items_to_tree_widget(value, parent=item, clear=False)
                 elif isinstance(value, nap.IntervalSet):
                     self._interval_set_key_paths.append(_get_item_key_path(item))
+
+        self._resize_dock()
 
     def on_item_double_clicked(self, item, column):
         """Handle double-click only for leaf items"""
