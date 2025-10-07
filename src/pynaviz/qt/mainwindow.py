@@ -11,7 +11,15 @@ from typing import Any, Literal, Union
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QPixmap, QCursor, QFontMetrics
+from PyQt6.QtGui import (
+    QAction,
+    QCursor,
+    QFontMetrics,
+    QIcon,
+    QKeySequence,
+    QPixmap,
+    QShortcut,
+)
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -22,18 +30,18 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
-    QMenu,
-    QMenuBar,
     QPushButton,
+    QStatusBar,
     QStyle,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
-    QWidget, QStyleFactory, QStatusBar, QSpacerItem, QSizePolicy,
+    QWidget,
 )
 
 from ..audiovideo import VideoHandler
 from ..controller_group import ControllerGroup
+from .icons import icon_base64
 from .widget_plot import (
     IntervalSetWidget,
     TsdFrameWidget,
@@ -43,7 +51,6 @@ from .widget_plot import (
     TsWidget,
     VideoWidget,
 )
-from .icons import icon_base64
 
 DOCK_LIST_STYLESHEET = """
     * {
@@ -522,7 +529,7 @@ class MainWindow(QMainWindow):
                     nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
                 new_vars.update({name.stem + name.suffix: nap_obj_dict})
             elif file_type == "Video":
-                new_vars.update({name.stem + name.suffix: VideoWidget(name)})
+                new_vars.update({name.stem + name.suffix: name})
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
             self._open_file_paths.add(name.as_posix())
@@ -754,6 +761,8 @@ class MainWindow(QMainWindow):
         if hasattr(widget, 'plot'):
             # remove from controls
             ctrl_id = widget.plot.controller._controller_id
+            if hasattr(widget.plot, "close"):
+                widget.plot.close()
             self.ctrl_group.remove(ctrl_id)
         dock.deleteLater()
 
