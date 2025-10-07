@@ -117,7 +117,7 @@ def shared_test_files(tmp_path_factory):
 
 def test_load_files(shared_test_files, qtbot):
     """Test loading files directly via _load_multiple_files."""
-    path_dir, video_path, nwb_file,  expected = shared_test_files
+    path_dir, video_path, nwb_file, expected = shared_test_files
     all_files = [*path_dir.iterdir(), video_path, nwb_file]
 
     main_window = viz.qt.mainwindow.MainWindow({})
@@ -142,6 +142,8 @@ def test_load_files(shared_test_files, qtbot):
                 assert isinstance(val, viz.qt.mainwindow.NWBReference)
                 assert val.nwb_file.path == expected[name].path
                 assert isinstance(val.nwb_file, expected[name].__class__)
+        elif name == "PosixPath":
+            assert var == expected["VideoWidget"].file_path
         else:
             raise ValueError(f"Unknown variable: {name}")
 
