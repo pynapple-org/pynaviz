@@ -295,7 +295,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 raise ValueError("video must be a file path or a VideoHandler instance.")
             data = video
         self._data = data
-        video_path = data.video_path
+        video_path = data.file_path
         super().__init__(data, index=index, parent=parent)
 
         # Shared memory setup for multiprocessing frame exchange
