@@ -1,7 +1,10 @@
 import sys
+
 import pytest
 from PyQt6.QtWidgets import QApplication
+
 from pynaviz.cli import main
+
 
 @pytest.fixture(autouse=True)
 def no_block_qt(monkeypatch):

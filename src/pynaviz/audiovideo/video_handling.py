@@ -66,7 +66,6 @@ class VideoHandler(BaseAudioVideo):
         return_frame_array: bool = True,
     ) -> None:
         super().__init__(video_path)
-        self.video_path = video_path
         self.stream = self.container.streams.video[stream_index]
         self.stream_index = stream_index
         self.return_frame_array = return_frame_array
