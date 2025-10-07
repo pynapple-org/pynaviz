@@ -172,11 +172,11 @@ class VariableDock(QDockWidget):
         gui : QMainWindow
             Reference to the main GUI instance.
         """
-        super().__init__("Variables", gui)
+        super().__init__("VariablesDock", gui)
         self.gui = gui
         self.variables = variables
         self._interval_set_key_paths = []
-        self.setObjectName("VariableDock")
+        self.setObjectName("VariablesDock")
         # self.setStyleSheet("background-color: #f0f0f0;")
 
         # --- Dock settings ---
@@ -335,8 +335,6 @@ class MainWindow(QMainWindow):
         }
 
     def __init__(self, variables: dict | None = None, layout_path: str | None = None):
-        # HACK to ensure that closeEvent is called only twice (seems like a
-        # Qt bug).
         if not QApplication.instance():  # pragma: no cover
             raise RuntimeError("A Qt application must be created.")
         super().__init__()
@@ -535,7 +533,7 @@ class MainWindow(QMainWindow):
 
         # 0) Need to empty the gui
         for d in self.findChildren(QDockWidget):
-            if d.objectName() != "MainDock":
+            if d.objectName() != "VariablesDock":
                 d.close()
                 d.setParent(None)
                 d.deleteLater()
@@ -560,7 +558,7 @@ class MainWindow(QMainWindow):
             var = _get_variable_from_key_path(self.variables, widget['key_path'])
             if var is not None:
                 print(f"Adding var from path {widget['key_path']}.")
-                self.add_dock_widget(widget['key_path'], manager_state_dict=widget["manager_state_dict"])
+                self.add_dock_widget(var, widget['key_path'],  manager_state_dict=widget["manager_state_dict"])
 
                 # Note: simply matching the widget name stored in the payload results in a bug
                 # when the following happens:
@@ -572,7 +570,7 @@ class MainWindow(QMainWindow):
                 # To prevent this, adjust the index.
 
                 dock_name = re.sub(r"_\d+$", f"_{self._n_dock_open - 1}", widget['name'])
-                if self.gui.findChild(QDockWidget, dock_name) is None:
+                if self.findChild(QDockWidget, dock_name) is None:
                     raise RuntimeError(f"Dock {widget['name']} was not created.")
             else:
                 print(f"Variable '{widget['name']}' not found. Skipping dock.")
@@ -597,7 +595,7 @@ class MainWindow(QMainWindow):
         order = []
         for d in all_docks:
             name = d.objectName()
-            if name != "MainDock":
+            if name != "VariablesDock":
                 info = {"visible": d.isVisible(),
                         "floating": d.isFloating(),
                         "area": self.dockWidgetArea(d).name,

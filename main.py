@@ -41,7 +41,7 @@ iset = nap.IntervalSet(start=np.arange(0, 1000, 10), end=np.arange(5, 1005, 10))
 
 
 video_path = "docs/examples/m3v1mp4.mp4"
-# v = viz.VideoHandler(video_path)
+v = viz.VideoHandler(video_path)
 #
 #
 # df = pd.read_hdf("docs/examples/m3v1mp4DLC_Resnet50_openfieldOct30shuffle1_snapshot_best-70.h5")
