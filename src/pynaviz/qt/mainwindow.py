@@ -529,7 +529,7 @@ class MainWindow(QMainWindow):
                     nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
                 new_vars.update({name.name: nap_obj_dict})
             elif file_type == "Video":
-                new_vars.update({name.name: VideoWidget(name)})
+                new_vars.update({name.name: name})
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
             self._open_file_paths.add(name.as_posix())
@@ -761,6 +761,8 @@ class MainWindow(QMainWindow):
         if hasattr(widget, 'plot'):
             # remove from controls
             ctrl_id = widget.plot.controller._controller_id
+            if hasattr(widget.plot, "close"):
+                widget.plot.close()
             self.ctrl_group.remove(ctrl_id)
         dock.deleteLater()
 
