@@ -11,9 +11,7 @@ from typing import Any, Literal, Union
 
 import pynapple as nap
 from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
-
 from PyQt6.QtGui import QAction, QCursor, QFontMetrics, QIcon, QKeySequence, QPixmap, QShortcut
-
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -178,7 +176,7 @@ class VariableDock(QDockWidget):
         self.variables = variables
         self._interval_set_key_paths = []
         self.setObjectName("VariablesDock")
-        # self.setStyleSheet("background-color: #f0f0f0;")
+        self.setStyleSheet("background-color: #f0f0f0;")
         app = QApplication.instance() or QApplication([])
         font = app.font()
         metrics = QFontMetrics(font)
