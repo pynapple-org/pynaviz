@@ -13,7 +13,7 @@ import pynaviz as viz
 from PyQt6.QtCore import QTimer, Qt, QPoint
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication, QDockWidget, QMenu, QDialog
-from pynaviz.qt.mainwindow import MainWindow, VariableWidget
+from pynaviz.qt.mainwindow import MainWindow
 from matplotlib.pyplot import *
 from PIL import ImageGrab
 from utils import grab_window, click_on_item, add_dock_widget, move_and_resize_dock, save_gif
@@ -52,8 +52,7 @@ def main():
 
     # Initialize the application and main window
     app = QApplication.instance() or QApplication(sys.argv)
-    win = MainWindow()
-    ctrl_dock = VariableWidget({"units": units, "manifold": manifold, "video": video}, gui=win)
+    win = MainWindow({"units": units, "manifold": manifold, "video": video})
     win.show()
 
     # Make sure the window is shown and painted
@@ -69,7 +68,7 @@ def main():
     frames.append(grab_window(win))
     durations.append(800)
 
-    tree_widget = ctrl_dock.treeWidget
+    tree_widget = win.variable_dock.treeWidget
 
     # --- Add docks ---
     add_dock_widget(tree_widget, win, app, frames, durations, item_number=0) # units
@@ -112,7 +111,7 @@ def main():
     interval_ms = 50  # grab frame every 200 ms
     num_frames = duration_ms // interval_ms
 
-    QTest.mouseClick(ctrl_dock.playPauseBtn, Qt.MouseButton.LeftButton)
+    QTest.mouseClick(win.playPauseBtn, Qt.MouseButton.LeftButton)
     app.processEvents()
 
     for _ in range(num_frames):
@@ -122,7 +121,7 @@ def main():
         app.processEvents()
 
     # --- Pause the animation ---
-    QTest.mouseClick(ctrl_dock.playPauseBtn, Qt.MouseButton.LeftButton)
+    QTest.mouseClick(win.playPauseBtn, Qt.MouseButton.LeftButton)
     app.processEvents()
     frames.append(grab_window(win))  # grab frame
     durations.append(800)

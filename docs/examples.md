@@ -95,6 +95,48 @@ scope({"lfp":tsdframe})
 
 ***
 
+DLC pose estimation
+-----------------------
+
+This example shows pose estimation data obtained using DeepLabCut (DLC).
+The data are from the DeepLabCut GitHub repository. 
+
+
+![example_dlc](/examples/example_dlc_pose.gif)
+
+
+:::{dropdown} See the example code
+:color: info
+:icon: info
+
+```{code} ipython
+import pynapple as nap
+import numpy as np
+from pynaviz import scope
+from pathlib import Path
+
+
+# Path to the video
+video_path = "docs/examples/m3v1mp4.mp4"
+
+# Output of deeplabcut
+df = pd.read_hdf("docs/examples/m3v1mp4DLC_Resnet50_openfieldOct30shuffle1_snapshot_best-70.h5")
+df.columns = [f"{bodypart}_{coord}" for _, bodypart, coord in df.columns]
+df = df[[c for c in df.columns if c.endswith(("_x", "_y"))]]
+y_col = [c for c in df.columns if c.endswith("_y")]
+df[y_col] = df[y_col]*-1 + 480 # Flipping y axis
+skeleton = nap.TsdFrame(t=df.index.values/30, d=df.values, columns=df.columns)
+
+
+# Open the GUI
+scope({"skeleton": skeleton, "video": video_path})
+
+```
+:::
+
+
+***
+
 Multiple videos
 -----------------------
 
@@ -196,5 +238,4 @@ scope(videos)
 ```
 :::
 
-***
 
