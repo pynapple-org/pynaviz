@@ -4,7 +4,8 @@ Test script
 import numpy as np
 import pynapple as nap
 import pynaviz as viz
-from PyQt6.QtWidgets import QApplication
+
+from pynaviz import IntervalSetWidget
 
 tsd1 = nap.Tsd(t=np.arange(1000), d=np.cos(np.arange(1000) * 0.1))
 tsg = nap.TsGroup({
@@ -20,20 +21,14 @@ tsg = nap.TsGroup({
 tsdframe = nap.TsdFrame(t=np.arange(1000),d=np.random.randn(1000, 10), metadata={"label":np.random.randn(10)})
 tsdtensor = nap.TsdTensor(t=np.arange(1000), d=np.random.randn(1000, 10, 10))
 
+iset = nap.IntervalSet(start=0, end=100, metadata={"label":["first"]})
 
+data = nap.load_file("../pynapple/doc/examples/Mouse32-140822.nwb")
 
-app = QApplication([])
-# app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt6())
+iset = data['position_time_support']
 
-# viz.TsdWidget(tsd1).show()
-# viz.TsdTensorWidget(tsdtensor).show()
-v = viz.TsGroupWidget(tsg)
-v.plot.controller.show_interval(0, 20)
-# v.plot.color_by("label", 'jet')
-# v.plot.sort_by("rate")
+# scope({"iset":iset})
+# scope("../pynapple/doc/examples/Mouse32-140822.nwb")
+v = IntervalSetWidget(iset)
+v.plot.color_by("tags", cmap_name="jet")
 v.show()
-# v = viz.TsdFrameWidget(tsdframe)
-# v.show()
-
-if __name__ == "__main__":
-    app.exit(app.exec())
