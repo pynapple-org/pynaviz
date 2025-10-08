@@ -912,11 +912,14 @@ def _extract_name_value(v: Any):
     return None, None
 
 def get_pynapple_variables(
-    variables: dict | list | tuple | None = None
+    variables: dict | list | tuple | str | None = None
 ) -> dict:
 
     if variables is None:
         return {}
+
+    if isinstance(variables, str):
+        variables = [variables]
 
     new_vars = {}
 
@@ -945,7 +948,7 @@ def get_pynapple_variables(
 
     return new_vars
 
-def scope(variables: Union[dict, list, tuple], layout_path: str = None):
+def scope(variables: Union[dict, list, tuple, str], layout_path: str = None):
 
     # Filtering for pynapple variables
     variables = get_pynapple_variables(variables)
