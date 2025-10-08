@@ -41,7 +41,8 @@ class TsdFrameStreaming:
         self.window_size = window_size
 
         # Determine how many points fall in a window of size `window_size`
-        self._slice_ = data._get_slice(0, window_size)
+        # This assume that data is uniformly sampled
+        self._slice_ = data._get_slice(data.t[0], data.t[0] + window_size)
         self._max_n = (self._slice_.stop - self._slice_.start) + 1
 
         self._flushed = False # To keep tracked if the data has been flushed at least once

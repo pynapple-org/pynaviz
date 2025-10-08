@@ -494,6 +494,7 @@ class PlotTsdFrame(_BasePlot):
         self._flush(self._stream.get_slice(start=0, end=1))
 
         # Setting the boundaries of the plot
+        # minmax is of shape (n_columns, 2)
         minmax = self._get_min_max()
         self.controller.set_view(0, 1, np.min(minmax[:, 0]), np.max(minmax[:, 1]))
 
@@ -567,12 +568,21 @@ class PlotTsdFrame(_BasePlot):
         if isinstance(self.data.values, np.ndarray) and not isinstance(self.data.values, np.memmap):
             return np.stack([np.nanmin(self.data, 0), np.nanmax(self.data, 0)]).T
         else:
-            return np.array(
+            minmax = np.array(
                 [
                     [np.nanmin(self._positions[sl, 1]), np.nanmax(self._positions[sl, 1])]
                     for sl in self._buffer_slices.values()
                 ]
             )
+            if np.any(np.isnan(minmax)):
+                # Try to get min max from 100 points of each column
+                try:
+                    minmax = np.array([np.nanmin(self.data[0:100], 0), np.nanmax(self.data[0:100], 0)]).T
+                    return minmax
+                except Exception:
+                    return np.array([[0, 1]] * self.data.shape[1])
+            else:
+                return minmax
 
     def _rescale(self, event):
         """
