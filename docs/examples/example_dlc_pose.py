@@ -1,11 +1,12 @@
 """
-Test script
+
 """
 import sys
 from pathlib import Path
 
 import imageio
 import numpy as np
+import pandas as pd
 import pynapple as nap
 import requests, os
 from PyQt6.QtGui import QAction
@@ -20,35 +21,20 @@ from matplotlib.pyplot import *
 from PIL import ImageGrab
 from utils import grab_window, click_on_item, add_dock_widget, move_and_resize_dock, save_gif
 
-
-
 def main():
-    # Load IBL session
-    one = ONE()
-    eid = "ebce500b-c530-47de-8cb1-963c552703ea"
+    # Load data
+    video_path = "m3v1mp4.mp4"
 
-    # Videos
-    ibl_path = Path(os.path.expanduser("~/Downloads/ONE/"))
-    if not ibl_path.exists():
-        print("Please set the path to your IBL data directory in the variable `ibl_path`.")
-        quit()
-    videos = {}
-    for label in ["left", "body", "right"]:
-        video_path = (
-                ibl_path
-                / f"openalyx.internationalbrainlab.org/churchlandlab_ucla/Subjects/MFD_09/2023-10-19/001/raw_video_data/_iblrig_{label}Camera.raw.mp4"
-        )
-        if not video_path.exists():
-            one.load_dataset(eid, f"*{label}Camera.raw*", collection="raw_video_data")
-        times = one.load_object(eid, f"{label}Camera", collection="alf", attribute=["times*"])["times"]
-        # The videos seem to start at 5 seconds. Removing artificially 5 seconds for the demo
-        times = times - 5
-        videos[label] = viz.VideoWidget(video_path, t=times)
-
+    df = pd.read_hdf("m3v1mp4DLC_Resnet50_openfieldOct30shuffle1_snapshot_best-70.h5")
+    df.columns = [f"{bodypart}_{coord}" for _, bodypart, coord in df.columns]
+    df = df[[c for c in df.columns if c.endswith(("_x", "_y"))]]
+    y_col = [c for c in df.columns if c.endswith("_y")]
+    df[y_col] = df[y_col]*-1 + 480 # Flipping y axis
+    skeleton = nap.TsdFrame(t=df.index.values/30, d=df.values, columns=df.columns)
 
     # Initialize the application and main window
     app = QApplication.instance() or QApplication(sys.argv)
-    win = MainWindow(videos)
+    win = MainWindow({"video":video_path, "pose":skeleton})
     win.show()
 
     # Make sure the window is shown and painted
@@ -69,11 +55,32 @@ def main():
     # --- Add docks ---
     add_dock_widget(tree_widget, win, app, frames, durations, item_number=0)
     add_dock_widget(tree_widget, win, app, frames, durations, item_number=1)
-    add_dock_widget(tree_widget, win, app, frames, durations, item_number=2)
 
     # --- Resize and move the video dock ---
     move_and_resize_dock(win, app, frames, durations, move_offset=QPoint(500, 0), resize_width=500)
 
+    # --- Toggle tree widget visibility ---
+    QTest.mouseClick(win.variable_dock.handle, Qt.MouseButton.LeftButton)
+    app.processEvents()
+    frames.append(grab_window(win))  # grab frame
+    durations.append(800)
+
+    # --- Superimpose the skeleton on the video ---
+    dock_widgets = win.findChildren(QDockWidget)
+    # widget_menu = dock_widgets[0].widget().button_container
+    plots = {i:dock.widget().plot for i, dock in enumerate(dock_widgets[1:])}
+    plots[0].superpose_points(skeleton, color="red")
+    app.processEvents()
+    QTest.qWait(100)
+    frames.append(grab_window(win))  # grab frame
+    durations.append(800)
+
+    # --- Plot the trajectory of the nose ---
+    plots[1].plot_x_vs_y("snout_x", "snout_y", markersize=25)
+    app.processEvents()
+    QTest.qWait(100)
+    frames.append(grab_window(win))  # grab frame
+    durations.append(800)
 
     # # --- Action 4: play the animation ---
     duration_ms = 5000  # total recording time
@@ -95,10 +102,9 @@ def main():
     frames.append(grab_window(win))  # grab frame
     durations.append(800)
 
-    save_gif(frames, durations, "example_videos.gif")
+    save_gif(frames, durations, "example_dlc_pose.gif")
 
     sys.exit(0)
 
 if __name__ == "__main__":
     main()
-
