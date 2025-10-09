@@ -108,6 +108,14 @@ def is_mappable_color(vals):
         return False
     return True
 
+def is_hashable(v):
+    """Check if a value is hashable."""
+    try:
+        hash(v)
+    except TypeError:
+        return False
+    return True
+
 
 class MetadataMappingThread:
     def __init__(self, time_series):
@@ -190,7 +198,7 @@ class MetadataMappingThread:
                 with self.map_lock:
                     self.color_maps[col] = map_numeric_arrays
             # try any other pygfx supported format
-            elif is_mappable_color(values):
+            elif is_mappable_color(values) and all(is_hashable(v) for v in values):
                 with self.map_lock:
                     self.color_maps[col] = map_color_array
             # array of objects
