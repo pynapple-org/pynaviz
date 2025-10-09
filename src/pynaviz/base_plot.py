@@ -287,30 +287,30 @@ class _BasePlot(IntervalSetInterface):
                 category=UserWarning,
                 stacklevel=2,
             )
+        else:
+            # Prepare keyword arguments for the color mapping function
+            map_kwargs = trim_kwargs(
+                map_to_colors, dict(cmap=colormaps[self.cmap], vmin=vmin, vmax=vmax)
+            )
 
-        # Prepare keyword arguments for the color mapping function
-        map_kwargs = trim_kwargs(
-            map_to_colors, dict(cmap=colormaps[self.cmap], vmin=vmin, vmax=vmax)
-        )
+            # Get the material objects that will have their colors updated
+            materials = get_plot_attribute(self, "material")
 
-        # Get the material objects that will have their colors updated
-        materials = get_plot_attribute(self, "material")
+            # Get the metadata values for each plotted element
+            values = (
+                self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
+            )
 
-        # Get the metadata values for each plotted element
-        values = (
-            self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
-        )
+            # If metadata is found and mapping works, update the material colors
+            if len(values):
+                map_color = map_to_colors(values, **map_kwargs)
+                if map_color:
+                    for c in materials:
+                        materials[c].color = map_color[values[c]]
 
-        # If metadata is found and mapping works, update the material colors
-        if len(values):
-            map_color = map_to_colors(values, **map_kwargs)
-            if map_color:
-                for c in materials:
-                    materials[c].color = map_color[values[c]]
-
-                # Request a redraw of the canvas to reflect the new colors
-                self.canvas.request_draw(self.animate)
-        self._manager.color_by(values, metadata_name=metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
+                    # Request a redraw of the canvas to reflect the new colors
+                    self.canvas.request_draw(self.animate)
+            self._manager.color_by(values, metadata_name=metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         pass
