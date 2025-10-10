@@ -381,7 +381,11 @@ class PlotTsd(_BasePlot):
         # By default showing only the first second.
         # Weirdly rulers don't show if show_rect is not called
         # in the init
-        self.camera.show_rect(0, 1, data.min(), data.max())
+        # self.camera.show_rect(0, 1, data.min(), data.max())
+        minmax = np.array([np.nanmin(data.d), np.nanmax(data.d)])
+        if np.any(np.isnan(minmax)):
+            minmax = np.array([0, 1])
+        self.controller.set_view(0, 1, float(minmax[0]), float(minmax[1]))
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
@@ -1149,7 +1153,7 @@ class PlotTs(_BasePlot):
         self.renderer.add_event_handler(self._jump, "key_down")
 
         # Adjust camera to show full data range:
-        self.camera.show_rect(0, 1, -0.1, 1.0)
+        self.controller.set_view(0, 1, -0.1, 1.0)
 
         # Request continuous redrawing with animation
         self.canvas.request_draw(self.animate)
