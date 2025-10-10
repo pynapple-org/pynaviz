@@ -101,7 +101,7 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
     "--type",
     "types",
     multiple=True,
-    type=click.Choice(["tsd", "tsdframe", "video", "all"], case_sensitive=False),
+    type=click.Choice(["tsd", "tsdframe", "tsdtensor", "video", "all"], case_sensitive=False),
     help="Type(s) of snapshot to generate. Can be used multiple times.",
 )
 @click.option(

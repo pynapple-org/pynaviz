@@ -53,7 +53,9 @@ def video_worker_process(
 
         # TODO: unsure if this can happen now that i have the event
         if idx is None:
-            break
+            warning_msg = "[video_worker_process] Received None index, skipping frame retrieval."
+            print(warning_msg)
+            continue
 
         if request_type == RenderTriggerSource.LOCAL_KEY:
             frame, idx = handler._get_key_frame(move_key_frame)

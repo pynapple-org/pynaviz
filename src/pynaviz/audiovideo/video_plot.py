@@ -24,10 +24,10 @@ from numpy.typing import NDArray
 
 from ..base_plot import _BasePlot
 from ..controller import GetController
+from ..utils import GRADED_COLOR_LIST
 from .skeleton_plot import PlotPoints
 from .video_handling import VideoHandler
 from .video_worker import RenderTriggerSource, video_worker_process
-from ..utils import GRADED_COLOR_LIST
 
 # WeakSet to avoid keeping dead references
 _active_plot_videos = weakref.WeakSet()
@@ -416,6 +416,7 @@ class PlotVideo(PlotBaseVideoTensor):
         """
         if self._debug:
             print(f"update buffer: {id(self)}({id(self.controller)}) - {event_type} - {frame_index}")
+        # Async playing
         if event_type != RenderTriggerSource.SET_FRAME:
             self.frame_ready.clear()
             while not self.request_queue.empty():
@@ -426,6 +427,7 @@ class PlotVideo(PlotBaseVideoTensor):
             event_type = event_type or RenderTriggerSource.UNKNOWN
             self.request_queue.put((frame_index, None, event_type))
             self._last_requested_frame_index = frame_index
+        # Sync jump to frame
         else:
             frame = self.data[frame_index]
             if isinstance(frame, av.VideoFrame):
