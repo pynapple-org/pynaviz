@@ -1,8 +1,8 @@
 """
 Config classes to generate data and views
 """
-
-
+import hashlib
+import pathlib
 import re
 import textwrap
 from pathlib import Path
@@ -13,6 +13,10 @@ import pynapple as nap
 from PIL import Image
 
 import pynaviz as viz
+import requests
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 
 def fill_background(img_path: str, background_color=(255, 255, 255)):
@@ -39,7 +43,7 @@ class BaseConfig:
         self.path.mkdir(parents=True, exist_ok=True)
 
     @classmethod
-    def _build_filename(cls, name, kwargs):
+    def _build_filename(cls, name, kwargs, max_length=120):
         """
         Construct a safe filename based on function name and kwargs.
         """
@@ -52,6 +56,12 @@ class BaseConfig:
             else:
                 raw += "_" + name + "_" + "_".join(f"{k}={v}" for k, v in kwargs.items())
         safe = re.sub(r"[^\w\-_=\.]", "_", raw)
+
+        # If too long hash the tail for uniqueness
+        if len(safe) > max_length:
+            digest = hashlib.md5(safe.encode()).hexdigest()[:8]
+            safe = safe[: max_length - 9] + "_" + digest
+
         return safe + ".png"
 
     def _save_snapshot(self, viewer, name, kwargs, fill=False):
@@ -73,7 +83,11 @@ class BaseConfig:
         data = self.get_data()
         object_name = data.__class__.__name__
         for name, kwargs in self.parameters:
-            viewer = getattr(viz, f"Plot{object_name}")(data)
+            if object_name == "VideoHandler":
+                viewer = viz.PlotVideo(data)
+            else:
+                viewer = getattr(viz, f"Plot{object_name}")(data)
+
             if name is not None:
                 if isinstance(name, (list, tuple)):
                     for n, k in zip(name, kwargs):
@@ -97,7 +111,7 @@ class BaseConfig:
 
 ```python
 import pynapple as nap
-import uviz as viz
+import pynaviz as viz
 
 print({obj_name.lower()})
 ```
@@ -117,7 +131,17 @@ print({obj_name.lower()})
                     if isinstance(name, str):
                         cmd += "v." + name
                     if len(kwargs):
-                        cmd += "(" + ", ".join([k + "=" + str(v) for k, v in kwargs.items()]) + ")"
+                        cmd += "("
+                        str_kwargs = []
+                        for k, v in kwargs.items():
+                            if isinstance(v, str):
+                                str_kwargs.append(k + "='" + v + "'")
+                            elif not isinstance(v, (int, float, bool)):
+                                str_kwargs.append(k + "=" + str(v.__class__.__name__))
+                            else:
+                                str_kwargs.append(k + "=" + str(v))
+
+                        cmd += ", ".join(str_kwargs) + ")"
                     block = f"""
 
 ---
@@ -242,6 +266,13 @@ class TsConfig(BaseConfig):
 class TsdTensorConfig(BaseConfig):
     parameters = [
         (None, {}),
+        ("superpose_points", {"tsdframe":
+            nap.TsdFrame(
+                t=np.arange(3),
+                d=np.random.uniform(0, 50, size=(3, 8)),
+                )
+            }
+        ),
     ]
 
     @staticmethod
@@ -254,3 +285,16 @@ class TsdTensorConfig(BaseConfig):
         d = np.sin(X ** 2 + Y ** 2) + np.cos(3 * X) * np.sin(3 * Y)
         d = np.repeat(d[None,:], 3, 0)
         return nap.TsdTensor(t=t, d=d)
+
+class VideoHandlerConfig(BaseConfig):
+    parameters = [
+        (None, {}),
+    ]
+
+    @staticmethod
+    def get_data():
+
+        base_dir = pathlib.Path(__file__).parent.resolve()
+        save_path = base_dir / "docs/examples/m3v1mp4.mp4"
+
+        return viz.VideoHandler(save_path)
