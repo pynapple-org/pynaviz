@@ -79,6 +79,7 @@ docs = [
     "sphinx-autobuild",
     "sphinx-contributors",
     "pyqt6",
+    "imageio"
     # "sphinx-excec-code"
 ]
 

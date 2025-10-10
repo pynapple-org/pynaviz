@@ -27,6 +27,7 @@ from ..controller import GetController
 from .skeleton_plot import PlotPoints
 from .video_handling import VideoHandler
 from .video_worker import RenderTriggerSource, video_worker_process
+from ..utils import GRADED_COLOR_LIST
 
 # WeakSet to avoid keeping dead references
 _active_plot_videos = weakref.WeakSet()
@@ -219,6 +220,9 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
 
         if label is None:
             label = f"points_{len(self.points) + 1}"
+
+        if color is None:
+            color = GRADED_COLOR_LIST[len(self.points) % len(GRADED_COLOR_LIST)]
 
         self.points[label] = PlotPoints(
                 tsdframe = tsdframe,

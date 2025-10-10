@@ -21,34 +21,29 @@ DEFAULT_SCREENSHOT_PATH.mkdir(parents=True, exist_ok=True)
 # Markdown pathfile to write to
 MARKDOWN_PATH = BASE_DIR / "user_guide"
 
-# def main_qt():
-#     app = QApplication.instance() or QApplication(sys.argv)
-#
-#     for conf_cls in [
-#         config.TsdConfig(DEFAULT_SCREENSHOT_PATH),
-#         config.TsdFrameConfig(DEFAULT_SCREENSHOT_PATH),
-#         config.TsGroupConfig(DEFAULT_SCREENSHOT_PATH),
-#         config.IntervalSetConfig(DEFAULT_SCREENSHOT_PATH),
-#     ]:
-#         data = conf_cls.get_data()
-#         object_name = data.__class__.__name__
-#         widget_cls = getattr(viz, f"{object_name}Widget")
-#         widget = widget_cls(data)
-#
-#         widget.resize(640, 480)  # Set a reasonable size for offscreen rendering
-#         app.processEvents()      # Ensure layout is updated
-#
-#         # Offscreen rendering to pixmap
-#         pixmap = QPixmap(widget.size())
-#         pixmap.fill()  # optional: fill with white background
-#         painter = QPainter(pixmap)
-#         widget.render(painter)
-#         painter.end()
-#
-#         # Save the rendered widget to file
-#         filename = f"test_{object_name}Widget.png"
-#         output_path = conf_cls.path / filename
-#         pixmap.save(str(output_path))
+def combine_gifs(gif_paths, output_path, duration=500):
+    from PIL import Image
+
+    frames = []
+
+    for gif_path in gif_paths:
+        with Image.open(gif_path) as img:
+            try:
+                while True:
+                    frames.append(img.copy())
+                    img.seek(img.tell() + 1)
+            except EOFError:
+                pass  # End of sequence
+
+    if frames:
+        gif0 = Image.open(gif_paths[0])
+        frames[0].save(
+            output_path,
+            save_all=True,
+            append_images=frames[1:],
+            duration=gif0.info.get('duration', 100),
+            loop=0,
+        )
 
 def main():
     for conf_cls in [
@@ -57,12 +52,24 @@ def main():
         config.TsGroupConfig(DEFAULT_SCREENSHOT_PATH),
         config.IntervalSetConfig(DEFAULT_SCREENSHOT_PATH),
         config.TsConfig(DEFAULT_SCREENSHOT_PATH),
-        config.TsdTensorConfig(DEFAULT_SCREENSHOT_PATH)
+        config.TsdTensorConfig(DEFAULT_SCREENSHOT_PATH),
+        config.VideoHandlerConfig(DEFAULT_SCREENSHOT_PATH),
     ]:
         conf_cls.run_all(fill=True)
         conf_cls.write_simple_visuals(MARKDOWN_PATH)
 
+    # Combining all gifs into one file
+    gifs_path = BASE_DIR / "examples/"
+    combined_gif_path = BASE_DIR / "_static/combined_widgets.gif"
+    combine_gifs(
+        [p for p in gifs_path.glob("*.gif") if "combined" not in p.name],
+        combined_gif_path,
+        duration=800,
+    )
+    print(f"Combined GIF saved to {combined_gif_path}")
+
 
 if __name__ == "__main__":
     main()
-    # main_qt()
+
+
