@@ -21,6 +21,7 @@ from matplotlib.pyplot import *
 from PIL import ImageGrab
 from utils import grab_window, click_on_item, add_dock_widget, move_and_resize_dock, save_gif
 
+
 def main():
     # Load data
     video_path = "m3v1mp4.mp4"
@@ -90,11 +91,18 @@ def main():
     QTest.mouseClick(win.playPauseBtn, Qt.MouseButton.LeftButton)
     app.processEvents()
 
+    running_frames = []
+    running_durations = []
+
+     # Grab frames while the animation is playing
     for _ in range(num_frames):
         QTest.qWait(interval_ms)  # wait 25 ms
         frames.append(grab_window(win))  # grab frame
         durations.append(interval_ms)
         app.processEvents()
+        # adding for special gifs
+        running_frames.append(frames[-1])
+        running_durations.append(interval_ms)
 
     # --- Pause the animation ---
     QTest.mouseClick(win.playPauseBtn, Qt.MouseButton.LeftButton)
@@ -103,6 +111,9 @@ def main():
     durations.append(800)
 
     save_gif(frames, durations, "example_dlc_pose.gif")
+
+    # # Save only the frames during the playing
+    # save_gif(frames, durations, "example_dlc_pose.gif")
 
     sys.exit(0)
 

@@ -4,7 +4,27 @@
 pynaviz
 =======
 
-Python Neural Analysis Visualization
+PYthon Neural Analysis VIZualization
+
+.. grid:: 4
+   :gutter: 2
+
+   .. grid-item::
+      .. image:: examples/example_dlc_pose.gif
+         :width: 100%
+
+   .. grid-item::
+      .. image:: examples/example_head_direction.gif
+         :width: 100%
+
+   .. grid-item::
+      .. image:: examples/example_lfp.gif
+         :width: 100%
+
+   .. grid-item::
+      .. image:: examples/example_videos.gif
+         :width: 100%
+
 
 .. grid:: 1 1 2 2
 
