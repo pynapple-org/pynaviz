@@ -3,8 +3,9 @@ from collections import OrderedDict
 import pytest
 from unittest.mock import MagicMock
 from PyQt6.QtCore import Qt, QModelIndex
+from PyQt6.QtWidgets import QDoubleSpinBox
 
-from pynaviz.qt.tsdframe_selection import TsdFramesModel, GRADED_COLOR_LIST
+from pynaviz.qt.tsdframe_selection import TsdFramesModel, GRADED_COLOR_LIST, DoubleSpinDelegate
 
 # CURRENT FRAME MODEL CONFIGS - Ideally Making Refactoring Easier
 COLUMNS_IDS = OrderedDict({
@@ -47,17 +48,19 @@ SUPPORTED_HEADER_ROLES = {Qt.ItemDataRole.DisplayRole}
 CHECKSTATE_COLUMN = 0  # Only column 0 supports CheckStateRole
 
 
+@pytest.fixture
+def sample_tsdframes():
+    """Create sample tsdframes dict for testing."""
+    return {
+        "frame1": MagicMock(),
+        "frame2": MagicMock(),
+        "frame3": MagicMock(),
+    }
+
+
 class TestTsdFramesModel:
     """Test suite for TsdFramesModel."""
 
-    @pytest.fixture
-    def sample_tsdframes(self):
-        """Create sample tsdframes dict for testing."""
-        return {
-            "frame1": MagicMock(),
-            "frame2": MagicMock(),
-            "frame3": MagicMock(),
-        }
 
     @pytest.fixture
     def model(self, sample_tsdframes):
@@ -482,3 +485,188 @@ class TestTsdFramesModel:
         result = model.setData(index, "value", Qt.ItemDataRole.EditRole)
         # Should return False or handle gracefully without crashing
         assert result == False, "Invalid row indexing returned a True."
+
+
+class TestDoubleSpinDelegate:
+    """Test suite for DoubleSpinDelegate."""
+
+    @pytest.fixture
+    def delegate(self):
+        """Create a DoubleSpinDelegate instance."""
+        return DoubleSpinDelegate(min_=0.0, max_=100.0)
+
+    @pytest.fixture
+    def mock_parent(self, qtbot):
+        """Create a mock parent widget."""
+        from PyQt6.QtWidgets import QWidget
+        widget = QWidget()
+        qtbot.addWidget(widget)
+        return widget
+
+    @pytest.fixture
+    def mock_model(self, sample_tsdframes):
+        """Create a model for testing."""
+        return TsdFramesModel(sample_tsdframes)
+
+    # ========== Test Initialization ==========
+
+    def test_initialization(self, delegate):
+        """Test that delegate initializes with correct min/max."""
+        assert delegate.min_ == 0.0, "Min value not set correctly"
+        assert delegate.max_ == 100.0, "Max value not set correctly"
+
+    # ========== Test createEditor ==========
+
+    def test_create_editor_returns_spinbox(self, delegate, mock_parent, mock_model):
+        """Test that createEditor returns a QDoubleSpinBox."""
+        index = mock_model.index(0, 2)
+        editor = delegate.createEditor(mock_parent, None, index)
+
+        assert isinstance(editor, QDoubleSpinBox), (
+            f"Expected QDoubleSpinBox, got {type(editor)}"
+        )
+
+    def test_create_editor_sets_range(self, delegate, mock_parent, mock_model):
+        """Test that createEditor sets min/max on the spinbox."""
+        index = mock_model.index(0, 2)
+        editor = delegate.createEditor(mock_parent, None, index)
+
+        assert editor.minimum() == delegate.min_, (
+            f"Spinbox minimum {editor.minimum()} doesn't match delegate min {delegate.min_}"
+        )
+        assert editor.maximum() == delegate.max_, (
+            f"Spinbox maximum {editor.maximum()} doesn't match delegate max {delegate.max_}"
+        )
+
+    def test_create_editor_sets_properties(self, delegate, mock_parent, mock_model):
+        """Test that createEditor sets spinbox properties correctly."""
+        index = mock_model.index(0, 2)
+        editor = delegate.createEditor(mock_parent, None, index)
+
+        assert editor.singleStep() == 1.0, "Single step should be 1.0"
+        assert editor.decimals() == 2, "Decimals should be 2"
+
+    # ========== Test setEditorData ==========
+
+    def test_set_editor_data_with_valid_value(self, delegate, mock_parent, mock_model):
+        """Test that setEditorData loads value from model into editor."""
+        index = mock_model.index(0, 2)  # markersize column
+        expected_value = mock_model.rows[0]["markersize"]
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        delegate.setEditorData(editor, index)
+
+        assert editor.value() == expected_value, (
+            f"Editor value {editor.value()} doesn't match model value {expected_value}"
+        )
+
+    def test_set_editor_data_with_none_value(self, delegate, mock_parent, mock_model):
+        """Test that setEditorData handles None by setting 0.0."""
+        index = mock_model.index(0, 2)
+        # Temporarily set value to None
+        original_value = mock_model.rows[0]["markersize"]
+        mock_model.rows[0]["markersize"] = None
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        delegate.setEditorData(editor, index)
+
+        assert editor.value() == 0.0, (
+            "Editor should default to 0.0 when model value is None"
+        )
+
+        # Restore original value
+        mock_model.rows[0]["markersize"] = original_value
+
+    @pytest.mark.parametrize("test_value", [5.5, 0.0, 100.0, 42.37])
+    def test_set_editor_data_various_values(self, delegate, mock_parent, mock_model, test_value):
+        """Test setEditorData with various numeric values."""
+        index = mock_model.index(0, 2)
+        mock_model.rows[0]["markersize"] = test_value
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        delegate.setEditorData(editor, index)
+
+        assert editor.value() == test_value, (
+            f"Editor value {editor.value()} doesn't match expected {test_value}"
+        )
+
+    # ========== Test setModelData ==========
+
+    def test_set_model_data(self, delegate, mock_parent, mock_model, qtbot):
+        """Test that setModelData writes editor value back to model."""
+        index = mock_model.index(0, 2)
+        test_value = 25.75
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        editor.setValue(test_value)
+
+        with qtbot.waitSignal(mock_model.dataChanged):
+            delegate.setModelData(editor, mock_model, index)
+
+        assert mock_model.rows[0]["markersize"] == test_value, (
+            f"Model value {mock_model.rows[0]['markersize']} doesn't match "
+            f"editor value {test_value}"
+        )
+
+    def test_set_model_data_calls_interpret_text(self, delegate, mock_parent, mock_model):
+        """Test that setModelData calls interpretText before saving."""
+        index = mock_model.index(0, 2)
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        # Set text without programmatically setting value
+        # This simulates user typing "15.5" but not pressing Enter
+        editor.lineEdit().setText("15.5")
+
+        delegate.setModelData(editor, mock_model, index)
+
+        # interpretText() should have parsed the text
+        assert mock_model.rows[0]["markersize"] == 15.5, (
+            "setModelData should call interpretText() to parse pending text"
+        )
+
+    # ========== Integration Test ==========
+
+    def test_full_edit_cycle(self, delegate, mock_parent, mock_model, qtbot):
+        """Test complete edit cycle: create -> load -> edit -> save."""
+        index = mock_model.index(0, 2)
+        original_value = mock_model.rows[0]["markersize"]
+        new_value = 99.99
+
+        # Create editor
+        editor = delegate.createEditor(mock_parent, None, index)
+        assert isinstance(editor, QDoubleSpinBox)
+
+        # Load data from model
+        delegate.setEditorData(editor, index)
+        assert editor.value() == original_value
+
+        # User edits the value
+        editor.setValue(new_value)
+        assert editor.value() == new_value
+
+        # Save data back to model
+        with qtbot.waitSignal(mock_model.dataChanged):
+            delegate.setModelData(editor, mock_model, index)
+
+        assert mock_model.rows[0]["markersize"] == new_value, (
+            f"Full edit cycle failed: expected {new_value}, "
+            f"got {mock_model.rows[0]['markersize']}"
+        )
+
+    # ========== Edge Cases ==========
+
+    @pytest.mark.parametrize("min_val,max_val", [
+        (0, 100),
+        (-100, 100),
+        (0, 1e12),
+        (-1e12, 1e12),
+    ])
+    def test_various_ranges(self, mock_parent, mock_model, min_val, max_val):
+        """Test delegate with various min/max ranges."""
+        delegate = DoubleSpinDelegate(min_=min_val, max_=max_val)
+        index = mock_model.index(0, 2)
+
+        editor = delegate.createEditor(mock_parent, None, index)
+
+        assert editor.minimum() == min_val
+        assert editor.maximum() == max_val
