@@ -78,6 +78,11 @@ def main():
     # --- Resize and move the video dock ---
     move_and_resize_dock(win, app, frames, durations, move_offset=QPoint(500, 0), resize_width=400)
 
+    # --- Toggle tree widget visibility ---
+    QTest.mouseClick(win.variable_dock.handle, Qt.MouseButton.LeftButton)
+    app.processEvents()
+    frames.append(grab_window(win))  # grab frame
+    durations.append(800)
 
     # --- Apply metadata actions ---
     dock_widgets = win.findChildren(QDockWidget)

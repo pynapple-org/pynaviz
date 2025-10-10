@@ -174,7 +174,6 @@ class SpanController(CustomController):
 
     def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
         """Set the visible X and Y ranges for an OrthographicCamera."""
-        # self.camera.show_rect(xmin, xmax, ymin, ymax)
         self.set_xlim(xmin, xmax)
         self.set_ylim(ymin, ymax)
 

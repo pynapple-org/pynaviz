@@ -95,6 +95,12 @@ def main():
     # --- Add docks ---
     add_dock_widget(tree_widget, win, app, frames, durations, item_number=0) # eeg
 
+    # --- Toggle tree widget visibility ---
+    QTest.mouseClick(win.variable_dock.handle, Qt.MouseButton.LeftButton)
+    app.processEvents()
+    frames.append(grab_window(win))  # grab frame
+    durations.append(800)
+
     # --- Apply metadata actions ---
     dock_widgets = win.findChildren(QDockWidget)
     plots = {i:dock.widget().plot for i, dock in enumerate(dock_widgets[1:])}
