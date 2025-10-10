@@ -85,6 +85,11 @@ class TsdFramesModel(QAbstractTableModel):
 
     def data(self, index, role=None):
         """What to display in the table view."""
+        # Guard clause for invalid index
+        # (for example, if initialize with empty tsdframe dict)
+        if not index.isValid():
+            return None
+
         row, col = index.row(), index.column()
         r = self.rows[row]
 
@@ -129,11 +134,15 @@ class TsdFramesModel(QAbstractTableModel):
         role : Qt.ItemDataRole
             The role of the data to set.
         """
+        if not index.isValid():
+            return False
         row, col = index.row(), index.column()
         r = self.rows[row]
 
         if role == Qt.ItemDataRole.CheckStateRole and col == 0:
-            r["checked"] = (int(value) == Qt.CheckState.Checked.value)
+            # handles both  Qt.CheckState Enum and int/bool
+            check_value = getattr(value, 'value', value)
+            r["checked"] = (check_value == Qt.CheckState.Checked.value)
             self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
             self.checkStateChanged.emit(r["name"], r["colors"], r["markersize"], r["thickness"], r["checked"])
             return True
