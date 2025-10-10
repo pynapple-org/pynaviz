@@ -674,10 +674,13 @@ class MainWindow(QMainWindow):
         self.playing = not self.playing
         if self.playing:
             # Switch to pause icon
+            # Update plotvideos to use only async reading
+            # TODO : look throuhgt docks and set a flag for all video plot to use async reading
             self.timer.start(25)  # 40 FPS
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-pause"))
         else:
             # Switch to play icon
+            # TODO : switch back to normal reading for plotvideos
             self.timer.stop()
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-start"))
             self.ctrl_group.set_interval(self.ctrl_group.current_time, None)

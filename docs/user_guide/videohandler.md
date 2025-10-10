@@ -7,7 +7,7 @@ import pynaviz as viz
 print(videohandler)
 ```
 ```
-<pynaviz.audiovideo.video_handling.VideoHandler object at 0x1544c76be810>
+<pynaviz.audiovideo.video_handling.VideoHandler object at 0x1674e3e80>
 ```
 
 ---

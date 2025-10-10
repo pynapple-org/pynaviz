@@ -13,7 +13,6 @@ import pynapple as nap
 from PIL import Image
 
 import pynaviz as viz
-import requests
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
@@ -52,9 +51,9 @@ class BaseConfig:
         if name is not None and len(name):
             if isinstance(name, (list, tuple)):
                 for n, kw in zip(name, kwargs):
-                    raw += "_" + n + "_" + "_".join(f"{k}={v}" for k, v in kw.items())
+                    raw += "_" + n + "_" + "_".join(f"{k}={type(v)}" for k, v in kw.items())
             else:
-                raw += "_" + name + "_" + "_".join(f"{k}={v}" for k, v in kwargs.items())
+                raw += "_" + name + "_" + "_".join(f"{k}={type(v)}" for k, v in kwargs.items())
         safe = re.sub(r"[^\w\-_=\.]", "_", raw)
 
         # If too long hash the tail for uniqueness
@@ -74,6 +73,7 @@ class BaseConfig:
             background = Image.new("RGBA", image.size, (0,0,0,255))
             image = Image.alpha_composite(background, image)
         filename = self._build_filename(name, kwargs)
+
         image.save(self.path / filename)
 
     def run_all(self, fill=False):
