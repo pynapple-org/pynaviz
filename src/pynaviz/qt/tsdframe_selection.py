@@ -18,7 +18,6 @@ from pynaviz.utils import GRADED_COLOR_LIST
 
 
 class DoubleSpinDelegate(QStyledItemDelegate):
-    valueChanged = pyqtSignal(int, float)
 
     def __init__(self, min_, max_, parent=None):
         super().__init__(parent)
@@ -33,7 +32,7 @@ class DoubleSpinDelegate(QStyledItemDelegate):
         spin.setSingleStep(1)
         spin.setDecimals(2)  # adjust precision as needed
 
-        # Emit valueChanged signal for convenience
+        # Emit valueChanged signal for convenience (no need any extra signal)
         spin.valueChanged.connect(
             lambda val, ix=index: index.model().setData(ix, val, Qt.ItemDataRole.EditRole)
         )
@@ -195,24 +194,10 @@ class TsdFramesDialog(QDialog):
 
         # Marker size
         markersize_delegate = DoubleSpinDelegate(min_=0, max_=1e12, parent=self.view)
-        markersize_delegate.valueChanged.connect(
-            lambda row, val: model.setData(
-                model.index(row, 2),  # build a QModelIndex for column 2
-                val,
-                Qt.ItemDataRole.EditRole
-            )
-        )
         self.view.setItemDelegateForColumn(2, markersize_delegate)
 
         # Line thickness
         thickness_delegate = DoubleSpinDelegate(min_=0, max_=1e12, parent=self.view)
-        thickness_delegate.valueChanged.connect(
-            lambda row, val: model.setData(
-                model.index(row, 2),  # build a QModelIndex for column 2
-                val,
-                Qt.ItemDataRole.EditRole
-            )
-        )
         self.view.setItemDelegateForColumn(3, thickness_delegate)
 
         layout = QVBoxLayout()
