@@ -497,11 +497,7 @@ class MenuWidget(QWidget):
                     self.plot.scene.remove(self.plot.points[name].lines)
                 self.plot.scene.remove(self.plot.points[name].points)
                 del self.plot.points[name]
-            # if it is a PlotVideo object, use the async render loop
-            if hasattr(self.plot, "_render_loop"):
-                self.plot.canvas.request_draw(self.plot._render_loop)
-            # otherwise use hte standard plot.animate
-            else:
-                self.plot.canvas.request_draw(self.plot.animate)
+            self.plot.canvas.request_draw(self.plot.anmiate)
+
 
 
