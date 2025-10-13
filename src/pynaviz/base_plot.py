@@ -3,6 +3,7 @@ Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
 
+import os
 import threading
 import warnings
 from typing import Any, Optional, Union
@@ -15,7 +16,11 @@ import pynapple as nap
 # from line_profiler import profile
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
-from wgpu.gui.auto import run
+
+if os.environ.get('CI') or not os.environ.get('DISPLAY'):
+    from rendercanvas.offscreen import loop
+else:
+    from rendercanvas.auto import loop
 
 from .controller import GetController, SpanController, SpanYLockController
 from .interval_set import IntervalSetInterface
@@ -101,11 +106,11 @@ class _BasePlot(IntervalSetInterface):
 
         # Create a GPU-accelerated canvas for rendering, optionally with a parent widget
         if parent:  # Assuming it's a Qt background
-            from wgpu.gui.qt import WgpuCanvas
-            self.canvas = WgpuCanvas(parent=parent)
+            from rendercanvas.qt import RenderCanvas
+            self.canvas = RenderCanvas(parent=parent)
         else:  # Default to glfw for single canvas
-            from wgpu.gui.auto import WgpuCanvas
-            self.canvas = WgpuCanvas()
+            from rendercanvas.auto import RenderCanvas
+            self.canvas = RenderCanvas()
 
         # Create a WGPU-based renderer attached to the canvas
         self.renderer = gfx.WgpuRenderer(
@@ -223,7 +228,7 @@ class _BasePlot(IntervalSetInterface):
     def show(self):
         """To show the canvas in case of GLFW context used"""
         try:
-            run()
+            loop()
         except Exception:
             pass
 
