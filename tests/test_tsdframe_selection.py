@@ -1,11 +1,17 @@
 from collections import OrderedDict
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import MagicMock
-from PyQt6.QtCore import Qt, QModelIndex
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QDoubleSpinBox, QPushButton
 
-from pynaviz.qt.tsdframe_selection import TsdFramesModel, GRADED_COLOR_LIST, DoubleSpinDelegate, TsdFramesDialog, ComboDelegate
+from pynaviz.qt.tsdframe_selection import (
+    GRADED_COLOR_LIST,
+    ComboDelegate,
+    DoubleSpinDelegate,
+    TsdFramesDialog,
+    TsdFramesModel,
+)
 
 # CURRENT FRAME MODEL CONFIGS - Ideally Making Refactoring Easier
 COLUMNS_IDS = OrderedDict({
@@ -450,7 +456,7 @@ class TestTsdFramesModel:
         # Test setData() with invalid index
         result = empty_model.setData(index, "value", Qt.ItemDataRole.EditRole)
         # Should return False or handle gracefully without crashing
-        assert result == False, "Invalid indexing returned a True."
+        assert not result, "Invalid indexing returned a True."
 
     def test_full_model_invalid_index_handling(self, model):
         """Test that empty model handles invalid indices gracefully."""
@@ -468,7 +474,7 @@ class TestTsdFramesModel:
         # Test setData() with invalid index
         result = model.setData(index, "value", Qt.ItemDataRole.EditRole)
         # Should return False or handle gracefully without crashing
-        assert result == False, "Invalid row indexing returned a True."
+        assert not result, "Invalid row indexing returned a True."
 
         # invalid row
         index = model.index(0, 5)
@@ -484,7 +490,7 @@ class TestTsdFramesModel:
         # Test setData() with invalid index
         result = model.setData(index, "value", Qt.ItemDataRole.EditRole)
         # Should return False or handle gracefully without crashing
-        assert result == False, "Invalid row indexing returned a True."
+        assert not result, "Invalid row indexing returned a True."
 
 
 class TestDoubleSpinDelegate:
