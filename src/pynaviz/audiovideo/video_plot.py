@@ -500,4 +500,4 @@ class PlotVideo(PlotBaseVideoTensor):
             self.renderer.render(self.scene, self.camera)
             self._needs_redraw.clear()
 
-        self.canvas.request_draw(self.anmiate)
+        self.canvas.request_draw(self.animate)
