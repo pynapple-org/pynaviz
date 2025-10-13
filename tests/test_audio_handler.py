@@ -91,3 +91,19 @@ def test_decode_first_boundaries(fully_decoded_audio):
         frames, cur = handler._decode_first(end_bound)
         assert frames[0].shape[1] == 0  # empty first piece
         assert cur == end_bound
+
+
+@pytest.mark.parametrize("fully_decoded_audio", ["wav", "mp3", "flac"], indirect=True)
+def test_start_end_order(fully_decoded_audio):
+    audio_path = fully_decoded_audio[0]
+    with audio_handling.AudioHandler(audio_path) as handler:
+        with pytest.raises(ValueError, match="`end` time must be greater"):
+            handler.get(1.8, 1)
+
+
+@pytest.mark.parametrize("fully_decoded_audio", ["wav", "mp3", "flac"], indirect=True)
+def test_start_greater_than_file_len(fully_decoded_audio):
+    audio_path = fully_decoded_audio[0]
+    with audio_handling.AudioHandler(audio_path) as handler:
+        data = handler.get(10, 11)
+        assert data.shape == (0, 1)
