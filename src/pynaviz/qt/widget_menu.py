@@ -482,7 +482,6 @@ class MenuWidget(QWidget):
 
     def _overlay_time_series(self, name, color, markersize, thickness, checked) -> None:
         """Add or remove TsdFrame overlay from the plot based on selection."""
-        print(f"_overlay_time_series called: name={name}, checked={checked}")  # ✅ Add
         if checked:
             # If already present, update the parameters
             if name in self.plot.points:
