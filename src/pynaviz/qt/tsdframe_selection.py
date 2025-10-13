@@ -183,13 +183,6 @@ class TsdFramesDialog(QDialog):
 
 
         color_delegate = ComboDelegate(self.view)
-        color_delegate.valueChanged.connect(
-            lambda row, text: model.setData(
-                model.index(row, 1),  # build a QModelIndex for column 1
-                text,
-                Qt.ItemDataRole.EditRole
-            )
-        )
         self.view.setItemDelegateForColumn(1, color_delegate)
 
         # Marker size
