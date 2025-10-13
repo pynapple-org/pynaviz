@@ -347,7 +347,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
         self.buffer_lock = threading.Lock()
         self._needs_redraw = threading.Event()
-        self.canvas.request_draw(self.anmiate)
+        self.canvas.request_draw(self.animate)
         self._last_jump_index = 0
 
     def _get_initial_texture_data(self):
@@ -465,7 +465,7 @@ class PlotVideo(PlotBaseVideoTensor):
         """Ensure all resources are closed when the object is destroyed."""
         self.close()
 
-    def anmiate(self):
+    def animate(self):
         """
         Main render loop callback for pygfx.
 
