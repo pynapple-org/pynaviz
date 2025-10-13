@@ -497,7 +497,7 @@ class MenuWidget(QWidget):
                     self.plot.scene.remove(self.plot.points[name].lines)
                 self.plot.scene.remove(self.plot.points[name].points)
                 del self.plot.points[name]
-            self.plot.canvas.request_draw(self.plot.anmiate)
+            self.plot.canvas.request_draw(self.plot.animate)
 
 
 
