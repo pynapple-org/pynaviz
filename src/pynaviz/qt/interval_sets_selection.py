@@ -118,14 +118,9 @@ class IntervalSetsModel(QAbstractTableModel):
 
 class ComboDelegate(QStyledItemDelegate):
     """Drop-down editor for colors."""
-    valueChanged = pyqtSignal(int, str)
     def createEditor(self, parent, option, index):
         combo = QComboBox(parent)
         combo.addItems(GRADED_COLOR_LIST)
-        row = index.row()
-        combo.currentTextChanged.connect(
-            lambda text: self.valueChanged.emit(row, text)
-        )
         return combo
 
     def setEditorData(self, editor, index):
@@ -140,7 +135,6 @@ class ComboDelegate(QStyledItemDelegate):
 
 
 class SpinDelegate(QStyledItemDelegate):
-    valueChanged = pyqtSignal(int, float)
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -150,9 +144,6 @@ class SpinDelegate(QStyledItemDelegate):
         spin.setMaximum(1.0)
         spin.setSingleStep(0.1)
         spin.setDecimals(1)
-        spin.valueChanged.connect(
-            lambda val, ix=index: index.model().setData(ix, val, Qt.ItemDataRole.EditRole)
-        )
         return spin
 
     def setEditorData(self, editor, index):
@@ -188,26 +179,10 @@ class IntervalSetsDialog(QDialog):
 
 
         color_delegate = ComboDelegate(self.view)
-        color_delegate.valueChanged.connect(
-            lambda row, text: model.setData(
-                model.index(row, 1),  # build a QModelIndex for column 1
-                text,
-                Qt.ItemDataRole.EditRole
-            )
-        )
         self.view.setItemDelegateForColumn(1, color_delegate)
 
         alpha_delegate = SpinDelegate(self.view)
-        alpha_delegate.valueChanged.connect(
-            lambda row, val: model.setData(
-                model.index(row, 2),  # build a QModelIndex for column 2
-                val,
-                Qt.ItemDataRole.EditRole
-            )
-        )
         self.view.setItemDelegateForColumn(2, alpha_delegate)
-
-        # self.view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         layout = QVBoxLayout()
         layout.addWidget(self.view)
