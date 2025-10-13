@@ -3,9 +3,9 @@ from collections import OrderedDict
 import pytest
 from unittest.mock import MagicMock
 from PyQt6.QtCore import Qt, QModelIndex
-from PyQt6.QtWidgets import QDoubleSpinBox
+from PyQt6.QtWidgets import QDoubleSpinBox, QPushButton
 
-from pynaviz.qt.tsdframe_selection import TsdFramesModel, GRADED_COLOR_LIST, DoubleSpinDelegate
+from pynaviz.qt.tsdframe_selection import TsdFramesModel, GRADED_COLOR_LIST, DoubleSpinDelegate, TsdFramesDialog, ComboDelegate
 
 # CURRENT FRAME MODEL CONFIGS - Ideally Making Refactoring Easier
 COLUMNS_IDS = OrderedDict({
@@ -670,3 +670,192 @@ class TestDoubleSpinDelegate:
 
         assert editor.minimum() == min_val
         assert editor.maximum() == max_val
+
+
+class TestTsdFramesDialog:
+    """Test suite for TsdFramesDialog."""
+
+    @pytest.fixture
+    def sample_tsdframes(self):
+        """Create sample tsdframes dict for testing."""
+        return {
+            "frame1": MagicMock(),
+            "frame2": MagicMock(),
+        }
+
+    @pytest.fixture
+    def model(self, sample_tsdframes):
+        """Create a TsdFramesModel instance."""
+        return TsdFramesModel(sample_tsdframes)
+
+    @pytest.fixture
+    def dialog(self, model, qtbot):
+        """Create a TsdFramesDialog instance."""
+        dialog = TsdFramesDialog(model)
+        qtbot.addWidget(dialog)
+        return dialog
+
+    # ========== Test Initialization ==========
+
+    def test_dialog_initialization(self, dialog, model):
+        """Test that dialog initializes correctly."""
+        assert dialog.view is not None, "View should be initialized"
+        assert dialog.view.model() is model, "View should use the provided model"
+
+    def test_window_properties(self, dialog):
+        """Test that dialog has correct window properties."""
+        assert dialog.windowTitle() == "TsdFrame selection"
+        assert dialog.minimumSize().width() == 400
+        assert dialog.minimumSize().height() == 300
+
+    # ========== Test Delegates ==========
+
+    def test_combo_delegate_column_1(self, dialog):
+        """Test that ComboDelegate is set for column 1 (colors)."""
+        delegate = dialog.view.itemDelegateForColumn(1)
+        assert isinstance(delegate, ComboDelegate), (
+            f"Column 1 should have ComboDelegate, found {type(delegate)}"
+        )
+
+    def test_markersize_delegate_column_2(self, dialog):
+        """Test that DoubleSpinDelegate is set for column 2 (markersize)."""
+        delegate = dialog.view.itemDelegateForColumn(2)
+        assert isinstance(delegate, DoubleSpinDelegate), (
+            f"Column 2 should have DoubleSpinDelegate, found {type(delegate)}"
+        )
+        assert delegate.min_ == 0, f"Markersize min should be 0, found {delegate.min_}"
+        assert delegate.max_ == 1e12, f"Markersize max should be 1e12, found {delegate.max_}"
+
+    def test_thickness_delegate_column_3(self, dialog):
+        """Test that DoubleSpinDelegate is set for column 3 (thickness)."""
+        delegate = dialog.view.itemDelegateForColumn(3)
+        assert isinstance(delegate, DoubleSpinDelegate), (
+            f"Column 3 should have DoubleSpinDelegate, found {type(delegate)}"
+        )
+        assert delegate.min_ == 0, f"Thickness min should be 0, found {delegate.min_}"
+        assert delegate.max_ == 1e12, f"Thickness max should be 1e12, found {delegate.max_}"
+
+    def test_column_0_has_no_custom_delegate(self, dialog):
+        """Test that column 0 uses default delegate (for checkbox)."""
+        delegate = dialog.view.itemDelegateForColumn(0)
+        # Should be None or default delegate, not a custom one
+        assert not isinstance(delegate, (ComboDelegate, DoubleSpinDelegate)), (
+            f"Column 0 should use default delegate, found {type(delegate)}"
+        )
+
+    # ========== Test Delegate Functionality ==========
+
+    def test_markersize_editor_creation(self, dialog, model, qtbot):
+        """Test that markersize delegate creates correct editor."""
+        delegate = dialog.view.itemDelegateForColumn(2)
+        index = model.index(0, 2)
+
+        editor = delegate.createEditor(dialog.view, None, index)
+        qtbot.addWidget(editor)
+
+        assert isinstance(editor, QDoubleSpinBox), (
+            f"Markersize editor should be QDoubleSpinBox, found {type(editor)}"
+        )
+        assert editor.minimum() == 0
+        assert editor.maximum() == 1e12
+
+    def test_thickness_editor_creation(self, dialog, model, qtbot):
+        """Test that thickness delegate creates correct editor."""
+        delegate = dialog.view.itemDelegateForColumn(3)
+        index = model.index(0, 3)
+
+        editor = delegate.createEditor(dialog.view, None, index)
+        qtbot.addWidget(editor)
+
+        assert isinstance(editor, QDoubleSpinBox), (
+            f"Thickness editor should be QDoubleSpinBox, found {type(editor)}"
+        )
+        assert editor.minimum() == 0
+        assert editor.maximum() == 1e12
+
+    def test_markersize_edit_updates_model(self, dialog, model, qtbot):
+        """Test that editing markersize updates the model correctly."""
+        delegate = dialog.view.itemDelegateForColumn(2)
+        index = model.index(0, 2)
+        original_value = model.rows[0]["markersize"]
+        new_value = 42.5
+
+        # Create and populate editor
+        editor = delegate.createEditor(dialog.view, None, index)
+        qtbot.addWidget(editor)
+        delegate.setEditorData(editor, index)
+
+        # Verify initial value
+        assert editor.value() == original_value
+
+        # Change value
+        editor.setValue(new_value)
+
+        # Save back to model
+        with qtbot.waitSignal(model.dataChanged):
+            delegate.setModelData(editor, model, index)
+
+        # Verify model was updated
+        assert model.rows[0]["markersize"] == new_value, (
+            f"Model should have new markersize {new_value}, "
+            f"found {model.rows[0]['markersize']}"
+        )
+
+    def test_thickness_edit_updates_model(self, dialog, model, qtbot):
+        """Test that editing thickness updates the model correctly.
+
+        This test mimicks Qt calls to setValue->setModelData and
+        """
+        delegate = dialog.view.itemDelegateForColumn(3)
+        index = model.index(0, 3)
+        original_value = model.rows[0]["thickness"]
+        new_value = 5.75
+
+        # Create and populate editor
+        editor = delegate.createEditor(dialog.view, None, index)
+        qtbot.addWidget(editor)
+        delegate.setEditorData(editor, index)
+
+        # Verify initial value
+        assert editor.value() == original_value
+
+        # Change value
+        editor.setValue(new_value)
+
+        # Save back to model
+        with qtbot.waitSignal(model.dataChanged):
+            delegate.setModelData(editor, model, index)
+
+        # Verify model was updated
+        assert model.rows[0]["thickness"] == new_value, (
+            f"Model should have new thickness {new_value}, "
+            f"found {model.rows[0]['thickness']}"
+        )
+
+    # ========== Test Dialog Buttons ==========
+
+    def test_ok_button_accepts_dialog(self, dialog, qtbot):
+        """Test that OK button accepts the dialog."""
+        ok_button = None
+        for button in dialog.findChildren(QPushButton):
+            if button.text() == "OK":
+                ok_button = button
+                break
+
+        assert ok_button is not None, "OK button not found"
+
+        with qtbot.waitSignal(dialog.accepted):
+            ok_button.click()
+
+    def test_cancel_button_rejects_dialog(self, dialog, qtbot):
+        """Test that Cancel button rejects the dialog."""
+        cancel_button = None
+        for button in dialog.findChildren(QPushButton):
+            if button.text() == "Cancel":
+                cancel_button = button
+                break
+
+        assert cancel_button is not None, "Cancel button not found"
+
+        with qtbot.waitSignal(dialog.rejected):
+            cancel_button.click()
