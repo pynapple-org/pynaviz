@@ -493,11 +493,15 @@ class MenuWidget(QWidget):
                 self.plot.superpose_points(self._tsdframes[name], color, markersize, thickness, label=name)
         else:
             if name in self.plot.points:
-                self.plot.scene.remove(self.plot.points[name].points)
                 if hasattr(self.plot.points[name], "lines"):
                     self.plot.scene.remove(self.plot.points[name].lines)
+                self.plot.scene.remove(self.plot.points[name].points)
                 del self.plot.points[name]
-            self.plot.canvas.request_draw(self.plot.animate)
-
+            # if it is a PlotVideo object, use the async render loop
+            if hasattr(self.plot, "_render_loop"):
+                self.plot.canvas.request_draw(self.plot._render_loop)
+            # otherwise use hte standard plot.animate
+            else:
+                self.plot.canvas.request_draw(self.plot.animate)
 
 
