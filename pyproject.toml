@@ -26,7 +26,7 @@ dependencies = [
     "glfw",
     "matplotlib",
     "numpy",
-    "av",
+    "av>=16.0.0",
 ]
 
 # CLI interface
