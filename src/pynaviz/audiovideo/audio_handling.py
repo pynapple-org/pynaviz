@@ -292,7 +292,8 @@ class AudioHandler(BaseAudioVideo):
             The PyAV frame object.
         """
         if end < start:
-            raise ValueError("End time must be greater than start time.")
+            raise ValueError(f"`end` time must be greater than `start` time. "
+                             f"Provided start is {start}, and provided end is {end}.")
         elif start > self.duration:
             return np.zeros((0, self.stream.codec_context.channels), dtype=np.float32)
 
