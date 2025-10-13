@@ -2,8 +2,8 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
-
 import os
+import sys
 import threading
 import warnings
 from typing import Any, Optional, Union
@@ -16,11 +16,6 @@ import pynapple as nap
 # from line_profiler import profile
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
-
-if os.environ.get('CI') or not os.environ.get('DISPLAY'):
-    from rendercanvas.offscreen import loop
-else:
-    from rendercanvas.auto import loop
 
 from .controller import GetController, SpanController, SpanYLockController
 from .interval_set import IntervalSetInterface
@@ -39,6 +34,29 @@ from .utils import (
     get_plot_min_max,
     trim_kwargs,
 )
+
+
+def _is_headless():
+    """Check if running in a headless environment across all platforms."""
+    # Always headless in CI
+    if os.environ.get('CI'):
+        return True
+
+    # Linux: check DISPLAY
+    if sys.platform.startswith('linux'):
+        return not os.environ.get('DISPLAY')
+
+    # macOS and Windows: assume we have a display unless explicitly set to offscreen
+    if os.environ.get('QT_QPA_PLATFORM') == 'offscreen':
+        return True
+
+    return False
+
+if _is_headless():
+    from rendercanvas.offscreen import loop
+else:
+    from rendercanvas.auto import loop
+
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -108,8 +126,11 @@ class _BasePlot(IntervalSetInterface):
         if parent:  # Assuming it's a Qt background
             from rendercanvas.qt import RenderCanvas
             self.canvas = RenderCanvas(parent=parent)
-        else:  # Default to glfw for single canvas
-            from rendercanvas.auto import RenderCanvas
+        else:
+            if _is_headless():
+                from rendercanvas.offscreen import RenderCanvas
+            else:
+                from rendercanvas.auto import RenderCanvas
             self.canvas = RenderCanvas()
 
         # Create a WGPU-based renderer attached to the canvas
