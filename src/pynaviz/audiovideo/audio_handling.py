@@ -57,15 +57,6 @@ class AudioHandler(BaseAudioVideo):
         self.stream = self.container.streams.audio[stream_index]
         self.time_base = self.stream.time_base
         self.stream_index = stream_index
-        # decode last and first frame (in this order so that the stream
-        # stream is currently at the beginning), and grab information about
-        # the frames
-        self.container.seek(self.stream.duration)
-        packet = next(self.container.demux(self.stream))
-        decoded = packet.decode()
-        while len(decoded) == 0:
-            decoded = packet.decode()
-        last_frame_samples = decoded[-1].samples
 
         self.container.seek(0)
         packet = next(self.container.demux(self.stream))
@@ -79,12 +70,8 @@ class AudioHandler(BaseAudioVideo):
         self.stop_time_pts = self.start_time_pts + self.stream.duration
         self.pts_to_samples = int(self.current_frame.duration / self.current_frame.samples)
 
-        # tot_time assumes that all samples have the same length
-        # but the first sometimes doesn't, here we correct for that
-        full_frame_size = self.stream.codec_context.frame_size if  self.stream.codec_context.frame_size > 0 else self.current_frame.duration
         self._tot_samples = int(
-            self.stream.time_base * self.stream.duration * self.stream.rate -
-            2 * full_frame_size + last_frame_samples + self.current_frame.samples
+            self.stream.time_base * self.stream.duration * self.stream.rate
         )
         self.duration = float(self._tot_samples / self.stream.rate)
         # if the codec context stores the frame_size info, then get the size form it,
@@ -304,6 +291,11 @@ class AudioHandler(BaseAudioVideo):
         `av.AudioFrame <https://pyav.org/docs/stable/api/audio.html#module-av.audio.frame>`
             The PyAV frame object.
         """
+        if end < start:
+            raise ValueError("End time must be greater than start time.")
+        elif start > self.duration:
+            return np.zeros((0, self.stream.codec_context.channels), dtype=np.float32)
+
         start_pts = self._ts_to_pts(start)
         end_pts = self._ts_to_pts(end)
 
