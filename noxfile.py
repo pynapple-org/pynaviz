@@ -59,6 +59,7 @@ def tests(session):
         "--type", "all",
         # "--path", "tests/screenshots",
     )
+
     session.log("Run Tests...")
 
     if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
