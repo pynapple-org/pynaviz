@@ -764,8 +764,7 @@ class MainWindow(QMainWindow):
         if hasattr(widget, 'plot'):
             # remove from controls
             ctrl_id = widget.plot.controller._controller_id
-            if hasattr(widget.plot, "close"):
-                widget.plot.close()
+            widget.close()
             self.ctrl_group.remove(ctrl_id)
         dock.deleteLater()
 
@@ -875,9 +874,14 @@ class MainWindow(QMainWindow):
             self.time_spin_box.setMinimum(min_time * time_multiplier)
             self.time_spin_box.setMaximum(max_time * time_multiplier)
 
-
         return dock
 
+    def closeEvent(self, event: QEvent):
+        """Handle the close event to ensure proper cleanup."""
+        for dock in self.findChildren(QDockWidget):
+            if dock.objectName() != "VariablesDock":
+                self._cleanup_and_close_dock(dock)
+        super().closeEvent(event)
 
 def _filter_paths(path: str) -> tuple | None:
     """Filter paths and return either a valid video path or a pynapple object."""
