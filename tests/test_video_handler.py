@@ -36,12 +36,12 @@ def video_info(request):
 )
 def test_video_handler(video_info, requested_frame_ts, expected_frame_id):
     frame_pts_ref, _, video = video_info
-    handler = video_handling.VideoHandler(
-        video, time=np.arange(100), return_frame_array=False
-    )
-    frame = handler.get(requested_frame_ts)
-    expected_pts = frame_pts_ref[expected_frame_id]
-    assert frame.pts == expected_pts
+    with video_handling.VideoHandler(
+            video, time=np.arange(100), return_frame_array=False
+        ) as handler:
+        frame = handler.get(requested_frame_ts)
+        expected_pts = frame_pts_ref[expected_frame_id]
+        assert frame.pts == expected_pts
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
@@ -59,7 +59,7 @@ def test_video_handler_get_frame_snapshots(
         / f"screenshots/video/numbered_video_{extension}_frame_{expected_frame_id}.png"
     )
     stored_img = iio.imread(path)
-    v = PlotVideo(video, t=np.arange(100))
+    v = PlotVideo(video, t=np.arange(100), start_worker=False)
     v.set_frame(requested_frame_ts)
     v.renderer.render(v.scene, v.camera)
     img = v.renderer.snapshot()
@@ -67,17 +67,18 @@ def test_video_handler_get_frame_snapshots(
     # https://github.com/pygfx/pygfx/blob/main/examples/tests/test_examples.py#L116
     atol = 1
     np.testing.assert_allclose(img, stored_img, atol=atol)
+    v.close()
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
 def test_getitem_single_index_return_frame(video_info):
     _, _, video_path = video_info
-    video = video_handling.VideoHandler(
-        video_path, time=np.arange(100), return_frame_array=False
-    )
-    idx = 7
-    frame = video[idx]
-    assert isinstance(frame, av.VideoFrame), "Single frame should be a single frame"
+    with video_handling.VideoHandler(
+            video_path, time=np.arange(100), return_frame_array=False
+        ) as video:
+        idx = 7
+        frame = video[idx]
+        assert isinstance(frame, av.VideoFrame), "Single frame should be a single frame"
 
 
 @pytest.mark.parametrize(
@@ -93,36 +94,36 @@ def test_getitem_single_index_return_frame(video_info):
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
 def test_getitem_slice_return_frame(video_info, start, stop, step):
     _, _, video_path = video_info
-    video = video_handling.VideoHandler(
-        video_path, time=np.arange(100), return_frame_array=True
-    )
-    idx = slice(start, stop, step)
-    frames = video[idx]
+    with video_handling.VideoHandler(
+            video_path, time=np.arange(100), return_frame_array=True
+        ) as video:
+        idx = slice(start, stop, step)
+        frames = video[idx]
 
-    # Compute expected length
-    start_idx = start or 0
-    stop_idx = stop if stop is not None else video.shape[0]
-    step_val = step or 1
-    expected_len = len(range(start_idx, stop_idx, step_val))
+        # Compute expected length
+        start_idx = start or 0
+        stop_idx = stop if stop is not None else video.shape[0]
+        step_val = step or 1
+        expected_len = len(range(start_idx, stop_idx, step_val))
 
-    assert isinstance(frames, np.ndarray), "Sliced result should be a list of frames"
-    assert np.isdtype(np.float32, frames.dtype)
-    assert (
-        len(frames) == expected_len
-    ), f"Expected {expected_len} frames but got {len(frames)}"
-    assert all(fi.shape == (video.shape[2], video.shape[1], 3) for fi in frames)
+        assert isinstance(frames, np.ndarray), "Sliced result should be a list of frames"
+        assert np.isdtype(np.float32, frames.dtype)
+        assert (
+            len(frames) == expected_len
+        ), f"Expected {expected_len} frames but got {len(frames)}"
+        assert all(fi.shape == (video.shape[2], video.shape[1], 3) for fi in frames)
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
 def test_getitem_single_index_return_frame2(video_info):
     _, _, video_path = video_info
-    video = video_handling.VideoHandler(
-        video_path, time=np.arange(100), return_frame_array=True
-    )
-    idx = 7
-    frame = video[idx]
-    assert isinstance(frame, np.ndarray)
-    assert frame.shape == (video.shape[2], video.shape[1], 3)
+    with video_handling.VideoHandler(
+            video_path, time=np.arange(100), return_frame_array=True
+        ) as video:
+        idx = 7
+        frame = video[idx]
+        assert isinstance(frame, np.ndarray)
+        assert frame.shape == (video.shape[2], video.shape[1], 3)
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
@@ -139,7 +140,7 @@ def test_getitem_single_index_return_frame2(video_info):
 def test_getitem_slice_matches_expected(video_info, start, stop, step):
     _, _, video = video_info
     video = pathlib.Path(video)
-    video_obj = PlotVideo(video, t=np.arange(100))
+    video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
     video_obj.data.return_frame_array = False
     frames = video_obj.data[start:stop:step]
     video_obj.data.return_frame_array = True
@@ -150,23 +151,24 @@ def test_getitem_slice_matches_expected(video_info, start, stop, step):
             video_obj.set_frame(video_obj.data.time[i])
             test_frame = video_obj.data.current_frame
             assert test_frame.pts == frame.pts, "Frame pts mismatch."
-            video_obj.renderer.render(video_obj.scene, video_obj.camera)
             # check if the decoding was correct
             # (assuming current frame is decoded correctly, which is tested above in
             # test_video_handler_get_frame_snapshots)
             np.testing.assert_array_equal(
                 video_obj.data.current_frame.to_ndarray(), frame.to_ndarray()
             )
+    video_obj.close()
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
 def test_getitem_multiple_times(video_info):
     _, _, video = video_info
     video = pathlib.Path(video)
-    video_obj = PlotVideo(video, t=np.arange(100))
+    video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
     frames = video_obj.data[1:12:2]
     frames2 = video_obj.data[1:12:2]
     np.testing.assert_array_equal(frames, frames2)
+    video_obj.close()
 
 
 # @pytest.mark.parametrize(
