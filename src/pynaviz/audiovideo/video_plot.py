@@ -12,7 +12,7 @@ import sys
 import threading
 import weakref
 from abc import ABC, abstractmethod
-from multiprocessing import Event, Process, Queue, set_start_method, shared_memory
+from multiprocessing import Event, Process, Queue, current_process, set_start_method, shared_memory
 from multiprocessing import Lock as MultiProcessLock
 from typing import Any, Optional
 
@@ -44,9 +44,16 @@ def _cleanup_all_plot_videos():
 
 
 # Register cleanup at process exit
-atexit.register(_cleanup_all_plot_videos)
-signal.signal(signal.SIGINT, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
-signal.signal(signal.SIGTERM, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
+def _register_cleanup_hooks():
+    """Register cleanup hooks only in the main process."""
+    if current_process().name != "MainProcess":
+        return
+    if getattr(_register_cleanup_hooks, "_registered", False):
+        return
+    atexit.register(_cleanup_all_plot_videos)
+    signal.signal(signal.SIGINT, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
+    signal.signal(signal.SIGTERM, lambda *_: (_cleanup_all_plot_videos(), sys.exit(0)))
+    _register_cleanup_hooks._registered = True
 
 if sys.platform != "win32":
     try:
@@ -273,6 +280,7 @@ class PlotVideo(PlotBaseVideoTensor):
         t: Optional[NDArray] = None,
         stream_index: int = 0,
         index=None,
+        start_worker: bool = True,
         parent=None,
     ):
         """
@@ -288,6 +296,9 @@ class PlotVideo(PlotBaseVideoTensor):
             Index of the stream to read in the video file.
         index : int, optional
             Controller ID index.
+        start_worker : bool, optional
+            Start the worker thread. This should be set to true when used in GUI but for
+            speeding up tests, should be set to False.
         parent : object, optional
             Parent GUI container or widget.
         """
@@ -334,11 +345,14 @@ class PlotVideo(PlotBaseVideoTensor):
                 self.worker_stop_event,
                 self.worker_lock,
             ),
-            daemon=True,
+            daemon=False,
         )
-        self._worker.start()
+
+        if start_worker:
+            self._worker.start()
 
         # Registry and buffer setup
+        _register_cleanup_hooks()
         _active_plot_videos.add(self)
         self._pending_ui_update_queue = queue.Queue()
         self._stop_threads = threading.Event()
@@ -347,7 +361,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
         self.buffer_lock = threading.Lock()
         self._needs_redraw = threading.Event()
-        self.canvas.request_draw(self.anmiate)
+        self.canvas.request_draw(self.animate)
         self._last_jump_index = 0
 
     def _get_initial_texture_data(self):
@@ -367,19 +381,35 @@ class PlotVideo(PlotBaseVideoTensor):
         """Cleanly close shared memory, worker, and background thread."""
         if not self._closed:
             try:
-                self._data.close()
                 self._stop_threads.set()
+                if hasattr(self, "_buffer_thread") and self._buffer_thread.is_alive():
+                    self._buffer_thread.join(timeout=1)
+            except Exception as e:
+                print(f"Unable to stop background thread with exception: {e}")
+            try:
                 self.worker_stop_event.set()
-                self._worker.join(timeout=2)
+                if self._worker.is_alive():
+                    self._worker.join(timeout=2)
+            except Exception as e:
+                print(f"Unable to stop worker process with exception: {e}")
+            try:
+                self._data.close()
+            except Exception as e:
+                print(f"Unable to close VideoHandler with exception: {e}")
+            try:
                 self.shm_frame.close()
                 self.shm_frame.unlink()
+            except Exception as e:
+                print(f"Unable to close and unlink shm_frame with exception: {e}")
+            try:
                 self.shm_index.close()
                 self.shm_index.unlink()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Unable to close and unlink shm_index with exception: {e}")
             finally:
                 _active_plot_videos.discard(self)
                 self._closed = True
+        super().close()
 
     def _move_fast(self, event, delta=1):
         """
@@ -465,7 +495,7 @@ class PlotVideo(PlotBaseVideoTensor):
         """Ensure all resources are closed when the object is destroyed."""
         self.close()
 
-    def anmiate(self):
+    def animate(self):
         """
         Main render loop callback for pygfx.
 
@@ -500,4 +530,4 @@ class PlotVideo(PlotBaseVideoTensor):
             self.renderer.render(self.scene, self.camera)
             self._needs_redraw.clear()
 
-        self.canvas.request_draw(self.anmiate)
+        self.canvas.request_draw(self.animate)

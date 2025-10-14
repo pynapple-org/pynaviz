@@ -130,7 +130,6 @@ class MetadataMappingThread:
         self.colormap_ready = threading.Event()
         self.compute_map()
 
-
     def update_maps(self, time_series):
         self.request_stop()
         self.wait_until_done()

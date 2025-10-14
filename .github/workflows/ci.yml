@@ -24,7 +24,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          lfs: true
       - name: Set up Python
         uses: actions/setup-python@v4 # Use v4 for compatibility with pyproject.toml
         with:
