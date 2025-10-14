@@ -74,6 +74,18 @@ class BaseWidget(QWidget):
         if self._own_app:
             self._own_app.exec()
 
+    def close(self) -> None:
+        # Close the base plot
+        if hasattr(self, "plot"):
+            self.plot.close()
+
+        # Close the widget window
+        super().close()
+
+        # Quit the application if we created it ourselves
+        if self._own_app is not None:
+            self._own_app.quit()
+
     def _toggle_play(self):
         if self._own_app is not None:
             self._playing = not self._playing
