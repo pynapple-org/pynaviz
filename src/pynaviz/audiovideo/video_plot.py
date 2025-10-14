@@ -347,17 +347,16 @@ class PlotVideo(PlotBaseVideoTensor):
             ),
             daemon=False,
         )
-
+        self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
         if start_worker:
             self._worker.start()
+            self._buffer_thread.start()
 
         # Registry and buffer setup
         _register_cleanup_hooks()
         _active_plot_videos.add(self)
         self._pending_ui_update_queue = queue.Queue()
         self._stop_threads = threading.Event()
-        self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
-        self._buffer_thread.start()
 
         self.buffer_lock = threading.Lock()
         self._needs_redraw = threading.Event()
