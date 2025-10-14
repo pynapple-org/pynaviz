@@ -20,6 +20,7 @@ def test_plot_tsd_init(dummy_tsd):
 
     assert isinstance(v.controller, viz.controller.SpanController)
     assert isinstance(v.line, gfx.Line)
+    v.close()
 
 
 @pytest.mark.parametrize(
