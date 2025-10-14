@@ -96,7 +96,7 @@ class _BasePlot(IntervalSetInterface):
     ----------
     _data : Ts, Tsd, TsdFrame, IntervalSet or TsGroup object
         Pynapple object
-    canvas : WgpuCanvas
+    canvas : RendererCanvas
         The rendering canvas using the WGPU backend.
     color_mapping_thread : MetadataMappingThread
         A separate thread for mapping metadata to visual colors.
