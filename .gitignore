@@ -171,4 +171,5 @@ tests/test_audio/
 
 /.vscode
 
-
+# Private script folder, may contain main.py and other script to check gui behavior.
+_scripts/
