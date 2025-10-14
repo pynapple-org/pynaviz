@@ -93,6 +93,7 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
             image_data = v.renderer.snapshot()
             image = Image.fromarray(image_data)#, mode="RGBA")
             image.save(path_frame)
+        v.close()
 
 # ---------- CLI entry point using Click ----------
 
