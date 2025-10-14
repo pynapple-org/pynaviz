@@ -55,3 +55,4 @@ def test_plot_ts_actions(dummy_ts):
     ).convert("RGBA")
 
     np.allclose(np.array(image), image_data)
+    v.close()

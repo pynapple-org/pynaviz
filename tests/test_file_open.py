@@ -82,7 +82,7 @@ def tree_widget_to_dict(tree_widget):
     return result, flat_items
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def shared_test_files(tmp_path_factory):
     """Create test files that persist across multiple tests."""
     data_dir = tmp_path_factory.mktemp("data")
@@ -146,6 +146,7 @@ def test_load_files(shared_test_files, qtbot):
             assert var == expected["VideoWidget"].file_path
         else:
             raise ValueError(f"Unknown variable: {name}")
+    main_window.close()
 
 
 @patch('pynaviz.qt.mainwindow.QFileDialog.getOpenFileNames')
@@ -191,3 +192,4 @@ def test_open_file_dialog(mock_dialog, shared_test_files, qtbot):
     children = [d.widget() for d in children if not isinstance(d, viz.qt.mainwindow.VariableDock)]
     assert len(children) == len(flat_items)
     assert set(c.__class__.__name__ for c in children) == {"TsGroupWidget", "TsdWidget", "TsdFrameWidget", "TsdTensorWidget", "VideoWidget", "IntervalSetWidget"}
+    main_window.close()

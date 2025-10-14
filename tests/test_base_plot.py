@@ -22,3 +22,4 @@ def test_baseplot_init(dummy_tsd):
     assert isinstance(base_plot.camera, gfx.OrthographicCamera)
 
     assert base_plot.cmap == "viridis"
+    base_plot.close()

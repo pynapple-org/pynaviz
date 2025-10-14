@@ -20,6 +20,7 @@ def test_plot_tsdframe_init(dummy_tsdframe):
 
     assert isinstance(v.controller, viz.controller.SpanController)
     assert isinstance(v.graphic, gfx.Line)
+    v.close()
 
 
 @pytest.mark.parametrize(
@@ -41,4 +42,4 @@ def test_plot_tsdframe_action(dummy_tsdframe, func, kwargs):
         pathlib.Path(__file__).parent / "screenshots" / filename
     ).convert("RGBA")
     np.allclose(np.array(image), image_data)
-
+    v.close()

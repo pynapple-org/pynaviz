@@ -20,6 +20,7 @@ def test_plot_tsdtensor_init(dummy_tsdtensor):
 
     assert isinstance(v.controller, viz.controller.GetController)
     assert isinstance(v.image, gfx.Image)
+    v.close()
 
 
 @pytest.mark.parametrize(
@@ -41,6 +42,7 @@ def test_plot_tsdtensor_action(dummy_tsdtensor, func, kwargs):
         pathlib.Path(__file__).parent / "screenshots" / filename
     ).convert("RGBA")
     np.allclose(np.array(image), image_data)
+    v.close()
 
 def test_plot_tsdtensor_actions(dummy_tsdtensor):
     # For coverage
@@ -55,3 +57,4 @@ def test_plot_tsdtensor_actions(dummy_tsdtensor):
     ).convert("RGBA")
 
     np.allclose(np.array(image), image_data)
+    v.close()

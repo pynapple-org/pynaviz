@@ -18,6 +18,7 @@ def test_plot_tsgroup_init(dummy_tsgroup):
     v = viz.PlotTsGroup(dummy_tsgroup)
 
     assert isinstance(v.controller, viz.controller.SpanController)
+    v.close()
 
 
 @pytest.mark.parametrize(
@@ -39,4 +40,4 @@ def test_plot_tsgroup_action(dummy_tsgroup, func, kwargs):
         pathlib.Path(__file__).parent / "screenshots" / filename
     ).convert("RGBA")
     np.allclose(np.array(image), image_data)
-
+    v.close()

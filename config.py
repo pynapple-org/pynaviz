@@ -96,6 +96,7 @@ class BaseConfig:
                     getattr(viewer, name)(**kwargs)
 
             self._save_snapshot(viewer, name, kwargs, fill)
+            viewer.close()
 
     @staticmethod
     def get_data():
