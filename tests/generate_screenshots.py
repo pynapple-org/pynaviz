@@ -83,7 +83,7 @@ def snapshots_numbered_movies(path=DEFAULT_SCREENSHOT_PATH, path_video=DEFAULT_V
 
     for extension in ["mkv", "mp4", "avi"]:
         video_path = pathlib.Path(path_video) / f"numbered_video.{extension}"
-        v = viz.PlotVideo(video_path, t=np.arange(100))
+        v = viz.PlotVideo(video_path, t=np.arange(100), start_worker=False)
 
         for frame in frames:
             # Build output path for each frame image
