@@ -78,6 +78,7 @@ def video_worker_process(
                 response_queue.put(request_type)
             frame_ready.set()
     finally:
+        print("shutting down worker...")
         try:
             handler.close()
         except Exception as e:

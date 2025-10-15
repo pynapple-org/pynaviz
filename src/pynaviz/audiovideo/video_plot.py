@@ -398,24 +398,36 @@ class PlotVideo(PlotBaseVideoTensor):
                 if hasattr(self, "worker_stop_event") and self._worker.is_alive():
                     try:
                         self.worker_stop_event.set()
-                        if self._worker.is_alive():
-                            self._worker.join(timeout=2)
+                        self._worker.join(timeout=2)
                     except Exception as e:
                         print(f"Unable to stop worker process with exception: {e}")
-                    try:
-                        self.shm_frame.close()
-                        self.shm_frame.unlink()
-                    except Exception as e:
-                        print(f"Unable to close and unlink shm_frame with exception: {e}")
-                    try:
-                        self.shm_index.close()
-                        self.shm_index.unlink()
-                    except Exception as e:
-                        print(f"Unable to close and unlink shm_index with exception: {e}")
+
+                    # After closing and unlinking shared memory
+                    if hasattr(self, "shm_frame") and self.shm_frame is not None:
+                        try:
+                            self.shm_frame.close()
+                            self.shm_frame.unlink()
+                            # drop all references to shm
+                            # otherwise a resource manager process will hang
+                            self.shared_frame = None
+                            self.shm_frame = None
+                        except Exception as e:
+                            print(f"[ERROR] Unable to close shm_frame: {e}")
+
+                    if hasattr(self, "shm_index") and self.shm_index is not None:
+                        try:
+                            self.shm_index.close()
+                            self.shm_index.unlink()
+                            # drop all references to shm
+                            # otherwise a resource manager process will hang
+                            self.shm_index = None
+                            self.shared_index = None
+                        except Exception as e:
+                            print(f"[ERROR] Unable to close shm_index: {e}")
             finally:
                 _active_plot_videos.discard(self)
                 self._closed = True
-        super().close()
+                super().close()
 
     def _move_fast(self, event, delta=1):
         """
