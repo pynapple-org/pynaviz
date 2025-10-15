@@ -10,19 +10,19 @@ PYthon Neural Analysis VIZualization
    :gutter: 2
 
    .. grid-item::
-      .. image:: examples/example_dlc_pose.gif
+      .. image:: examples/example_dlc_pose_short.gif
          :width: 100%
 
    .. grid-item::
-      .. image:: examples/example_head_direction.gif
+      .. image:: examples/example_head_direction_short.gif
          :width: 100%
 
    .. grid-item::
-      .. image:: examples/example_lfp.gif
+      .. image:: examples/example_lfp_short.gif
          :width: 100%
 
    .. grid-item::
-      .. image:: examples/example_videos.gif
+      .. image:: examples/example_videos_short.gif
          :width: 100%
 
 

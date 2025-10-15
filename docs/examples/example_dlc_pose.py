@@ -112,8 +112,8 @@ def main():
 
     save_gif(frames, durations, "example_dlc_pose.gif")
 
-    # # Save only the frames during the playing
-    # save_gif(frames, durations, "example_dlc_pose.gif")
+    # Save only the frames during the playing
+    save_gif(running_frames, running_durations, "example_dlc_pose_short.gif")
 
     sys.exit(0)
 

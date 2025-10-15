@@ -119,11 +119,16 @@ def main():
     QTest.mouseClick(win.playPauseBtn, Qt.MouseButton.LeftButton)
     app.processEvents()
 
+    running_frames = []
+    running_durations = []
+
     for _ in range(num_frames):
         QTest.qWait(interval_ms)  # wait 25 ms
         frames.append(grab_window(win))  # grab frame
         durations.append(interval_ms)
         app.processEvents()
+        running_frames.append(frames[-1])
+        running_durations.append(interval_ms)
 
     # --- Pause the animation ---
     QTest.mouseClick(win.playPauseBtn, Qt.MouseButton.LeftButton)
@@ -133,6 +138,7 @@ def main():
 
     save_gif(frames, durations, "example_head_direction.gif")
 
+    save_gif(running_frames, running_durations, "example_head_direction_short.gif")
 
     sys.exit(0)
 
