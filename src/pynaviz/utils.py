@@ -1,4 +1,5 @@
 import inspect
+import os
 from typing import TYPE_CHECKING, Callable, Union
 
 from pygfx import Renderer, Viewport
@@ -132,3 +133,40 @@ def get_plot_min_max(plot):
         plot.camera, pos=(xmax, ymax), viewport_size=plot.renderer.logical_size
     )
     return world_xmin, world_xmax, world_ymin, world_ymax
+
+
+def check_processes():
+    """Simple function to check all Python processes.
+
+    Common usage: while using the debugger, call to check which python processes are
+    active after each line of code.
+    Note that you may need to wait a few seconds when a new process is started.
+
+    Notes
+    -----
+    Needs psutils
+    """
+    import psutil
+    current_pid = os.getpid()
+    print(f"\n{'=' * 80}")
+    print(f"Current process PID: {current_pid}")
+    print(f"{'=' * 80}")
+
+    python_procs = []
+    for proc in psutil.process_iter(['pid', 'name', 'ppid', 'status']):
+        try:
+            if 'python' in proc.info['name'].lower():
+                python_procs.append(proc.info)
+        except Exception:
+            print("Failed to get process info.")
+
+    print(f"Found {len(python_procs)} Python processes:\n")
+
+    for p in python_procs:
+        marker = " <- YOU" if p['pid'] == current_pid else ""
+        parent_marker = " <- YOUR CHILD" if p['ppid'] == current_pid else ""
+        print(
+            f"PID: {p['pid']:6d} | Parent: {p['ppid']:6d} | Status: {p['status']:10s} | {p['name']}{marker}{parent_marker}")
+
+    print(f"{'=' * 80}\n")
+    return len(python_procs)

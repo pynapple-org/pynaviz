@@ -22,7 +22,7 @@ def test_plot_iset_init(dummy_intervalset):
     assert isinstance(v.graphic, dict)
     for m in v.graphic.values():
         assert isinstance(m, gfx.Mesh)
-
+    v.close()
 
 @pytest.mark.parametrize(
     "func, kwargs",
@@ -43,3 +43,4 @@ def test_plot_intervalset_action(dummy_intervalset, func, kwargs):
         pathlib.Path(__file__).parent / "screenshots" / filename
     ).convert("RGBA")
     np.allclose(np.array(image), image_data)
+    v.close()

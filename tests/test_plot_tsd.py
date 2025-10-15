@@ -20,6 +20,7 @@ def test_plot_tsd_init(dummy_tsd):
 
     assert isinstance(v.controller, viz.controller.SpanController)
     assert isinstance(v.line, gfx.Line)
+    v.close()
 
 
 @pytest.mark.parametrize(
@@ -41,6 +42,7 @@ def test_plot_tsd_action(dummy_tsd, func, kwargs):
         pathlib.Path(__file__).parent / "screenshots" / filename
     ).convert("RGBA")
     np.allclose(np.array(image), image_data)
+    v.close()
 
 def test_plot_tsd_actions(dummy_tsd):
     # For coverage
@@ -55,3 +57,4 @@ def test_plot_tsd_actions(dummy_tsd):
     ).convert("RGBA")
 
     np.allclose(np.array(image), image_data)
+    v.close()

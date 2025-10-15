@@ -315,52 +315,54 @@ class PlotVideo(PlotBaseVideoTensor):
 
         # Shared memory setup for multiprocessing frame exchange
         self.shape = self.texture.data.shape
-        self.shm_frame = shared_memory.SharedMemory(
-            create=True, size=np.prod(self.shape) * np.float32().nbytes
-        )
-        self.shm_index = shared_memory.SharedMemory(create=True, size=np.float32().nbytes)
-        self.shared_frame = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm_frame.buf)
-        self.shared_index = np.ndarray(shape=(1,), dtype=np.float32, buffer=self.shm_index.buf)
+        self._pending_ui_update_queue = queue.Queue()
+        self._stop_threads = threading.Event()
 
-        # Queues and events for IPC
-        self.request_queue = Queue()
-        self.response_queue = Queue()
-        self.frame_ready = Event()
-        self.worker_stop_event = Event()
-
-        self.renderer.add_event_handler(self._move_fast, "key_down")
-
-        # Worker process to read video frames asynchronously
-        self.worker_lock = MultiProcessLock()
-        self._worker = Process(
-            target=video_worker_process,
-            args=(
-                video_path,
-                self.shape,
-                self.shm_frame.name,
-                self.shm_index.name,
-                self.request_queue,
-                self.frame_ready,
-                self.response_queue,
-                self.worker_stop_event,
-                self.worker_lock,
-            ),
-            daemon=False,
-        )
+        self.buffer_lock = threading.Lock()
+        self._needs_redraw = threading.Event()
 
         if start_worker:
+            # Queues and events for IPC
+            self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
+            self.shm_frame = shared_memory.SharedMemory(
+                create=True, size=np.prod(self.shape) * np.float32().nbytes
+            )
+            self.shm_index = shared_memory.SharedMemory(create=True, size=np.float32().nbytes)
+            self.shared_frame = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm_frame.buf)
+            self.shared_index = np.ndarray(shape=(1,), dtype=np.float32, buffer=self.shm_index.buf)
+
+            self.request_queue = Queue()
+            self.response_queue = Queue()
+            self.frame_ready = Event()
+            self.worker_stop_event = Event()
+
+            self.renderer.add_event_handler(self._move_fast, "key_down")
+
+            # Worker process to read video frames asynchronously
+            self.worker_lock = MultiProcessLock()
+            self._worker = Process(
+                target=video_worker_process,
+                args=(
+                    video_path,
+                    self.shape,
+                    self.shm_frame.name,
+                    self.shm_index.name,
+                    self.request_queue,
+                    self.frame_ready,
+                    self.response_queue,
+                    self.worker_stop_event,
+                    self.worker_lock,
+                ),
+                daemon=False,
+            )
+
             self._worker.start()
+            self._buffer_thread.start()
 
         # Registry and buffer setup
         _register_cleanup_hooks()
         _active_plot_videos.add(self)
-        self._pending_ui_update_queue = queue.Queue()
-        self._stop_threads = threading.Event()
-        self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
-        self._buffer_thread.start()
 
-        self.buffer_lock = threading.Lock()
-        self._needs_redraw = threading.Event()
         self.canvas.request_draw(self.animate)
         self._last_jump_index = 0
 
@@ -381,35 +383,51 @@ class PlotVideo(PlotBaseVideoTensor):
         """Cleanly close shared memory, worker, and background thread."""
         if not self._closed:
             try:
-                self._stop_threads.set()
-                if hasattr(self, "_buffer_thread") and self._buffer_thread.is_alive():
-                    self._buffer_thread.join(timeout=1)
-            except Exception as e:
-                print(f"Unable to stop background thread with exception: {e}")
-            try:
-                self.worker_stop_event.set()
-                if self._worker.is_alive():
-                    self._worker.join(timeout=2)
-            except Exception as e:
-                print(f"Unable to stop worker process with exception: {e}")
-            try:
-                self._data.close()
-            except Exception as e:
-                print(f"Unable to close VideoHandler with exception: {e}")
-            try:
-                self.shm_frame.close()
-                self.shm_frame.unlink()
-            except Exception as e:
-                print(f"Unable to close and unlink shm_frame with exception: {e}")
-            try:
-                self.shm_index.close()
-                self.shm_index.unlink()
-            except Exception as e:
-                print(f"Unable to close and unlink shm_index with exception: {e}")
+                try:
+                    self._data.close()
+                except Exception as e:
+                    print(f"Unable to close VideoHandler with exception: {e}")
+
+                try:
+                    self._stop_threads.set()
+                    if hasattr(self, "_buffer_thread") and self._buffer_thread.is_alive():
+                        self._buffer_thread.join(timeout=1)
+                except Exception as e:
+                    print(f"Unable to stop background thread with exception: {e}")
+
+                if hasattr(self, "worker_stop_event") and self._worker.is_alive():
+                    try:
+                        self.worker_stop_event.set()
+                        self._worker.join(timeout=2)
+                    except Exception as e:
+                        print(f"Unable to stop worker process with exception: {e}")
+
+                    # After closing and unlinking shared memory
+                    if hasattr(self, "shm_frame") and self.shm_frame is not None:
+                        try:
+                            self.shm_frame.close()
+                            self.shm_frame.unlink()
+                            # drop all references to shm
+                            # otherwise a resource manager process will hang
+                            self.shared_frame = None
+                            self.shm_frame = None
+                        except Exception as e:
+                            print(f"[ERROR] Unable to close shm_frame: {e}")
+
+                    if hasattr(self, "shm_index") and self.shm_index is not None:
+                        try:
+                            self.shm_index.close()
+                            self.shm_index.unlink()
+                            # drop all references to shm
+                            # otherwise a resource manager process will hang
+                            self.shm_index = None
+                            self.shared_index = None
+                        except Exception as e:
+                            print(f"[ERROR] Unable to close shm_index: {e}")
             finally:
                 _active_plot_videos.discard(self)
                 self._closed = True
-        super().close()
+                super().close()
 
     def _move_fast(self, event, delta=1):
         """

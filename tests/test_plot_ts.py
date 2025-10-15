@@ -20,6 +20,7 @@ def test_plot_ts_init(dummy_ts):
 
     assert isinstance(v.controller, viz.controller.SpanYLockController)
     assert isinstance(v.graphic, gfx.Line)
+    v.close()
 
 
 @pytest.mark.parametrize(
@@ -41,6 +42,7 @@ def test_plot_ts_action(dummy_ts, func, kwargs):
         pathlib.Path(__file__).parent / "screenshots" / filename
     ).convert("RGBA")
     np.allclose(np.array(image), image_data)
+    v.close()
 
 def test_plot_ts_actions(dummy_ts):
     # For coverage
@@ -55,3 +57,4 @@ def test_plot_ts_actions(dummy_ts):
     ).convert("RGBA")
 
     np.allclose(np.array(image), image_data)
+    v.close()

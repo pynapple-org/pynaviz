@@ -25,6 +25,7 @@ def test_baseplot_init(dummy_tsd):
     assert base_plot.cmap == "viridis"
     base_plot.close()
 
+
 def test_baseplot_change_data(dummy_tsd, dummy_ts):
     base_plot = _BasePlot(data=dummy_tsd)
     assert isinstance(base_plot.data, nap.Tsd)
@@ -50,3 +51,4 @@ def test_cmap_setter(dummy_tsdframe):
     with pytest.warns(UserWarning, match = r"Invalid colormap notacmap\. 'cmap' must be a matplotlib 'Colormap'."):
         base_plot.cmap = "notacmap"
     base_plot.close()
+
