@@ -2,7 +2,8 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
-
+import os
+import sys
 import threading
 import warnings
 from typing import Any, Optional, Union
@@ -15,7 +16,6 @@ import pynapple as nap
 # from line_profiler import profile
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
-from wgpu.gui.auto import run
 
 from .controller import GetController, SpanController, SpanYLockController
 from .interval_set import IntervalSetInterface
@@ -34,6 +34,29 @@ from .utils import (
     get_plot_min_max,
     trim_kwargs,
 )
+
+
+def _is_headless():
+    """Check if running in a headless environment across all platforms."""
+    # Always headless in CI
+    if os.environ.get('CI'):
+        return True
+
+    # Linux: check DISPLAY
+    if sys.platform.startswith('linux'):
+        return not os.environ.get('DISPLAY')
+
+    # macOS and Windows: assume we have a display unless explicitly set to offscreen
+    if os.environ.get('QT_QPA_PLATFORM') == 'offscreen':
+        return True
+
+    return False
+
+if _is_headless():
+    from rendercanvas.offscreen import loop
+else:
+    from rendercanvas.auto import loop
+
 
 dict_sync_funcs = {
     "pan": _match_pan_on_x_axis,
@@ -73,7 +96,7 @@ class _BasePlot(IntervalSetInterface):
     ----------
     _data : Ts, Tsd, TsdFrame, IntervalSet or TsGroup object
         Pynapple object
-    canvas : WgpuCanvas
+    canvas : RendererCanvas
         The rendering canvas using the WGPU backend.
     color_mapping_thread : MetadataMappingThread
         A separate thread for mapping metadata to visual colors.
@@ -101,11 +124,14 @@ class _BasePlot(IntervalSetInterface):
 
         # Create a GPU-accelerated canvas for rendering, optionally with a parent widget
         if parent:  # Assuming it's a Qt background
-            from wgpu.gui.qt import WgpuCanvas
-            self.canvas = WgpuCanvas(parent=parent)
-        else:  # Default to glfw for single canvas
-            from wgpu.gui.auto import WgpuCanvas
-            self.canvas = WgpuCanvas()
+            from rendercanvas.qt import RenderCanvas
+            self.canvas = RenderCanvas(parent=parent)
+        else:
+            if _is_headless():
+                from rendercanvas.offscreen import RenderCanvas
+            else:
+                from rendercanvas.auto import RenderCanvas
+            self.canvas = RenderCanvas()
 
         # Create a WGPU-based renderer attached to the canvas
         self.renderer = gfx.WgpuRenderer(
@@ -172,7 +198,7 @@ class _BasePlot(IntervalSetInterface):
             return
         if value not in plt.colormaps():
             warnings.warn(
-                message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.",
+                message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.",
                 category=UserWarning,
                 stacklevel=2,
             )
@@ -223,7 +249,7 @@ class _BasePlot(IntervalSetInterface):
     def show(self):
         """To show the canvas in case of GLFW context used"""
         try:
-            run()
+            loop()
         except Exception:
             pass
 
@@ -319,22 +345,15 @@ class _BasePlot(IntervalSetInterface):
         pass
 
     def close(self):
-        self.color_mapping_thread.shutdown()
-        if self.canvas is not None:
-            self.canvas.close()
-        self.canvas = None
-        if self.renderer is not None:
-            self.renderer = None
-        if self.scene is not None:
-            self.scene = None
-        if self.camera is not None:
-            self.camera = None
-        if self.ruler_x is not None:
-            self.ruler_x = None
-        if self.ruler_y is not None:
-            self.ruler_y = None
-        if self.ruler_ref_time is not None:
-            self.ruler_ref_time = None
+        if hasattr(self, "color_mapping_thread"):
+            self.color_mapping_thread.shutdown()
+        if hasattr(self, "canvas"):
+            if self.canvas is not None:
+                self.canvas.close()
+            self.canvas = None
+        for attr in ["renderer", "scene", "camera", "ruler_x", "ruler_y", "ruler_ref_time"]:
+            if hasattr(self, attr):
+                setattr(self, attr, None)
 
     @staticmethod
     def _initialize_offset(index: list) -> np.ndarray:

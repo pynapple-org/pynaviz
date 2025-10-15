@@ -296,6 +296,6 @@ class VideoHandlerConfig(BaseConfig):
     def get_data():
 
         base_dir = pathlib.Path(__file__).parent.resolve()
-        save_path = base_dir / "docs/examples/m3v1mp4.mp4"
+        save_path = base_dir / "docs/_static/855401-uhd_3840_2160_25fps.mp4"
 
         return viz.VideoHandler(save_path)
