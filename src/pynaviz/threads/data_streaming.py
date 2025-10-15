@@ -63,6 +63,9 @@ class TsdFrameStreaming:
         slice
             A slice object corresponding to the adjusted time window.
         """
+        if start >= end:
+            raise ValueError("Start time must be less than end time.")
+
         width = end - start
 
         slice_ = self.data._get_slice(
@@ -79,8 +82,9 @@ class TsdFrameStreaming:
 
         Parameters
         ----------
-        position : float
-            Center time position of the requested view window.
+        position : (float, float)
+            Center time position of the requested view window in xy coordinates. This is a tuple (x, y),
+            but only the x-coordinate (time) is used for slicing.
         width : float
             Width of the requested view window.
         **kwargs :

@@ -172,7 +172,7 @@ class _BasePlot(IntervalSetInterface):
             return
         if value not in plt.colormaps():
             warnings.warn(
-                message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.",
+                message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.",
                 category=UserWarning,
                 stacklevel=2,
             )
