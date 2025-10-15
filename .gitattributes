@@ -3,3 +3,4 @@ docs/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
 docs/**/*.png filter=lfs diff=lfs merge=lfs -text
 tests/filetest/**/*.nwb filter=lfs diff=lfs merge=lfs -text
 docs/**/*.h5 filter=lfs diff=lfs merge=lfs -text
+tests/filetest/A2929-200711.nwb filter=lfs diff=lfs merge=lfs -text
