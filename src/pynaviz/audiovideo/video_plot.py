@@ -315,10 +315,22 @@ class PlotVideo(PlotBaseVideoTensor):
 
         # Shared memory setup for multiprocessing frame exchange
         self.shape = self.texture.data.shape
+        self._pending_ui_update_queue = queue.Queue()
+        self._stop_threads = threading.Event()
 
+        self.buffer_lock = threading.Lock()
+        self._needs_redraw = threading.Event()
 
         if start_worker:
             # Queues and events for IPC
+            self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
+            self.shm_frame = shared_memory.SharedMemory(
+                create=True, size=np.prod(self.shape) * np.float32().nbytes
+            )
+            self.shm_index = shared_memory.SharedMemory(create=True, size=np.float32().nbytes)
+            self.shared_frame = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm_frame.buf)
+            self.shared_index = np.ndarray(shape=(1,), dtype=np.float32, buffer=self.shm_index.buf)
+
             self.request_queue = Queue()
             self.response_queue = Queue()
             self.frame_ready = Event()
@@ -343,13 +355,6 @@ class PlotVideo(PlotBaseVideoTensor):
                 ),
                 daemon=False,
             )
-            self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
-            self.shm_frame = shared_memory.SharedMemory(
-                create=True, size=np.prod(self.shape) * np.float32().nbytes
-            )
-            self.shm_index = shared_memory.SharedMemory(create=True, size=np.float32().nbytes)
-            self.shared_frame = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm_frame.buf)
-            self.shared_index = np.ndarray(shape=(1,), dtype=np.float32, buffer=self.shm_index.buf)
 
             self._worker.start()
             self._buffer_thread.start()
@@ -357,11 +362,7 @@ class PlotVideo(PlotBaseVideoTensor):
         # Registry and buffer setup
         _register_cleanup_hooks()
         _active_plot_videos.add(self)
-        self._pending_ui_update_queue = queue.Queue()
-        self._stop_threads = threading.Event()
 
-        self.buffer_lock = threading.Lock()
-        self._needs_redraw = threading.Event()
         self.canvas.request_draw(self.animate)
         self._last_jump_index = 0
 
