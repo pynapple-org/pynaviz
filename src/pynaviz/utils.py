@@ -2,7 +2,6 @@ import inspect
 import os
 from typing import TYPE_CHECKING, Callable, Union
 
-import psutil
 from pygfx import Renderer, Viewport
 
 if TYPE_CHECKING:
@@ -142,7 +141,12 @@ def check_processes():
     Common usage: while using the debugger, call to check which python processes are
     active after each line of code.
     Note that you may need to wait a few seconds when a new process is started.
+
+    Notes
+    -----
+    Needs psutils
     """
+    import psutil
     current_pid = os.getpid()
     print(f"\n{'=' * 80}")
     print(f"Current process PID: {current_pid}")
