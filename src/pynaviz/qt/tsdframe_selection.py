@@ -18,7 +18,6 @@ from pynaviz.utils import GRADED_COLOR_LIST
 
 
 class DoubleSpinDelegate(QStyledItemDelegate):
-    valueChanged = pyqtSignal(int, float)
 
     def __init__(self, min_, max_, parent=None):
         super().__init__(parent)
@@ -33,7 +32,7 @@ class DoubleSpinDelegate(QStyledItemDelegate):
         spin.setSingleStep(1)
         spin.setDecimals(2)  # adjust precision as needed
 
-        # Emit valueChanged signal for convenience
+        # Emit valueChanged signal for convenience (no need any extra signal)
         spin.valueChanged.connect(
             lambda val, ix=index: index.model().setData(ix, val, Qt.ItemDataRole.EditRole)
         )
@@ -85,6 +84,11 @@ class TsdFramesModel(QAbstractTableModel):
 
     def data(self, index, role=None):
         """What to display in the table view."""
+        # Guard clause for invalid index
+        # (for example, if initialize with empty tsdframe dict)
+        if not index.isValid():
+            return None
+
         row, col = index.row(), index.column()
         r = self.rows[row]
 
@@ -129,11 +133,15 @@ class TsdFramesModel(QAbstractTableModel):
         role : Qt.ItemDataRole
             The role of the data to set.
         """
+        if not index.isValid():
+            return False
         row, col = index.row(), index.column()
         r = self.rows[row]
 
         if role == Qt.ItemDataRole.CheckStateRole and col == 0:
-            r["checked"] = (int(value) == Qt.CheckState.Checked.value)
+            # handles both  Qt.CheckState Enum and int/bool
+            check_value = getattr(value, 'value', value)
+            r["checked"] = (check_value == Qt.CheckState.Checked.value)
             self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
             self.checkStateChanged.emit(r["name"], r["colors"], r["markersize"], r["thickness"], r["checked"])
             return True
@@ -175,35 +183,14 @@ class TsdFramesDialog(QDialog):
 
 
         color_delegate = ComboDelegate(self.view)
-        color_delegate.valueChanged.connect(
-            lambda row, text: model.setData(
-                model.index(row, 1),  # build a QModelIndex for column 1
-                text,
-                Qt.ItemDataRole.EditRole
-            )
-        )
         self.view.setItemDelegateForColumn(1, color_delegate)
 
         # Marker size
         markersize_delegate = DoubleSpinDelegate(min_=0, max_=1e12, parent=self.view)
-        markersize_delegate.valueChanged.connect(
-            lambda row, val: model.setData(
-                model.index(row, 2),  # build a QModelIndex for column 2
-                val,
-                Qt.ItemDataRole.EditRole
-            )
-        )
         self.view.setItemDelegateForColumn(2, markersize_delegate)
 
         # Line thickness
         thickness_delegate = DoubleSpinDelegate(min_=0, max_=1e12, parent=self.view)
-        thickness_delegate.valueChanged.connect(
-            lambda row, val: model.setData(
-                model.index(row, 2),  # build a QModelIndex for column 2
-                val,
-                Qt.ItemDataRole.EditRole
-            )
-        )
         self.view.setItemDelegateForColumn(3, thickness_delegate)
 
         layout = QVBoxLayout()

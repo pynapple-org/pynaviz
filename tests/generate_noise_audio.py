@@ -34,29 +34,28 @@ def generate_noise_audio(
 
     # Convert to int16 for s16 encoding
     waveform_int16 = (waveform * 32767).astype(np.int16)
+    with av.open(output_path, mode="w") as container:
+        stream = container.add_stream(codec_name, rate=samplerate)
 
-    container = av.open(output_path, mode="w")
-    stream = container.add_stream(codec_name, rate=samplerate)
+        # Explicitly set both the encoder's expected format/layout (codec_context)
+        # and the actual format/layout of the frame we feed in.
+        # This avoids implicit conversions by FFmpeg, which can cause extra copies
+        # or subtle mismatches — especially with compressed formats like MP3/FLAC
+        # that have strict frame size requirements.
 
-    # Explicitly set both the encoder's expected format/layout (codec_context)
-    # and the actual format/layout of the frame we feed in.
-    # This avoids implicit conversions by FFmpeg, which can cause extra copies
-    # or subtle mismatches — especially with compressed formats like MP3/FLAC
-    # that have strict frame size requirements.
+        stream.codec_context.sample_rate = samplerate
+        stream.codec_context.format = "s16"
+        stream.codec_context.layout = "mono"
 
-    stream.codec_context.sample_rate = samplerate
-    stream.codec_context.format = "s16"
-    stream.codec_context.layout = "mono"
+        frame = av.AudioFrame.from_ndarray(waveform_int16, format="s16", layout="mono")
+        frame.sample_rate = samplerate
 
-    frame = av.AudioFrame.from_ndarray(waveform_int16, format="s16", layout="mono")
-    frame.sample_rate = samplerate
+        for packet in stream.encode(frame):
+            container.mux(packet)
+        for packet in stream.encode(None):  # flush encoder
+            container.mux(packet)
+        container.close()
 
-    for packet in stream.encode(frame):
-        container.mux(packet)
-    for packet in stream.encode(None):  # flush encoder
-        container.mux(packet)
-
-    container.close()
     print(f"Saved audio to {output_path}")
 
 if __name__ == "__main__":
