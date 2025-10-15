@@ -59,7 +59,9 @@ def test_video_handler_get_frame_snapshots(
         / f"screenshots/video/numbered_video_{extension}_frame_{expected_frame_id}.png"
     )
     stored_img = iio.imread(path)
+    print("\nread image")
     v = PlotVideo(video, t=np.arange(100), start_worker=False)
+    print("opened plot video")
     v.set_frame(requested_frame_ts)
     v.renderer.render(v.scene, v.camera)
     img = v.renderer.snapshot()
@@ -68,6 +70,7 @@ def test_video_handler_get_frame_snapshots(
     atol = 1
     np.testing.assert_allclose(img, stored_img, atol=atol)
     v.close()
+    v = None
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
