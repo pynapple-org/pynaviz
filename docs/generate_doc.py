@@ -58,15 +58,15 @@ def main():
         conf_cls.run_all(fill=True)
         conf_cls.write_simple_visuals(MARKDOWN_PATH)
 
-    # Combining all gifs into one file
-    gifs_path = BASE_DIR / "examples/"
-    combined_gif_path = BASE_DIR / "_static/combined_widgets.gif"
-    combine_gifs(
-        [p for p in gifs_path.glob("*.gif") if "combined" not in p.name],
-        combined_gif_path,
-        duration=800,
-    )
-    print(f"Combined GIF saved to {combined_gif_path}")
+    # # Combining all gifs into one file
+    # gifs_path = BASE_DIR / "examples/"
+    # combined_gif_path = BASE_DIR / "_static/combined_widgets.gif"
+    # combine_gifs(
+    #     [p for p in gifs_path.glob("*.gif") if "combined" not in p.name],
+    #     combined_gif_path,
+    #     duration=800,
+    # )
+    # print(f"Combined GIF saved to {combined_gif_path}")
 
 
 if __name__ == "__main__":
