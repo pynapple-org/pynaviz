@@ -347,21 +347,13 @@ class _BasePlot(IntervalSetInterface):
     def close(self):
         if hasattr(self, "color_mapping_thread"):
             self.color_mapping_thread.shutdown()
-        if self.canvas is not None:
-            self.canvas.close()
-        self.canvas = None
-        if self.renderer is not None:
-            self.renderer = None
-        if self.scene is not None:
-            self.scene = None
-        if self.camera is not None:
-            self.camera = None
-        if self.ruler_x is not None:
-            self.ruler_x = None
-        if self.ruler_y is not None:
-            self.ruler_y = None
-        if self.ruler_ref_time is not None:
-            self.ruler_ref_time = None
+        if hasattr(self, "canvas"):
+            if self.canvas is not None:
+                self.canvas.close()
+            self.canvas = None
+        for attr in ["renderer", "scene", "camera", "ruler_x", "ruler_y", "ruler_ref_time"]:
+            if hasattr(self, attr):
+                setattr(self, attr, None)
 
     @staticmethod
     def _initialize_offset(index: list) -> np.ndarray:
