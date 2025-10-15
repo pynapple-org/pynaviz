@@ -345,7 +345,8 @@ class _BasePlot(IntervalSetInterface):
         pass
 
     def close(self):
-        self.color_mapping_thread.shutdown()
+        if hasattr(self, "color_mapping_thread"):
+            self.color_mapping_thread.shutdown()
         if self.canvas is not None:
             self.canvas.close()
         self.canvas = None
