@@ -198,7 +198,7 @@ class _BasePlot(IntervalSetInterface):
             return
         if value not in plt.colormaps():
             warnings.warn(
-                message=f"Invalid colormap {value}. 'cmap' must be matplotlib 'Colormap'.",
+                message=f"Invalid colormap {value}. 'cmap' must be a matplotlib 'Colormap'.",
                 category=UserWarning,
                 stacklevel=2,
             )
@@ -346,6 +346,21 @@ class _BasePlot(IntervalSetInterface):
 
     def close(self):
         self.color_mapping_thread.shutdown()
+        if self.canvas is not None:
+            self.canvas.close()
+        self.canvas = None
+        if self.renderer is not None:
+            self.renderer = None
+        if self.scene is not None:
+            self.scene = None
+        if self.camera is not None:
+            self.camera = None
+        if self.ruler_x is not None:
+            self.ruler_x = None
+        if self.ruler_y is not None:
+            self.ruler_y = None
+        if self.ruler_ref_time is not None:
+            self.ruler_ref_time = None
 
     @staticmethod
     def _initialize_offset(index: list) -> np.ndarray:

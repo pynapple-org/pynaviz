@@ -16,7 +16,7 @@ from pynaviz import (
 from pynaviz.qt.mainwindow import VariableDock
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function", autouse=True)
 def main_window__dock(nap_var, qtbot):
     """
     Set up a MainWindow and a MainDock.
@@ -120,17 +120,37 @@ def apply_action(
 
 
 @pytest.mark.parametrize(
-    "group_by_kwargs", [None, dict(metadata_name="group")]
+    "group_by_kwargs", [
+        None,
+        dict(metadata_name="group")
+    ]
 )
 @pytest.mark.parametrize(
-    "sort_by_kwargs", [None, dict(metadata_name="channel")]
+    "sort_by_kwargs", [
+        None,
+        dict(metadata_name="channel")
+    ]
 )
 @pytest.mark.parametrize(
-    "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
+    "color_by_kwargs", [
+        None,
+        dict(metadata_name="channel", cmap_name="rainbow", vmin=0, vmax=100)
+    ]
 )
-@pytest.mark.parametrize("apply_to", [("tsgroup",), ("tsdframe",), ("tsgroup", "tsdframe")])
+@pytest.mark.parametrize(
+    "apply_to", [
+        ("tsgroup",),
+        ("tsdframe",),
+        ("tsgroup", "tsdframe")
+    ]
+)
 def test_save_load_layout_tsdframe(apply_to, main_window__dock, color_by_kwargs, group_by_kwargs, sort_by_kwargs,
                                    tmp_path, qtbot):
+
+    # print("\nTesting layout save/load with apply_to:", apply_to,
+    #       "group_by:", group_by_kwargs,
+    #       "sort_by:", sort_by_kwargs,
+    #       "color_by:", color_by_kwargs)
 
     main_window, variables = main_window__dock
     # add widgets
@@ -153,8 +173,11 @@ def test_save_load_layout_tsdframe(apply_to, main_window__dock, color_by_kwargs,
     layout_path = tmp_path / "layout.json"
     layout_dict_orig = main_window._get_layout_dict()
     main_window._save_layout(layout_path)
+    main_window.close()
+
 
     # load a main window with the same configs.
+    # print(layout_path)
     main_window_new = viz.qt.mainwindow.MainWindow(variables=variables, layout_path=layout_path)
     qtbot.addWidget(main_window_new)
 
@@ -166,6 +189,9 @@ def test_save_load_layout_tsdframe(apply_to, main_window__dock, color_by_kwargs,
     layout_dict_orig.pop("geometry_b64")
     # check dict
     assert layout_dict_orig == layout_dict_new
+
+    main_window_new.close()
+
 
 
 def verify_layout_structure(original_window, restored_window):
@@ -245,6 +271,7 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, colo
     layout_path = tmp_path / "layout.json"
     main_window._save_layout(layout_path)
 
+
     # Take screenshots
     orig_screenshots = {}
     count = 0
@@ -254,6 +281,8 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, colo
             base_plot.renderer.render(base_plot.scene, base_plot.camera)
             orig_screenshots[count, base_plot.__class__.__name__] = base_plot.renderer.snapshot()
             count += 1
+
+
 
     # load a main window with the same configs.
     main_window_new = viz.qt.mainwindow.MainWindow(variables, layout_path=layout_path)
@@ -278,3 +307,6 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, colo
     # verify the qt layout struct
     verify_layout_structure(main_window, main_window_new)
     verify_layout_geometry(main_window, main_window_new)
+
+    main_window.close()
+    main_window_new.close()

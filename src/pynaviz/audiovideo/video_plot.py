@@ -409,6 +409,7 @@ class PlotVideo(PlotBaseVideoTensor):
             finally:
                 _active_plot_videos.discard(self)
                 self._closed = True
+        super().close()
 
     def _move_fast(self, event, delta=1):
         """
