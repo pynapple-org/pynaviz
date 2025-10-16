@@ -6,7 +6,7 @@ import pytest
 from collections import OrderedDict
 import pynapple as nap
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDoubleSpinBox, QComboBox
+from PyQt6.QtWidgets import QDoubleSpinBox, QComboBox, QPushButton
 
 from pynaviz.qt.interval_sets_selection import (
     IntervalSetsModel,
@@ -54,8 +54,10 @@ COLUMN_FLAGS = {
     2: Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable,
 }
 
+def get_column_index(header_name: str) -> int:
+    """Get column index from header name."""
+    return EXPECTED_HEADERS.index(header_name)
 
-# ========== Fixtures ==========
 
 @pytest.fixture
 def sample_interval_sets():
@@ -506,9 +508,9 @@ class TestIntervalSetsModel:
         ]
 
         # Modify first row
-        model.setData(model.index(0, 0), Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
-        model.setData(model.index(0, 1), "modified_color", Qt.ItemDataRole.EditRole)
-        model.setData(model.index(0, 2), 0.99, Qt.ItemDataRole.EditRole)
+        model.setData(model.index(0, get_column_index("Interval Set")), Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
+        model.setData(model.index(0, get_column_index("Color")), "modified_color", Qt.ItemDataRole.EditRole)
+        model.setData(model.index(0, get_column_index("Alpha")), 0.99, Qt.ItemDataRole.EditRole)
 
         # Check other rows are unaffected
         for i, row in enumerate(range(1, model.rowCount())):
@@ -552,7 +554,7 @@ class TestIntervalSetsModel:
         """
         Verify empty model handles invalid indices gracefully.
         """
-        index = empty_model.index(0, 0)
+        index = empty_model.index(0, get_column_index("Interval Set"))
         assert not index.isValid(), (
             "Index (0,0) should be invalid in empty model"
         )
@@ -570,7 +572,7 @@ class TestIntervalSetsModel:
         Verify model handles invalid indices gracefully.
         """
         # Invalid row
-        index = model.index(999, 0)
+        index = model.index(999, get_column_index("Interval Set"))
         assert not index.isValid(), (
             "Index (999,0) should be invalid"
         )
@@ -626,7 +628,7 @@ class TestSpinDelegate:
         """
         Verify createEditor returns a QDoubleSpinBox.
         """
-        index = mock_model.index(0, 2)
+        index = mock_model.index(0, get_column_index("Alpha"))
         editor = delegate.createEditor(mock_parent, None, index)
 
         assert isinstance(editor, QDoubleSpinBox), (
@@ -637,7 +639,7 @@ class TestSpinDelegate:
         """
         Verify createEditor sets min/max to 0.0-1.0.
         """
-        index = mock_model.index(0, 2)
+        index = mock_model.index(0, get_column_index("Alpha"))
         editor = delegate.createEditor(mock_parent, None, index)
 
         assert editor.minimum() == 0.0, (
@@ -651,7 +653,7 @@ class TestSpinDelegate:
         """
         Verify createEditor sets spinbox properties.
         """
-        index = mock_model.index(0, 2)
+        index = mock_model.index(0, get_column_index("Alpha"))
         editor = delegate.createEditor(mock_parent, None, index)
 
         assert editor.singleStep() == 0.1, "Single step should be 0.1"
@@ -661,7 +663,7 @@ class TestSpinDelegate:
         """
         Verify setEditorData loads value from model into editor.
         """
-        index = mock_model.index(0, 2)  # alpha column
+        index = mock_model.index(0, get_column_index("Alpha"))  # alpha column
         expected_value = mock_model.rows[0]["alpha"]
 
         editor = delegate.createEditor(mock_parent, None, index)
@@ -675,7 +677,7 @@ class TestSpinDelegate:
         """
         Verify setEditorData handles None by setting 0.0.
         """
-        index = mock_model.index(0, 2)
+        index = mock_model.index(0, get_column_index("Alpha"))
         original_value = mock_model.rows[0]["alpha"]
         mock_model.rows[0]["alpha"] = None
 
@@ -694,7 +696,7 @@ class TestSpinDelegate:
         """
         Verify setEditorData with various numeric values.
         """
-        index = mock_model.index(0, 2)
+        index = mock_model.index(0, get_column_index("Alpha"))
         mock_model.rows[0]["alpha"] = test_value
 
         editor = delegate.createEditor(mock_parent, None, index)
@@ -708,7 +710,7 @@ class TestSpinDelegate:
         """
         Verify setModelData writes editor value back to model.
         """
-        index = mock_model.index(0, 2)
+        index = mock_model.index(0, get_column_index("Alpha"))
         test_value = 0.7
 
         editor = delegate.createEditor(mock_parent, None, index)
@@ -728,7 +730,7 @@ class TestSpinDelegate:
 
         This simulates user typing without pressing Enter.
         """
-        index = mock_model.index(0, 2)
+        index = mock_model.index(0, get_column_index("Alpha"))
 
         editor = delegate.createEditor(mock_parent, None, index)
         # Set text without programmatically setting value
@@ -746,7 +748,7 @@ class TestSpinDelegate:
         """
         Test complete edit cycle: create -> load -> edit -> save.
         """
-        index = mock_model.index(0, 2)
+        index = mock_model.index(0, get_column_index("Alpha"))
         original_value = mock_model.rows[0]["alpha"]
         new_value = 0.9
 
@@ -797,7 +799,7 @@ class TestComboDelegate:
         """
         Verify createEditor returns a QComboBox.
         """
-        index = mock_model.index(0, 1)
+        index = mock_model.index(0, get_column_index("Color"))
         editor = delegate.createEditor(mock_parent, None, index)
 
         assert isinstance(editor, QComboBox), (
@@ -808,7 +810,7 @@ class TestComboDelegate:
         """
         Verify createEditor populates combobox with colors.
         """
-        index = mock_model.index(0, 1)
+        index = mock_model.index(0, get_column_index("Color"))
         editor = delegate.createEditor(mock_parent, None, index)
 
         # Check that all colors from GRADED_COLOR_LIST are present
@@ -825,7 +827,7 @@ class TestComboDelegate:
         """
         Verify setEditorData sets correct color in combobox.
         """
-        index = mock_model.index(0, 1)  # color column
+        index = mock_model.index(0, get_column_index("Color"))  # color column
         expected_color = mock_model.rows[0]["colors"]
 
         editor = delegate.createEditor(mock_parent, None, index)
@@ -841,7 +843,7 @@ class TestComboDelegate:
 
         If color not found, combobox should remain at index 0 or unchanged.
         """
-        index = mock_model.index(0, 1)
+        index = mock_model.index(0, get_column_index("Color"))
         original_index = 0
         mock_model.rows[0]["colors"] = "not_a_valid_color"
 
@@ -859,7 +861,7 @@ class TestComboDelegate:
         """
         Verify setModelData writes combobox selection to model.
         """
-        index = mock_model.index(0, 1)
+        index = mock_model.index(0, get_column_index("Color"))
         test_color = GRADED_COLOR_LIST[2]  # Pick a color from the list
 
         editor = delegate.createEditor(mock_parent, None, index)
@@ -878,7 +880,7 @@ class TestComboDelegate:
         """
         Test complete edit cycle for color selection.
         """
-        index = mock_model.index(0, 1)
+        index = mock_model.index(0, get_column_index("Color"))
         original_color = mock_model.rows[0]["colors"]
         new_color = GRADED_COLOR_LIST[-1]  # Pick last color
 
@@ -902,3 +904,189 @@ class TestComboDelegate:
             f"Full edit cycle failed: expected '{new_color}', "
             f"got '{mock_model.rows[0]['colors']}'"
         )
+
+class TestIntervalSetsDialog:
+    """Test suite for IntervalSetsDialog."""
+
+    @pytest.fixture
+    def model(self, sample_interval_sets):
+        """Create an IntervalSetsModel instance."""
+        return IntervalSetsModel(sample_interval_sets)
+
+    @pytest.fixture
+    def dialog(self, model, qtbot):
+        """Create an IntervalSetsDialog instance."""
+        dialog = IntervalSetsDialog(model)
+        qtbot.addWidget(dialog)
+        return dialog
+
+    def test_dialog_initialization(self, dialog, model):
+        """
+        Verify dialog initializes correctly.
+        """
+        assert dialog.view is not None, "View should be initialized"
+        assert dialog.view.model() is model, "View should use the provided model"
+
+    def test_window_properties(self, dialog):
+        """
+        Verify dialog has correct window properties.
+        """
+        assert dialog.windowTitle() == "Interval Sets"
+        assert dialog.minimumSize().width() == 400
+        assert dialog.minimumSize().height() == 300
+
+    def test_delegates_assigned_correctly(self, dialog):
+        """
+        Verify correct delegates are assigned to columns based on header names.
+
+        Uses EXPECTED_HEADERS to map column names to indices:
+        - "Color" -> ComboDelegate
+        - "Alpha" -> SpinDelegate
+        - "Interval Set" -> No custom delegate (default for checkbox)
+        """
+        # Use EXPECTED_HEADERS to get column indices by name
+        color_col = EXPECTED_HEADERS.index("Color")
+        alpha_col = EXPECTED_HEADERS.index("Alpha")
+        interval_col = EXPECTED_HEADERS.index("Interval Set")
+
+        # Verify Color column has ComboDelegate
+        color_delegate = dialog.view.itemDelegateForColumn(color_col)
+        assert isinstance(color_delegate, ComboDelegate), (
+            f"'Color' column (index {color_col}) should have ComboDelegate, "
+            f"found {type(color_delegate)}"
+        )
+
+        # Verify Alpha column has SpinDelegate
+        alpha_delegate = dialog.view.itemDelegateForColumn(alpha_col)
+        assert isinstance(alpha_delegate, SpinDelegate), (
+            f"'Alpha' column (index {alpha_col}) should have SpinDelegate, "
+            f"found {type(alpha_delegate)}"
+        )
+
+        # Verify Interval Set column has no custom delegate
+        interval_delegate = dialog.view.itemDelegateForColumn(interval_col)
+        assert not isinstance(interval_delegate, (ComboDelegate, SpinDelegate)), (
+            f"'Interval Set' column (index {interval_col}) should use default delegate, "
+            f"found {type(interval_delegate)}"
+        )
+
+    def test_color_editor_creation(self, dialog, model, qtbot):
+        """
+        Verify color delegate creates correct editor.
+        """
+        delegate = dialog.view.itemDelegateForColumn(get_column_index("Color"))
+        index = model.index(0, get_column_index("Color"))
+
+        editor = delegate.createEditor(dialog.view, None, index)
+        qtbot.addWidget(editor)
+
+        assert isinstance(editor, QComboBox), (
+            f"Color editor should be QComboBox, found {type(editor)}"
+        )
+        assert editor.count() == len(GRADED_COLOR_LIST)
+
+    def test_alpha_editor_creation(self, dialog, model, qtbot):
+        """
+        Verify alpha delegate creates correct editor.
+        """
+        delegate = dialog.view.itemDelegateForColumn(get_column_index("Alpha"))
+        index = model.index(0, get_column_index("Alpha"))
+
+        editor = delegate.createEditor(dialog.view, None, index)
+        qtbot.addWidget(editor)
+
+        assert isinstance(editor, QDoubleSpinBox), (
+            f"Alpha editor should be QDoubleSpinBox, found {type(editor)}"
+        )
+        assert editor.minimum() == 0.0
+        assert editor.maximum() == 1.0
+
+    def test_color_edit_updates_model(self, dialog, model, qtbot):
+        """
+        Verify editing color updates the model correctly.
+        """
+        delegate = dialog.view.itemDelegateForColumn(get_column_index("Color"))
+        index = model.index(0, get_column_index("Color"))
+        original_color = model.rows[0]["colors"]
+        new_color = GRADED_COLOR_LIST[-1]
+
+        # Create and populate editor
+        editor = delegate.createEditor(dialog.view, None, index)
+        qtbot.addWidget(editor)
+        delegate.setEditorData(editor, index)
+
+        # Verify initial value
+        assert editor.currentText() == original_color
+
+        # Change value
+        editor.setCurrentText(new_color)
+
+        # Save back to model
+        with qtbot.waitSignal(model.dataChanged):
+            delegate.setModelData(editor, model, index)
+
+        # Verify model was updated
+        assert model.rows[0]["colors"] == new_color, (
+            f"Model should have new color '{new_color}', "
+            f"found '{model.rows[0]['colors']}'"
+        )
+
+    def test_alpha_edit_updates_model(self, dialog, model, qtbot):
+        """
+        Verify editing alpha updates the model correctly.
+        """
+        delegate = dialog.view.itemDelegateForColumn(get_column_index("Alpha"))
+        index = model.index(0, get_column_index("Alpha"))
+        original_alpha = model.rows[0]["alpha"]
+        new_alpha = 0.8
+
+        # Create and populate editor
+        editor = delegate.createEditor(dialog.view, None, index)
+        qtbot.addWidget(editor)
+        delegate.setEditorData(editor, index)
+
+        # Verify initial value
+        assert editor.value() == original_alpha
+
+        # Change value
+        editor.setValue(new_alpha)
+
+        # Save back to model
+        with qtbot.waitSignal(model.dataChanged):
+            delegate.setModelData(editor, model, index)
+
+        # Verify model was updated
+        assert model.rows[0]["alpha"] == new_alpha, (
+            f"Model should have new alpha {new_alpha}, "
+            f"found {model.rows[0]['alpha']}"
+        )
+
+    def test_ok_button_accepts_dialog(self, dialog, qtbot):
+        """
+        Verify OK button accepts the dialog.
+        """
+        ok_button = None
+        for button in dialog.findChildren(QPushButton):
+            if button.text() == "OK":
+                ok_button = button
+                break
+
+        assert ok_button is not None, "OK button not found"
+
+        with qtbot.waitSignal(dialog.accepted):
+            ok_button.click()
+
+    def test_cancel_button_rejects_dialog(self, dialog, qtbot):
+        """
+        Verify Cancel button rejects the dialog.
+        """
+        cancel_button = None
+        for button in dialog.findChildren(QPushButton):
+            if button.text() == "Cancel":
+                cancel_button = button
+                break
+
+        assert cancel_button is not None, "Cancel button not found"
+
+        with qtbot.waitSignal(dialog.rejected):
+            cancel_button.click()
