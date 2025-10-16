@@ -320,3 +320,37 @@ class TestIntervalSetsModel:
                         f"Row {row}, Column {col}, Role {role}: "
                         f"Expected None for unsupported role, found {data}"
                     )
+
+    def test_flags_all_columns(self, model):
+        """
+        Verify flags for all columns across all rows.
+
+        Column 0: Enabled + Selectable + UserCheckable
+        Column 1: Enabled + Selectable + Editable
+        Column 2: Enabled + Selectable + Editable
+        """
+        for row in range(model.rowCount()):
+            for col, expected_flags in COLUMN_FLAGS.items():
+                index = model.index(row, col)
+                flags = model.flags(index)
+                assert flags == expected_flags, (
+                    f"Row {row}, Column {col}: Flag mismatch.\n"
+                    f"Expected: {expected_flags}\n"
+                    f"Found: {flags}"
+                )
+
+    def test_flags_base_always_present(self, model):
+        """
+        Verify base flags are always present.
+
+        All columns should have Enabled and Selectable flags.
+        """
+        base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+
+        for row in range(model.rowCount()):
+            for col in range(model.columnCount()):
+                index = model.index(row, col)
+                flags = model.flags(index)
+                assert (flags & base) == base, (
+                    f"Row {row}, Column {col}: Base flags missing. Found flags: {flags}"
+                )
