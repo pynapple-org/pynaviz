@@ -4,9 +4,9 @@ Test structure mirrors test_tsdframe_selection.py pattern.
 """
 import pytest
 from collections import OrderedDict
-import numpy as np
 import pynapple as nap
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QDoubleSpinBox
 
 from pynaviz.qt.interval_sets_selection import (
     IntervalSetsModel,
@@ -588,3 +588,185 @@ class TestIntervalSetsModel:
         assert data is None, "Invalid column indexing should return None"
         result = model.setData(index, "value", Qt.ItemDataRole.EditRole)
         assert not result, "Invalid column indexing setData should return False"
+
+
+class TestSpinDelegate:
+    """Test suite for SpinDelegate (alpha column 0.0-1.0)."""
+
+    @pytest.fixture
+    def delegate(self):
+        """Create a SpinDelegate instance."""
+        return SpinDelegate()
+
+    @pytest.fixture
+    def mock_parent(self, qtbot):
+        """Create a mock parent widget."""
+        from PyQt6.QtWidgets import QWidget
+        widget = QWidget()
+        qtbot.addWidget(widget)
+        return widget
+
+    @pytest.fixture
+    def mock_model(self, sample_interval_sets):
+        """Create a model for testing."""
+        return IntervalSetsModel(sample_interval_sets)
+
+    # ========== TEST 7: Initialization ==========
+
+    def test_initialization(self, delegate):
+        """
+        Verify delegate initializes correctly.
+
+        SpinDelegate doesn't take min/max parameters (hardcoded 0.0-1.0).
+        """
+        assert delegate is not None
+
+
+    def test_create_editor_returns_spinbox(self, delegate, mock_parent, mock_model):
+        """
+        Verify createEditor returns a QDoubleSpinBox.
+        """
+        index = mock_model.index(0, 2)
+        editor = delegate.createEditor(mock_parent, None, index)
+
+        assert isinstance(editor, QDoubleSpinBox), (
+            f"Expected QDoubleSpinBox, got {type(editor)}"
+        )
+
+    def test_create_editor_sets_range(self, delegate, mock_parent, mock_model):
+        """
+        Verify createEditor sets min/max to 0.0-1.0.
+        """
+        index = mock_model.index(0, 2)
+        editor = delegate.createEditor(mock_parent, None, index)
+
+        assert editor.minimum() == 0.0, (
+            f"Spinbox minimum should be 0.0, found {editor.minimum()}"
+        )
+        assert editor.maximum() == 1.0, (
+            f"Spinbox maximum should be 1.0, found {editor.maximum()}"
+        )
+
+    def test_create_editor_sets_properties(self, delegate, mock_parent, mock_model):
+        """
+        Verify createEditor sets spinbox properties.
+        """
+        index = mock_model.index(0, 2)
+        editor = delegate.createEditor(mock_parent, None, index)
+
+        assert editor.singleStep() == 0.1, "Single step should be 0.1"
+        assert editor.decimals() == 1, "Decimals should be 1"
+
+    def test_set_editor_data_with_valid_value(self, delegate, mock_parent, mock_model):
+        """
+        Verify setEditorData loads value from model into editor.
+        """
+        index = mock_model.index(0, 2)  # alpha column
+        expected_value = mock_model.rows[0]["alpha"]
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        delegate.setEditorData(editor, index)
+
+        assert editor.value() == expected_value, (
+            f"Editor value {editor.value()} doesn't match model value {expected_value}"
+        )
+
+    def test_set_editor_data_with_none_value(self, delegate, mock_parent, mock_model):
+        """
+        Verify setEditorData handles None by setting 0.0.
+        """
+        index = mock_model.index(0, 2)
+        original_value = mock_model.rows[0]["alpha"]
+        mock_model.rows[0]["alpha"] = None
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        delegate.setEditorData(editor, index)
+
+        assert editor.value() == 0.0, (
+            "Editor should default to 0.0 when model value is None"
+        )
+
+        # Restore original value
+        mock_model.rows[0]["alpha"] = original_value
+
+    @pytest.mark.parametrize("test_value", [0.0, 0.5, 1.0, 0.3])
+    def test_set_editor_data_various_values(self, delegate, mock_parent, mock_model, test_value):
+        """
+        Verify setEditorData with various numeric values.
+        """
+        index = mock_model.index(0, 2)
+        mock_model.rows[0]["alpha"] = test_value
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        delegate.setEditorData(editor, index)
+
+        assert editor.value() == test_value, (
+            f"Editor value {editor.value()} doesn't match expected {test_value}"
+        )
+
+    def test_set_model_data(self, delegate, mock_parent, mock_model, qtbot):
+        """
+        Verify setModelData writes editor value back to model.
+        """
+        index = mock_model.index(0, 2)
+        test_value = 0.7
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        editor.setValue(test_value)
+
+        with qtbot.waitSignal(mock_model.dataChanged):
+            delegate.setModelData(editor, mock_model, index)
+
+        assert mock_model.rows[0]["alpha"] == test_value, (
+            f"Model value {mock_model.rows[0]['alpha']} doesn't match "
+            f"editor value {test_value}"
+        )
+
+    def test_set_model_data_calls_interpret_text(self, delegate, mock_parent, mock_model):
+        """
+        Verify setModelData calls interpretText before saving.
+
+        This simulates user typing without pressing Enter.
+        """
+        index = mock_model.index(0, 2)
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        # Set text without programmatically setting value
+        editor.lineEdit().setText("0.8")
+
+        delegate.setModelData(editor, mock_model, index)
+
+        # interpretText() should have parsed the text
+        assert mock_model.rows[0]["alpha"] == 0.8, (
+            "setModelData should call interpretText() to parse pending text"
+        )
+
+
+    def test_full_edit_cycle(self, delegate, mock_parent, mock_model, qtbot):
+        """
+        Test complete edit cycle: create -> load -> edit -> save.
+        """
+        index = mock_model.index(0, 2)
+        original_value = mock_model.rows[0]["alpha"]
+        new_value = 0.9
+
+        # Create editor
+        editor = delegate.createEditor(mock_parent, None, index)
+        assert isinstance(editor, QDoubleSpinBox)
+
+        # Load data from model
+        delegate.setEditorData(editor, index)
+        assert editor.value() == original_value
+
+        # User edits the value
+        editor.setValue(new_value)
+        assert editor.value() == new_value
+
+        # Save data back to model
+        with qtbot.waitSignal(mock_model.dataChanged):
+            delegate.setModelData(editor, mock_model, index)
+
+        assert mock_model.rows[0]["alpha"] == new_value, (
+            f"Full edit cycle failed: expected {new_value}, "
+            f"got {mock_model.rows[0]['alpha']}"
+        )
