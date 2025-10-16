@@ -2,20 +2,20 @@
 
 Test structure mirrors test_tsdframe_selection.py pattern.
 """
-import pytest
 from collections import OrderedDict
+
 import pynapple as nap
+import pytest
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDoubleSpinBox, QComboBox, QPushButton
+from PyQt6.QtWidgets import QComboBox, QDoubleSpinBox, QPushButton
 
 from pynaviz.qt.interval_sets_selection import (
-    IntervalSetsModel,
     ComboDelegate,
-    SpinDelegate,
     IntervalSetsDialog,
+    IntervalSetsModel,
+    SpinDelegate,
 )
 from pynaviz.utils import GRADED_COLOR_LIST
-
 
 # ========== Test Configuration Constants ==========
 # These mirror the structure from test_tsdframe_selection.py
@@ -844,11 +844,9 @@ class TestComboDelegate:
         If color not found, combobox should remain at index 0 or unchanged.
         """
         index = mock_model.index(0, get_column_index("Color"))
-        original_index = 0
         mock_model.rows[0]["colors"] = "not_a_valid_color"
 
         editor = delegate.createEditor(mock_parent, None, index)
-        original_text = editor.currentText()
         delegate.setEditorData(editor, index)
 
         # Should stay at default (no match found, findText returns -1)
