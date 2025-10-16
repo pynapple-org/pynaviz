@@ -6,7 +6,7 @@ import pytest
 from collections import OrderedDict
 import pynapple as nap
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDoubleSpinBox
+from PyQt6.QtWidgets import QDoubleSpinBox, QComboBox
 
 from pynaviz.qt.interval_sets_selection import (
     IntervalSetsModel,
@@ -769,4 +769,136 @@ class TestSpinDelegate:
         assert mock_model.rows[0]["alpha"] == new_value, (
             f"Full edit cycle failed: expected {new_value}, "
             f"got {mock_model.rows[0]['alpha']}"
+        )
+
+
+class TestComboDelegate:
+    """Test suite for ComboDelegate (color dropdown)."""
+
+    @pytest.fixture
+    def delegate(self):
+        """Create a ComboDelegate instance."""
+        return ComboDelegate()
+
+    @pytest.fixture
+    def mock_parent(self, qtbot):
+        """Create a mock parent widget."""
+        from PyQt6.QtWidgets import QWidget
+        widget = QWidget()
+        qtbot.addWidget(widget)
+        return widget
+
+    @pytest.fixture
+    def mock_model(self, sample_interval_sets):
+        """Create a model for testing."""
+        return IntervalSetsModel(sample_interval_sets)
+
+    def test_create_editor_returns_combobox(self, delegate, mock_parent, mock_model):
+        """
+        Verify createEditor returns a QComboBox.
+        """
+        index = mock_model.index(0, 1)
+        editor = delegate.createEditor(mock_parent, None, index)
+
+        assert isinstance(editor, QComboBox), (
+            f"Expected QComboBox, got {type(editor)}"
+        )
+
+    def test_create_editor_has_color_items(self, delegate, mock_parent, mock_model):
+        """
+        Verify createEditor populates combobox with colors.
+        """
+        index = mock_model.index(0, 1)
+        editor = delegate.createEditor(mock_parent, None, index)
+
+        # Check that all colors from GRADED_COLOR_LIST are present
+        assert editor.count() == len(GRADED_COLOR_LIST), (
+            f"Expected {len(GRADED_COLOR_LIST)} items, found {editor.count()}"
+        )
+
+        for i, expected_color in enumerate(GRADED_COLOR_LIST):
+            assert editor.itemText(i) == expected_color, (
+                f"Item {i}: Expected '{expected_color}', found '{editor.itemText(i)}'"
+            )
+
+    def test_set_editor_data_with_valid_color(self, delegate, mock_parent, mock_model):
+        """
+        Verify setEditorData sets correct color in combobox.
+        """
+        index = mock_model.index(0, 1)  # color column
+        expected_color = mock_model.rows[0]["colors"]
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        delegate.setEditorData(editor, index)
+
+        assert editor.currentText() == expected_color, (
+            f"Editor shows '{editor.currentText()}', expected '{expected_color}'"
+        )
+
+    def test_set_editor_data_with_invalid_color(self, delegate, mock_parent, mock_model):
+        """
+        Verify setEditorData handles color not in list.
+
+        If color not found, combobox should remain at index 0 or unchanged.
+        """
+        index = mock_model.index(0, 1)
+        original_index = 0
+        mock_model.rows[0]["colors"] = "not_a_valid_color"
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        original_text = editor.currentText()
+        delegate.setEditorData(editor, index)
+
+        # Should stay at default (no match found, findText returns -1)
+        # Implementation keeps current index unchanged if not found
+        assert editor.currentIndex() >= 0, (
+            "Combobox should have a valid index even with invalid color"
+        )
+
+    def test_set_model_data(self, delegate, mock_parent, mock_model, qtbot):
+        """
+        Verify setModelData writes combobox selection to model.
+        """
+        index = mock_model.index(0, 1)
+        test_color = GRADED_COLOR_LIST[2]  # Pick a color from the list
+
+        editor = delegate.createEditor(mock_parent, None, index)
+        editor.setCurrentText(test_color)
+
+        with qtbot.waitSignal(mock_model.dataChanged):
+            delegate.setModelData(editor, mock_model, index)
+
+        assert mock_model.rows[0]["colors"] == test_color, (
+            f"Model value '{mock_model.rows[0]['colors']}' doesn't match "
+            f"editor value '{test_color}'"
+        )
+
+
+    def test_full_edit_cycle(self, delegate, mock_parent, mock_model, qtbot):
+        """
+        Test complete edit cycle for color selection.
+        """
+        index = mock_model.index(0, 1)
+        original_color = mock_model.rows[0]["colors"]
+        new_color = GRADED_COLOR_LIST[-1]  # Pick last color
+
+        # Create editor
+        editor = delegate.createEditor(mock_parent, None, index)
+        assert isinstance(editor, QComboBox)
+
+        # Load data from model
+        delegate.setEditorData(editor, index)
+        assert editor.currentText() == original_color
+
+        # User selects new color
+        editor.setCurrentText(new_color)
+        assert editor.currentText() == new_color
+
+        # Save data back to model
+        with qtbot.waitSignal(mock_model.dataChanged):
+            delegate.setModelData(editor, mock_model, index)
+
+        assert mock_model.rows[0]["colors"] == new_color, (
+            f"Full edit cycle failed: expected '{new_color}', "
+            f"got '{mock_model.rows[0]['colors']}'"
         )
