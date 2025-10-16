@@ -98,7 +98,8 @@ class IntervalSetsModel(QAbstractTableModel):
         r = self.rows[row]
 
         if role == Qt.ItemDataRole.CheckStateRole and col == 0:
-            r["checked"] = (int(value) == Qt.CheckState.Checked.value)
+            check_value = getattr(value, 'value', value)
+            r["checked"] = (check_value == Qt.CheckState.Checked.value)
             self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
             self.checkStateChanged.emit(r["name"], r["colors"], r["alpha"], r["checked"])
             return True

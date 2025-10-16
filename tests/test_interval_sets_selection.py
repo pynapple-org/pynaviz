@@ -354,3 +354,136 @@ class TestIntervalSetsModel:
                 assert (flags & base) == base, (
                     f"Row {row}, Column {col}: Base flags missing. Found flags: {flags}"
                 )
+
+    @pytest.mark.parametrize("check_state,expected_bool", [
+        (Qt.CheckState.Checked, True),
+        (Qt.CheckState.Unchecked, False),
+    ])
+    def test_setdata_checkstate(self, model, qtbot, check_state, expected_bool):
+        """
+        Verify setting check state for column 0.
+
+        Tests both Checked and Unchecked states across all rows.
+        Signal should emit: (name, colors, alpha, checked)
+        """
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+
+            with qtbot.waitSignal(model.checkStateChanged) as blocker:
+                result = model.setData(index, check_state, Qt.ItemDataRole.CheckStateRole)
+
+            assert result is True, (
+                f"Row {row}: setData returned False for CheckStateRole"
+            )
+            assert model.rows[row]["checked"] is expected_bool, (
+                f"Row {row}: Expected checked={expected_bool}, found {model.rows[row]['checked']}"
+            )
+
+            # Verify signal arguments: (name, colors, alpha, checked)
+            assert blocker.args[0] == model.rows[row]["name"], (
+                f"Row {row}: Signal arg[0] (name) mismatch"
+            )
+            assert blocker.args[1] == model.rows[row]["colors"], (
+                f"Row {row}: Signal arg[1] (colors) mismatch"
+            )
+            assert blocker.args[2] == model.rows[row]["alpha"], (
+                f"Row {row}: Signal arg[2] (alpha) mismatch"
+            )
+            assert blocker.args[3] is expected_bool, (
+                f"Row {row}: Signal arg[3] (checked) expected {expected_bool}, found {blocker.args[3]}"
+            )
+
+    @pytest.mark.parametrize("col,key,test_values", [
+        (1, "colors", ["red", "blue", "#FF5733"]),
+        (2, "alpha", [0.0, 0.5, 1.0]),
+    ])
+    def test_setdata_edit_role(self, model, qtbot, col, key, test_values):
+        """
+        Verify editing values in editable columns.
+
+        Column 1: colors (string)
+        Column 2: alpha (float 0.0-1.0)
+        """
+        for row in range(model.rowCount()):
+            for test_value in test_values:
+                index = model.index(row, col)
+
+                with qtbot.waitSignal(model.checkStateChanged) as blocker:
+                    result = model.setData(index, test_value, Qt.ItemDataRole.EditRole)
+
+                assert result is True, (
+                    f"Row {row}, Column {col} ('{key}'): "
+                    f"setData returned False for value {test_value}"
+                )
+
+                # Verify data was stored correctly
+                expected_value = str(test_value) if key == "colors" else float(test_value)
+                assert model.rows[row][key] == expected_value, (
+                    f"Row {row}, Column {col} ('{key}'): "
+                    f"Expected {expected_value}, found {model.rows[row][key]}"
+                )
+
+                # Verify signal contains correct value
+                # Signal args: (name, colors, alpha, checked)
+                signal_index = col  # col 1 -> arg[1], col 2 -> arg[2]
+                assert blocker.args[signal_index] == expected_value, (
+                    f"Row {row}, Column {col} ('{key}'): "
+                    f"Signal arg[{signal_index}] expected {expected_value}, "
+                    f"found {blocker.args[signal_index]}"
+                )
+
+    def test_setdata_edit_role_column_0_fails(self, model):
+        """
+        Verify editing column 0 with EditRole fails.
+
+        Column 0 should only support CheckStateRole, not EditRole.
+        """
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+            original_name = model.rows[row]["name"]
+            result = model.setData(index, "new_name", Qt.ItemDataRole.EditRole)
+
+            assert result is False, (
+                f"Row {row}: setData should return False for editing column 0"
+            )
+            assert model.rows[row]["name"] == original_name, (
+                f"Row {row}: Name should not change. Expected '{original_name}', "
+                f"found '{model.rows[row]['name']}'"
+            )
+
+    def test_setdata_unsupported_roles(self, model, all_item_data_roles):
+        """
+        Verify setData returns False for unsupported roles.
+        """
+        unsupported_roles = [
+            role for role in all_item_data_roles
+            if role not in {Qt.ItemDataRole.EditRole, Qt.ItemDataRole.CheckStateRole}
+        ]
+
+        # Test first 2 rows for efficiency
+        for row in range(min(2, model.rowCount())):
+            for col in range(model.columnCount()):
+                for role in unsupported_roles:
+                    index = model.index(row, col)
+                    result = model.setData(index, "test_value", role)
+                    assert result is False, (
+                        f"Row {row}, Column {col}, Role {role}: "
+                        f"setData should return False for unsupported role"
+                    )
+
+    def test_setdata_emits_datachanged(self, model, qtbot):
+        """
+        Verify setData emits dataChanged signal.
+        """
+        for row in range(model.rowCount()):
+            index = model.index(row, 1)
+
+            with qtbot.waitSignal(model.dataChanged) as blocker:
+                model.setData(index, "blue", Qt.ItemDataRole.EditRole)
+
+            assert blocker.args[0] == index, (
+                f"Row {row}: dataChanged signal arg[0] (start index) mismatch"
+            )
+            assert blocker.args[1] == index, (
+                f"Row {row}: dataChanged signal arg[1] (end index) mismatch"
+            )
