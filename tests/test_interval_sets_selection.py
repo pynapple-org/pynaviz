@@ -167,3 +167,156 @@ class TestIntervalSetsModel:
         assert model.columnCount() == EXPECTED_COLUMN_COUNT, (
             f"Expected {EXPECTED_COLUMN_COUNT} columns, found {model.columnCount()}"
         )
+
+    # ========== TEST 2: Header Data ==========
+
+    @pytest.fixture
+    def all_item_data_roles(self):
+        """Get all ItemDataRole enum values."""
+        return [
+            getattr(Qt.ItemDataRole, r)
+            for r in dir(Qt.ItemDataRole)
+            if r.endswith("Role")
+        ]
+
+    def test_header_data(self, model):
+        """
+        Verify header labels are correct for all columns.
+
+        Expected headers: ["Interval Set", "Color", "Alpha"]
+        """
+        for col, expected in enumerate(EXPECTED_HEADERS):
+            header = model.headerData(
+                col,
+                Qt.Orientation.Horizontal,
+                Qt.ItemDataRole.DisplayRole
+            )
+            assert header == expected, (
+                f"Column {col}: Expected header '{expected}', found '{header}'"
+            )
+
+    def test_header_data_unsupported_roles(self, model, all_item_data_roles):
+        """
+        Verify header returns None for unsupported roles.
+
+        Only DisplayRole is supported for headers.
+        """
+        supported_roles = {Qt.ItemDataRole.DisplayRole}
+        unsupported_roles = [
+            role for role in all_item_data_roles
+            if role not in supported_roles
+        ]
+
+        for col in range(EXPECTED_COLUMN_COUNT):
+            for role in unsupported_roles:
+                result = model.headerData(col, Qt.Orientation.Horizontal, role)
+                assert result is None, (
+                    f"Column {col}, Role {role}: Expected None, found {result}"
+                )
+
+    def test_header_data_vertical_orientation(self, model, all_item_data_roles):
+        """
+        Verify vertical headers return None (not implemented).
+        """
+        for col in range(EXPECTED_COLUMN_COUNT):
+            for role in all_item_data_roles:
+                result = model.headerData(col, Qt.Orientation.Vertical, role)
+                assert result is None, (
+                    f"Vertical header for column {col}, role {role}: "
+                    f"Expected None, found {result}"
+                )
+
+    def test_data_display_role_by_columns(self, model):
+        """
+        Verify data() returns correct values for DisplayRole.
+
+        Tests all columns across all rows.
+        """
+        for row in range(model.rowCount()):
+            for col, col_name in enumerate(COLUMNS_IDS.keys()):
+                index = model.index(row, col)
+                data = model.data(index, Qt.ItemDataRole.DisplayRole)
+                expected = model.rows[row][col_name]
+                assert data == expected, (
+                    f"Row {row}, Column {col} ('{col_name}'): "
+                    f"Expected {expected}, found {data}"
+                )
+
+    def test_data_edit_role_matches_display(self, model):
+        """
+        Verify EditRole returns same as DisplayRole for all cells.
+        """
+        for row in range(model.rowCount()):
+            for col in range(model.columnCount()):
+                index = model.index(row, col)
+                display = model.data(index, Qt.ItemDataRole.DisplayRole)
+                edit = model.data(index, Qt.ItemDataRole.EditRole)
+                assert display == edit, (
+                    f"Row {row}, Column {col}: DisplayRole ({display}) != EditRole ({edit})"
+                )
+
+    def test_data_checkstate_role_column_0_all_rows(self, model):
+        """
+        Verify CheckStateRole for column 0 across all rows.
+
+        Column 0 should support checkbox state.
+        """
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+
+            # Test unchecked state (default)
+            checkstate = model.data(index, Qt.ItemDataRole.CheckStateRole)
+            assert checkstate == Qt.CheckState.Unchecked, (
+                f"Row {row}: Expected Unchecked, found {checkstate}"
+            )
+
+            # Modify and test checked state
+            model.rows[row]["checked"] = True
+            checkstate = model.data(index, Qt.ItemDataRole.CheckStateRole)
+            assert checkstate == Qt.CheckState.Checked, (
+                f"Row {row}: Expected Checked after modification, found {checkstate}"
+            )
+
+            # Reset for other tests
+            model.rows[row]["checked"] = False
+
+    def test_data_checkstate_role_other_columns(self, model):
+        """
+        Verify CheckStateRole returns None for columns 1-2.
+
+        Only column 0 should support checkbox.
+        """
+        for row in range(model.rowCount()):
+            for col in range(1, EXPECTED_COLUMN_COUNT):
+                index = model.index(row, col)
+                checkstate = model.data(index, Qt.ItemDataRole.CheckStateRole)
+                assert checkstate is None, (
+                    f"Row {row}, Column {col}: CheckStateRole should return None, "
+                    f"found {checkstate}"
+                )
+
+    def test_data_unsupported_roles(self, model, all_item_data_roles):
+        """
+        Verify data() returns None for unsupported roles.
+
+        Only DisplayRole, EditRole, and CheckStateRole are supported.
+        """
+        supported_roles = {
+            Qt.ItemDataRole.DisplayRole,
+            Qt.ItemDataRole.EditRole,
+            Qt.ItemDataRole.CheckStateRole
+        }
+        unsupported_roles = [
+            role for role in all_item_data_roles
+            if role not in supported_roles
+        ]
+
+        for row in range(model.rowCount()):
+            for col in range(model.columnCount()):
+                index = model.index(row, col)
+                for role in unsupported_roles:
+                    data = model.data(index, role)
+                    assert data is None, (
+                        f"Row {row}, Column {col}, Role {role}: "
+                        f"Expected None for unsupported role, found {data}"
+                    )
