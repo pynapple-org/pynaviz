@@ -106,7 +106,7 @@ def test_worker_starts_and_stops_cleanly(
         stop_event_type,
 ):
     """
-    TEST 1: Can we start the worker and shut it down cleanly?
+    Start and stop cleanly.
 
     Uses REAL test video file from test_video/ directory.
 
@@ -183,7 +183,7 @@ def test_worker_processes_frame_request(
         trigger_source,
 ):
     """
-    TEST 2: Does the worker correctly process a frame request?
+    Test that the worker correctly process a frame request.
 
     Parametrized to test all RenderTriggerSource types.
 
@@ -280,6 +280,117 @@ def test_worker_processes_frame_request(
                 assert returned_idx == requested_idx, \
                     f"Index should be {requested_idx}, got {returned_idx}"
                 print(f"✓ Index correctly set to {requested_idx}")
+
+    finally:
+        # Shutdown
+        mp_primitives['request_queue'].put((None, None, None))
+        process.join(timeout=2.0)
+        if process.is_alive():
+            process.terminate()
+            process.join()
+
+
+@pytest.mark.parametrize(
+    "trigger_source",
+    RenderTriggerSource
+)
+def test_worker_processes_frame_last_request(
+        video_config,
+        shared_memory_buffers,
+        mp_primitives,
+        trigger_source,
+):
+    """
+    Worker return last requested frame.
+
+    Parametrized to test all RenderTriggerSource types.
+
+    When trigger_source == LOCAL_KEY:
+        - Worker calls handler._get_key_frame(move_key_frame)
+        - This jumps to the next keyframe (index might change)
+        - We verify the index was updated but don't check exact value
+
+    For other trigger sources:
+        - Worker calls handler[idx] directly
+        - Index should remain the same
+
+    This verifies:
+    1. Worker receives frame request from queue
+    2. Worker fetches the frame using VideoHandler
+    3. Worker writes frame to shared memory
+    4. Worker writes index to shared memory
+    5. Worker sets the frame_ready Event
+    6. Worker puts trigger in response_queue
+    """
+    print(f"\n=== TEST 2: Process Frame Request (trigger={trigger_source}) ===")
+
+    # Start worker
+    process = mp.Process(
+        target=video_worker_process,
+        args=(
+            video_config['video_path'],
+            video_config['shape'],
+            shared_memory_buffers['shm_frame'].name,
+            shared_memory_buffers['shm_index'].name,
+            mp_primitives['request_queue'],
+            mp_primitives['frame_ready'],
+            mp_primitives['response_queue'],
+            mp_primitives['stop_event'],
+            mp_primitives['buffer_lock'],
+        )
+    )
+
+    process.start()
+    print(f"✓ Worker started")
+
+    try:
+        # Request frame at index 5
+        requested_idx = 5
+        move_key_frame = None  # Could be 1 or -1 for LOCAL_KEY to test forward/back
+
+        print(f"Send multiple requests very quickly, last request being frame {requested_idx}.")
+        for i in [3, 2, 1, 0]:
+            mp_primitives['request_queue'].put((requested_idx - i, move_key_frame, trigger_source))
+
+        # Wait for frame_ready event (max 2 seconds)
+        is_ready = mp_primitives['frame_ready'].wait(timeout=2.0)
+        assert is_ready, "frame_ready Event should be set within timeout"
+        print("✓ frame_ready Event was set")
+
+        # Read from shared memory and verify we got a frame
+        with mp_primitives['buffer_lock']:
+            frame_buffer = np.ndarray(
+                video_config['shape'],
+                dtype=np.float32,
+                buffer=shared_memory_buffers['shm_frame'].buf
+            )
+            index_buffer = np.ndarray(
+                (1,),
+                dtype=np.float32,
+                buffer=shared_memory_buffers['shm_index'].buf
+            )
+
+            # Verify frame is not all zeros (actual video data)
+            assert not np.all(frame_buffer == 0), "Frame should contain video data"
+            print("✓ Frame contains data (not all zeros)")
+
+            # Verify frame values are in valid range [0, 1] for float32
+            assert np.all(frame_buffer >= 0) and np.all(frame_buffer <= 1), \
+                "Frame values should be in range [0, 1]"
+            print("✓ Frame values in valid range [0, 1]")
+
+            # Verify index was written
+            returned_idx = index_buffer[0]
+            if trigger_source == RenderTriggerSource.LOCAL_KEY:
+                # For LOCAL_KEY, index might jump to keyframe
+                # Just verify it's a valid index (>= 0)
+                assert returned_idx >= 0, f"Index should be >= 0, got {returned_idx}"
+                print(f"✓ Index updated to keyframe: {returned_idx}")
+            else:
+                # For other triggers, index should match request
+                assert returned_idx == requested_idx, \
+                    f"Index should be {requested_idx}, got {returned_idx}"
+                print(f"✓ Index correctly set to the last request: {requested_idx}")
 
     finally:
         # Shutdown
