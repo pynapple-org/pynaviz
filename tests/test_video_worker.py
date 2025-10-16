@@ -1,11 +1,12 @@
-import pytest
 import multiprocessing as mp
-from multiprocessing import Queue, Event, Lock, shared_memory
+import queue
+from multiprocessing import Event, Lock, Queue, shared_memory
+
 import numpy as np
+import pytest
 
 from pynaviz.audiovideo.video_worker import video_worker_process
 from pynaviz.utils import RenderTriggerSource
-import queue
 
 
 @pytest.fixture
@@ -223,7 +224,7 @@ def test_worker_processes_frame_request(
     )
 
     process.start()
-    print(f"✓ Worker started")
+    print("✓ Worker started")
 
     try:
         # Request frame at index 5
@@ -341,7 +342,7 @@ def test_worker_processes_frame_last_request(
     )
 
     process.start()
-    print(f"✓ Worker started")
+    print("✓ Worker started")
 
     try:
         # Request frame at index 5

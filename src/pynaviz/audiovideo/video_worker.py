@@ -3,9 +3,8 @@ from multiprocessing import Event, Lock, Queue, shared_memory
 
 import numpy as np
 
-from .video_handling import VideoHandler
-
 from ..utils import RenderTriggerSource
+from .video_handling import VideoHandler
 
 
 def video_worker_process(
