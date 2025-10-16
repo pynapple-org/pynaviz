@@ -487,3 +487,104 @@ class TestIntervalSetsModel:
             assert blocker.args[1] == index, (
                 f"Row {row}: dataChanged signal arg[1] (end index) mismatch"
             )
+
+    def test_multiple_rows_independence(self, model):
+        """
+        Verify modifying one row doesn't affect others.
+        """
+        if model.rowCount() < 2:
+            pytest.skip("Need at least 2 rows for this test")
+
+        # Store original values for all rows except first
+        original_values = [
+            {
+                "checked": model.rows[row]["checked"],
+                "colors": model.rows[row]["colors"],
+                "alpha": model.rows[row]["alpha"],
+            }
+            for row in range(1, model.rowCount())
+        ]
+
+        # Modify first row
+        model.setData(model.index(0, 0), Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
+        model.setData(model.index(0, 1), "modified_color", Qt.ItemDataRole.EditRole)
+        model.setData(model.index(0, 2), 0.99, Qt.ItemDataRole.EditRole)
+
+        # Check other rows are unaffected
+        for i, row in enumerate(range(1, model.rowCount())):
+            for key, original_value in original_values[i].items():
+                current_value = model.rows[row][key]
+                assert current_value == original_value, (
+                    f"Row {row}, key '{key}': Value changed unexpectedly. "
+                    f"Expected {original_value}, found {current_value}"
+                )
+
+    def test_empty_interval_sets_initialization(self, empty_model):
+        """
+        Verify model handles empty interval sets correctly.
+        """
+        assert len(empty_model.rows) == 0, (
+            f"Empty model should have 0 rows, found {len(empty_model.rows)}"
+        )
+        assert empty_model.rowCount() == 0, (
+            f"Empty model rowCount() should return 0, found {empty_model.rowCount()}"
+        )
+        assert empty_model.columnCount() == EXPECTED_COLUMN_COUNT, (
+            f"Empty model should still have {EXPECTED_COLUMN_COUNT} columns, "
+            f"found {empty_model.columnCount()}"
+        )
+
+    def test_empty_model_header_data(self, empty_model):
+        """
+        Verify headers still work with empty model.
+        """
+        for col, expected in enumerate(EXPECTED_HEADERS):
+            header = empty_model.headerData(
+                col,
+                Qt.Orientation.Horizontal,
+                Qt.ItemDataRole.DisplayRole
+            )
+            assert header == expected, (
+                f"Empty model, column {col}: Expected header '{expected}', found '{header}'"
+            )
+
+    def test_empty_model_invalid_index_handling(self, empty_model):
+        """
+        Verify empty model handles invalid indices gracefully.
+        """
+        index = empty_model.index(0, 0)
+        assert not index.isValid(), (
+            "Index (0,0) should be invalid in empty model"
+        )
+
+        # Test data() with invalid index
+        data = empty_model.data(index, Qt.ItemDataRole.DisplayRole)
+        assert data is None, "Invalid indexing should return None"
+
+        # Test setData() with invalid index
+        result = empty_model.setData(index, "value", Qt.ItemDataRole.EditRole)
+        assert not result, "Invalid indexing setData should return False"
+
+    def test_full_model_invalid_index_handling(self, model):
+        """
+        Verify model handles invalid indices gracefully.
+        """
+        # Invalid row
+        index = model.index(999, 0)
+        assert not index.isValid(), (
+            "Index (999,0) should be invalid"
+        )
+        data = model.data(index, Qt.ItemDataRole.DisplayRole)
+        assert data is None, "Invalid row indexing should return None"
+        result = model.setData(index, "value", Qt.ItemDataRole.EditRole)
+        assert not result, "Invalid row indexing setData should return False"
+
+        # Invalid column
+        index = model.index(0, 999)
+        assert not index.isValid(), (
+            "Index (0,999) should be invalid"
+        )
+        data = model.data(index, Qt.ItemDataRole.DisplayRole)
+        assert data is None, "Invalid column indexing should return None"
+        result = model.setData(index, "value", Qt.ItemDataRole.EditRole)
+        assert not result, "Invalid column indexing setData should return False"

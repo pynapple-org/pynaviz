@@ -55,6 +55,8 @@ class IntervalSetsModel(QAbstractTableModel):
 
     def data(self, index, role=None):
         """What to display in the table view."""
+        if not index.isValid():
+            return None
         row, col = index.row(), index.column()
         r = self.rows[row]
 
@@ -94,6 +96,8 @@ class IntervalSetsModel(QAbstractTableModel):
         role : Qt.ItemDataRole
             The role of the data to set.
         """
+        if not index.isValid():
+            return None
         row, col = index.row(), index.column()
         r = self.rows[row]
 
