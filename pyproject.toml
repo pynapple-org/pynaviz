@@ -27,6 +27,7 @@ dependencies = [
     "matplotlib",
     "numpy",
     "av>=16.0.0",
+    "neo",
 ]
 
 # CLI interface
