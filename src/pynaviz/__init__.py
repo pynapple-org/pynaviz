@@ -6,6 +6,7 @@ from .base_plot import (
     PlotTsdFrame,
     PlotTsGroup,
 )
+from .io import io
 
 __all__ = [
     "PlotIntervalSet",

@@ -1,22 +1,25 @@
-
-
 import neo
-
 import numpy as np
 import pynapple as nap
 from neo.io.proxyobjects import AnalogSignalProxy, SpikeTrainProxy
 from neo.core.spiketrainlist import SpikeTrainList
+import pathlib
+import re
+
 
 class NEOSignalInterface:
 
     def __init__(self, signal, block, time_support, sig_num=None):
         self.time_support = time_support
         if isinstance(signal, (neo.AnalogSignal, AnalogSignalProxy)):
+            self.is_analog = True
             self.nap_type = self._get_meta_analog(signal)
         elif isinstance(signal, (neo.SpikeTrain, SpikeTrainProxy)):
             self.nap_type = nap.Ts
+            self.is_analog = False
         elif isinstance(signal, (list, SpikeTrainList)):
             self.nap_type = nap.TsGroup
+            self.is_analog = False
         else:
             raise TypeError(f"signal type {type(signal)} not recognized.")
         self._block = block
@@ -31,10 +34,6 @@ class NEOSignalInterface:
         else:
             self.start_time = [s.t_start.rescale("s").magnitude for s in signal]
             self.end_time = [s.t_stop.rescale("s").magnitude for s in signal]
-
-    @property
-    def is_analog(self):
-        return not issubclass(self.nap_type, (nap.Ts, nap.TsGroup))
 
     @staticmethod
     def _get_meta_analog(signal):
@@ -52,22 +51,22 @@ class NEOSignalInterface:
         raise ValueError(f"Cannot get item {item}.")
 
     def get(self, start, stop):
+        """Get data between start and stop times."""
         if self.is_analog:
             return self._get_analog(start, stop)
+        elif issubclass(self.nap_type, nap.Ts):
+            return self._get_ts(self._sig_num, start, stop)
+        else:  # TsGroup
+            return self._get_tsgroup(start, stop)
 
     def restrict(self, epoch):
+        """Restrict data to epochs."""
         if self.is_analog:
-            for start, end in epoch.values:
-                time = []
-                data = []
-                if self.is_analog:
-                    time_ep, data_ep = self._get_analog(start, end, return_array=True)
-                    time.append(time_ep)
-                    data.append(data_ep)
-
-                time, data = self._concatenate_array(time, data)
-                return self._instantiate_nap(time, data, self.time_support).restrict(epoch)
-
+            return self._restrict_analog(epoch)
+        elif issubclass(self.nap_type, nap.Ts):
+            return self._restrict_ts(epoch)
+        else:  # TsGroup
+            return self._restrict_tsgroup(epoch)
 
     def _get_from_slice(self, slc):
         start = slc.start if slc.start is not None else 0
@@ -78,19 +77,19 @@ class NEOSignalInterface:
             if stop is None:
                 stop = sum(s.analogsignals[self._sig_num].shape[0] for s in self._block.segments)
             return self._slice_segment_analog(start, stop, step)
-        elif isinstance(self.nap_type, nap.Ts):
+        elif issubclass(self.nap_type, nap.Ts):
             if stop is None:
-                stop = sum(s.spiketrains[0].shape[0] for s in self._block.segments)
-            return self._slice_segment_spikes(start, stop, step)
+                stop = sum(len(s.spiketrains[self._sig_num]) for s in self._block.segments)
+            return self._slice_segment_ts(start, stop, step)
         else:
-            raise ValueError("cannot slice a TsGroup.")
+            raise ValueError("Cannot slice a TsGroup.")
 
     def _instantiate_nap(self, time, data, time_support):
-       return self.nap_type(
-                t=time,
-                d=data,
-                time_support=time_support,
-            )
+        return self.nap_type(
+            t=time,
+            d=data,
+            time_support=time_support,
+        )
 
     def _concatenate_array(self, time_list, data_list):
         if len(data_list) == 0:
@@ -98,8 +97,10 @@ class NEOSignalInterface:
         else:
             return np.concatenate(time_list), np.concatenate(data_list, axis=0)
 
+    # ========== Analog Signal Methods ==========
 
     def _get_analog(self, start, stop, return_array=False):
+        """Get analog signal between start and stop times."""
         data = []
         time = []
 
@@ -118,7 +119,6 @@ class NEOSignalInterface:
             chunk_start = max(start, seg_start)
             chunk_stop = min(stop, seg_stop)
 
-            # Now time_slice will work
             chunk = signal.time_slice(chunk_start, chunk_stop)
 
             if chunk.shape[0] > 0:  # Has data
@@ -131,6 +131,18 @@ class NEOSignalInterface:
         else:
             return time, data
 
+    def _restrict_analog(self, epoch):
+        """Restrict analog signal to epochs."""
+        time = []
+        data = []
+
+        for start, end in epoch.values:
+            time_ep, data_ep = self._get_analog(start, end, return_array=True)
+            time.append(time_ep)
+            data.append(data_ep)
+
+        time, data = self._concatenate_array(time, data)
+        return self._instantiate_nap(time, data, self.time_support).restrict(epoch)
 
     def _slice_segment_analog(self, start_idx, stop_idx, step):
         """Load by exact indices from each segment."""
@@ -176,13 +188,57 @@ class NEOSignalInterface:
         time, data = self._concatenate_array(time, data)
         return self._instantiate_nap(time, data, time_support=self.time_support)
 
+    # ========== Spike Train (Ts) Methods ==========
 
-    def _slice_segment_spikes(self, start_idx, stop_idx, step):
+    def _get_ts(self, unit_idx, start, stop, return_array=False):
+        """Get spike times for a unit within time range."""
+        spikes = []
+
+        for i, seg in enumerate(self._block.segments):
+            spiketrain = seg.spiketrains[unit_idx]
+
+            # Get segment boundaries
+            seg_start = self.time_support.start[i]
+            seg_stop = self.time_support.end[i]
+
+            # Check if requested time overlaps with this segment
+            if start >= seg_stop or stop <= seg_start:
+                continue  # No overlap
+
+            # Clip to segment bounds
+            chunk_start = max(start, seg_start)
+            chunk_stop = min(stop, seg_stop)
+
+            chunk = spiketrain.time_slice(chunk_start, chunk_stop)
+
+            if len(chunk) > 0:  # Has spikes
+                spikes.append(chunk.times.rescale("s").magnitude)
+
+        spike_times = np.concatenate(spikes) if spikes else np.array([])
+
+        if return_array:
+            return spike_times
+        else:
+            return nap.Ts(t=spike_times, time_support=self.time_support)
+
+    def _restrict_ts(self, epoch):
+        """Restrict spike train to epochs."""
+        spikes = []
+
+        for start, end in epoch.values:
+            spike_times = self._get_ts(self._sig_num, start, end, return_array=True)
+            if len(spike_times) > 0:
+                spikes.append(spike_times)
+
+        spike_times = np.concatenate(spikes) if spikes else np.array([])
+        return nap.Ts(t=spike_times, time_support=self.time_support).restrict(epoch)
+
+    def _slice_segment_ts(self, start_idx, stop_idx, step):
         """Slice spike trains by spike index."""
         spikes = []
 
         for i, seg in enumerate(self._block.segments):
-            spiketrain = seg.spiketrains[0]
+            spiketrain = seg.spiketrains[self._sig_num]
 
             # Get number of spikes in this segment
             n_spikes = len(spiketrain)
@@ -198,45 +254,42 @@ class NEOSignalInterface:
             spiketrain_loaded = spiketrain.load() if hasattr(spiketrain, 'load') else spiketrain
             chunk = spiketrain_loaded[seg_start_idx:seg_stop_idx:step]
 
-            # Get spike times
             spikes.append(chunk.times.rescale("s").magnitude)
 
-        return self.nap_type(
+        return nap.Ts(
             t=np.concatenate(spikes) if spikes else np.array([]),
             time_support=self.time_support
         )
 
-    def _get_ts(self, start, stop, return_array=False):
-        """Get spike times within time range."""
-        spikes = []
+    # ========== TsGroup Methods ==========
 
-        for i, seg in enumerate(self._block.segments):
-            spiketrain = seg.spiketrains[self._sig_num]
+    def _get_tsgroup(self, start, stop):
+        """Get TsGroup (all units) within time range."""
+        n_units = len(self._block.segments[0].spiketrains)
+        ts_dict = {}
 
-            # Get segment boundaries
-            seg_start = self.time_support.start[i]
-            seg_stop = self.time_support.end[i]
+        for unit_idx in range(n_units):
+            spike_times = self._get_ts(unit_idx, start, stop, return_array=True)
+            ts_dict[unit_idx] = nap.Ts(t=spike_times, time_support=self.time_support)
 
-            # Check if requested time overlaps with this segment
-            if start >= seg_stop or stop <= seg_start:
-                continue  # No overlap
+        return nap.TsGroup(ts_dict, time_support=self.time_support)
 
-            # Clip to segment bounds
-            chunk_start = max(start, seg_start)
-            chunk_stop = min(stop, seg_stop)
+    def _restrict_tsgroup(self, epoch):
+        """Restrict TsGroup to epochs."""
+        n_units = len(self._block.segments[0].spiketrains)
+        ts_dict = {}
 
-            # Time slice the spike train
-            chunk = spiketrain.time_slice(chunk_start, chunk_stop)
+        for unit_idx in range(n_units):
+            spikes = []
+            for start, end in epoch.values:
+                spike_times = self._get_ts(unit_idx, start, end, return_array=True)
+                if len(spike_times) > 0:
+                    spikes.append(spike_times)
 
-            if len(chunk) > 0:  # Has spikes
-                spikes.append(chunk.times.rescale("s").magnitude)
+            spike_times = np.concatenate(spikes) if spikes else np.array([])
+            ts_dict[unit_idx] = nap.Ts(t=spike_times, time_support=self.time_support)
 
-        spike_times = np.concatenate(spikes) if spikes else np.array([])
-
-        if return_array:
-            return spike_times
-        else:
-            return nap.Ts(t=spike_times, time_support=self.time_support)
+        return nap.TsGroup(ts_dict, time_support=self.time_support).restrict(epoch)
 
 
 class NEOExperimentInterface:
@@ -245,9 +298,10 @@ class NEOExperimentInterface:
         self._reader = reader
         self._lazy = lazy
         self.experiment = self._collect_time_series_info()
+        self._reader = reader
 
     def _collect_time_series_info(self):
-        blocks = reader.read(lazy=self._lazy)
+        blocks = self._reader.read(lazy=self._lazy)
 
         experiments = {}
         for i, block in enumerate(blocks):
@@ -278,7 +332,7 @@ class NEOExperimentInterface:
 
                 if len(segment.spiketrains) == 1:
                     signal = segment.spiketrains[0]
-                    signal_interface = NEOSignalInterface(signal, block, iset)
+                    signal_interface = NEOSignalInterface(signal, block, iset, sig_num=0)
                     signame = f"Ts" + ": " + signal.name if signal.name else "Ts"
                     experiments[name][signame] = signal_interface
                 else:
@@ -299,22 +353,29 @@ class NEOExperimentInterface:
         return [(k, k2) for k in self.experiment.keys() for k2 in self.experiment[k]]
 
 
+def load_experiment(path: str | pathlib.Path, lazy: bool = True) -> NEOExperimentInterface:
+    """
+    Load a neural recording experiment.
 
-if __name__ == "__main__":
-    from IPython.lib.pretty import pretty
-    from neo.core import Block
-    from typing import List
-    import urllib
-    url_repo = "https://web.gin.g-node.org/NeuralEnsemble/ephy_testing_data/raw/master/"
+    Parameters
+    ----------
+    path : str or Path
+        Path to the recording file
+    lazy : bool, default True
+        Whether to lazy load the data
 
-    # Plexon files
-    # distantfile = url_repo + "plexon/File_plexon_3.plx"
-    # localfile = "File_plexon_3.plx"
-    # urllib.request.urlretrieve(distantfile, localfile)
+    Returns
+    -------
+    NEOExperimentInterface
+    """
+    path = pathlib.Path(path)
 
-    # create a reader
-    reader = neo.io.PlexonIO(filename="File_plexon_3.plx")
-    # read the blocks
-    neo_io = NEOExperimentInterface(reader, lazy=True)
-    out = neo_io[neo_io.keys()[0]][0:10:2]
+    if path.suffix == ".plx":
+        reader = neo.io.PlexonIO(path)
+    elif path.suffix == ".nev" or re.match(r"\.ns\d+$", path.suffix):
+        # Blackrock: .nev, .ns1, .ns2, .ns3, .ns4, .ns5, .ns6
+        reader = neo.io.BlackrockIO(path)
+    else:
+        raise TypeError(f"Unrecognized file type: {path.suffix}")
 
+    return NEOExperimentInterface(reader, lazy=lazy)
