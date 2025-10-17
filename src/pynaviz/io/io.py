@@ -369,13 +369,14 @@ def load_experiment(path: str | pathlib.Path, lazy: bool = True) -> NEOExperimen
     NEOExperimentInterface
     """
     path = pathlib.Path(path)
-
-    if path.suffix == ".plx":
-        reader = neo.io.PlexonIO(path)
-    elif path.suffix == ".nev" or re.match(r"\.ns\d+$", path.suffix):
-        # Blackrock: .nev, .ns1, .ns2, .ns3, .ns4, .ns5, .ns6
-        reader = neo.io.BlackrockIO(path)
-    else:
-        raise TypeError(f"Unrecognized file type: {path.suffix}")
-
+    try:
+        reader = neo.io.get_io(str(path))
+    except Exception:
+        # Manual fallback for common formats
+        if path.suffix == ".plx":
+            reader = neo.io.PlexonIO(path)
+        elif path.suffix == ".nev" or re.match(r"\.ns\d+$", path.suffix):
+            reader = neo.io.BlackrockIO(path)
+        else:
+            raise TypeError(f"Unrecognized file type: {path.suffix}")
     return NEOExperimentInterface(reader, lazy=lazy)
