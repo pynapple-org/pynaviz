@@ -370,7 +370,7 @@ def load_experiment(path: str | pathlib.Path, lazy: bool = True) -> NEOExperimen
     """
     path = pathlib.Path(path)
     try:
-        reader = neo.io.get_io(str(path))
+        reader = neo.io.get_io(path)
     except Exception:
         # Manual fallback for common formats
         if path.suffix == ".plx":
