@@ -19,8 +19,6 @@ class TsdFrameStreaming:
         A function that receives a slice object indicating the time window to display.
     window_size : float
         The size of the time window (in same units as TsdFrame timestamps).
-    _max_n : int
-        Number of data points in the base window (determined by `window_size`).
     """
 
     def __init__(self, data: nap.TsdFrame, callback: Callable[[slice], None], window_size: float):
