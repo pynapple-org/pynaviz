@@ -8,14 +8,14 @@ import nox
 @nox.session(name="linters", reuse_venv=True)
 def linters(session):
     """Run linters"""
-    session.install("-e", ".[dev]")
+    session.install("-e", ".[dev]", external=True)
     session.run("ruff", "check", "src", "--ignore", "D", external=True)
     session.run("ruff", "check", "tests", "--ignore", "D", external=True)
 
 @nox.session(name="linters-fix", reuse_venv=True)
 def linters_fix(session):
     """Run linters and auto-fix issues"""
-    session.install("-e", ".[dev]")
+    session.install("-e", ".[dev]", external=True)
     session.run("ruff", "check", "src", "--ignore", "D", "--fix", external=True)
     session.run("ruff", "check", "tests", "--ignore", "D", "--fix", external=True)
 
