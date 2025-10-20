@@ -373,8 +373,6 @@ def test_advance_empty_group(capsys):
     """Test advancing when controller group is empty."""
     cg = ControllerGroup(plots=None, interval=(0, 10))
 
-    initial_time = cg.current_time
-
     # Should handle empty group gracefully
     cg.advance()
 
@@ -488,3 +486,87 @@ def test_add_plot_controller_id_already_assigned():
     # verify the pre-assigned ID is re-assigned
     assert plot.controller.controller_id == 0
     assert cg._controller_group[0] is plot.controller
+
+
+def test_remove_controller(mock_plots):
+    """Test removing a controller from the group."""
+    cg = ControllerGroup(mock_plots, interval=(0, 10))
+
+    # Verify controller 1 exists
+    assert 1 in cg._controller_group
+
+    # Remove controller 1
+    cg.remove(controller_id=1)
+
+    # Verify it was removed
+    assert 1 not in cg._controller_group
+    assert len(cg._controller_group) == 2
+
+    # Verify other controllers are still there
+    assert 0 in cg._controller_group
+    assert 2 in cg._controller_group
+
+
+def test_remove_controller_invalid_id(mock_plots):
+    """Test that removing a non-existent controller raises KeyError."""
+    cg = ControllerGroup(mock_plots, interval=(0, 10))
+
+    with pytest.raises(KeyError, match="Controller ID 999 not found in the group"):
+        cg.remove(controller_id=999)
+
+
+def test_remove_controller_event_handlers(mock_plots):
+    """Test that both sync and switch event handlers are removed when controller is removed."""
+    cg = ControllerGroup(mock_plots, interval=(0, 10))
+
+    # Get the renderer for controller 1
+    renderer = mock_plots[1].renderer
+    viewport = Viewport.from_viewport_or_renderer(renderer)
+
+    # Verify both handlers are registered before removal
+    sync_handlers_before = viewport.renderer._event_handlers.get("sync", set())
+    switch_handlers_before = viewport.renderer._event_handlers.get("switch", set())
+    assert cg.sync_controllers in sync_handlers_before
+    assert cg.switch_controller in switch_handlers_before
+
+    # Remove controller 1
+    cg.remove(controller_id=1)
+
+    # Verify both handlers were removed
+    sync_handlers_after = viewport.renderer._event_handlers.get("sync", set())
+    switch_handlers_after = viewport.renderer._event_handlers.get("switch", set())
+    assert sync_handlers_after == set()
+    assert switch_handlers_after == set()
+
+    # Verify controller was removed from group
+    assert 1 not in cg._controller_group
+
+
+def test_remove_all_controllers(mock_plots):
+    """Test removing all controllers leaves an empty group."""
+    cg = ControllerGroup(mock_plots, interval=(0, 10))
+
+    # Remove all controllers
+    cg.remove(controller_id=0)
+    cg.remove(controller_id=1)
+    cg.remove(controller_id=2)
+
+    # Verify group is empty
+    assert len(cg._controller_group) == 0
+
+
+def test_remove_controller_no_renderer_attribute():
+    """Test removing a controller when it doesn't have a renderer attribute (fallback case)."""
+    cg = ControllerGroup(plots=None, interval=(0, 10))
+
+    # Manually add a controller without proper renderer reference
+    mock_controller = MockController(enabled=True)
+    mock_controller.controller_id = 0
+    # Don't set renderer attribute
+    cg._controller_group[0] = mock_controller
+
+    # Should not raise an error, just skip event handler removal
+    cg.remove(controller_id=0)
+
+    # Verify controller was still removed
+    assert 0 not in cg._controller_group

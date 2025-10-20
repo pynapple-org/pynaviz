@@ -221,7 +221,6 @@ class ControllerGroup:
         if controller_id in self._controller_group:
             raise RuntimeError(f"Controller ID {controller_id} already exists in the group.")
 
-        # Assign ID if not already assigned
         controller.controller_id = controller_id
 
         self._controller_group[controller_id] = controller
@@ -266,6 +265,13 @@ class ControllerGroup:
         try:
             viewport = Viewport.from_viewport_or_renderer(controller.renderer)
             viewport.renderer.remove_event_handler(self.sync_controllers, "sync")
+        except Exception:
+            # Fallback: skip if removal fails (e.g., missing references)
+            pass
+
+        try:
+            viewport = Viewport.from_viewport_or_renderer(controller.renderer)
+            viewport.renderer.remove_event_handler(self.sync_controllers, "switch")
         except Exception:
             # Fallback: skip if removal fails (e.g., missing references)
             pass
