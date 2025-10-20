@@ -95,6 +95,8 @@ class ControllerGroup:
 
     def _set_to_time(self, time):
         for ctrl in self._controller_group.values():
+            if not ctrl.enabled:
+                continue
             ctrl.sync(
                 SyncEvent(
                     type="sync",
@@ -110,14 +112,16 @@ class ControllerGroup:
             )
 
     def _set_from_start_end(self, start, end):
-        is_set = False
         for ctrl in self._controller_group.values():
+            if not ctrl.enabled:
+                continue
             if hasattr(ctrl, "set_xlim"):
                 ctrl.set_xlim(start, end)
-                is_set = True
                 break
-        if not is_set:
-            self._set_to_time(start)
+            else:
+                self._set_to_time(start + (end - start) / 2)
+                break
+
 
 
     def sync_controllers(self, event):
