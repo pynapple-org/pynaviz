@@ -87,6 +87,9 @@ docs = [
 testpaths = ["tests"]
 addopts = "--cov=pynaviz"
 
+[tool.coverage.run]
+concurrency = ["multiprocessing", "thread"]
+parallel = true
 
 [tool.ruff]
 line-length = 99
