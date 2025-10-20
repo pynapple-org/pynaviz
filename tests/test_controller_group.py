@@ -11,12 +11,13 @@ from pynaviz.events import SyncEvent
 
 
 class MockControllerNoXLim:
-    def __init__(self, enabled: bool):
+    def __init__(self, enabled: bool, renderer: gfx.Renderer | None = None):
         self._controller_id = None
         self.enabled = enabled
         self.xlim = None
         self.sync_called_with = []  # Track sync calls
         self.advance_called_with = []  # Track advance calls
+        self.renderer = renderer
 
     @property
     def controller_id(self):
@@ -44,9 +45,9 @@ def mock_plots():
     plots = []
     for _ in range(3):
         p = MagicMock()
-        p.controller = MockController(enabled=True)
         canvas = RenderCanvas()
         p.renderer = gfx.WgpuRenderer(canvas)
+        p.controller = MockController(enabled=True, renderer=p.renderer)
         plots.append(p)
     return plots
 
@@ -57,9 +58,9 @@ def mock_plots_no_set_xlim():
     plots = []
     for _ in range(3):
         p = MagicMock()
-        p.controller = MockControllerNoXLim(enabled=True)
         canvas = RenderCanvas()
         p.renderer = gfx.WgpuRenderer(canvas)
+        p.controller = MockControllerNoXLim(enabled=True, renderer=p.renderer)
         plots.append(p)
     return plots
 

@@ -221,7 +221,8 @@ class ControllerGroup:
         if controller_id in self._controller_group:
             raise RuntimeError(f"Controller ID {controller_id} already exists in the group.")
 
-        controller.controller_id = controller_id
+        # set the private method to avoid checks
+        controller._controller_id = controller_id
 
         self._controller_group[controller_id] = controller
         self._add_update_handler(renderer)
@@ -265,14 +266,14 @@ class ControllerGroup:
         try:
             viewport = Viewport.from_viewport_or_renderer(controller.renderer)
             viewport.renderer.remove_event_handler(self.sync_controllers, "sync")
-        except Exception:
+        except Exception as e:
             # Fallback: skip if removal fails (e.g., missing references)
-            pass
+            print(f"Failed to remove event handle with exception:\n{e}")
 
         try:
             viewport = Viewport.from_viewport_or_renderer(controller.renderer)
-            viewport.renderer.remove_event_handler(self.sync_controllers, "switch")
-        except Exception:
+            viewport.renderer.remove_event_handler(self.switch_controller, "switch")
+        except Exception as e:
             # Fallback: skip if removal fails (e.g., missing references)
-            pass
+            print(f"Failed to remove event handle with exception:\n{e}")
 
