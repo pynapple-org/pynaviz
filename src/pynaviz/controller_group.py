@@ -222,8 +222,7 @@ class ControllerGroup:
             raise RuntimeError(f"Controller ID {controller_id} already exists in the group.")
 
         # Assign ID if not already assigned
-        if controller.controller_id is None:
-            controller.controller_id = controller_id
+        controller.controller_id = controller_id
 
         self._controller_group[controller_id] = controller
         self._add_update_handler(renderer)
