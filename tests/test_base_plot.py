@@ -3,13 +3,34 @@ Test for _BasePlot. This should not render anything. Just testing for
 the instantiation of _BasePlot. Methods of _BasePlot for acting on the
 objects should be tested in the public classes.
 """
+import os
+import sys
 
 import pygfx as gfx
 import pynapple as nap
 import pytest
 from matplotlib.colors import Colormap
 
-from pynaviz.base_plot import _BasePlot
+from pynaviz.base_plot import _BasePlot, _is_headless
+
+
+@pytest.mark.parametrize(
+    "env, platform, expected",
+    [
+        ({"CI": "true"}, "linux", True),  # Always headless in CI
+        ({}, "linux", True),              # No DISPLAY -> headless
+        ({"DISPLAY": ":0"}, "linux", False),  # DISPLAY present -> not headless
+        ({"QT_QPA_PLATFORM": "offscreen"}, "darwin", True),  # macOS offscreen
+        ({}, "darwin", False),            # macOS normal display
+        ({"QT_QPA_PLATFORM": "offscreen"}, "win32", True),   # Windows offscreen
+        ({}, "win32", False),             # Windows normal display
+    ]
+)
+def test_is_headless(monkeypatch, env, platform, expected):
+    # clear and patch environment
+    monkeypatch.setattr(os, "environ", env.copy())
+    monkeypatch.setattr(sys, "platform", platform)
+    assert _is_headless() == expected
 
 
 def test_baseplot_init(dummy_tsd):

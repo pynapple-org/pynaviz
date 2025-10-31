@@ -438,6 +438,11 @@ class PlotTsdFrame(_BasePlot):
         Unique ID for synchronizing with external controllers.
     parent : Optional[Any], default=None
         Optional GUI parent (e.g. QWidget in Qt).
+    window_size : float
+        The time duration (in same units as data timestamps) of the streaming window.
+        This parameter is optional and if not provided, it will be calculated to
+        optimize memory usage (up to 256MB). It is better to provide it if you know
+        have memory constraints.
 
     Attributes
     ----------
@@ -454,13 +459,16 @@ class PlotTsdFrame(_BasePlot):
         data: nap.TsdFrame,
         index: Optional[int] = None,
         parent: Optional[Any] = None,
+        window_size: Optional[float] = None,
     ):
         super().__init__(data=data, parent=parent)
         self._data = data
 
         # To stream data
-        size = (256 * 1024**2) // (data.shape[1] * 60)
-        window_size = np.floor(size / data.rate) # seconds
+        if window_size is None:
+            # Calculate window size to use up to 256MB of memory
+            size = (256 * 1024**2) // (data.shape[1] * 60)
+            window_size = np.floor(size / data.rate) # seconds
 
         self._stream = TsdFrameStreaming(
             data, callback=self._flush, window_size=window_size
@@ -549,6 +557,7 @@ class PlotTsdFrame(_BasePlot):
     def _flush(self, slice_: slice = None):
         """
         Flush the data stream from slice_ argument.
+        The slice argument should be obtained from the _get_slice method of the TsdFrameStreaming object.
         """
         if self._stream._max_n == self.data.shape[0]:
             # If data fit into memory
