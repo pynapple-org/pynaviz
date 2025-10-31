@@ -1,0 +1,40 @@
+# TsdTensor
+
+```python
+import pynapple as nap
+import pynaviz as viz
+
+print(tsdtensor)
+```
+```
+Time (s)
+----------  -------------------------------
+0           [[-0.720892 ... -0.720892] ...]
+1           [[-0.720892 ... -0.720892] ...]
+2           [[-0.720892 ... -0.720892] ...]
+dtype: float64, shape: (3, 50, 50)
+```
+
+---
+## PlotTsdTensor                    
+
+```python
+v = viz.PlotTsdTensor(tsdtensor)
+
+v.show()
+```
+![None](/_static/screenshots/test_plot_tsdtensor.png)
+
+                    
+
+---
+## PlotTsdTensor - superpose_points                    
+
+```python
+v = viz.PlotTsdTensor(tsdtensor)
+v.superpose_points(tsdframe=TsdFrame)
+v.show()
+```
+![superpose_points](/_static/screenshots/test_plot_tsdtensor_superpose_points_tsdframe=_class__pynapple.core.time_series.TsdFrame__.png)
+
+                    

@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.add\_default\_event\_handlers
+====================================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.add_default_event_handlers

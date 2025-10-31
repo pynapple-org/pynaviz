@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotTsdTensor.remove\_interval\_set
+==================================================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotTsdTensor.remove_interval_set

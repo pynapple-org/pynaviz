@@ -1,0 +1,6 @@
+pynaviz.controller.SpanController.go\_to
+========================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanController.go_to

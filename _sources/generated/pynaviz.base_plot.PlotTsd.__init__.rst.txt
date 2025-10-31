@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsd.\_\_init\_\_
+=======================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsd.__init__

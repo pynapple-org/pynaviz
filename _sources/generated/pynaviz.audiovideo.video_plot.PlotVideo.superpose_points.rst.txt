@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotVideo.superpose\_points
+==========================================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotVideo.superpose_points

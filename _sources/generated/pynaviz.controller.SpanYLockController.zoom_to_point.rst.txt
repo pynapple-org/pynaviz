@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.zoom\_to\_point
+======================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.zoom_to_point

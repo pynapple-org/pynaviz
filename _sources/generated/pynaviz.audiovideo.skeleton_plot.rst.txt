@@ -1,0 +1,12 @@
+pynaviz.audiovideo.skeleton\_plot
+=================================
+
+.. automodule:: pynaviz.audiovideo.skeleton_plot
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PlotPoints
+   

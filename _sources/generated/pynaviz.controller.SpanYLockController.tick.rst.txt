@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.tick
+===========================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.tick
