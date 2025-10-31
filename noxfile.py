@@ -63,20 +63,27 @@ def tests(session):
 
     session.log("Run Tests...")
 
+    coverage_env = {
+        "WGPU_FORCE_OFFSCREEN": "1",
+        "PYGFX_WGPU_ADAPTER_NAME": "llvmpipe",
+        "PYGFX_EXPECT_LAVAPIPE": "true",
+        "DISPLAY": ":99.0",
+    }
+
     if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
         # CI environment - use xvfb
         session.run(
             "xvfb-run",
             "-s", "-screen 0 1920x1200x24 +extension GLX",
-            "pytest", "-v", "tests/",
-            env={
-                "WGPU_FORCE_OFFSCREEN": "1",
-                "PYGFX_WGPU_ADAPTER_NAME": "llvmpipe",
-                "PYGFX_EXPECT_LAVAPIPE": "true",
-                "DISPLAY": ":99.0",
-            },
+            "coverage",
+            "run",
+            "-m",
+            "pytest",
+            "-v", "tests/",
+            env=coverage_env,
             external=True,  # xvfb-run is not a Python package
         )
+        session.run("coverage", "xml", external=True)
     else:
         session.run(
             "pytest",
