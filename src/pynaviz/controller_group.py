@@ -95,6 +95,8 @@ class ControllerGroup:
 
     def _set_to_time(self, time):
         for ctrl in self._controller_group.values():
+            if not ctrl.enabled:
+                continue
             ctrl.sync(
                 SyncEvent(
                     type="sync",
@@ -110,14 +112,16 @@ class ControllerGroup:
             )
 
     def _set_from_start_end(self, start, end):
-        is_set = False
         for ctrl in self._controller_group.values():
+            if not ctrl.enabled:
+                continue
             if hasattr(ctrl, "set_xlim"):
                 ctrl.set_xlim(start, end)
-                is_set = True
                 break
-        if not is_set:
-            self._set_to_time(start)
+            else:
+                self._set_to_time(start + (end - start) / 2)
+                break
+
 
 
     def sync_controllers(self, event):
@@ -217,9 +221,8 @@ class ControllerGroup:
         if controller_id in self._controller_group:
             raise RuntimeError(f"Controller ID {controller_id} already exists in the group.")
 
-        # Assign ID if not already assigned
-        if controller.controller_id is None:
-            controller.controller_id = controller_id
+        # set the private method to avoid checks
+        controller._controller_id = controller_id
 
         self._controller_group[controller_id] = controller
         self._add_update_handler(renderer)
@@ -263,7 +266,14 @@ class ControllerGroup:
         try:
             viewport = Viewport.from_viewport_or_renderer(controller.renderer)
             viewport.renderer.remove_event_handler(self.sync_controllers, "sync")
-        except Exception:
+        except Exception as e:
             # Fallback: skip if removal fails (e.g., missing references)
-            pass
+            print(f"Failed to remove event handle with exception:\n{e}")
+
+        try:
+            viewport = Viewport.from_viewport_or_renderer(controller.renderer)
+            viewport.renderer.remove_event_handler(self.switch_controller, "switch")
+        except Exception as e:
+            # Fallback: skip if removal fails (e.g., missing references)
+            print(f"Failed to remove event handle with exception:\n{e}")
 
