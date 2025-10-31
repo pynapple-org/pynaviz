@@ -248,10 +248,7 @@ class _BasePlot(IntervalSetInterface):
 
     def show(self):
         """To show the canvas in case of GLFW context used"""
-        try:
-            loop()
-        except Exception:
-            pass
+        loop.run()
 
     def color_by(
         self,
