@@ -397,7 +397,7 @@ class PlotTsd(_BasePlot):
         )
 
         # Prepare geometry: stack time, data, and zeros (Z=0) into (N, 3) float32 positions
-        positions = np.stack((data.t, data.d, np.zeros_like(data))).T
+        positions = np.stack((data.t, data.d, np.zeros_like(data.d))).T
         positions = positions.astype("float32")
 
         # Create a line geometry and material to render the time series
