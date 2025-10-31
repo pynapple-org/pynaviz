@@ -2,6 +2,8 @@
 
 We recommend using the **Qt-based interface** for the best interactive experience:
 
+
+
 ```bash
 git clone https://github.com/pynapple-org/pynaviz.git
 cd pynaviz
