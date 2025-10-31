@@ -19,7 +19,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/pynapple-org/pynaviz/blob/main/LICENSE)
 [![CI](https://github.com/pynapple-org/pynaviz/actions/workflows/ci.yml/badge.svg)](https://github.com/pynapple-org/pynaviz/actions/workflows/ci.yml)
-
+[![codecov](https://codecov.io/gh/pynapple-org/pynaviz/graph/badge.svg?token=852A4EHI1Q)](https://codecov.io/gh/pynapple-org/pynaviz)
 
 
 ## Installation
