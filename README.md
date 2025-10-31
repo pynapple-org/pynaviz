@@ -23,6 +23,8 @@ We recommend using the **Qt-based interface** for the best interactive experienc
 pip install pynaviz[qt]
 ```
 
+
+
 To check if the installation was successful with qt, try running:
 
 ```bash
