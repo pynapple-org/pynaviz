@@ -56,7 +56,7 @@ def test_cli_with_layout_and_files(monkeypatch, qtbot):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["pynaviz", "-l", str(layout_path), str(npz_path), str(nwb_path)]
+        ["pynaviz", "-l", str(layout_path), str(npz_path)]
     )
     try:
         main()
