@@ -56,12 +56,12 @@ jobs:
         # square brackets but passes them directly to pip install
       shell: bash
       run: |
-        pip install "$(ls dist/*whl)[dev]"
+        pip install "$(ls dist/*whl)[dev,qt]"
 
     - name: Run some tests
         # modify the following as necessary to e.g., run notebooks
       run: |
-        pytest tests/
+        nox
 
     - uses: actions/upload-artifact@v4
       with:
