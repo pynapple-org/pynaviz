@@ -108,7 +108,7 @@ class ChannelListModel(QAbstractListModel):
             return self.names[row]
         elif role == Qt.ItemDataRole.CheckStateRole:
             return (
-                Qt.CheckState.Checked if self.checks[row] else Qt.CheckState.Unchecked
+                Qt.CheckState.Checked if self.checks[self.names[row]] else Qt.CheckState.Unchecked
             )
         return None
 
@@ -128,7 +128,7 @@ class ChannelListModel(QAbstractListModel):
         if role == Qt.ItemDataRole.CheckStateRole:
             value = value.value if hasattr(value, "value") else value
             state = int(value) == Qt.CheckState.Checked.value
-            if self.checks[index.row()] != state:
+            if self.checks[self.names[index.row()]] != state:
                 self.checks[index.row()] = state
                 self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
                 self.checkStateChanged.emit(index.row())
