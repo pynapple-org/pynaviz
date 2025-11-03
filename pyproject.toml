@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pynaviz"
-version = "0.0.1"
+dynamic = ["version"]
 authors = [{name = "pynaviz authors"}]
 description = "Life made easier."
 readme = "README.md"
