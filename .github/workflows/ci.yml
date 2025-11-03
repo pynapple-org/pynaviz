@@ -25,7 +25,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          lfs: false
+          lfs: true
       - name: Set up Python
         uses: actions/setup-python@v4 # Use v4 for compatibility with pyproject.toml
         with:
