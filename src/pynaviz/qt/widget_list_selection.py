@@ -129,7 +129,7 @@ class ChannelListModel(QAbstractListModel):
             value = value.value if hasattr(value, "value") else value
             state = int(value) == Qt.CheckState.Checked.value
             if self.checks[self.names[index.row()]] != state:
-                self.checks[index.row()] = state
+                self.checks[self.names[index.row()]] = state
                 self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
                 self.checkStateChanged.emit(index.row())
             return True
