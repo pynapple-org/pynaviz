@@ -2,18 +2,27 @@
 
 **Python Neural Analysis Visualization**
 
+<table>
+  <tr>
+    <td><img src="docs/examples/example_dlc_pose_short.gif" width="100%"></td>
+    <td><img src="docs/examples/example_head_direction_short.gif" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/examples/example_lfp_short.gif" width="100%"></td>
+    <td><img src="docs/examples/example_videos_short.gif" width="100%"></td>
+  </tr>
+</table>
+
+
 **Pynaviz** provides interactive, high-performance visualizations designed to work seamlessly with [Pynapple](https://github.com/pynapple-org/pynapple) time series and video data. It allows synchronized exploration of neural signals and behavioral recordings.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/pynapple-org/pynaviz/blob/main/LICENSE)
-
-<p align="center">
-  <img src="in_construction.png" alt="In Construction" width="300"/>
-</p>
-
-> ⚠️ **Note**  
-> This package is under active development. Interfaces and features may change.
 
 ---
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/pynapple-org/pynaviz/blob/main/LICENSE)
+[![CI](https://github.com/pynapple-org/pynaviz/actions/workflows/ci.yml/badge.svg)](https://github.com/pynapple-org/pynaviz/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/pynapple-org/pynaviz/graph/badge.svg?token=852A4EHI1Q)](https://codecov.io/gh/pynapple-org/pynaviz)
+
 
 ## Installation
 
