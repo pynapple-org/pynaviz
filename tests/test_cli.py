@@ -51,12 +51,12 @@ def test_cli_with_layout_and_files(monkeypatch, qtbot):
     here = Path(__file__).parent
     layout_path = here / "filetest" / "layout.json"
     npz_path = here / "filetest" / "tsdframe_minfo.npz"
-    nwb_path = here / "filetest" / "A2929-200711.nwb"
+    # nwb_path = here / "filetest" / "A2929-200711.nwb"
 
     monkeypatch.setattr(
         sys,
         "argv",
-        ["pynaviz", "-l", str(layout_path), str(npz_path), str(nwb_path)]
+        ["pynaviz", "-l", str(layout_path), str(npz_path)]
     )
     try:
         main()
