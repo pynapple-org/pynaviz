@@ -6,6 +6,8 @@
   <tr>
     <td><img src="docs/examples/example_dlc_pose_short.gif" width="100%"></td>
     <td><img src="docs/examples/example_head_direction_short.gif" width="100%"></td>
+  </tr>
+  <tr>
     <td><img src="docs/examples/example_lfp_short.gif" width="100%"></td>
     <td><img src="docs/examples/example_videos_short.gif" width="100%"></td>
   </tr>
