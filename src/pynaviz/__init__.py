@@ -1,3 +1,6 @@
+from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
+from importlib.metadata import version as _get_version
+
 from .audiovideo import AudioHandler, PlotTsdTensor, PlotVideo, VideoHandler
 from .base_plot import (
     PlotIntervalSet,
@@ -43,7 +46,11 @@ try:
     ]
 
 except ImportError as e:
-    print(f"An error occurred when importing: {e}")
+    print(f"An error occurred when importing: {e}. Try installing with the [qt] extra. `pip install pynaviz[qt]`")
 
 
-__version__ = "0.0.1"
+try:
+    __version__ = _get_version("pynapple")
+except _PackageNotFoundError:
+    # package is not installed
+    pass
