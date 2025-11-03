@@ -50,7 +50,7 @@ except ImportError as e:
 
 
 try:
-    __version__ = _get_version("pynapple")
+    __version__ = _get_version("pynaviz")
 except _PackageNotFoundError:
     # package is not installed
     pass
