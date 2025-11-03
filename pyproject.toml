@@ -39,6 +39,9 @@ pynaviz = "pynaviz.cli:main"
 where = ["src"]             # The directory where package modules are located
 include = ["pynaviz"]       # The specific package(s) to include in the distribution
 
+[tool.setuptools_scm]
+version_scheme = 'no-guess-dev'
+local_scheme = 'no-local-version'
 
 # Define optional dependencies for the project
 [project.optional-dependencies]
