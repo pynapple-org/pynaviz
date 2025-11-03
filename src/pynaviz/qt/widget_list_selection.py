@@ -79,7 +79,7 @@ class ChannelListModel(QAbstractListModel):
             self.checks = {i: True for i in data.keys()}
             self.names = list(data.keys())
         elif isinstance(data, nap.TsdFrame):
-            self.checks = {i: True for i in range(len(data.columns))}
+            self.checks = {i: True for i in data.columns}
             self.names = list(data.columns)
         elif isinstance(data, nap.IntervalSet):
             self.checks = {i: True for i in data.index}
