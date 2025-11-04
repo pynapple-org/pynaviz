@@ -8,9 +8,9 @@ from typing import Optional, Tuple
 
 import pynapple as nap
 from numpy._typing import NDArray
-from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QAction, QKeySequence
-from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
 from .. import VideoHandler
 from ..audiovideo import PlotTsdTensor, PlotVideo

@@ -1,6 +1,6 @@
 
-from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
+from PySide6.QtWidgets import (
     QDialog,
     QDoubleSpinBox,
     QHBoxLayout,
@@ -52,7 +52,7 @@ class DoubleSpinDelegate(QStyledItemDelegate):
 class TsdFramesModel(QAbstractTableModel):
     """A model to handle the dict of tsdframes with checkboxes."""
 
-    checkStateChanged = pyqtSignal(str, str, float, float, bool)
+    checkStateChanged = Signal(str, str, float, float, bool)
 
     def __init__(self, tsdframes: dict):
         super().__init__()
