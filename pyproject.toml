@@ -46,7 +46,7 @@ local_scheme = 'no-local-version'
 # Define optional dependencies for the project
 [project.optional-dependencies]
 qt = [
-    "pyqt6"
+    "pyside6"
 ]
 dev = [
     "pip-tools",                    # Dependency management
@@ -60,7 +60,7 @@ dev = [
     "isort",
     "click",
     "imageio",
-    "pyqt6",
+    "pyside6",
     "fsspec",                      # Download file from OSF for testing
     "aiohttp"
 ]
@@ -81,7 +81,7 @@ docs = [
     "myst-nb",
     "sphinx-autobuild",
     "sphinx-contributors",
-    "pyqt6",
+    "pyside6",
     "imageio"
     # "sphinx-excec-code"
 ]

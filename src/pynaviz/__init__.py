@@ -22,31 +22,31 @@ __all__ = [
     "VideoHandler",
 ]
 
-try:
-    from .qt import (
-        IntervalSetWidget,
-        TsdFrameWidget,
-        TsdTensorWidget,
-        TsdWidget,
-        TsGroupWidget,
-        TsWidget,
-        VideoWidget,
-        scope,
-    )
+# try:
+from .qt import (
+    IntervalSetWidget,
+    TsdFrameWidget,
+    TsdTensorWidget,
+    TsdWidget,
+    TsGroupWidget,
+    TsWidget,
+    VideoWidget,
+    scope,
+)
 
-    __all__ += [
-        "IntervalSetWidget",
-        "TsdFrameWidget",
-        "TsdTensorWidget",
-        "TsdWidget",
-        "TsGroupWidget",
-        "TsWidget",
-        "scope",
-        "VideoWidget"
-    ]
+__all__ += [
+    "IntervalSetWidget",
+    "TsdFrameWidget",
+    "TsdTensorWidget",
+    "TsdWidget",
+    "TsGroupWidget",
+    "TsWidget",
+    "scope",
+    "VideoWidget"
+]
 
-except ImportError as e:
-    print(f"An error occurred when importing: {e}. Try installing with the [qt] extra. `pip install pynaviz[qt]`")
+# except ImportError as e:
+#     print(f"An error occurred when importing: {e}. Try installing with the [qt] extra. `pip install pynaviz[qt]`")
 
 
 try:

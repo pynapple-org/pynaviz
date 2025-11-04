@@ -16,9 +16,9 @@ from typing import Any, Callable
 
 import numpy as np
 import pynapple as nap
-from PyQt6.QtCore import QPoint, QSize, Qt
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QPoint, QSize, Qt
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDoubleSpinBox,

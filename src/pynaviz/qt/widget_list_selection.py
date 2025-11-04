@@ -1,15 +1,15 @@
 from typing import Any
 
 import pynapple as nap
-from PyQt6.QtCore import (
+from PySide6.QtCore import (
     QAbstractListModel,
     QEvent,
     QItemSelectionModel,
     Qt,
     QTimer,
-    pyqtSignal,
+    Signal,
 )
-from PyQt6.QtWidgets import QDialog, QListView, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog, QListView, QVBoxLayout, QWidget
 
 
 class DynamicSelectionListView(QListView):
@@ -70,7 +70,7 @@ class DynamicSelectionListView(QListView):
 class ChannelListModel(QAbstractListModel):
     """A model to handle the list of channels with checkboxes."""
 
-    checkStateChanged = pyqtSignal(int)
+    checkStateChanged = Signal(int)
 
     def __init__(self, data: Any):
         super().__init__()
@@ -139,7 +139,7 @@ class ChannelListModel(QAbstractListModel):
 
 class ChannelList(QDialog):
 
-    checkStateChanged = pyqtSignal(int)
+    checkStateChanged = Signal(int)
 
     """
     A dialog listing selectable channels (e.g., for visibility toggling).
@@ -178,7 +178,7 @@ class ChannelList(QDialog):
 #
 #
 # class TsdFrameColumnListModel(QAbstractListModel):
-#     checkStateChanged = pyqtSignal(int)
+#     checkStateChanged = Signal(int)
 #
 #     def __init__(self, tsdframe):
 #         super().__init__()
@@ -234,7 +234,7 @@ class ChannelList(QDialog):
 # if __name__ == "__main__":
 #     import numpy as np
 #     import pynapple as nap
-#     from PyQt6.QtWidgets import QApplication, QListView
+#     from PySide6.QtWidgets import QApplication, QListView
 #
 #     my_tsdframe = nap.TsdFrame(
 #         t=np.arange(10),

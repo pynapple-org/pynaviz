@@ -2,8 +2,8 @@ import bisect
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QComboBox, QWidget
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QComboBox, QWidget
 
 from pynaviz.utils import GRADED_COLOR_LIST
 
