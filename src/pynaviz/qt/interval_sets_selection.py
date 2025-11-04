@@ -1,11 +1,11 @@
 
-from PyQt6.QtCore import (
+from PySide6.QtCore import (
     QAbstractTableModel,
     QModelIndex,
     Qt,
-    pyqtSignal,
+    Signal,
 )
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDoubleSpinBox,
@@ -24,7 +24,7 @@ from pynaviz.utils import GRADED_COLOR_LIST
 class IntervalSetsModel(QAbstractTableModel):
     """A model to handle the dict of interval sets with checkboxes."""
 
-    checkStateChanged = pyqtSignal(str, str, float, bool)
+    checkStateChanged = Signal(str, str, float, bool)
 
     def __init__(self, interval_sets: dict):
         super().__init__()

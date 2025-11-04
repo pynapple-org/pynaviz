@@ -10,9 +10,9 @@ from datetime import datetime
 from typing import Any, Literal, Union
 
 import pynapple as nap
-from PyQt6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
-from PyQt6.QtGui import QAction, QCursor, QFontMetrics, QIcon, QKeySequence, QPixmap, QShortcut
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
+from PySide6.QtGui import QAction, QCursor, QFontMetrics, QIcon, QKeySequence, QPixmap, QShortcut
+from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
     QDockWidget,
