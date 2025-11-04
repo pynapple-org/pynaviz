@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsdFrame.animate
+=======================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsdFrame.animate

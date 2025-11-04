@@ -1,0 +1,12 @@
+pynaviz.audiovideo.base\_audiovideo
+===================================
+
+.. automodule:: pynaviz.audiovideo.base_audiovideo
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BaseAudioVideo
+   

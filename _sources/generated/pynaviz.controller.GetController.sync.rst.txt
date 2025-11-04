@@ -1,0 +1,6 @@
+pynaviz.controller.GetController.sync
+=====================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: GetController.sync

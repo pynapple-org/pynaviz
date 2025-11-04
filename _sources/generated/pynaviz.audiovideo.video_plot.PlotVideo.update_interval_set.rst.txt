@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotVideo.update\_interval\_set
+==============================================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotVideo.update_interval_set

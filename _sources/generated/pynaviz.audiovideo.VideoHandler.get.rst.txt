@@ -1,0 +1,6 @@
+pynaviz.audiovideo.VideoHandler.get
+===================================
+
+.. currentmodule:: pynaviz.audiovideo
+
+.. automethod:: VideoHandler.get

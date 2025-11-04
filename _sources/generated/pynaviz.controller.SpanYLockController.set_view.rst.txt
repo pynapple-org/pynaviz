@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.set\_view
+================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.set_view

@@ -1,0 +1,36 @@
+﻿pynaviz.audiovideo.VideoHandler
+===============================
+
+.. currentmodule:: pynaviz.audiovideo
+
+.. autoclass:: VideoHandler
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~VideoHandler.__init__
+      ~VideoHandler.close
+      ~VideoHandler.get
+      ~VideoHandler.get_slice
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~VideoHandler.index
+      ~VideoHandler.shape
+      ~VideoHandler.t
+   
+   

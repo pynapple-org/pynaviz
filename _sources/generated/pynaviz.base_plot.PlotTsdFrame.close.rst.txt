@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsdFrame.close
+=====================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsdFrame.close

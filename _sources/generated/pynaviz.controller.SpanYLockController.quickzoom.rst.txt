@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.quickzoom
+================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.quickzoom

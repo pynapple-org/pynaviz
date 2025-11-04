@@ -1,0 +1,19 @@
+﻿pynaviz.qt.widget\_menu
+=======================
+
+.. automodule:: pynaviz.qt.widget_menu
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      widget_factory
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      DropdownDialog
+      MenuWidget
+   
