@@ -6,8 +6,8 @@ from collections import OrderedDict
 
 import pynapple as nap
 import pytest
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QComboBox, QDoubleSpinBox, QPushButton
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QPushButton
 
 from pynaviz.qt.interval_sets_selection import (
     ComboDelegate,
@@ -603,7 +603,7 @@ class TestSpinDelegate:
     @pytest.fixture
     def mock_parent(self, qtbot):
         """Create a mock parent widget."""
-        from PyQt6.QtWidgets import QWidget
+        from PySide6.QtWidgets import QWidget
         widget = QWidget()
         qtbot.addWidget(widget)
         return widget
@@ -785,7 +785,7 @@ class TestComboDelegate:
     @pytest.fixture
     def mock_parent(self, qtbot):
         """Create a mock parent widget."""
-        from PyQt6.QtWidgets import QWidget
+        from PySide6.QtWidgets import QWidget
         widget = QWidget()
         qtbot.addWidget(widget)
         return widget

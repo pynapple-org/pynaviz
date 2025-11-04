@@ -2,8 +2,8 @@ from collections import OrderedDict
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDoubleSpinBox, QPushButton
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QDoubleSpinBox, QPushButton
 
 from pynaviz.qt.tsdframe_selection import (
     GRADED_COLOR_LIST,
@@ -504,7 +504,7 @@ class TestDoubleSpinDelegate:
     @pytest.fixture
     def mock_parent(self, qtbot):
         """Create a mock parent widget."""
-        from PyQt6.QtWidgets import QWidget
+        from PySide6.QtWidgets import QWidget
         widget = QWidget()
         qtbot.addWidget(widget)
         return widget

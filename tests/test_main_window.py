@@ -2,7 +2,7 @@ from typing import Literal
 
 import numpy as np
 import pytest
-from PyQt6.QtWidgets import QDockWidget
+from PySide6.QtWidgets import QDockWidget
 
 import pynaviz as viz
 from pynaviz import (
