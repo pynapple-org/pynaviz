@@ -24,7 +24,7 @@ def tests(session):
     """Run the test suite."""
     # session.log("install")
     session.install("-e", ".[dev]", external=True)
-    session.run("pip", "list")
+    # session.run("pip", "list")
     tests_path = pathlib.Path(__file__).parent.resolve() / "tests"
 
     # generate sample videos
