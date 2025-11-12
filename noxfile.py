@@ -77,13 +77,12 @@ def tests(session):
             "-s", "-screen 0 1920x1200x24 +extension GLX",
             "coverage",
             "run",
-            "-m",
-            "pytest",
-            "-v", "tests/",
+            "-m", "pytest", "-v", "tests/",
             env=coverage_env,
-            external=True,  # xvfb-run is not a Python package
+            external=True,
         )
         session.run("coverage", "xml", external=True)
+        session.run("coverage", "report", "-m", external=True)
     else:
         session.run(
             "pytest",
