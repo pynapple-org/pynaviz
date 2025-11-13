@@ -62,7 +62,8 @@ dev = [
     "imageio",
     "pyside6",
     "fsspec",                      # Download file from OSF for testing
-    "aiohttp"
+    "aiohttp",
+    "requests",
 ]
 docs = [
     "matplotlib",
