@@ -1,6 +1,5 @@
 import pathlib
-import sys
-import os
+
 
 def download_from_osf(file_id: str, nwb_path: str | pathlib.Path):
     """
