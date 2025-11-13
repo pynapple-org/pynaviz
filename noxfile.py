@@ -4,42 +4,6 @@ import pathlib
 import nox
 
 
-def download_from_osf(file_id: str, nwb_path: str | pathlib.Path):
-    """
-    Download an NWB file from OSF (Open Science Framework).
-
-    Downloads a file from OSF using its file ID and saves it to the specified path.
-    If the file already exists at the target path, the download is skipped.
-
-    Parameters
-    ----------
-    file_id : str
-        The OSF file identifier used to construct the download URL.
-    nwb_path : str or pathlib.Path
-        The local path where the NWB file should be saved.
-
-    Notes
-    -----
-    The function downloads the file in chunks of 1 MB to handle large files
-    efficiently without loading the entire file into memory.
-    """
-    # runtime import (this is needed for running the linters without
-    # installing the test environment).
-    import requests
-    nwb_path = pathlib.Path(nwb_path)
-    if nwb_path.exists():
-        print("Using existing nwb file.")
-        return
-
-    if nwb_path not in os.listdir("."):
-        r = requests.get(f"https://osf.io/download/{file_id}", stream=True)
-        block_size = 1024 * 1024
-        with open(nwb_path, 'wb') as f:
-            for data in r.iter_content(block_size):
-                f.write(data)
-    return
-
-
 @nox.session(name="linters", reuse_venv=True)
 def linters(session):
     """Run linters"""
@@ -99,7 +63,7 @@ def tests(session):
     nwb_path = tests_path / "filetest" / "A2929-200711.nwb"
     file_id = "fqht6"
     session.log(f"Download {nwb_path.name} from OSF...")
-    download_from_osf(file_id, nwb_path)
+    session.run("python",  tests_path / "download_nwb.py", file_id, nwb_path)
     session.log("Run Tests...")
 
     coverage_env = {
