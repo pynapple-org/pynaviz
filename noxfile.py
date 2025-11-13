@@ -2,7 +2,6 @@ import os
 import pathlib
 
 import nox
-import requests
 
 
 def download_from_osf(file_id: str, nwb_path: str | pathlib.Path):
@@ -24,6 +23,9 @@ def download_from_osf(file_id: str, nwb_path: str | pathlib.Path):
     The function downloads the file in chunks of 1 MB to handle large files
     efficiently without loading the entire file into memory.
     """
+    # runtime import (this is needed for running the linters without
+    # installing the test environment).
+    import requests
     nwb_path = pathlib.Path(nwb_path)
     if nwb_path.exists():
         print("Using existing nwb file.")
