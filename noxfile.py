@@ -78,9 +78,14 @@ def tests(session):
         session.run(
             "xvfb-run",
             "-s", "-screen 0 1920x1200x24 +extension GLX",
-            "coverage",
+            "--cov=src/pynaviz",
+            "--cov-report=xml",
+            "--cov-report=term",
             "run",
-            "-m", "pytest", "-v", "tests/",
+            "-m",
+            "pytest",
+            "-v",
+            "tests/",
             env=coverage_env,
             external=True,
         )
