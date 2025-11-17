@@ -21,7 +21,7 @@ classifiers = [
 
 # Define dependencies for the project
 dependencies = [    
-    "pygfx>=0.14.0",
+    "pygfx>=0.15.3",
     "pynapple>=0.9.0",
     "glfw",
     "matplotlib",
