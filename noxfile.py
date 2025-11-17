@@ -87,8 +87,6 @@ def tests(session):
             env=coverage_env,
             external=True,
         )
-        # session.run("coverage", "xml", external=True)
-        # session.run("coverage", "report", "-m", external=True)
     else:
         session.run(
             "pytest",

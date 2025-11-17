@@ -52,7 +52,6 @@ dev = [
     "pip-tools",                    # Dependency management
     "pytest",                       # Testing framework
     "pytest-qt",
-    "coverage",                     # Test coverage measurement
     "pytest-cov",                   # Test coverage plugin for pytest
     'matplotlib>=3.7',              # Plotting library
     "nox",
@@ -94,6 +93,10 @@ addopts = "--cov=pynaviz"
 [tool.coverage.run]
 concurrency = ["multiprocessing", "thread"]
 parallel = true
+sigterm = true
+
+[tool.coverage.paths]
+source = ["src/"]
 
 [tool.ruff]
 line-length = 99
