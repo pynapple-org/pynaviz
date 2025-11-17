@@ -78,9 +78,7 @@ def tests(session):
         session.run(
             "xvfb-run",
             "-s", "-screen 0 1920x1200x24 +extension GLX",
-            "run",
-            "-m",
-            "pytest",
+            "pytest",  # Start pytest directly, no "run" or "-m"
             "--cov=src/pynaviz",
             "--cov-report=xml",
             "--cov-report=term",
@@ -89,8 +87,8 @@ def tests(session):
             env=coverage_env,
             external=True,
         )
-        session.run("coverage", "xml", external=True)
-        session.run("coverage", "report", "-m", external=True)
+        # session.run("coverage", "xml", external=True)
+        # session.run("coverage", "report", "-m", external=True)
     else:
         session.run(
             "pytest",
