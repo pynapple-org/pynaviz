@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 from enum import Enum
 
+import numpy as np
 from pylinalg import vec_transform, vec_unproject
 
 GRADED_COLOR_LIST = [
@@ -97,8 +98,8 @@ def trim_kwargs(func, kwargs):
 
 def map_screen_to_world(camera, pos, viewport_size):
     # first convert position to NDC
-    x = pos[0] / viewport_size[0] * 2 - 1
-    y = -(pos[1] / viewport_size[1] * 2 - 1)
+    x = pos[0] / np.maximum(viewport_size[0], 1) * 2 - 1
+    y = -(pos[1] / np.maximum(viewport_size[1], 1) * 2 - 1)
     pos_ndc = (x, y, 0)
     pos_ndc += vec_transform(camera.world.position, camera.camera_matrix)
     # unproject to world space

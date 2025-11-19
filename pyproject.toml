@@ -21,7 +21,7 @@ classifiers = [
 
 # Define dependencies for the project
 dependencies = [    
-    "pygfx>=0.14.0",
+    "pygfx>=0.15.3",
     "pynapple>=0.9.0",
     "glfw",
     "matplotlib",
@@ -52,7 +52,6 @@ dev = [
     "pip-tools",                    # Dependency management
     "pytest",                       # Testing framework
     "pytest-qt",
-    "coverage",                     # Test coverage measurement
     "pytest-cov",                   # Test coverage plugin for pytest
     'matplotlib>=3.7',              # Plotting library
     "nox",
@@ -62,7 +61,8 @@ dev = [
     "imageio",
     "pyside6",
     "fsspec",                      # Download file from OSF for testing
-    "aiohttp"
+    "aiohttp",
+    "requests",
 ]
 docs = [
     "matplotlib",
@@ -93,6 +93,10 @@ addopts = "--cov=pynaviz"
 [tool.coverage.run]
 concurrency = ["multiprocessing", "thread"]
 parallel = true
+sigterm = true
+
+[tool.coverage.paths]
+source = ["src/"]
 
 [tool.ruff]
 line-length = 99

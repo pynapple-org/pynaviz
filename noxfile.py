@@ -1,6 +1,5 @@
 import os
 import pathlib
-import shutil
 
 import nox
 
@@ -24,7 +23,7 @@ def tests(session):
     """Run the test suite."""
     # session.log("install")
     session.install("-e", ".[dev]", external=True)
-    session.run("pip", "list")
+    # session.run("pip", "list")
     tests_path = pathlib.Path(__file__).parent.resolve() / "tests"
 
     # generate sample videos
@@ -61,6 +60,10 @@ def tests(session):
         # "--path", "tests/screenshots",
     )
 
+    nwb_path = tests_path / "filetest" / "A2929-200711.nwb"
+    file_id = "fqht6"
+    session.log(f"Download {nwb_path.name} from OSF...")
+    session.run("python",  tests_path / "download_nwb.py", file_id, nwb_path)
     session.log("Run Tests...")
 
     coverage_env = {
@@ -75,15 +78,15 @@ def tests(session):
         session.run(
             "xvfb-run",
             "-s", "-screen 0 1920x1200x24 +extension GLX",
-            "coverage",
-            "run",
-            "-m",
-            "pytest",
-            "-v", "tests/",
+            "pytest",  # Start pytest directly, no "run" or "-m"
+            "--cov=src/pynaviz",
+            "--cov-report=xml",
+            "--cov-report=term",
+            "-v",
+            "tests/",
             env=coverage_env,
-            external=True,  # xvfb-run is not a Python package
+            external=True,
         )
-        session.run("coverage", "xml", external=True)
     else:
         session.run(
             "pytest",
