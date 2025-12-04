@@ -325,7 +325,7 @@ class PlotVideo(PlotBaseVideoTensor):
             # Queues and events for IPC
             self._buffer_thread = threading.Thread(target=self._update_buffer_thread, daemon=True)
             self.shm_frame = shared_memory.SharedMemory(
-                create=True, size=np.prod(self.shape) * np.float32().nbytes
+                create=True, size=int(np.prod(self.shape)) * np.float32().nbytes
             )
             self.shm_index = shared_memory.SharedMemory(create=True, size=np.float32().nbytes)
             self.shared_frame = np.ndarray(self.shape, dtype=np.float32, buffer=self.shm_frame.buf)
