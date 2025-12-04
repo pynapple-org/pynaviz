@@ -1,0 +1,36 @@
+﻿pynaviz.audiovideo.AudioHandler
+===============================
+
+.. currentmodule:: pynaviz.audiovideo
+
+.. autoclass:: AudioHandler
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~AudioHandler.__init__
+      ~AudioHandler.close
+      ~AudioHandler.get
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~AudioHandler.index
+      ~AudioHandler.shape
+      ~AudioHandler.t
+      ~AudioHandler.tot_length
+   
+   

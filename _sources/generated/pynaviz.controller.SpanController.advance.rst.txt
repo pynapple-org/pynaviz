@@ -1,0 +1,6 @@
+pynaviz.controller.SpanController.advance
+=========================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanController.advance

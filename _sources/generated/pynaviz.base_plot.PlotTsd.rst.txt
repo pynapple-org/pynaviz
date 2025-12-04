@@ -1,0 +1,41 @@
+﻿pynaviz.base\_plot.PlotTsd
+==========================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. autoclass:: PlotTsd
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~PlotTsd.__init__
+      ~PlotTsd.add_interval_sets
+      ~PlotTsd.animate
+      ~PlotTsd.close
+      ~PlotTsd.color_by
+      ~PlotTsd.group_by
+      ~PlotTsd.remove_interval_set
+      ~PlotTsd.show
+      ~PlotTsd.sort_by
+      ~PlotTsd.update_interval_set
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~PlotTsd.cmap
+      ~PlotTsd.data
+   
+   

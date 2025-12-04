@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotTsdTensor.group\_by
+======================================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotTsdTensor.group_by

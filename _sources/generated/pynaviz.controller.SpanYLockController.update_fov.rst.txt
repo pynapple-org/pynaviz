@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.update\_fov
+==================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.update_fov

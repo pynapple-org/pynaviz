@@ -1,0 +1,6 @@
+pynaviz.controller.SpanController.remove\_camera
+================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanController.remove_camera

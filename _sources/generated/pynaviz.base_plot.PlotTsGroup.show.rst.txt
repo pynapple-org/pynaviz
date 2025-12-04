@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsGroup.show
+===================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsGroup.show
