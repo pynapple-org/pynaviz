@@ -42,6 +42,7 @@ from .widget_plot import (
     TsGroupWidget,
     TsWidget,
     VideoWidget,
+    VideoHandler,
 )
 
 DOCK_LIST_STYLESHEET = """
