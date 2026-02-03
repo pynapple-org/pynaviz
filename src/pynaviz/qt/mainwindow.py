@@ -31,7 +31,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..audiovideo import VideoHandler
 from ..controller_group import ControllerGroup
 from .icons import icon_base64
 from .widget_plot import (
@@ -41,8 +40,8 @@ from .widget_plot import (
     TsdWidget,
     TsGroupWidget,
     TsWidget,
-    VideoWidget,
     VideoHandler,
+    VideoWidget,
 )
 
 DOCK_LIST_STYLESHEET = """
