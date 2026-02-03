@@ -12,8 +12,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
-from .. import VideoHandler
-from ..audiovideo import PlotTsdTensor, PlotVideo
+from ..audiovideo import PlotTsdTensor, PlotVideo, VideoHandler
 from ..base_plot import (
     PlotIntervalSet,
     PlotTs,
