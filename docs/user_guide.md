@@ -80,7 +80,7 @@ Each pynapple object is mapped into a simple visuals using pygfx.
 
 **Tsd**
 
- <a href="/user_guide/tsd.html">
+ <a href="user_guide/tsd.html">
     <img src="_static/screenshots/test_plot_tsd.png"
          alt="Tsd Image"
          style="width: 250px;" />
@@ -92,7 +92,7 @@ Each pynapple object is mapped into a simple visuals using pygfx.
 
 **TsdFrame**
 
- <a href="/user_guide/tsdframe.html">
+ <a href="user_guide/tsdframe.html">
     <img src="_static/screenshots/test_plot_tsdframe.png"
          alt="TsdFrame Image"
          style="width: 250px;" />
@@ -105,7 +105,7 @@ Each pynapple object is mapped into a simple visuals using pygfx.
 
 **TsGroup**
 
- <a href="/user_guide/tsgroup.html">
+ <a href="user_guide/tsgroup.html">
     <img src="_static/screenshots/test_plot_tsgroup.png"
          alt="TsGroup Image"
          style="width: 250px;" />
@@ -119,7 +119,7 @@ Each pynapple object is mapped into a simple visuals using pygfx.
 
 **IntervalSet**
 
- <a href="/user_guide/intervalset.html">
+ <a href="user_guide/intervalset.html">
     <img src="_static/screenshots/test_plot_intervalset.png"
          alt="IntervalSet Image"
          style="width: 250px;" />
@@ -132,7 +132,7 @@ Each pynapple object is mapped into a simple visuals using pygfx.
 
 **Ts**
 
- <a href="/user_guide/ts.html">
+ <a href="user_guide/ts.html">
     <img src="_static/screenshots/test_plot_ts.png"
          alt="Ts Image"
          style="width: 250px;" />
@@ -145,7 +145,7 @@ Each pynapple object is mapped into a simple visuals using pygfx.
 
 **TsdTensor**
 
- <a href="/user_guide/tsdtensor.html">
+ <a href="user_guide/tsdtensor.html">
     <img src="_static/screenshots/test_plot_tsdtensor.png"
          alt="TsdTensor Image"
          style="width: 250px;" />
@@ -163,7 +163,7 @@ Video handlers
 
 A video handler is provided to display videos synchronized to time series. 
 
-<a href="/user_guide/video.html">
+<a href="user_guide/video.html">
     <img src="_static/screenshots/test_plot_videohandler.png"
         alt="PlotVideo Image"
         style="width: 250px;" />
