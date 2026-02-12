@@ -469,6 +469,8 @@ class PlotTsdFrame(_BasePlot):
             # Calculate window size to use up to 256MB of memory
             size = (256 * 1024**2) // (data.shape[1] * 60)
             window_size = np.floor(size / data.rate) # seconds
+            if window_size < 1:
+                window_size = 1.0
 
         self._stream = TsdFrameStreaming(
             data, callback=self._flush, window_size=window_size
@@ -539,7 +541,7 @@ class PlotTsdFrame(_BasePlot):
         # Setting the boundaries of the plot
         # minmax is of shape (n_columns, 2)
         minmax = self._get_min_max()
-        self.controller.set_view(0, 1, np.min(minmax[:, 0]), np.max(minmax[:, 1]))
+        self.controller.set_view(xmin=0, xmax=1, ymin=np.min(minmax[:, 0]), ymax=np.max(minmax[:, 1]))
 
         # Request an initial draw of the scene
         self.canvas.request_draw(self.animate)
