@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotVideo.color\_by
+==================================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotVideo.color_by

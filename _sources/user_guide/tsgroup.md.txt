@@ -1,0 +1,82 @@
+# TsGroup
+
+```python
+import pynapple as nap
+import pynaviz as viz
+
+print(tsgroup)
+```
+```
+  Index      rate    group    channel    random
+-------  --------  -------  ---------  --------
+      0   1.00017        0          1      0.44
+      1   2.00034        0          3     -1.36
+      2   3.00051        1          0     -0.73
+      3   4.00068        0          2      1
+      4   5.00085        1          4      0.37
+      5   6.00102        0          5      0.78
+      6   7.00119        0          6      0.13
+      7   8.00136        1          7     -0.3
+      8   9.00153        0          8     -0.36
+      9  10.0017         1          9     -0.39
+```
+
+---
+## PlotTsGroup                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+
+v.show()
+```
+![None](/_static/screenshots/test_plot_tsgroup.png)
+
+                    
+
+---
+## PlotTsGroup - group_by                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+v.group_by(metadata_name='group')
+v.show()
+```
+![group_by](/_static/screenshots/test_plot_tsgroup_group_by_metadata_name=_class__str__.png)
+
+                    
+
+---
+## PlotTsGroup - sort_by                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+v.sort_by(metadata_name='rate')
+v.show()
+```
+![sort_by](/_static/screenshots/test_plot_tsgroup_sort_by_metadata_name=_class__str__.png)
+
+                    
+
+---
+## PlotTsGroup - color_by                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+v.color_by(metadata_name='group')
+v.show()
+```
+![color_by](/_static/screenshots/test_plot_tsgroup_color_by_metadata_name=_class__str__.png)
+
+                    
+
+---
+## PlotTsGroup - add_interval_sets                    
+
+```python
+v = viz.PlotTsGroup(tsgroup)
+v.add_interval_sets(epochs=IntervalSet)
+v.show()
+```
+![add_interval_sets](/_static/screenshots/test_plot_tsgroup_add_interval_sets_epochs=_class__pynapple.core.interval_set.IntervalSet__.png)
+
+                    

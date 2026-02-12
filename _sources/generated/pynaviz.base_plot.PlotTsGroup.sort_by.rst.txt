@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsGroup.sort\_by
+=======================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsGroup.sort_by

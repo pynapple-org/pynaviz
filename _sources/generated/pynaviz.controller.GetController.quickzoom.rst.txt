@@ -1,0 +1,6 @@
+pynaviz.controller.GetController.quickzoom
+==========================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: GetController.quickzoom

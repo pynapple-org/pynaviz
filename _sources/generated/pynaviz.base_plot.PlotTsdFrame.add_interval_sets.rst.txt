@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsdFrame.add\_interval\_sets
+===================================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsdFrame.add_interval_sets

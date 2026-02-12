@@ -1,0 +1,6 @@
+pynaviz.controller.SpanController.set\_view
+===========================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanController.set_view

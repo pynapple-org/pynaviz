@@ -1,0 +1,23 @@
+﻿pynaviz.qt.mainwindow
+=====================
+
+.. automodule:: pynaviz.qt.mainwindow
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_children_dict
+      get_pynapple_variables
+      scope
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      HelpBox
+      MainWindow
+      NWBReference
+      VariableDock
+   

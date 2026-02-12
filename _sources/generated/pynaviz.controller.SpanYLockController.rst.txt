@@ -1,0 +1,56 @@
+﻿pynaviz.controller.SpanYLockController
+======================================
+
+.. currentmodule:: pynaviz.controller
+
+.. autoclass:: SpanYLockController
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~SpanYLockController.__init__
+      ~SpanYLockController.add_camera
+      ~SpanYLockController.add_default_event_handlers
+      ~SpanYLockController.advance
+      ~SpanYLockController.get_xlim
+      ~SpanYLockController.go_to
+      ~SpanYLockController.handle_event
+      ~SpanYLockController.pan
+      ~SpanYLockController.pause
+      ~SpanYLockController.quickzoom
+      ~SpanYLockController.register_events
+      ~SpanYLockController.remove_camera
+      ~SpanYLockController.set_view
+      ~SpanYLockController.set_xlim
+      ~SpanYLockController.set_ylim
+      ~SpanYLockController.sync
+      ~SpanYLockController.tick
+      ~SpanYLockController.update_camera
+      ~SpanYLockController.update_fov
+      ~SpanYLockController.zoom
+      ~SpanYLockController.zoom_to_point
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~SpanYLockController.auto_update
+      ~SpanYLockController.cameras
+      ~SpanYLockController.controller_id
+      ~SpanYLockController.controls
+      ~SpanYLockController.damping
+      ~SpanYLockController.enabled
+   
+   

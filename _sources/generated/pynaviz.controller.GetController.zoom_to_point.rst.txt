@@ -1,0 +1,6 @@
+pynaviz.controller.GetController.zoom\_to\_point
+================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: GetController.zoom_to_point

@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.go\_to
+=============================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.go_to

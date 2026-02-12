@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsGroup.\_\_init\_\_
+===========================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsGroup.__init__

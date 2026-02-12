@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsGroup.color\_by
+========================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsGroup.color_by

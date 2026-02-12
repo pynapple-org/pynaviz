@@ -1,0 +1,6 @@
+pynaviz.controller.GetController.add\_camera
+============================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: GetController.add_camera

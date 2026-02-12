@@ -1,0 +1,41 @@
+# Ts
+
+```python
+import pynapple as nap
+import pynaviz as viz
+
+print(ts)
+```
+```
+Time (s)
+0.1
+0.3
+0.5
+0.55
+0.9
+shape: 5
+```
+
+---
+## PlotTs                    
+
+```python
+v = viz.PlotTs(ts)
+
+v.show()
+```
+![None](/_static/screenshots/test_plot_ts.png)
+
+                    
+
+---
+## PlotTs - add_interval_sets                    
+
+```python
+v = viz.PlotTs(ts)
+v.add_interval_sets(epochs=IntervalSet)
+v.show()
+```
+![add_interval_sets](/_static/screenshots/test_plot_ts_add_interval_sets_epochs=_class__pynapple.core.interval_set.IntervalSet__.png)
+
+                    

@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTs.jump\_next
+====================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTs.jump_next

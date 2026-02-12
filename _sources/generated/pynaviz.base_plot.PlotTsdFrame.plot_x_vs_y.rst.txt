@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsdFrame.plot\_x\_vs\_y
+==============================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsdFrame.plot_x_vs_y

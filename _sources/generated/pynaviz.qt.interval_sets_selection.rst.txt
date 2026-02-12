@@ -1,0 +1,15 @@
+﻿pynaviz.qt.interval\_sets\_selection
+====================================
+
+.. automodule:: pynaviz.qt.interval_sets_selection
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ComboDelegate
+      IntervalSetsDialog
+      IntervalSetsModel
+      SpinDelegate
+   

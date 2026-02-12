@@ -1,0 +1,956 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" data-theme="light">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pynaviz.controller &#8212; pynaviz  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "light";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx_contributors.css?v=f079e67e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=f2caec9a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=c57da192"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pynaviz/controller';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="light">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pynaviz  documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pynaviz.controller</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for pynaviz.controller</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The controller class.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pygfx</span>
+<span class="kn">from</span> <span class="nn">pygfx</span> <span class="kn">import</span> <span class="n">Camera</span><span class="p">,</span> <span class="n">PanZoomController</span><span class="p">,</span> <span class="n">Renderer</span><span class="p">,</span> <span class="n">Viewport</span>
+
+<span class="kn">from</span> <span class="nn">.events</span> <span class="kn">import</span> <span class="n">SwitchEvent</span><span class="p">,</span> <span class="n">SyncEvent</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">RenderTriggerSource</span><span class="p">,</span> <span class="n">_get_event_handle</span>
+
+
+<div class="viewcode-block" id="CustomController">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.html#pynaviz.controller.CustomController">[docs]</a>
+<span class="k">class</span> <span class="nc">CustomController</span><span class="p">(</span><span class="n">ABC</span><span class="p">,</span> <span class="n">PanZoomController</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">camera</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Camera</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">damping</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">auto_update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">renderer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Viewport</span><span class="p">,</span> <span class="n">Renderer</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">controller_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dict_sync_funcs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="n">Callable</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">camera</span><span class="o">=</span><span class="n">camera</span><span class="p">,</span>
+            <span class="n">enabled</span><span class="o">=</span><span class="n">enabled</span><span class="p">,</span>
+            <span class="n">damping</span><span class="o">=</span><span class="n">damping</span><span class="p">,</span>
+            <span class="n">auto_update</span><span class="o">=</span><span class="n">auto_update</span><span class="p">,</span>
+            <span class="n">register_events</span><span class="o">=</span><span class="n">renderer</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">controller_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">controller_id</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;If provided, `controller_id` must be of integer type. Type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">controller_id</span><span class="p">)</span><span class="si">}</span><span class="s2"> provided instead!&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_controller_id</span> <span class="o">=</span> <span class="n">controller_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span> <span class="o">=</span> <span class="n">camera</span>  <span class="c1"># Weirdly pygfx controller doesn&#39;t have it as direct attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderer</span> <span class="o">=</span> <span class="n">renderer</span>  <span class="c1"># Nor renderer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderer_handle_event</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderer_request_draw</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">renderer</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">renderer_handle_event</span> <span class="o">=</span> <span class="n">_get_event_handle</span><span class="p">(</span><span class="n">renderer</span><span class="p">)</span>  <span class="c1"># renderer.handle_event</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">renderer_request_draw</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request_draw</span><span class="p">(</span>
+                <span class="n">renderer</span>
+            <span class="p">)</span>  <span class="c1"># renderer.request_draw</span>
+
+        <span class="k">if</span> <span class="n">dict_sync_funcs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dict_sync_funcs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dict_sync_funcs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">sync_func</span> <span class="ow">in</span> <span class="n">dict_sync_funcs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sync_func</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;`dict_sync_funcs` items must be of `Callable` type. &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;Type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">sync_func</span><span class="p">)</span><span class="si">}</span><span class="s2"> for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> provided instead!&quot;</span>
+                    <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dict_sync_funcs</span> <span class="o">=</span> <span class="n">dict_sync_funcs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;When provided, `dict_sync_funcs` must be a dictionary of callables.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">controller_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_controller_id</span>
+
+    <span class="nd">@controller_id</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">controller_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_controller_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Controller id can be set only once!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_controller_id</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">_request_draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">viewport</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_update</span><span class="p">:</span>
+            <span class="n">viewport</span> <span class="o">=</span> <span class="n">Viewport</span><span class="o">.</span><span class="n">from_viewport_or_renderer</span><span class="p">(</span><span class="n">viewport</span><span class="p">)</span>
+            <span class="n">viewport</span><span class="o">.</span><span class="n">renderer</span><span class="o">.</span><span class="n">request_draw</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_send_sync_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The function called when moving the objects.</span>
+<span class="sd">        Passing a pygfx.Event object to the renderer handle_event function.</span>
+<span class="sd">        It then goes to ControllerGroup to act on the other controllers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">renderer_handle_event</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">renderer_handle_event</span><span class="p">(</span>
+                <span class="n">SyncEvent</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;sync&quot;</span><span class="p">,</span>
+                    <span class="n">controller_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_controller_id</span><span class="p">,</span>
+                    <span class="n">update_type</span><span class="o">=</span><span class="n">update_type</span><span class="p">,</span>
+                    <span class="n">sync_extra_args</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_send_switch_event</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">renderer_handle_event</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">renderer_handle_event</span><span class="p">(</span>
+                <span class="n">SwitchEvent</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;switch&quot;</span><span class="p">,</span>
+                    <span class="n">controller_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_controller_id</span><span class="p">,</span>
+                    <span class="n">new_controller</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">sync_extra_args</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(),</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{}),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="CustomController.get_xlim">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.html#pynaviz.controller.CustomController.get_xlim">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_xlim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the current x boundaries&quot;&quot;&quot;</span>
+        <span class="n">half_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">width</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">local</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">half_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">local</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">half_width</span></div>
+
+
+<div class="viewcode-block" id="CustomController.sync">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.html#pynaviz.controller.CustomController.sync">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">sync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="CustomController.advance">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.html#pynaviz.controller.CustomController.advance">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">advance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">0.025</span><span class="p">):</span>
+        <span class="c1"># This should still trigger a sync event</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SpanController">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanController.html#pynaviz.controller.SpanController">[docs]</a>
+<span class="k">class</span> <span class="nc">SpanController</span><span class="p">(</span><span class="n">CustomController</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The class for horizontal time-panning</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SpanController.__init__">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanController.__init__.html#pynaviz.controller.SpanController.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">camera</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Camera</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">damping</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">auto_update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">renderer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Viewport</span><span class="p">,</span> <span class="n">Renderer</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">controller_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dict_sync_funcs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="n">Callable</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">plot_callbacks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">camera</span><span class="o">=</span><span class="n">camera</span><span class="p">,</span>
+            <span class="n">enabled</span><span class="o">=</span><span class="n">enabled</span><span class="p">,</span>
+            <span class="n">damping</span><span class="o">=</span><span class="n">damping</span><span class="p">,</span>
+            <span class="n">auto_update</span><span class="o">=</span><span class="n">auto_update</span><span class="p">,</span>
+            <span class="n">renderer</span><span class="o">=</span><span class="n">renderer</span><span class="p">,</span>
+            <span class="n">controller_id</span><span class="o">=</span><span class="n">controller_id</span><span class="p">,</span>
+            <span class="n">dict_sync_funcs</span><span class="o">=</span><span class="n">dict_sync_funcs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot_callbacks</span> <span class="o">=</span> <span class="n">plot_callbacks</span> <span class="k">if</span> <span class="n">plot_callbacks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="SpanController.set_xlim">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanController.set_xlim.html#pynaviz.controller.SpanController.set_xlim">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_xlim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmin</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">xmax</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the visible X range for an OrthographicCamera.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">xmax</span> <span class="o">-</span> <span class="n">xmin</span>
+        <span class="n">x_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">xmax</span> <span class="o">+</span> <span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">local</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x_center</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_plots</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderer_request_draw</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_sync_event</span><span class="p">(</span>
+            <span class="n">update_type</span><span class="o">=</span><span class="s2">&quot;set_xlim&quot;</span><span class="p">,</span>
+            <span class="n">cam_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">(),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SpanController.set_ylim">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanController.set_ylim.html#pynaviz.controller.SpanController.set_ylim">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_ylim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ymin</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ymax</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the visible Y range for an OrthographicCamera.&quot;&quot;&quot;</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span>
+        <span class="n">y_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">ymax</span> <span class="o">+</span> <span class="n">ymin</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">height</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">local</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y_center</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_plots</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderer_request_draw</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SpanController.set_view">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanController.set_view.html#pynaviz.controller.SpanController.set_view">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmin</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">xmax</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ymin</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ymax</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the visible X and Y ranges for an OrthographicCamera.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_add_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_plot_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_update_plots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">update_func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot_callbacks</span><span class="p">:</span>
+            <span class="n">update_func</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">get_state</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_update_pan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">vecx</span><span class="p">,</span> <span class="n">vecy</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_update_pan</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">vecx</span><span class="o">=</span><span class="n">vecx</span><span class="p">,</span> <span class="n">vecy</span><span class="o">=</span><span class="n">vecy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_plots</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_sync_event</span><span class="p">(</span>
+            <span class="n">update_type</span><span class="o">=</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span>
+            <span class="n">cam_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">(),</span>
+            <span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">,</span>
+            <span class="n">vecx</span><span class="o">=</span><span class="n">vecx</span><span class="p">,</span>
+            <span class="n">vecy</span><span class="o">=</span><span class="n">vecy</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_update_zoom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_update_zoom</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_plots</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_sync_event</span><span class="p">(</span>
+            <span class="n">update_type</span><span class="o">=</span><span class="s2">&quot;zoom&quot;</span><span class="p">,</span> <span class="n">cam_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">(),</span> <span class="n">delta</span><span class="o">=</span><span class="n">delta</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_update_zoom_to_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">screen_pos</span><span class="p">,</span> <span class="n">rect</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_update_zoom_to_point</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">screen_pos</span><span class="o">=</span><span class="n">screen_pos</span><span class="p">,</span> <span class="n">rect</span><span class="o">=</span><span class="n">rect</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_plots</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_sync_event</span><span class="p">(</span>
+            <span class="n">update_type</span><span class="o">=</span><span class="s2">&quot;zoom_to_point&quot;</span><span class="p">,</span>
+            <span class="n">cam_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">(),</span>
+            <span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">,</span>
+            <span class="n">screen_pos</span><span class="o">=</span><span class="n">screen_pos</span><span class="p">,</span>
+            <span class="n">rect</span><span class="o">=</span><span class="n">rect</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="SpanController.sync">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanController.sync.html#pynaviz.controller.SpanController.sync">[docs]</a>
+    <span class="k">def</span> <span class="nf">sync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set a new camera state using the sync rule provided.&quot;&quot;&quot;</span>
+        <span class="c1"># Need to convert to camera movement</span>
+        <span class="k">if</span> <span class="s2">&quot;current_time&quot;</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">camera_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">()</span>
+            <span class="n">camera_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">camera_state</span><span class="p">[</span><span class="s2">&quot;position&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">camera_pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;current_time&quot;</span><span class="p">]</span>
+            <span class="n">camera_state</span><span class="p">[</span><span class="s2">&quot;position&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">camera_pos</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;cam_state&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">camera_state</span>
+
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">update_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dict_sync_funcs</span><span class="p">:</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dict_sync_funcs</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">update_type</span><span class="p">]</span>
+            <span class="n">state_update</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Update </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">update_type</span><span class="si">}</span><span class="s2"> not implemented!&quot;</span><span class="p">)</span>
+        <span class="c1"># Update camera</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_camera_state</span><span class="p">(</span><span class="n">state_update</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_cameras</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_plots</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderer_request_draw</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SpanController.advance">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanController.advance.html#pynaviz.controller.SpanController.advance">[docs]</a>
+    <span class="k">def</span> <span class="nf">advance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">0.025</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Advances the camera&#39;s position by a specified delta value along the x-axis.</span>
+
+<span class="sd">        This can be used to play the time series with a timer thread.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        delta (float): The incremental value to adjust the camera&#39;s x-axis position. Defaults to 0.025.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">camera_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">()</span>
+        <span class="n">new_position</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">camera_state</span><span class="p">[</span><span class="s2">&quot;position&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">new_position</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">delta</span>
+        <span class="c1"># note: self._update_cameras is based on self._last_cam_state.</span>
+        <span class="c1"># The width of self._last_cam_state can differ from that of camera_state[&quot;width&quot;].</span>
+        <span class="c1"># Provide both position and width for the desired update.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_camera_state</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><span class="n">new_position</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">camera_state</span><span class="p">[</span><span class="s2">&quot;width&quot;</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_cameras</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_plots</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderer_request_draw</span><span class="p">()</span>
+        <span class="c1"># To make sure all controller stays in sync</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_sync_event</span><span class="p">(</span><span class="n">update_type</span><span class="o">=</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span> <span class="n">current_time</span><span class="o">=</span><span class="n">new_position</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="SpanController.go_to">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanController.go_to.html#pynaviz.controller.SpanController.go_to">[docs]</a>
+    <span class="k">def</span> <span class="nf">go_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Directly set the camera&#39;s x-axis position to a specified target time.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        target_time (float): The target time to set the camera&#39;s x-axis position.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">camera_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">()</span>
+        <span class="n">new_position</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">camera_state</span><span class="p">[</span><span class="s2">&quot;position&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">new_position</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_camera_state</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><span class="n">new_position</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_cameras</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_plots</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renderer_request_draw</span><span class="p">()</span>
+        <span class="c1"># To make sure all controller stays in sync</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_sync_event</span><span class="p">(</span><span class="n">update_type</span><span class="o">=</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span> <span class="n">current_time</span><span class="o">=</span><span class="n">target_time</span><span class="p">)</span></div>
+</div>
+
+
+<div class="viewcode-block" id="SpanYLockController">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanYLockController.html#pynaviz.controller.SpanYLockController">[docs]</a>
+<span class="k">class</span> <span class="nc">SpanYLockController</span><span class="p">(</span><span class="n">SpanController</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Horizontal time-panning with y-axis locked</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SpanYLockController.__init__">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.SpanYLockController.__init__.html#pynaviz.controller.SpanYLockController.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The class for horizontal time-panning and zooming, with the y-axis locked.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_update_pan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">vecx</span><span class="p">,</span> <span class="n">vecy</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update pan in x axis only, forcing vecy to be 0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_update_pan</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">vecx</span><span class="o">=</span><span class="n">vecx</span><span class="p">,</span> <span class="n">vecy</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_update_zoom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Rewrite of _update_zoom since its inputs don&#39;t allow separation of fx and fy</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+
+        <span class="n">fx</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">delta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">new_cam_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zoom</span><span class="p">(</span><span class="n">fx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_camera_state</span><span class="p">(</span><span class="n">new_cam_state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_sync_event</span><span class="p">(</span>
+            <span class="n">update_type</span><span class="o">=</span><span class="s2">&quot;zoom&quot;</span><span class="p">,</span> <span class="n">cam_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_camera_state</span><span class="p">(),</span> <span class="n">delta</span><span class="o">=</span><span class="n">delta</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_zoom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fx</span><span class="p">,</span> <span class="n">fy</span><span class="p">,</span> <span class="n">cam_state</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Zoom in x axis only, enforcing fy to be 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_zoom</span><span class="p">(</span><span class="n">fx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cam_state</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="GetController">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.GetController.html#pynaviz.controller.GetController">[docs]</a>
+<span class="k">class</span> <span class="nc">GetController</span><span class="p">(</span><span class="n">CustomController</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The class for grabbing a single time point</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GetController.__init__">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.GetController.__init__.html#pynaviz.controller.GetController.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">camera</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Camera</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">auto_update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">renderer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Viewport</span><span class="p">,</span> <span class="n">Renderer</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">controller_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">buffer</span><span class="p">:</span> <span class="n">pygfx</span><span class="o">.</span><span class="n">Buffer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">callback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">camera</span><span class="o">=</span><span class="n">camera</span><span class="p">,</span>
+            <span class="n">enabled</span><span class="o">=</span><span class="n">enabled</span><span class="p">,</span>
+            <span class="n">auto_update</span><span class="o">=</span><span class="n">auto_update</span><span class="p">,</span>
+            <span class="n">renderer</span><span class="o">=</span><span class="n">renderer</span><span class="p">,</span>
+            <span class="n">controller_id</span><span class="o">=</span><span class="n">controller_id</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frame_index</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_frame_time</span><span class="p">()</span>  <span class="c1"># Initializing the current time</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">buffer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plot_callbacks</span> <span class="o">=</span> <span class="p">[</span><span class="n">callback</span><span class="p">]</span> <span class="k">if</span> <span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="GetController.set_view">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.GetController.set_view.html#pynaviz.controller.GetController.set_view">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmin</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">xmax</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ymin</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ymax</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the visible X and Y ranges for an OrthographicCamera.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">show_rect</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">frame_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_index</span>
+
+    <span class="nd">@frame_index</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">frame_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="n">n_frames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_frame_index</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">n_frames</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_frame_index</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_get_frame_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">time_array</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">time_array</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">frame_index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_add_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_plot_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_update_buffer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RenderTriggerSource</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">update_func</span> <span class="ow">in</span>  <span class="bp">self</span><span class="o">.</span><span class="n">_plot_callbacks</span><span class="p">:</span>
+            <span class="n">update_func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frame_index</span><span class="p">,</span> <span class="n">event_type</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_update_zoom_to_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">screen_pos</span><span class="p">,</span> <span class="n">rect</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Should convert the jump of time to camera position</span>
+<span class="sd">        before emitting the sync event.</span>
+<span class="sd">        Does not propagate to the original PanZoomController</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">delta</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frame_index</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frame_index</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame_index</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frame_index</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_buffer</span><span class="p">(</span><span class="n">event_type</span><span class="o">=</span><span class="n">RenderTriggerSource</span><span class="o">.</span><span class="n">ZOOM_TO_POINT</span><span class="p">)</span>
+
+        <span class="c1"># hack for finding out if data is pynapple</span>
+        <span class="c1"># TODO fix later</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">):</span>
+            <span class="c1"># Sending the sync event (no concurrent logic)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_frame_time</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_send_sync_event</span><span class="p">(</span><span class="n">update_type</span><span class="o">=</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span> <span class="n">current_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GetController.set_frame">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.GetController.set_frame.html#pynaviz.controller.GetController.set_frame">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the frame from target time.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        target_time:</span>
+<span class="sd">            A time point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">time_array</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">idx_before</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">time_array</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">idx_before</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">idx_before</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_array</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">idx_after</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">idx_before</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_array</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">frame_index</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">idx_before</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">time_array</span><span class="p">[</span><span class="n">idx_after</span><span class="p">]</span> <span class="o">-</span> <span class="n">target_time</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">target_time</span> <span class="o">-</span> <span class="n">time_array</span><span class="p">[</span><span class="n">idx_before</span><span class="p">])</span>
+            <span class="k">else</span> <span class="n">idx_after</span>
+        <span class="p">)</span>
+        <span class="n">current_t</span> <span class="o">=</span> <span class="n">time_array</span><span class="p">[</span><span class="n">frame_index</span><span class="p">]</span>
+
+        <span class="c1"># update frame index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame_index</span> <span class="o">=</span> <span class="n">frame_index</span>
+
+        <span class="c1"># update buffer and sync</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span> <span class="o">=</span> <span class="n">target_time</span>  <span class="c1"># Target time is not necessarily frame time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_buffer</span><span class="p">(</span><span class="n">event_type</span><span class="o">=</span><span class="n">RenderTriggerSource</span><span class="o">.</span><span class="n">SET_FRAME</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_sync_event</span><span class="p">(</span><span class="n">update_type</span><span class="o">=</span><span class="s2">&quot;pan&quot;</span><span class="p">,</span> <span class="n">current_time</span><span class="o">=</span><span class="n">current_t</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="GetController.sync">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.GetController.sync.html#pynaviz.controller.GetController.sync">[docs]</a>
+    <span class="k">def</span> <span class="nf">sync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get a new data point and update the texture&quot;&quot;&quot;</span>
+        <span class="n">new_t</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;cam_state&quot;</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">new_t</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;cam_state&quot;</span><span class="p">][</span><span class="s2">&quot;position&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span> <span class="o">=</span> <span class="n">new_t</span>
+        <span class="k">elif</span> <span class="s2">&quot;current_time&quot;</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;current_time&quot;</span><span class="p">]</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">new_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">new_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frame_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get_slice</span><span class="p">(</span><span class="n">new_t</span><span class="p">)</span><span class="o">.</span><span class="n">start</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_buffer</span><span class="p">(</span>
+                <span class="n">RenderTriggerSource</span><span class="o">.</span><span class="n">SYNC_EVENT_RECEIVED</span>
+            <span class="p">)</span>  <span class="c1"># self.buffer.data[:] = self.data.values[self.frame_index].astype(&quot;float32&quot;)</span></div>
+
+
+<div class="viewcode-block" id="GetController.advance">
+<a class="viewcode-back" href="../../generated/pynaviz.controller.GetController.advance.html#pynaviz.controller.GetController.advance">[docs]</a>
+    <span class="k">def</span> <span class="nf">advance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">0.025</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Advance the current time by a specified delta value.</span>
+
+<span class="sd">        This can be used to play movies with a timer thread.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        delta (float): The incremental value. Defaults to 0.025.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span> <span class="o">+=</span> <span class="n">delta</span>
+        <span class="c1"># set frame sends a sync</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_frame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_current_time</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+<footer class="footer" style="border-top: 1px solid #ccc; padding-top: 10px">
+  <div class="container">
+    <div id="credits" style="width: 50%; float: left">
+      <p>
+      &#169; Copyright 2025-2026, <a href="https://www.simonsfoundation.org/people/guillaume-viejo/">pynapple authors</a>.<br/>
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> and the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/">PyData Theme</a>.<br/>
+      </p>
+    </div>
+    <div id="version" style="color: #999; float: right; margin: 15px">v</div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>

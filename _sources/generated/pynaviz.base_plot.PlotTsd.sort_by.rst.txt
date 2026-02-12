@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsd.sort\_by
+===================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsd.sort_by

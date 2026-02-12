@@ -1,0 +1,6 @@
+pynaviz.audiovideo.AudioHandler.\_\_init\_\_
+============================================
+
+.. currentmodule:: pynaviz.audiovideo
+
+.. automethod:: AudioHandler.__init__

@@ -1,0 +1,65 @@
+# IntervalSet
+
+```python
+import pynapple as nap
+import pynaviz as viz
+
+print(intervalset)
+```
+```
+  index    start    end  label      choice    reward
+      0      0     0.19  a               1         0
+      1      0.2   0.39  b               0         0
+      2      0.4   0.59  c               1         1
+      3      0.6   0.79  d               1         0
+      4      0.8   0.99  e               0         1
+shape: (5, 2), time unit: sec.
+```
+
+---
+## PlotIntervalSet                    
+
+```python
+v = viz.PlotIntervalSet(intervalset)
+
+v.show()
+```
+![None](/_static/screenshots/test_plot_intervalset.png)
+
+                    
+
+---
+## PlotIntervalSet - group_by                    
+
+```python
+v = viz.PlotIntervalSet(intervalset)
+v.group_by(metadata_name='choice')
+v.show()
+```
+![group_by](/_static/screenshots/test_plot_intervalset_group_by_metadata_name=_class__str__.png)
+
+                    
+
+---
+## PlotIntervalSet - sort_by                    
+
+```python
+v = viz.PlotIntervalSet(intervalset)
+v.sort_by(metadata_name='label')
+v.show()
+```
+![sort_by](/_static/screenshots/test_plot_intervalset_sort_by_metadata_name=_class__str__.png)
+
+                    
+
+---
+## PlotIntervalSet - color_by                    
+
+```python
+v = viz.PlotIntervalSet(intervalset)
+v.color_by(metadata_name='reward')
+v.show()
+```
+![color_by](/_static/screenshots/test_plot_intervalset_color_by_metadata_name=_class__str__.png)
+
+                    

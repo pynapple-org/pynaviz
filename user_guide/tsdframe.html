@@ -1,0 +1,558 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" data-theme="light">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>TsdFrame &#8212; pynaviz  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "light";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_contributors.css?v=f079e67e" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=f2caec9a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=c57da192"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/tsdframe';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="light">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pynaviz  documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">TsdFrame</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="tsdframe">
+<h1>TsdFrame<a class="headerlink" href="#tsdframe" title="Link to this heading">#</a></h1>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pynapple</span> <span class="k">as</span> <span class="nn">nap</span>
+<span class="kn">import</span> <span class="nn">pynaviz</span> <span class="k">as</span> <span class="nn">viz</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">tsdframe</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Time</span> <span class="p">(</span><span class="n">s</span><span class="p">)</span>    <span class="mi">0</span>                   <span class="mi">1</span>                     <span class="mi">2</span>                     <span class="mi">3</span>                     <span class="mi">4</span>
+<span class="o">----------</span>  <span class="o">------------------</span>  <span class="o">--------------------</span>  <span class="o">--------------------</span>  <span class="o">--------------------</span>  <span class="o">--------------------</span>
+<span class="mf">0.0</span>         <span class="mf">1.0</span>                 <span class="mf">0.30901699437494745</span>   <span class="o">-</span><span class="mf">0.8090169943749473</span>   <span class="o">-</span><span class="mf">0.8090169943749476</span>   <span class="mf">0.30901699437494723</span>
+<span class="mf">0.01</span>        <span class="mf">0.9921147013144779</span>  <span class="mf">0.18738131458572474</span>   <span class="o">-</span><span class="mf">0.8763066800438636</span>   <span class="o">-</span><span class="mf">0.7289686274214116</span>   <span class="mf">0.4257792915650726</span>
+<span class="mf">0.02</span>        <span class="mf">0.9685831611286311</span>  <span class="mf">0.06279051952931353</span>   <span class="o">-</span><span class="mf">0.9297764858882513</span>   <span class="o">-</span><span class="mf">0.6374239897486895</span>   <span class="mf">0.5358267949789968</span>
+<span class="mf">0.03</span>        <span class="mf">0.9297764858882515</span>  <span class="o">-</span><span class="mf">0.0627905195293134</span>   <span class="o">-</span><span class="mf">0.9685831611286311</span>   <span class="o">-</span><span class="mf">0.5358267949789971</span>   <span class="mf">0.6374239897486893</span>
+<span class="mf">0.04</span>        <span class="mf">0.8763066800438636</span>  <span class="o">-</span><span class="mf">0.1873813145857246</span>   <span class="o">-</span><span class="mf">0.9921147013144778</span>   <span class="o">-</span><span class="mf">0.42577929156507294</span>  <span class="mf">0.7289686274214112</span>
+<span class="mf">0.05</span>        <span class="mf">0.8090169943749475</span>  <span class="o">-</span><span class="mf">0.30901699437494734</span>  <span class="o">-</span><span class="mf">1.0</span>                  <span class="o">-</span><span class="mf">0.30901699437494756</span>  <span class="mf">0.8090169943749473</span>
+<span class="mf">0.06</span>        <span class="mf">0.7289686274214116</span>  <span class="o">-</span><span class="mf">0.4257792915650727</span>   <span class="o">-</span><span class="mf">0.9921147013144779</span>   <span class="o">-</span><span class="mf">0.18738131458572463</span>  <span class="mf">0.8763066800438636</span>
+<span class="o">...</span>
+<span class="mf">9.93</span>        <span class="mf">0.6374239897486843</span>  <span class="mf">0.9297764858882566</span>    <span class="o">-</span><span class="mf">0.0627905195293063</span>   <span class="o">-</span><span class="mf">0.9685831611286311</span>   <span class="o">-</span><span class="mf">0.5358267949789907</span>
+<span class="mf">9.94</span>        <span class="mf">0.7289686274214013</span>  <span class="mf">0.8763066800438674</span>    <span class="o">-</span><span class="mf">0.18738131458570997</span>  <span class="o">-</span><span class="mf">0.9921147013144751</span>   <span class="o">-</span><span class="mf">0.42577929156508626</span>
+<span class="mf">9.95</span>        <span class="mf">0.8090169943749508</span>  <span class="mf">0.8090169943749482</span>    <span class="o">-</span><span class="mf">0.30901699437495284</span>  <span class="o">-</span><span class="mf">1.0</span>                  <span class="o">-</span><span class="mf">0.3090169943749286</span>
+<span class="mf">9.96</span>        <span class="mf">0.8763066800438695</span>  <span class="mf">0.7289686274214081</span>    <span class="o">-</span><span class="mf">0.4257792915650836</span>   <span class="o">-</span><span class="mf">0.9921147013144754</span>   <span class="o">-</span><span class="mf">0.1873813145856989</span>
+<span class="mf">9.97</span>        <span class="mf">0.929776485888253</span>   <span class="mf">0.6374239897486809</span>    <span class="o">-</span><span class="mf">0.5358267949790002</span>   <span class="o">-</span><span class="mf">0.9685831611286319</span>   <span class="o">-</span><span class="mf">0.06279051952930922</span>
+<span class="mf">9.98</span>        <span class="mf">0.9685831611286303</span>  <span class="mf">0.5358267949790055</span>    <span class="o">-</span><span class="mf">0.637423989748687</span>    <span class="o">-</span><span class="mf">0.9297764858882501</span>   <span class="mf">0.06279051952929554</span>
+<span class="mf">9.99</span>        <span class="mf">0.9921147013144782</span>  <span class="mf">0.4257792915650765</span>    <span class="o">-</span><span class="mf">0.7289686274214134</span>   <span class="o">-</span><span class="mf">0.8763066800438588</span>   <span class="mf">0.18738131458571336</span>
+<span class="n">Metadata</span>
+<span class="n">group</span>       <span class="mi">0</span>                   <span class="mi">0</span>                     <span class="mi">1</span>                     <span class="mi">0</span>                     <span class="mi">1</span>
+<span class="n">channel</span>     <span class="mi">1</span>                   <span class="mi">3</span>                     <span class="mi">0</span>                     <span class="mi">2</span>                     <span class="mi">4</span>
+<span class="o">...</span>         <span class="o">...</span>                 <span class="o">...</span>                   <span class="o">...</span>                   <span class="o">...</span>                   <span class="o">...</span>
+<span class="n">dtype</span><span class="p">:</span> <span class="n">float64</span><span class="p">,</span> <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+<hr class="docutils" />
+<section id="plottsdframe">
+<h2>PlotTsdFrame<a class="headerlink" href="#plottsdframe" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">v</span> <span class="o">=</span> <span class="n">viz</span><span class="o">.</span><span class="n">PlotTsdFrame</span><span class="p">(</span><span class="n">tsdframe</span><span class="p">)</span>
+
+<span class="n">v</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="None" src="../_images/test_plot_tsdframe.png" /></p>
+</section>
+<hr class="docutils" />
+<section id="plottsdframe-group-by">
+<h2>PlotTsdFrame - group_by<a class="headerlink" href="#plottsdframe-group-by" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">v</span> <span class="o">=</span> <span class="n">viz</span><span class="o">.</span><span class="n">PlotTsdFrame</span><span class="p">(</span><span class="n">tsdframe</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">metadata_name</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="group_by" src="../_images/test_plot_tsdframe_group_by_metadata_name%3D_class__str__.png" /></p>
+</section>
+<hr class="docutils" />
+<section id="plottsdframe-sort-by">
+<h2>PlotTsdFrame - sort_by<a class="headerlink" href="#plottsdframe-sort-by" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">v</span> <span class="o">=</span> <span class="n">viz</span><span class="o">.</span><span class="n">PlotTsdFrame</span><span class="p">(</span><span class="n">tsdframe</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">metadata_name</span><span class="o">=</span><span class="s1">&#39;channel&#39;</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="sort_by" src="../_images/test_plot_tsdframe_sort_by_metadata_name%3D_class__str__.png" /></p>
+</section>
+<hr class="docutils" />
+<section id="plottsdframe-color-by">
+<h2>PlotTsdFrame - color_by<a class="headerlink" href="#plottsdframe-color-by" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">v</span> <span class="o">=</span> <span class="n">viz</span><span class="o">.</span><span class="n">PlotTsdFrame</span><span class="p">(</span><span class="n">tsdframe</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">color_by</span><span class="p">(</span><span class="n">metadata_name</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="color_by" src="../_images/test_plot_tsdframe_color_by_metadata_name%3D_class__str__.png" /></p>
+</section>
+<hr class="docutils" />
+<section id="plottsdframe-plot-x-vs-y">
+<h2>PlotTsdFrame - plot_x_vs_y<a class="headerlink" href="#plottsdframe-plot-x-vs-y" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">v</span> <span class="o">=</span> <span class="n">viz</span><span class="o">.</span><span class="n">PlotTsdFrame</span><span class="p">(</span><span class="n">tsdframe</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">plot_x_vs_y</span><span class="p">(</span><span class="n">x_col</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_col</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="plot_x_vs_y" src="../_images/test_plot_tsdframe_plot_x_vs_y_x_col%3D_class__int___y_col%3D_class__int__.png" /></p>
+</section>
+<hr class="docutils" />
+<section id="plottsdframe-add-interval-sets">
+<h2>PlotTsdFrame - add_interval_sets<a class="headerlink" href="#plottsdframe-add-interval-sets" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">v</span> <span class="o">=</span> <span class="n">viz</span><span class="o">.</span><span class="n">PlotTsdFrame</span><span class="p">(</span><span class="n">tsdframe</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">add_interval_sets</span><span class="p">(</span><span class="n">epochs</span><span class="o">=</span><span class="n">IntervalSet</span><span class="p">)</span>
+<span class="n">v</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="add_interval_sets" src="../_images/test_plot_tsdframe_add_interval_sets_epochs%3D_class__pynapple.core.interval_set.IntervalSet__.png" /></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plottsdframe">PlotTsdFrame</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plottsdframe-group-by">PlotTsdFrame - group_by</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plottsdframe-sort-by">PlotTsdFrame - sort_by</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plottsdframe-color-by">PlotTsdFrame - color_by</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plottsdframe-plot-x-vs-y">PlotTsdFrame - plot_x_vs_y</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plottsdframe-add-interval-sets">PlotTsdFrame - add_interval_sets</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/user_guide/tsdframe.md.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+<footer class="footer" style="border-top: 1px solid #ccc; padding-top: 10px">
+  <div class="container">
+    <div id="credits" style="width: 50%; float: left">
+      <p>
+      &#169; Copyright 2025-2026, <a href="https://www.simonsfoundation.org/people/guillaume-viejo/">pynapple authors</a>.<br/>
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> and the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/">PyData Theme</a>.<br/>
+      </p>
+    </div>
+    <div id="version" style="color: #999; float: right; margin: 15px">v</div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>

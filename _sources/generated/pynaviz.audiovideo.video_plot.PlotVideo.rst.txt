@@ -1,0 +1,43 @@
+﻿pynaviz.audiovideo.video\_plot.PlotVideo
+========================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. autoclass:: PlotVideo
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~PlotVideo.__init__
+      ~PlotVideo.add_interval_sets
+      ~PlotVideo.animate
+      ~PlotVideo.close
+      ~PlotVideo.color_by
+      ~PlotVideo.group_by
+      ~PlotVideo.remove_interval_set
+      ~PlotVideo.set_frame
+      ~PlotVideo.show
+      ~PlotVideo.sort_by
+      ~PlotVideo.superpose_points
+      ~PlotVideo.update_interval_set
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~PlotVideo.cmap
+      ~PlotVideo.data
+   
+   

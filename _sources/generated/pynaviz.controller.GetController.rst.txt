@@ -1,0 +1,55 @@
+﻿pynaviz.controller.GetController
+================================
+
+.. currentmodule:: pynaviz.controller
+
+.. autoclass:: GetController
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~GetController.__init__
+      ~GetController.add_camera
+      ~GetController.add_default_event_handlers
+      ~GetController.advance
+      ~GetController.get_xlim
+      ~GetController.handle_event
+      ~GetController.pan
+      ~GetController.pause
+      ~GetController.quickzoom
+      ~GetController.register_events
+      ~GetController.remove_camera
+      ~GetController.set_frame
+      ~GetController.set_view
+      ~GetController.sync
+      ~GetController.tick
+      ~GetController.update_camera
+      ~GetController.update_fov
+      ~GetController.zoom
+      ~GetController.zoom_to_point
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~GetController.auto_update
+      ~GetController.cameras
+      ~GetController.controller_id
+      ~GetController.controls
+      ~GetController.damping
+      ~GetController.enabled
+      ~GetController.frame_index
+   
+   

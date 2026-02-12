@@ -1,0 +1,6 @@
+pynaviz.controller.GetController.set\_frame
+===========================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: GetController.set_frame

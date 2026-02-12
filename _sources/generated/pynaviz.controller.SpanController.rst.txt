@@ -1,0 +1,56 @@
+﻿pynaviz.controller.SpanController
+=================================
+
+.. currentmodule:: pynaviz.controller
+
+.. autoclass:: SpanController
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~SpanController.__init__
+      ~SpanController.add_camera
+      ~SpanController.add_default_event_handlers
+      ~SpanController.advance
+      ~SpanController.get_xlim
+      ~SpanController.go_to
+      ~SpanController.handle_event
+      ~SpanController.pan
+      ~SpanController.pause
+      ~SpanController.quickzoom
+      ~SpanController.register_events
+      ~SpanController.remove_camera
+      ~SpanController.set_view
+      ~SpanController.set_xlim
+      ~SpanController.set_ylim
+      ~SpanController.sync
+      ~SpanController.tick
+      ~SpanController.update_camera
+      ~SpanController.update_fov
+      ~SpanController.zoom
+      ~SpanController.zoom_to_point
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~SpanController.auto_update
+      ~SpanController.cameras
+      ~SpanController.controller_id
+      ~SpanController.controls
+      ~SpanController.damping
+      ~SpanController.enabled
+   
+   

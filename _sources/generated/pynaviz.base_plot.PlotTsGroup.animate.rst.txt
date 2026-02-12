@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsGroup.animate
+======================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsGroup.animate

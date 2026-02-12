@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotVideo.show
+=============================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotVideo.show

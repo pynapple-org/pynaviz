@@ -1,0 +1,43 @@
+﻿pynaviz.audiovideo.video\_plot.PlotTsdTensor
+============================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. autoclass:: PlotTsdTensor
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~PlotTsdTensor.__init__
+      ~PlotTsdTensor.add_interval_sets
+      ~PlotTsdTensor.animate
+      ~PlotTsdTensor.close
+      ~PlotTsdTensor.color_by
+      ~PlotTsdTensor.group_by
+      ~PlotTsdTensor.remove_interval_set
+      ~PlotTsdTensor.set_frame
+      ~PlotTsdTensor.show
+      ~PlotTsdTensor.sort_by
+      ~PlotTsdTensor.superpose_points
+      ~PlotTsdTensor.update_interval_set
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~PlotTsdTensor.cmap
+      ~PlotTsdTensor.data
+   
+   

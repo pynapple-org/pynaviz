@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsdFrame.group\_by
+=========================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsdFrame.group_by

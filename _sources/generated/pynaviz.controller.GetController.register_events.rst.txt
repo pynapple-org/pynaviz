@@ -1,0 +1,6 @@
+pynaviz.controller.GetController.register\_events
+=================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: GetController.register_events

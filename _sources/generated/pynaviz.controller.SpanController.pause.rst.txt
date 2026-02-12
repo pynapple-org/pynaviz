@@ -1,0 +1,6 @@
+pynaviz.controller.SpanController.pause
+=======================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanController.pause

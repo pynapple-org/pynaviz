@@ -1,0 +1,700 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" data-theme="light">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>pynaviz.controller.SpanController.add_default_event_handlers &#8212; pynaviz  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "light";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_contributors.css?v=f079e67e" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=f2caec9a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=c57da192"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'generated/pynaviz.controller.SpanController.add_default_event_handlers';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pynaviz.controller.SpanController.advance" href="pynaviz.controller.SpanController.advance.html" />
+    <link rel="prev" title="pynaviz.controller.SpanController.add_camera" href="pynaviz.controller.SpanController.add_camera.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="light">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pynaviz  documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.html">pynaviz.base_plot.PlotTsd</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.__init__.html">pynaviz.base_plot.PlotTsd.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.add_interval_sets.html">pynaviz.base_plot.PlotTsd.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.animate.html">pynaviz.base_plot.PlotTsd.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.close.html">pynaviz.base_plot.PlotTsd.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.color_by.html">pynaviz.base_plot.PlotTsd.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.group_by.html">pynaviz.base_plot.PlotTsd.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.remove_interval_set.html">pynaviz.base_plot.PlotTsd.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.show.html">pynaviz.base_plot.PlotTsd.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.sort_by.html">pynaviz.base_plot.PlotTsd.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.update_interval_set.html">pynaviz.base_plot.PlotTsd.update_interval_set</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.html">pynaviz.base_plot.PlotTsdFrame</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.__init__.html">pynaviz.base_plot.PlotTsdFrame.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.add_interval_sets.html">pynaviz.base_plot.PlotTsdFrame.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.animate.html">pynaviz.base_plot.PlotTsdFrame.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.close.html">pynaviz.base_plot.PlotTsdFrame.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.color_by.html">pynaviz.base_plot.PlotTsdFrame.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.group_by.html">pynaviz.base_plot.PlotTsdFrame.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.plot_x_vs_y.html">pynaviz.base_plot.PlotTsdFrame.plot_x_vs_y</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.remove_interval_set.html">pynaviz.base_plot.PlotTsdFrame.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.show.html">pynaviz.base_plot.PlotTsdFrame.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.sort_by.html">pynaviz.base_plot.PlotTsdFrame.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.update_interval_set.html">pynaviz.base_plot.PlotTsdFrame.update_interval_set</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.base_plot.PlotTs.html">pynaviz.base_plot.PlotTs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.__init__.html">pynaviz.base_plot.PlotTs.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.add_interval_sets.html">pynaviz.base_plot.PlotTs.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.animate.html">pynaviz.base_plot.PlotTs.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.close.html">pynaviz.base_plot.PlotTs.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.color_by.html">pynaviz.base_plot.PlotTs.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.group_by.html">pynaviz.base_plot.PlotTs.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.jump_next.html">pynaviz.base_plot.PlotTs.jump_next</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.jump_previous.html">pynaviz.base_plot.PlotTs.jump_previous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.remove_interval_set.html">pynaviz.base_plot.PlotTs.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.show.html">pynaviz.base_plot.PlotTs.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.sort_by.html">pynaviz.base_plot.PlotTs.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.update_interval_set.html">pynaviz.base_plot.PlotTs.update_interval_set</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.html">pynaviz.base_plot.PlotTsGroup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.__init__.html">pynaviz.base_plot.PlotTsGroup.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.add_interval_sets.html">pynaviz.base_plot.PlotTsGroup.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.animate.html">pynaviz.base_plot.PlotTsGroup.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.close.html">pynaviz.base_plot.PlotTsGroup.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.color_by.html">pynaviz.base_plot.PlotTsGroup.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.group_by.html">pynaviz.base_plot.PlotTsGroup.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.remove_interval_set.html">pynaviz.base_plot.PlotTsGroup.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.show.html">pynaviz.base_plot.PlotTsGroup.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.sort_by.html">pynaviz.base_plot.PlotTsGroup.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.update_interval_set.html">pynaviz.base_plot.PlotTsGroup.update_interval_set</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.html">pynaviz.audiovideo.video_plot.PlotTsdTensor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.__init__.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.add_interval_sets.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.animate.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.close.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.color_by.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.group_by.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.remove_interval_set.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.set_frame.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.set_frame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.show.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.sort_by.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.superpose_points.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.superpose_points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.update_interval_set.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.update_interval_set</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.html">pynaviz.audiovideo.video_plot.PlotVideo</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.__init__.html">pynaviz.audiovideo.video_plot.PlotVideo.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.add_interval_sets.html">pynaviz.audiovideo.video_plot.PlotVideo.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.animate.html">pynaviz.audiovideo.video_plot.PlotVideo.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.close.html">pynaviz.audiovideo.video_plot.PlotVideo.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.color_by.html">pynaviz.audiovideo.video_plot.PlotVideo.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.group_by.html">pynaviz.audiovideo.video_plot.PlotVideo.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.remove_interval_set.html">pynaviz.audiovideo.video_plot.PlotVideo.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.set_frame.html">pynaviz.audiovideo.video_plot.PlotVideo.set_frame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.show.html">pynaviz.audiovideo.video_plot.PlotVideo.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.sort_by.html">pynaviz.audiovideo.video_plot.PlotVideo.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.superpose_points.html">pynaviz.audiovideo.video_plot.PlotVideo.superpose_points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.update_interval_set.html">pynaviz.audiovideo.video_plot.PlotVideo.update_interval_set</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="pynaviz.controller.SpanController.html">pynaviz.controller.SpanController</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.__init__.html">pynaviz.controller.SpanController.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.add_camera.html">pynaviz.controller.SpanController.add_camera</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">pynaviz.controller.SpanController.add_default_event_handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.advance.html">pynaviz.controller.SpanController.advance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.get_xlim.html">pynaviz.controller.SpanController.get_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.go_to.html">pynaviz.controller.SpanController.go_to</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.handle_event.html">pynaviz.controller.SpanController.handle_event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.pan.html">pynaviz.controller.SpanController.pan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.pause.html">pynaviz.controller.SpanController.pause</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.quickzoom.html">pynaviz.controller.SpanController.quickzoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.register_events.html">pynaviz.controller.SpanController.register_events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.remove_camera.html">pynaviz.controller.SpanController.remove_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.set_view.html">pynaviz.controller.SpanController.set_view</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.set_xlim.html">pynaviz.controller.SpanController.set_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.set_ylim.html">pynaviz.controller.SpanController.set_ylim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.sync.html">pynaviz.controller.SpanController.sync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.tick.html">pynaviz.controller.SpanController.tick</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.update_camera.html">pynaviz.controller.SpanController.update_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.update_fov.html">pynaviz.controller.SpanController.update_fov</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.zoom.html">pynaviz.controller.SpanController.zoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.zoom_to_point.html">pynaviz.controller.SpanController.zoom_to_point</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.controller.SpanYLockController.html">pynaviz.controller.SpanYLockController</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.__init__.html">pynaviz.controller.SpanYLockController.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.add_camera.html">pynaviz.controller.SpanYLockController.add_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.add_default_event_handlers.html">pynaviz.controller.SpanYLockController.add_default_event_handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.advance.html">pynaviz.controller.SpanYLockController.advance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.get_xlim.html">pynaviz.controller.SpanYLockController.get_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.go_to.html">pynaviz.controller.SpanYLockController.go_to</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.handle_event.html">pynaviz.controller.SpanYLockController.handle_event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.pan.html">pynaviz.controller.SpanYLockController.pan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.pause.html">pynaviz.controller.SpanYLockController.pause</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.quickzoom.html">pynaviz.controller.SpanYLockController.quickzoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.register_events.html">pynaviz.controller.SpanYLockController.register_events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.remove_camera.html">pynaviz.controller.SpanYLockController.remove_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.set_view.html">pynaviz.controller.SpanYLockController.set_view</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.set_xlim.html">pynaviz.controller.SpanYLockController.set_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.set_ylim.html">pynaviz.controller.SpanYLockController.set_ylim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.sync.html">pynaviz.controller.SpanYLockController.sync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.tick.html">pynaviz.controller.SpanYLockController.tick</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.update_camera.html">pynaviz.controller.SpanYLockController.update_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.update_fov.html">pynaviz.controller.SpanYLockController.update_fov</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.zoom.html">pynaviz.controller.SpanYLockController.zoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.zoom_to_point.html">pynaviz.controller.SpanYLockController.zoom_to_point</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.controller.GetController.html">pynaviz.controller.GetController</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.__init__.html">pynaviz.controller.GetController.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.add_camera.html">pynaviz.controller.GetController.add_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.add_default_event_handlers.html">pynaviz.controller.GetController.add_default_event_handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.advance.html">pynaviz.controller.GetController.advance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.get_xlim.html">pynaviz.controller.GetController.get_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.handle_event.html">pynaviz.controller.GetController.handle_event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.pan.html">pynaviz.controller.GetController.pan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.pause.html">pynaviz.controller.GetController.pause</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.quickzoom.html">pynaviz.controller.GetController.quickzoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.register_events.html">pynaviz.controller.GetController.register_events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.remove_camera.html">pynaviz.controller.GetController.remove_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.set_frame.html">pynaviz.controller.GetController.set_frame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.set_view.html">pynaviz.controller.GetController.set_view</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.sync.html">pynaviz.controller.GetController.sync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.tick.html">pynaviz.controller.GetController.tick</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.update_camera.html">pynaviz.controller.GetController.update_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.update_fov.html">pynaviz.controller.GetController.update_fov</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.zoom.html">pynaviz.controller.GetController.zoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.zoom_to_point.html">pynaviz.controller.GetController.zoom_to_point</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.audiovideo.AudioHandler.html">pynaviz.audiovideo.AudioHandler</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.AudioHandler.__init__.html">pynaviz.audiovideo.AudioHandler.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.AudioHandler.close.html">pynaviz.audiovideo.AudioHandler.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.AudioHandler.get.html">pynaviz.audiovideo.AudioHandler.get</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.html">pynaviz.audiovideo.VideoHandler</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.__init__.html">pynaviz.audiovideo.VideoHandler.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.close.html">pynaviz.audiovideo.VideoHandler.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.get.html">pynaviz.audiovideo.VideoHandler.get</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.get_slice.html">pynaviz.audiovideo.VideoHandler.get_slice</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.base_plot.html">pynaviz.base_plot</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.audiovideo.html">pynaviz.audiovideo</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.audio_handling.html">pynaviz.audiovideo.audio_handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.base_audiovideo.html">pynaviz.audiovideo.base_audiovideo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.skeleton_plot.html">pynaviz.audiovideo.skeleton_plot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_handling.html">pynaviz.audiovideo.video_handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.html">pynaviz.audiovideo.video_plot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_worker.html">pynaviz.audiovideo.video_worker</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.controller.html">pynaviz.controller</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.events.html">pynaviz.events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.interval_set.html">pynaviz.interval_set</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.plot_manager.html">pynaviz.plot_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.utils.html">pynaviz.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.synchronization_rules.html">pynaviz.synchronization_rules</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.mainwindow.html">pynaviz.qt.mainwindow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.widget_plot.html">pynaviz.qt.widget_plot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.widget_menu.html">pynaviz.qt.widget_menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.widget_list_selection.html">pynaviz.qt.widget_list_selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.tsdframe_selection.html">pynaviz.qt.tsdframe_selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.interval_sets_selection.html">pynaviz.qt.interval_sets_selection</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../api.html" class="nav-link">API reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="pynaviz.controller.SpanController.html" class="nav-link">pynaviz.controller.SpanController</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pynaviz.controller.SpanController.add_default_event_handlers</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="pynaviz-controller-spancontroller-add-default-event-handlers">
+<h1>pynaviz.controller.SpanController.add_default_event_handlers<a class="headerlink" href="#pynaviz-controller-spancontroller-add-default-event-handlers" title="Link to this heading">#</a></h1>
+<dl class="py method">
+<dt class="sig sig-object py" id="pynaviz.controller.SpanController.add_default_event_handlers">
+<span class="sig-prename descclassname"><span class="pre">SpanController.</span></span><span class="sig-name descname"><span class="pre">add_default_event_handlers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pynaviz.controller.SpanController.add_default_event_handlers" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="pynaviz.controller.SpanController.add_camera.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">pynaviz.controller.SpanController.add_camera</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="pynaviz.controller.SpanController.advance.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">pynaviz.controller.SpanController.advance</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.controller.SpanController.add_default_event_handlers"><code class="docutils literal notranslate"><span class="pre">SpanController.add_default_event_handlers()</span></code></a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/generated/pynaviz.controller.SpanController.add_default_event_handlers.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+<footer class="footer" style="border-top: 1px solid #ccc; padding-top: 10px">
+  <div class="container">
+    <div id="credits" style="width: 50%; float: left">
+      <p>
+      &#169; Copyright 2025-2026, <a href="https://www.simonsfoundation.org/people/guillaume-viejo/">pynapple authors</a>.<br/>
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> and the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/">PyData Theme</a>.<br/>
+      </p>
+    </div>
+    <div id="version" style="color: #999; float: right; margin: 15px">v</div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>

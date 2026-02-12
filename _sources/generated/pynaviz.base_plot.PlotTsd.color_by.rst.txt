@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsd.color\_by
+====================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsd.color_by

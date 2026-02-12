@@ -1,0 +1,12 @@
+pynaviz.audiovideo.audio\_handling
+==================================
+
+.. automodule:: pynaviz.audiovideo.audio_handling
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AudioHandler
+   

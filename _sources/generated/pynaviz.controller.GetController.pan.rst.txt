@@ -1,0 +1,6 @@
+pynaviz.controller.GetController.pan
+====================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: GetController.pan

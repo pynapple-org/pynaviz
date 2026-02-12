@@ -1,0 +1,1023 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" data-theme="light">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>pynaviz.audiovideo &#8212; pynaviz  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "light";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_contributors.css?v=f079e67e" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=f2caec9a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=c57da192"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'generated/pynaviz.audiovideo';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pynaviz.audiovideo.audio_handling" href="pynaviz.audiovideo.audio_handling.html" />
+    <link rel="prev" title="pynaviz.base_plot" href="pynaviz.base_plot.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="light">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pynaviz  documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.html">pynaviz.base_plot.PlotTsd</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.__init__.html">pynaviz.base_plot.PlotTsd.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.add_interval_sets.html">pynaviz.base_plot.PlotTsd.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.animate.html">pynaviz.base_plot.PlotTsd.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.close.html">pynaviz.base_plot.PlotTsd.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.color_by.html">pynaviz.base_plot.PlotTsd.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.group_by.html">pynaviz.base_plot.PlotTsd.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.remove_interval_set.html">pynaviz.base_plot.PlotTsd.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.show.html">pynaviz.base_plot.PlotTsd.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.sort_by.html">pynaviz.base_plot.PlotTsd.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsd.update_interval_set.html">pynaviz.base_plot.PlotTsd.update_interval_set</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.html">pynaviz.base_plot.PlotTsdFrame</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.__init__.html">pynaviz.base_plot.PlotTsdFrame.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.add_interval_sets.html">pynaviz.base_plot.PlotTsdFrame.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.animate.html">pynaviz.base_plot.PlotTsdFrame.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.close.html">pynaviz.base_plot.PlotTsdFrame.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.color_by.html">pynaviz.base_plot.PlotTsdFrame.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.group_by.html">pynaviz.base_plot.PlotTsdFrame.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.plot_x_vs_y.html">pynaviz.base_plot.PlotTsdFrame.plot_x_vs_y</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.remove_interval_set.html">pynaviz.base_plot.PlotTsdFrame.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.show.html">pynaviz.base_plot.PlotTsdFrame.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.sort_by.html">pynaviz.base_plot.PlotTsdFrame.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsdFrame.update_interval_set.html">pynaviz.base_plot.PlotTsdFrame.update_interval_set</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.base_plot.PlotTs.html">pynaviz.base_plot.PlotTs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.__init__.html">pynaviz.base_plot.PlotTs.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.add_interval_sets.html">pynaviz.base_plot.PlotTs.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.animate.html">pynaviz.base_plot.PlotTs.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.close.html">pynaviz.base_plot.PlotTs.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.color_by.html">pynaviz.base_plot.PlotTs.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.group_by.html">pynaviz.base_plot.PlotTs.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.jump_next.html">pynaviz.base_plot.PlotTs.jump_next</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.jump_previous.html">pynaviz.base_plot.PlotTs.jump_previous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.remove_interval_set.html">pynaviz.base_plot.PlotTs.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.show.html">pynaviz.base_plot.PlotTs.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.sort_by.html">pynaviz.base_plot.PlotTs.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTs.update_interval_set.html">pynaviz.base_plot.PlotTs.update_interval_set</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.html">pynaviz.base_plot.PlotTsGroup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.__init__.html">pynaviz.base_plot.PlotTsGroup.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.add_interval_sets.html">pynaviz.base_plot.PlotTsGroup.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.animate.html">pynaviz.base_plot.PlotTsGroup.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.close.html">pynaviz.base_plot.PlotTsGroup.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.color_by.html">pynaviz.base_plot.PlotTsGroup.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.group_by.html">pynaviz.base_plot.PlotTsGroup.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.remove_interval_set.html">pynaviz.base_plot.PlotTsGroup.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.show.html">pynaviz.base_plot.PlotTsGroup.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.sort_by.html">pynaviz.base_plot.PlotTsGroup.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.base_plot.PlotTsGroup.update_interval_set.html">pynaviz.base_plot.PlotTsGroup.update_interval_set</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.html">pynaviz.audiovideo.video_plot.PlotTsdTensor</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.__init__.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.add_interval_sets.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.animate.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.close.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.color_by.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.group_by.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.remove_interval_set.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.set_frame.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.set_frame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.show.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.sort_by.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.superpose_points.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.superpose_points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotTsdTensor.update_interval_set.html">pynaviz.audiovideo.video_plot.PlotTsdTensor.update_interval_set</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.html">pynaviz.audiovideo.video_plot.PlotVideo</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.__init__.html">pynaviz.audiovideo.video_plot.PlotVideo.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.add_interval_sets.html">pynaviz.audiovideo.video_plot.PlotVideo.add_interval_sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.animate.html">pynaviz.audiovideo.video_plot.PlotVideo.animate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.close.html">pynaviz.audiovideo.video_plot.PlotVideo.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.color_by.html">pynaviz.audiovideo.video_plot.PlotVideo.color_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.group_by.html">pynaviz.audiovideo.video_plot.PlotVideo.group_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.remove_interval_set.html">pynaviz.audiovideo.video_plot.PlotVideo.remove_interval_set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.set_frame.html">pynaviz.audiovideo.video_plot.PlotVideo.set_frame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.show.html">pynaviz.audiovideo.video_plot.PlotVideo.show</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.sort_by.html">pynaviz.audiovideo.video_plot.PlotVideo.sort_by</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.superpose_points.html">pynaviz.audiovideo.video_plot.PlotVideo.superpose_points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.PlotVideo.update_interval_set.html">pynaviz.audiovideo.video_plot.PlotVideo.update_interval_set</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.controller.SpanController.html">pynaviz.controller.SpanController</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.__init__.html">pynaviz.controller.SpanController.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.add_camera.html">pynaviz.controller.SpanController.add_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.add_default_event_handlers.html">pynaviz.controller.SpanController.add_default_event_handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.advance.html">pynaviz.controller.SpanController.advance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.get_xlim.html">pynaviz.controller.SpanController.get_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.go_to.html">pynaviz.controller.SpanController.go_to</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.handle_event.html">pynaviz.controller.SpanController.handle_event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.pan.html">pynaviz.controller.SpanController.pan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.pause.html">pynaviz.controller.SpanController.pause</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.quickzoom.html">pynaviz.controller.SpanController.quickzoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.register_events.html">pynaviz.controller.SpanController.register_events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.remove_camera.html">pynaviz.controller.SpanController.remove_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.set_view.html">pynaviz.controller.SpanController.set_view</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.set_xlim.html">pynaviz.controller.SpanController.set_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.set_ylim.html">pynaviz.controller.SpanController.set_ylim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.sync.html">pynaviz.controller.SpanController.sync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.tick.html">pynaviz.controller.SpanController.tick</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.update_camera.html">pynaviz.controller.SpanController.update_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.update_fov.html">pynaviz.controller.SpanController.update_fov</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.zoom.html">pynaviz.controller.SpanController.zoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanController.zoom_to_point.html">pynaviz.controller.SpanController.zoom_to_point</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.controller.SpanYLockController.html">pynaviz.controller.SpanYLockController</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.__init__.html">pynaviz.controller.SpanYLockController.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.add_camera.html">pynaviz.controller.SpanYLockController.add_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.add_default_event_handlers.html">pynaviz.controller.SpanYLockController.add_default_event_handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.advance.html">pynaviz.controller.SpanYLockController.advance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.get_xlim.html">pynaviz.controller.SpanYLockController.get_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.go_to.html">pynaviz.controller.SpanYLockController.go_to</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.handle_event.html">pynaviz.controller.SpanYLockController.handle_event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.pan.html">pynaviz.controller.SpanYLockController.pan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.pause.html">pynaviz.controller.SpanYLockController.pause</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.quickzoom.html">pynaviz.controller.SpanYLockController.quickzoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.register_events.html">pynaviz.controller.SpanYLockController.register_events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.remove_camera.html">pynaviz.controller.SpanYLockController.remove_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.set_view.html">pynaviz.controller.SpanYLockController.set_view</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.set_xlim.html">pynaviz.controller.SpanYLockController.set_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.set_ylim.html">pynaviz.controller.SpanYLockController.set_ylim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.sync.html">pynaviz.controller.SpanYLockController.sync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.tick.html">pynaviz.controller.SpanYLockController.tick</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.update_camera.html">pynaviz.controller.SpanYLockController.update_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.update_fov.html">pynaviz.controller.SpanYLockController.update_fov</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.zoom.html">pynaviz.controller.SpanYLockController.zoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.SpanYLockController.zoom_to_point.html">pynaviz.controller.SpanYLockController.zoom_to_point</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.controller.GetController.html">pynaviz.controller.GetController</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.__init__.html">pynaviz.controller.GetController.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.add_camera.html">pynaviz.controller.GetController.add_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.add_default_event_handlers.html">pynaviz.controller.GetController.add_default_event_handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.advance.html">pynaviz.controller.GetController.advance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.get_xlim.html">pynaviz.controller.GetController.get_xlim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.handle_event.html">pynaviz.controller.GetController.handle_event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.pan.html">pynaviz.controller.GetController.pan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.pause.html">pynaviz.controller.GetController.pause</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.quickzoom.html">pynaviz.controller.GetController.quickzoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.register_events.html">pynaviz.controller.GetController.register_events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.remove_camera.html">pynaviz.controller.GetController.remove_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.set_frame.html">pynaviz.controller.GetController.set_frame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.set_view.html">pynaviz.controller.GetController.set_view</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.sync.html">pynaviz.controller.GetController.sync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.tick.html">pynaviz.controller.GetController.tick</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.update_camera.html">pynaviz.controller.GetController.update_camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.update_fov.html">pynaviz.controller.GetController.update_fov</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.zoom.html">pynaviz.controller.GetController.zoom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.controller.GetController.zoom_to_point.html">pynaviz.controller.GetController.zoom_to_point</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.audiovideo.AudioHandler.html">pynaviz.audiovideo.AudioHandler</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.AudioHandler.__init__.html">pynaviz.audiovideo.AudioHandler.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.AudioHandler.close.html">pynaviz.audiovideo.AudioHandler.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.AudioHandler.get.html">pynaviz.audiovideo.AudioHandler.get</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.html">pynaviz.audiovideo.VideoHandler</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.__init__.html">pynaviz.audiovideo.VideoHandler.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.close.html">pynaviz.audiovideo.VideoHandler.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.get.html">pynaviz.audiovideo.VideoHandler.get</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.VideoHandler.get_slice.html">pynaviz.audiovideo.VideoHandler.get_slice</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.base_plot.html">pynaviz.base_plot</a></li>
+<li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">pynaviz.audiovideo</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.audio_handling.html">pynaviz.audiovideo.audio_handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.base_audiovideo.html">pynaviz.audiovideo.base_audiovideo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.skeleton_plot.html">pynaviz.audiovideo.skeleton_plot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_handling.html">pynaviz.audiovideo.video_handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_plot.html">pynaviz.audiovideo.video_plot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pynaviz.audiovideo.video_worker.html">pynaviz.audiovideo.video_worker</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.controller.html">pynaviz.controller</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.events.html">pynaviz.events</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.interval_set.html">pynaviz.interval_set</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.plot_manager.html">pynaviz.plot_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.utils.html">pynaviz.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.synchronization_rules.html">pynaviz.synchronization_rules</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.mainwindow.html">pynaviz.qt.mainwindow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.widget_plot.html">pynaviz.qt.widget_plot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.widget_menu.html">pynaviz.qt.widget_menu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.widget_list_selection.html">pynaviz.qt.widget_list_selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.tsdframe_selection.html">pynaviz.qt.tsdframe_selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pynaviz.qt.interval_sets_selection.html">pynaviz.qt.interval_sets_selection</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../api.html" class="nav-link">API reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pynaviz.audiovideo</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-pynaviz.audiovideo">
+<span id="pynaviz-audiovideo"></span><h1>pynaviz.audiovideo<a class="headerlink" href="#module-pynaviz.audiovideo" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.AudioHandler">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pynaviz.audiovideo.</span></span><span class="sig-name descname"><span class="pre">AudioHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">audio_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynaviz/audiovideo/audio_handling.html#AudioHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pynaviz.audiovideo.AudioHandler" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="pynaviz.audiovideo.base_audiovideo.html#pynaviz.audiovideo.base_audiovideo.BaseAudioVideo" title="pynaviz.audiovideo.base_audiovideo.BaseAudioVideo"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAudioVideo</span></code></a></p>
+<p>Handler for reading and decoding audio frames from a file.</p>
+<p>This class uses PyAV to access audio frames from a given file.
+It allows querying time-aligned audio samples between two timepoints,
+and provides audio shape and total length information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>audio_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>pathlib.Path</em></a>) – Path to the audio file.</p></li>
+<li><p><strong>stream_index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Index of the audio stream to decode (default is 0).</p></li>
+<li><p><strong>time</strong> (<em>Optional</em><em>[</em><em>NDArray</em><em>]</em>) – Optional 1D time axis to associate with the samples. Must match
+the number of sample points in the audio file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If the provided <cite>time</cite> axis is not 1D or does not match the
+    number of sample points in the audio file.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pynaviz.audiovideo</span> <span class="kn">import</span> <span class="n">AudioHandler</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ah</span> <span class="o">=</span> <span class="n">AudioHandler</span><span class="p">(</span><span class="s2">&quot;example.mp3&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Get audio samples between 1.5 and 2.5 seconds.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">audio_trace</span> <span class="o">=</span> <span class="n">ah</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Shape: (n_samples, n_channels)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">audio_trace</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(44100, 2)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.AudioHandler.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynaviz/audiovideo/audio_handling.html#AudioHandler.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pynaviz.audiovideo.AudioHandler.get" title="Link to this definition">#</a></dt>
+<dd><p>Extract decoded frames from a video between two timestamps.</p>
+<p>This method decodes and returns the raw video frames corresponding to
+the time interval <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end]</span></code> in seconds. Decoding begins from the
+nearest keyframe at or before <code class="docutils literal notranslate"><span class="pre">start</span></code>, and proceeds sequentially until
+the end timestamp is reached or exceeded. If the last decoded frame
+extends beyond <code class="docutils literal notranslate"><span class="pre">end</span></code>, trailing samples are truncated so that the
+returned array aligns with the requested time range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>) – Start time of the segment to extract, in seconds.</p></li>
+<li><p><strong>end</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>) – End time of the segment to extract, in seconds. Must be greater
+than <code class="docutils literal notranslate"><span class="pre">start</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 2D NumPy array containing the decoded frames for the requested
+interval. The exact shape depends on the video format and frame size,
+with the first dimension corresponding to time (frame index or
+samples) and the remaining dimensions containing
+audio channels.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.typing.NDArray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The returned frames are decoded in sequence and concatenated before
+being transposed so that time is the first dimension.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">end</span></code> falls between two frames, the last frame is partially trimmed
+to match the requested duration.</p></li>
+</ul>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><cite>av.AudioFrame &lt;https://pyav.org/docs/stable/api/audio.html#module-av.audio.frame&gt;</cite></dt><dd><p>The PyAV frame object.</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.AudioHandler.index">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">index</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.typing.NDArray</span></span><a class="headerlink" href="#pynaviz.audiovideo.AudioHandler.index" title="Link to this definition">#</a></dt>
+<dd><p>Time axis corresponding to the audio samples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Array of timestamps with shape (num_samples,).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.AudioHandler.shape">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">shape</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.14)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pynaviz.audiovideo.AudioHandler.shape" title="Link to this definition">#</a></dt>
+<dd><p>Shape of the audio data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple <cite>(num_samples, num_channels)</cite> describing the audio shape.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.AudioHandler.t">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">t</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.typing.NDArray</span></span><a class="headerlink" href="#pynaviz.audiovideo.AudioHandler.t" title="Link to this definition">#</a></dt>
+<dd><p>Time axis corresponding to the audio samples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Array of timestamps with shape (num_samples,).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.AudioHandler.tot_length">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tot_length</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#pynaviz.audiovideo.AudioHandler.tot_length" title="Link to this definition">#</a></dt>
+<dd><p>Total duration of the audio in seconds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Total duration of the audio stream.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.PlotTsdTensor">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pynaviz.audiovideo.</span></span><span class="sig-name descname"><span class="pre">PlotTsdTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynaviz/audiovideo/video_plot.html#PlotTsdTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pynaviz.audiovideo.PlotTsdTensor" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="pynaviz.audiovideo.video_plot.html#pynaviz.audiovideo.video_plot.PlotBaseVideoTensor" title="pynaviz.audiovideo.video_plot.PlotBaseVideoTensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlotBaseVideoTensor</span></code></a></p>
+<p>Visualization for 3-dimensional time series (<code class="docutils literal notranslate"><span class="pre">nap.TsdTensor</span></code>) displayed as movies.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<a class="reference external" href="https://pynapple.org/generated/pynapple.TsdTensor.html#pynapple.TsdTensor" title="(in pynapple v0.10.3)"><em>TsdTensor</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.PlotVideo">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pynaviz.audiovideo.</span></span><span class="sig-name descname"><span class="pre">PlotVideo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_worker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynaviz/audiovideo/video_plot.html#PlotVideo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pynaviz.audiovideo.PlotVideo" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="pynaviz.audiovideo.video_plot.html#pynaviz.audiovideo.video_plot.PlotBaseVideoTensor" title="pynaviz.audiovideo.video_plot.PlotBaseVideoTensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlotBaseVideoTensor</span></code></a></p>
+<p>Visualization for rendering video files synchronized with a time series.</p>
+<p>This class uses shared memory and multiprocessing to efficiently stream frames
+from disk to GPU via pygfx. It also supports real-time interaction and frame-based control.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a><em> | </em><a class="reference internal" href="pynaviz.audiovideo.video_handling.html#pynaviz.audiovideo.video_handling.VideoHandler" title="pynaviz.audiovideo.video_handling.VideoHandler"><em>VideoHandler</em></a>)</p></li>
+<li><p><strong>t</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>ndarray</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>, </em><em>...</em><em>]</em><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.4)"><em>dtype</em></a><em>[</em><em>_ScalarT</em><em>]</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>stream_index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>start_worker</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.PlotVideo.animate">
+<span class="sig-name descname"><span class="pre">animate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynaviz/audiovideo/video_plot.html#PlotVideo.animate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pynaviz.audiovideo.PlotVideo.animate" title="Link to this definition">#</a></dt>
+<dd><p>Main render loop callback for pygfx.</p>
+<p>Handles texture and text update, syncing, and redraw triggering.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.PlotVideo.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynaviz/audiovideo/video_plot.html#PlotVideo.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pynaviz.audiovideo.PlotVideo.close" title="Link to this definition">#</a></dt>
+<dd><p>Cleanly close shared memory, worker, and background thread.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.PlotVideo.data">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#pynaviz.audiovideo.PlotVideo.data" title="Link to this definition">#</a></dt>
+<dd><p>Read-only access to the video data handler.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.VideoHandler">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pynaviz.audiovideo.</span></span><span class="sig-name descname"><span class="pre">VideoHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">video_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_frame_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynaviz/audiovideo/video_handling.html#VideoHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pynaviz.audiovideo.VideoHandler" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="pynaviz.audiovideo.base_audiovideo.html#pynaviz.audiovideo.base_audiovideo.BaseAudioVideo" title="pynaviz.audiovideo.base_audiovideo.BaseAudioVideo"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAudioVideo</span></code></a></p>
+<p>Random-access video reader with timestamp-aware seeking.</p>
+<p>This class wraps a PyAV container to provide precise, timestamp-based
+random access to frames. It can return either <cite>av.VideoFrame</cite> objects
+or RGB float arrays in the shape <code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">3)</span></code> normalized to <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.
+Internally, a background thread builds an index of presentation timestamps
+(PTS) for fast seeks, with a fallback to on-the-fly indexing when the total
+frame count is unknown.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>video_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>pathlib.Path</em></a>) – Path to the video file.</p></li>
+<li><p><strong>stream_index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Index of the video stream to use, default is 0.</p></li>
+<li><p><strong>time</strong> (<em>Optional</em><em>[</em><em>NDArray</em><em>]</em>) – Experimental timestamps for each frame (seconds). If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a
+uniform grid is generated from the stream’s average rate.</p></li>
+<li><p><strong>return_frame_array</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code> (default), return frames as <code class="docutils literal notranslate"><span class="pre">np.ndarray</span></code> (RGB, float32 in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>);
+otherwise return <cite>av.VideoFrame</cite> instances.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pynaviz.audiovideo</span> <span class="kn">import</span> <span class="n">VideoHandler</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">vh</span> <span class="o">=</span> <span class="n">VideoHandler</span><span class="p">(</span><span class="s2">&quot;example.mp4&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Get the frame at 1.5 seconds.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">frame</span> <span class="o">=</span> <span class="n">vh</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mf">1.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Shape: (height, width, channels)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">frame</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(480, 640, 3)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Get frames from the second to the 10th, every other frame.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">frame_sequence</span> <span class="o">=</span> <span class="n">vh</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Shape: (n_samples, height, width, channels)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">frame_sequence</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(5, 480, 640, 3)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.VideoHandler.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynaviz/audiovideo/video_handling.html#VideoHandler.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pynaviz.audiovideo.VideoHandler.get" title="Link to this definition">#</a></dt>
+<dd><p>Return the frame at (or immediately preceding) a timestamp.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>) – Target time in seconds.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <code class="docutils literal notranslate"><span class="pre">return_frame_array</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>, returns an array with shape
+<code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">3)</span></code> (RGB, float32 in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>). Otherwise returns an
+<cite>av.VideoFrame</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pyav.org/docs/stable/api/video.html#av.video.frame.VideoFrame" title="(in PyAV v9.0.2)"><em>VideoFrame</em></a> | TypeAliasForwardRef(‘numpy.typing.NDArray’)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Seeks to the closest keyframe behind <code class="docutils literal notranslate"><span class="pre">ts</span></code> and decodes forward
+until the target is reached.</p></li>
+<li><p>Uses an internal cache: if the requested frame index matches the
+previously decoded one, the cached frame is returned.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.VideoHandler.get_slice">
+<span class="sig-name descname"><span class="pre">get_slice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pynaviz/audiovideo/video_handling.html#VideoHandler.get_slice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pynaviz.audiovideo.VideoHandler.get_slice" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+<li><p><strong>end</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.VideoHandler.index">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">index</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.typing.NDArray</span></span><a class="headerlink" href="#pynaviz.audiovideo.VideoHandler.index" title="Link to this definition">#</a></dt>
+<dd><p>Time index in seconds corresponding to frames.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">time</span></code> was provided at initialization, that array is returned.
+Otherwise, a uniformly spaced array derived from the stream rate is used
+and may be updated as indexing progresses.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.VideoHandler.shape">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">shape</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.14)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pynaviz.audiovideo.VideoHandler.shape" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>:</dt><dd><p>Shape of the video, <code class="docutils literal notranslate"><span class="pre">(n_frames,</span> <span class="pre">width,</span> <span class="pre">height)</span></code>.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>When the total frame count is unknown at initialization, the length
+may grow while the background indexer discovers frames. A warning is
+emitted until indexing is complete.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pynaviz.audiovideo.VideoHandler.t">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">t</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.typing.NDArray</span></span><a class="headerlink" href="#pynaviz.audiovideo.VideoHandler.t" title="Link to this definition">#</a></dt>
+<dd><p>Time index in seconds corresponding to frames.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">time</span></code> was provided at initialization, that array is returned.
+Otherwise, a uniformly spaced array derived from the stream rate is used
+and may be updated as indexing progresses.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Modules</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="pynaviz.audiovideo.audio_handling.html#module-pynaviz.audiovideo.audio_handling" title="pynaviz.audiovideo.audio_handling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">audio_handling</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="pynaviz.audiovideo.base_audiovideo.html#module-pynaviz.audiovideo.base_audiovideo" title="pynaviz.audiovideo.base_audiovideo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">base_audiovideo</span></code></a></p></td>
+<td><p>Base class for audio and video handling.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="pynaviz.audiovideo.skeleton_plot.html#module-pynaviz.audiovideo.skeleton_plot" title="pynaviz.audiovideo.skeleton_plot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">skeleton_plot</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="pynaviz.audiovideo.video_handling.html#module-pynaviz.audiovideo.video_handling" title="pynaviz.audiovideo.video_handling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">video_handling</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="pynaviz.audiovideo.video_plot.html#module-pynaviz.audiovideo.video_plot" title="pynaviz.audiovideo.video_plot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">video_plot</span></code></a></p></td>
+<td><p>Module for time-synchronized video plotting using pygfx and multiprocessing.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="pynaviz.audiovideo.video_worker.html#module-pynaviz.audiovideo.video_worker" title="pynaviz.audiovideo.video_worker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">video_worker</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="pynaviz.base_plot.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">pynaviz.base_plot</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="pynaviz.audiovideo.audio_handling.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">pynaviz.audiovideo.audio_handling</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.AudioHandler"><code class="docutils literal notranslate"><span class="pre">AudioHandler</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.AudioHandler.get"><code class="docutils literal notranslate"><span class="pre">AudioHandler.get()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.AudioHandler.index"><code class="docutils literal notranslate"><span class="pre">AudioHandler.index</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.AudioHandler.shape"><code class="docutils literal notranslate"><span class="pre">AudioHandler.shape</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.AudioHandler.t"><code class="docutils literal notranslate"><span class="pre">AudioHandler.t</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.AudioHandler.tot_length"><code class="docutils literal notranslate"><span class="pre">AudioHandler.tot_length</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.PlotTsdTensor"><code class="docutils literal notranslate"><span class="pre">PlotTsdTensor</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.PlotVideo"><code class="docutils literal notranslate"><span class="pre">PlotVideo</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.PlotVideo.animate"><code class="docutils literal notranslate"><span class="pre">PlotVideo.animate()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.PlotVideo.close"><code class="docutils literal notranslate"><span class="pre">PlotVideo.close()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.PlotVideo.data"><code class="docutils literal notranslate"><span class="pre">PlotVideo.data</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.VideoHandler"><code class="docutils literal notranslate"><span class="pre">VideoHandler</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.VideoHandler.get"><code class="docutils literal notranslate"><span class="pre">VideoHandler.get()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.VideoHandler.get_slice"><code class="docutils literal notranslate"><span class="pre">VideoHandler.get_slice()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.VideoHandler.index"><code class="docutils literal notranslate"><span class="pre">VideoHandler.index</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.VideoHandler.shape"><code class="docutils literal notranslate"><span class="pre">VideoHandler.shape</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pynaviz.audiovideo.VideoHandler.t"><code class="docutils literal notranslate"><span class="pre">VideoHandler.t</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/generated/pynaviz.audiovideo.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+<footer class="footer" style="border-top: 1px solid #ccc; padding-top: 10px">
+  <div class="container">
+    <div id="credits" style="width: 50%; float: left">
+      <p>
+      &#169; Copyright 2025-2026, <a href="https://www.simonsfoundation.org/people/guillaume-viejo/">pynapple authors</a>.<br/>
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> and the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/">PyData Theme</a>.<br/>
+      </p>
+    </div>
+    <div id="version" style="color: #999; float: right; margin: 15px">v</div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>
