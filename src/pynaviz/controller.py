@@ -278,6 +278,7 @@ class SpanController(CustomController):
         # To make sure all controller stays in sync
         self._send_sync_event(update_type="pan", current_time=target_time)
 
+
 class SpanYLockController(SpanController):
     """
     Horizontal time-panning with y-axis locked

@@ -18,6 +18,7 @@ from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
 
 from .controller import GetController, SpanController, SpanYLockController
+from .display_modes import ImageMode, LinesMode, XvsYMode
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
 from .synchronization_rules import (
@@ -25,7 +26,6 @@ from .synchronization_rules import (
     _match_set_xlim,
     _match_zoom_on_x_axis,
 )
-from .threads.data_streaming import TsdFrameStreaming
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import (
     GRADED_COLOR_LIST,
@@ -141,8 +141,10 @@ class _BasePlot(IntervalSetInterface):
         # Create a new scene to hold and manage objects
         self.scene = gfx.Scene()
 
-        # Add a horizontal ruler (x-axis) with ticks on the right
-        self.ruler_x = gfx.Ruler(tick_side="right")
+        # Add a horizontal ruler (x-axis) with ticks above
+        self.ruler_x = gfx.Ruler(
+            tick_side="left"
+        )
 
         # Add a vertical ruler (y-axis) with ticks on the left and minimum spacing
         self.ruler_y = gfx.Ruler(tick_side="left")
@@ -152,6 +154,12 @@ class _BasePlot(IntervalSetInterface):
             gfx.Geometry(positions=[[0, 0, 0], [0, 0, 0]]),  # Placeholder geometry
             gfx.LineMaterial(thickness=0.5, color="#B4F8C8"),  # Thin light green line
         )
+
+        # Render rulers on top of graphics (lines/images)
+        for ruler in (self.ruler_x, self.ruler_y, self.ruler_ref_time):
+            ruler.render_order = 1
+            for child in ruler.children:
+                child.render_order = 1
 
         # Use an orthographic camera to preserve scale without perspective distortion
         self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
@@ -423,35 +431,27 @@ class PlotTsd(_BasePlot):
 
 
 class PlotTsdFrame(_BasePlot):
-    """
-    Visualization of a multi-columns pynapple time series (``nap.TsdFrame``).
+    """Visualization of a multi-column pynapple time series (``nap.TsdFrame``).
 
-    This class allows dynamic rendering of each column in a `nap.TsdFrame`, with interactive
-    controls for span navigation. It supports switching between
-    standard time series display and scatter-style x-vs-y plotting between columns.
+    Supports three display modes toggled at runtime:
+
+    - **lines** (default): each column rendered as a line with vertex colors.
+    - **image**: all columns as a heatmap texture.
+    - **x_vs_y**: one column plotted against another with a time marker.
 
     Parameters
     ----------
     data : nap.TsdFrame
-        The column-based time series data (columns as features).
-    index : Optional[int], default=None
-        Unique ID for synchronizing with external controllers.
-    parent : Optional[Any], default=None
-        Optional GUI parent (e.g. QWidget in Qt).
-    window_size : float
-        The time duration (in same units as data timestamps) of the streaming window.
-        This parameter is optional and if not provided, it will be calculated to
-        optimize memory usage (up to 256MB). It is better to provide it if you know
-        have memory constraints.
-
-    Attributes
-    ----------
-    controller : Union[SpanController, GetController]
-        Active interactive controller for zooming or selecting.
-    graphic : dict[str, gfx.Line] or gfx.Line
-        Dictionary of per-column lines or single line for x-vs-y plotting.
-    time_point : Optional[gfx.Points]
-        A marker showing the selected time point (used in x-vs-y plotting).
+        The column-based time series data.
+    index : int, optional
+        Controller ID for synchronizing with other plots.
+    parent : optional
+        GUI parent widget (e.g. QWidget).
+    window_size : float, optional
+        Streaming window duration in seconds. If None, computed to fit
+        up to 256 MB of memory.
+    display_mode : str, default "lines"
+        Initial display mode ("lines" or "image"). Toggle with the "m" key.
     """
 
     def __init__(
@@ -460,263 +460,192 @@ class PlotTsdFrame(_BasePlot):
         index: Optional[int] = None,
         parent: Optional[Any] = None,
         window_size: Optional[float] = None,
+        display_mode: str = "lines",
     ):
         super().__init__(data=data, parent=parent)
         self._data = data
 
-        # To stream data
-        if window_size is None:
-            # Calculate window size to use up to 256MB of memory
-            size = (256 * 1024**2) // (data.shape[1] * 60)
-            window_size = np.floor(size / data.rate) # seconds
-            if window_size < 1:
-                window_size = 1.0
+        if display_mode not in ("lines", "image"):
+            raise ValueError(f"display_mode must be 'lines' or 'image', got '{display_mode}'")
+        self._display_mode = display_mode
 
-        self._stream = TsdFrameStreaming(
-            data, callback=self._flush, window_size=window_size
-        )
+        self._modes = {
+            "lines": LinesMode(data, self._manager, window_size),
+            "image": ImageMode(data, self._manager),
+            "x_vs_y": XvsYMode(data, self._manager),
+        }
+        self._mode = self._modes[display_mode]
+        self._mode.initialize_graphic()
 
-        plot_callbacks = []
+        self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time, self._mode.graphic)
 
-        if self._stream._max_n < data.shape[0]:
-            plot_callbacks = [self._stream.stream] # For controller
-
-        # Create pygfx objects
-        self._positions = np.full(
-            ((self._stream._max_n + 1) * self.data.shape[1], 3), np.nan, dtype="float32"
-        )
-
-        self._buffer_slices = {}
-        for c, s in zip(
-            self.data.columns,
-            range(
-                0,
-                len(self._positions) - self._stream._max_n + 1,
-                self._stream._max_n + 1,
-            ),
-        ):
-            self._buffer_slices[c] = slice(s, s + self._stream._max_n)
-
-        self._positions[:, 2] = 0.0
-
-        # Create pygfx object
-        self._initialize_graphic()
-
-        # Add elements to the scene for rendering
-        self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time, self.graphic)
-
-        # Connect specific event handler for TsdFrame
         self.renderer.add_event_handler(self._rescale, "key_down")
         self.renderer.add_event_handler(self._reset, "key_down")
+        self.renderer.add_event_handler(self._toggle_display_mode, "key_down")
 
-        # Controllers for different interaction styles
         self._controllers = {
             "span": SpanController(
                 camera=self.camera,
                 renderer=self.renderer,
                 controller_id=index,
                 dict_sync_funcs=dict_sync_funcs,
-                plot_callbacks=plot_callbacks,
+                plot_callbacks=self._modes["lines"].get_callbacks(),
+            ),
+            "span_ylock": SpanYLockController(
+                camera=self.camera,
+                renderer=self.renderer,
+                dict_sync_funcs=dict_sync_funcs,
+                plot_callbacks=self._modes["image"].get_callbacks(),
+                enabled=False,
             ),
             "get": GetController(
                 camera=self.camera,
                 renderer=self.renderer,
                 data=None,
                 buffer=None,
+                callback=self._modes["x_vs_y"]._update_buffer,
                 enabled=False,
-                callback=self._update_buffer,
             ),
         }
 
-        # Use span controller by default
-        self.controller = self._controllers["span"]
+        initial_key = self._mode.controller_key
+        for key, ctrl in self._controllers.items():
+            if key == initial_key:
+                ctrl.enabled = True
+                if ctrl._controller_id is None:
+                    ctrl.controller_id = index
+                self.controller = ctrl
+            else:
+                ctrl.enabled = False
 
-        # Used later in x-vs-y plotting
-        self.time_point = None
+        self._flush(start=0, end=1)
 
-        # By default, showing only the first second.
-        # this should flush the whole dataset if data fits into memory
-        self._flush(self._stream.get_slice(start=0, end=1))
-
-        # Setting the boundaries of the plot
-        # minmax is of shape (n_columns, 2)
         minmax = self._get_min_max()
-        self.controller.set_view(xmin=0, xmax=1, ymin=np.min(minmax[:, 0]), ymax=np.max(minmax[:, 1]))
-
-        # Request an initial draw of the scene
+        self.controller.set_view(
+            xmin=0, xmax=1, ymin=float(np.nanmin(minmax[:, 0])), ymax=float(np.nanmax(minmax[:, 1]))
+        )
         self.canvas.request_draw(self.animate)
 
-    def _initialize_graphic(self):
-        colors = np.ones((self._positions.shape[0], 4), dtype=np.float32)
+    @property
+    def graphic(self):
+        """The active pygfx graphic, delegated to the current display mode."""
+        return self._mode.graphic
 
-        self.graphic = gfx.Line(
-            gfx.Geometry(positions=self._positions, colors=colors),
-            gfx.LineMaterial(
-                thickness=1.0, color_mode="vertex"
-            ),  # , color=GRADED_COLOR_LIST[1 % len(GRADED_COLOR_LIST)]),
-        )
-
-    def _flush(self, slice_: slice = None):
-        """
-        Flush the data stream from slice_ argument.
-        The slice argument should be obtained from the _get_slice method of the TsdFrameStreaming object.
-        """
-        if self._stream._max_n == self.data.shape[0]:
-            # If data fit into memory
-            for i, c in enumerate(self.data.columns):
-                sl = self._buffer_slices[c]
-                self._positions[sl, 0] = self.data.t.astype("float32")
-                self._positions[sl, 1] = self.data.d[:, i].astype("float32")
-                self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
-                self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
-
-        else:
-            if slice_ is None:
-                slice_ = self._stream.get_slice(*self.controller.get_xlim())
-
-            time = self.data.t[slice_].astype("float32")
-
-            left_offset = 0
-            right_offset = 0
-            if time.shape[0] < self._stream._max_n:
-                if slice_.start == 0:
-                    left_offset = self._stream._max_n - time.shape[0]
-                else:
-                    right_offset = time.shape[0] - self._stream._max_n
-
-            # Read
-            data = np.array(self.data.values[slice_, :])
-
-            # Copy the data
-            for i, c in enumerate(self.data.columns):
-                sl = self._buffer_slices[c]
-                sl = slice(sl.start + left_offset, sl.stop + right_offset)
-                self._positions[sl, 0] = time
-                self._positions[sl, 1] = data[:, i]
-                self._positions[sl, 1] *= self._manager.data.loc[c]["scale"]
-                self._positions[sl, 1] += self._manager.data.loc[c]["offset"]
-
-            # Put back some nans on the edges
-            if left_offset:
-                for sl in self._buffer_slices.values():
-                    self._positions[sl.start : sl.start + left_offset, 0:2] = np.nan
-            if right_offset:
-                for sl in self._buffer_slices.values():
-                    self._positions[sl.stop + right_offset : sl.stop, 0:2] = np.nan
-
-        self.graphic.geometry.positions.set_data(self._positions)
+    def _flush(self, start, end):
+        """Compute a data slice from (start, end) and flush the active mode."""
+        slice_ = self._mode.stream.get_slice(start, end)
+        self._mode.flush(slice_)
 
     def _get_min_max(self):
-        """
-        If the data object is a numpy array, get min max directly from it
-        otherwise get min max from the buffer.
+        """Return per-column [min, max] array of shape (n_columns, 2).
+
+        Uses the raw data when available in memory, otherwise falls back
+        to the current mode's buffer.
         """
         if isinstance(self.data.values, np.ndarray) and not isinstance(self.data.values, np.memmap):
             return np.stack([np.nanmin(self.data, 0), np.nanmax(self.data, 0)]).T
-        else:
-            minmax = np.array(
-                [
-                    [np.nanmin(self._positions[sl, 1]), np.nanmax(self._positions[sl, 1])]
-                    for sl in self._buffer_slices.values()
-                ]
-            )
-            if np.any(np.isnan(minmax)):
-                # Try to get min max from 100 points of each column
-                try:
-                    minmax = np.array([np.nanmin(self.data[0:100], 0), np.nanmax(self.data[0:100], 0)]).T
-                    return minmax
-                except Exception:
-                    return np.array([[0, 1]] * self.data.shape[1])
-            else:
-                return minmax
+
+        minmax = self._mode.get_buffer_min_max()
+        if np.any(np.isnan(minmax)):
+            try:
+                return np.array([np.nanmin(self.data[0:100], 0), np.nanmax(self.data[0:100], 0)]).T
+            except Exception:
+                return np.array([[0, 1]] * self.data.shape[1])
+        return minmax
 
     def _rescale(self, event):
-        """
-        "i" key increase the scale by 50%.
-        "d" key decrease the scale by 50%
-        """
-        if self._manager.is_sorted or self._manager.is_grouped:
-            if event.type == "key_down":
-                if event.key == "i" or event.key == "d":
-                    factor = {"i": 0.5, "d": -0.5}[event.key]
-
-                    # Update the scale of the PlotManager
-                    self._manager.rescale(factor=factor)
-
-                    # Update the current buffers to avoid re-reading from disk
-                    for c, sl in self._buffer_slices.items():
-                        self._positions[sl, 1] += factor * (
-                            self._positions[sl, 1] - self._manager.data.loc[c]["offset"]
-                        )
-
-                    # Update the gpu data
-                    self.graphic.geometry.positions.set_data(self._positions)
-                    self.canvas.request_draw(self.animate)
+        """Handle 'i'/'d' keys to rescale amplitudes (lines) or clim (image)."""
+        if event.type == "key_down" and event.key in ("i", "d"):
+            self._mode.rescale(event.key)
+            self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
-        """
-        "r" key reset the plot manager to initial view
-        """
-        if event.type == "key_down":
-            if event.key == "r":
-                if isinstance(self.controller, SpanController):
-                    self._manager.reset(self)
-                    self._flush()
+        """Handle 'r' key to reset the view. Transitions back to lines mode."""
+        if event.type == "key_down" and event.key == "r":
+            if self._display_mode == "image":
+                self.scene.remove(self._mode.graphic)
+                self._switch_controller("span_ylock", "span")
+                self._display_mode = "lines"
+                self._mode = self._modes["lines"]
+                self._mode.initialize_graphic()
+                self.scene.add(self._mode.graphic)
 
-                if isinstance(self.controller, GetController):
-                    self.scene.remove(self.graphic, self.time_point)
-                    # Switch back to SpanController
-                    self.controller.enabled = False
-                    controller_id = self.controller._controller_id
-                    self.controller = self._controllers["span"]
-                    self.controller._controller_id = controller_id
-                    self.controller.enabled = True
-                    self._initialize_graphic()
-                    self.scene.add(self.graphic)
-                    self.scene.add(self.ruler_ref_time)
-                    self._manager.reset(self)
-                    self._flush()
+            elif self._display_mode == "x_vs_y":
+                self.scene.remove(self._mode.graphic)
+                self.scene.remove(self._mode.time_point)
+                self._switch_controller("get", "span")
+                self.scene.add(self.ruler_ref_time)
+                self._display_mode = "lines"
+                self._mode = self._modes["lines"]
+                self._mode.initialize_graphic()
+                self.scene.add(self._mode.graphic)
 
-                minmax = self._get_min_max()
+            self._manager.reset(self)
+            self._flush(*self.controller.get_xlim())
 
-                self.controller.set_ylim(np.min(minmax[:, 0]), np.max(minmax[:, 1]))
-                self.controller.set_xlim(0, 1)
-                self.canvas.request_draw(self.animate)
+            minmax = self._get_min_max()
+            self.controller.set_ylim(float(np.nanmin(minmax[:, 0])), float(np.nanmax(minmax[:, 1])))
+            self.canvas.request_draw(self.animate)
+
+    def _switch_controller(self, from_key, to_key):
+        """Disable *from_key* controller, enable *to_key*, and transfer the ID."""
+        old = self._controllers[from_key]
+        new = self._controllers[to_key]
+        old.enabled = False
+        cid = old._controller_id
+        new.enabled = True
+        if new._controller_id is None:
+            new.controller_id = cid
+        self.controller = new
+        self.controller._send_switch_event()
+
+    def _toggle_display_mode(self, event):
+        """Toggle between 'lines' and 'image' on 'm' key."""
+        if event.type == "key_down" and event.key == "m":
+            if not isinstance(self.controller, SpanController):
+                return
+
+            old_key = self._mode.controller_key
+            self.scene.remove(self._mode.graphic)
+
+            self._display_mode = "image" if self._display_mode == "lines" else "lines"
+            self._mode = self._modes[self._display_mode]
+            self._mode.initialize_graphic()
+            self.scene.add(self._mode.graphic)
+
+            if old_key != self._mode.controller_key:
+                self._switch_controller(old_key, self._mode.controller_key)
+
+            self._flush(*self.controller.get_xlim())
+
+            minmax = self._get_min_max()
+            if self._display_mode == "image":
+                self._mode.graphic.material.clim = (
+                    float(np.nanmin(minmax[:, 0])),
+                    float(np.nanmax(minmax[:, 1])),
+                )
+                self.controller.set_ylim(0, self.data.shape[1])
+            else:
+                self.controller.set_ylim(float(np.nanmin(minmax[:, 0])), float(np.nanmax(minmax[:, 1])))
+            self.canvas.request_draw(self.animate)
 
     def _update(self, action_name):
-        """
-        Update function for sort_by and group_by. Because of mode of sort_by, it's not possible
-        to just update the buffer.
-        """
+        """Refresh the plot after a sort_by, group_by, or toggle_visibility action."""
         if action_name in ["sort_by", "group_by"]:
-            # Update the scale only if one action has been performed
             if self._manager.is_sorted ^ self._manager.is_grouped:
                 self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
 
-            # Specific to PloTsdFrame, the first row should be at 1.
             self._manager.offset = self._manager.offset + 1 - self._manager.offset.min()
-
-            # Update the buffer
-            self._flush()
-
-            # Update camera to fit the full y range
+            self._flush(*self.controller.get_xlim())
             self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
 
-        if action_name in ["toggle_visibility"]:
-            # No need to flush. Just change the colors buffer
-            new_colors = self.graphic.geometry.colors.data.copy()
-            for c, sl in self._buffer_slices.items():
-                if not self._manager.data.loc[c]["visible"]:
-                    new_colors[sl, -1] = 0.0
-                else:
-                    new_colors[sl, -1] = 1.0
-            self.graphic.geometry.colors.set_data(new_colors)
+        if action_name == "toggle_visibility":
+            self._mode.update_visibility()
 
         self.canvas.request_draw(self.animate)
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
-        """
-        Sort the plotted time series lines vertically by a metadata field.
+        """Sort channels vertically by a metadata field.
 
         Parameters
         ----------
@@ -725,40 +654,29 @@ class PlotTsdFrame(_BasePlot):
         mode : str, optional
             "ascending" (default) or "descending".
         """
-        # The current controller should be a span controller.
-
-        # Grabbing the metadata
         values = (
             dict(self.data.get_info(metadata_name))
             if hasattr(self.data, "get_info")
             else {}
         )
-
-        # If metadata found
         if len(values):
-            # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
             self._manager.sort_by(values, metadata_name=metadata_name, mode=mode)
             self._update("sort_by")
 
     def group_by(self, metadata_name: str, **kwargs):
-        """
-        Group the plotted time series lines vertically by a metadata field.
+        """Group channels vertically by a metadata field.
 
         Parameters
         ----------
         metadata_name : str
             Metadata key to group by.
         """
-        # Grabbing the metadata
         values = (
             dict(self.data.get_info(metadata_name))
             if hasattr(self.data, "get_info")
             else {}
         )
-
-        # If metadata found
         if len(values):
-            # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values, metadata_name=metadata_name, **kwargs)
             self._update("group_by")
 
@@ -769,86 +687,43 @@ class PlotTsdFrame(_BasePlot):
         vmin: float = 0.0,
         vmax: float = 100.0,
     ) -> None:
-        """
-        Applies color mapping to plot elements based on a metadata field.
-
-        This method retrieves values from the given metadata field and maps them
-        to colors using the specified colormap and value range. The mapped colors
-        are applied to each plot element's material. If color mappings are still
-        being computed in a background thread, the function retries after a short delay.
+        """Apply color mapping to channels based on a metadata field.
 
         Parameters
         ----------
         metadata_name : str
-            Name of the metadata field used for color mapping.
-        cmap_name : str, default="viridis"
-            Name of the colormap to apply (e.g., "jet", "plasma", "viridis").
-        vmin : float, default=0.0
-            Minimum value for the colormap normalization.
-        vmax : float, default=100.0
-            Maximum value for the colormap normalization.
-
-        Notes
-        -----
-        - If the `color_mapping_thread` is still running, the method defers execution
-          by 25 milliseconds and retries automatically.
-        - If no appropriate color map is found for the metadata, a warning is issued.
-        - Requires `self.data` to support `get_info()` for metadata retrieval.
-        - Triggers a canvas redraw by calling `self.animate()` after updating colors.
-
-        Warnings
-        --------
-        UserWarning
-            Raised when the specified metadata field has no associated color mapping.
+            Metadata field used for color mapping.
+        cmap_name : str, default "viridis"
+            Matplotlib colormap name.
+        vmin : float, default 0.0
+            Minimum value for colormap normalization.
+        vmax : float, default 100.0
+            Maximum value for colormap normalization.
         """
-        # If the color mapping thread is still processing, retry in 25 milliseconds
-        # print(self.color_mapping_thread.color_maps, self.color_mapping_thread.colormap_ready.is_set())
         if not self.color_mapping_thread.colormap_ready.is_set():
-            # print(self.color_mapping_thread.color_maps, self.color_mapping_thread.colormap_ready.is_set())
             slot = lambda: self.color_by(
                 metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
             )
             threading.Timer(0.025, slot).start()
             return
 
-        # Set the current colormap
         self.cmap = cmap_name
-
-        # Get the metadata-to-color mapping function for the given metadata field
         map_to_colors = self.color_mapping_thread.color_maps.get(metadata_name, None)
 
-        # Warn the user if the color map is missing
         if map_to_colors is None:
             warnings.warn(
                 message=f"Cannot find appropriate color mapping for {metadata_name} metadata.",
                 category=UserWarning,
                 stacklevel=2,
             )
+            return
 
-        # Prepare keyword arguments for the color mapping function
-        map_kwargs = trim_kwargs(
-            map_to_colors, dict(cmap=colormaps[self.cmap], vmin=vmin, vmax=vmax)
-        )
-
-        # # Get the material objects that will have their colors updated
-        # materials = get_plot_attribute(self, "material")
-
-        # Get the metadata values for each plotted element
         values = (
             self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
         )
 
-        # If metadata is found and mapping works, update the material colors
-        if len(values):
-            map_color = map_to_colors(values, **map_kwargs)
-            if map_color:
-                for c, sl in self._buffer_slices.items():
-                    self.graphic.geometry.colors.data[sl, :] = map_color[values[c]]
-                    # self.graphic.material.color = map_color[values[c]]
-                self.graphic.geometry.colors.update_full()
-                # Request a redraw of the canvas to reflect the new colors
-                self.canvas.request_draw(self.animate)
-        self._manager.color_by(values, metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
+        self._mode.color_by(cmap_name, metadata_name, vmin, vmax, map_to_colors, values)
+        self.canvas.request_draw(self.animate)
 
     def plot_x_vs_y(
         self,
@@ -858,8 +733,7 @@ class PlotTsdFrame(_BasePlot):
         thickness: float = 1.0,
         markersize: float = 10.0,
     ) -> None:
-        """
-        Plot one column versus another as a line plot.
+        """Plot one column versus another with a time-point marker.
 
         Parameters
         ----------
@@ -867,84 +741,38 @@ class PlotTsdFrame(_BasePlot):
             Column name for the x-axis.
         y_col : str or int or float
             Column name for the y-axis.
-        color : str or hex or RGB, default="white"
+        color : str or tuple, default "white"
             Line color.
-        thickness : float, default=1.0
-            Thickness of the connecting line.
-        markersize : float, default=10.0
+        thickness : float, default 1.0
+            Line thickness.
+        markersize : float, default 10.0
             Size of the time marker.
         """
         if x_col not in self.data.columns or y_col not in self.data.columns:
             raise ValueError(f"Columns {x_col} and {y_col} must be in data columns.")
 
-        # Remove time series line graphics from the scene
-        self.scene.remove(self.graphic)
-        self.scene.remove(self.time_point) if self.time_point else None
+        self.scene.remove(self._mode.graphic)
+        self._switch_controller(self._mode.controller_key, "get")
 
-        # Remove intervals if any
-        if len(self._epochs):
-            keys = list(self._epochs.keys())
-            for epoch in keys:
-                self.remove_interval_set(epoch)
+        self._display_mode = "x_vs_y"
+        self._mode = self._modes["x_vs_y"]
+        self._mode._request_draw = lambda: self.canvas.request_draw(self.animate)
+        self._mode.update_parameters(x_col, y_col, color, thickness, markersize)
+        self._mode.initialize_graphic()
+        self.scene.add(self._mode.graphic)
+        self.scene.add(self._mode.time_point)
 
-        # Get current time from the center reference line
         current_time = self.ruler_ref_time.geometry.positions.data[0][0]
-        self.scene.remove(self.ruler_ref_time)
+        self.controller.frame_index = self.data.get_slice(current_time).start
+        self.controller._current_time = current_time
+        self.controller.data = self.data.loc[[x_col, y_col]]
+        self.controller.buffer = self._mode.time_point.geometry.positions
+        self._mode._update_buffer(self.controller.frame_index)
 
-        # Build new geometry for x-y data
-        xy_values = self.data.loc[[x_col, y_col]].values.astype("float32")
-        positions = np.zeros((len(self.data), 3), dtype="float32")
-        positions[:, 0:2] = xy_values
-
-        # Create new line and add it to the scene
-        self.graphic = gfx.Line(
-            gfx.Geometry(positions=positions),
-            gfx.LineMaterial(thickness=thickness, color=color),
-        )
-        self.scene.add(self.graphic)
-
-        # Create and add a point marker at the current time
-        current_xy = self.data.loc[[x_col, y_col]].get(current_time)
-        xy = np.hstack((current_xy, 1), dtype="float32")[None, :]
-        self.time_point = gfx.Points(
-            gfx.Geometry(positions=xy),
-            gfx.PointsMaterial(size=markersize, color="red", opacity=1),
-        )
-        self.scene.add(self.time_point)
-
-        # Disable span controller and switch to get controller
-        self.controller.enabled = False
-        controller_id = self.controller._controller_id
-
-        get_controller = self._controllers["get"]
-        get_controller.n_frames = len(self.data)
-        get_controller.frame_index = self.data.get_slice(current_time).start
-        get_controller._current_time = current_time
-        get_controller.enabled = True
-        get_controller._controller_id = controller_id
-        get_controller.data = self.data.loc[[x_col, y_col]]
-        get_controller.buffer = self.time_point.geometry.positions
-
-        self.controller = get_controller
-        # In case the plot is part of a ControllerGroup, we need to notify the change
-        self.controller._send_switch_event()
-
-        # Update camera to fit the full x-y range
         self.controller.set_view(
-            np.nanmin(positions[:, 0]),
-            np.nanmax(positions[:, 0]),
-            np.nanmin(positions[:, 1]),
-            np.nanmax(positions[:, 1])
+            np.nanmin(self._mode.buffer[:, 0]), np.nanmax(self._mode.buffer[:, 0]),
+            np.nanmin(self._mode.buffer[:, 1]), np.nanmax(self._mode.buffer[:, 1]),
         )
-
-        self.canvas.request_draw(self.animate)
-
-    def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
-        """
-        For get controller
-        """
-        self.time_point.geometry.positions.data[0,0:2] = self.graphic.geometry.positions.data[frame_index,0:2]
-        self.time_point.geometry.positions.update_full()
         self.canvas.request_draw(self.animate)
 
 
