@@ -1,12 +1,12 @@
 from typing import Callable
 
 from pygfx import renderers
-from wgpu.gui.offscreen import WgpuCanvas
+from rendercanvas.offscreen import RenderCanvas
 
 
 def test_get_event_handle():
     from pynaviz.utils import _get_event_handle
-    canvas = WgpuCanvas()
+    canvas = RenderCanvas()
     renderer = renderers.WgpuRenderer(canvas)
     try:
         func = _get_event_handle(renderer)

@@ -4,7 +4,7 @@ import numpy as np
 import pygfx
 import pytest
 from pygfx import cameras, controllers, renderers
-from wgpu.gui.offscreen import WgpuCanvas
+from rendercanvas.offscreen import RenderCanvas
 
 from pynaviz.controller import SpanController
 from pynaviz.synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
@@ -50,7 +50,7 @@ class TestPynaVizController:
     )
     def test_init_controller_id(self, ctrl_id, expectation):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             with expectation:
@@ -71,7 +71,7 @@ class TestPynaVizController:
     )
     def test_init_sync_func_dict(self, dict_sync, expectation):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             with expectation:
@@ -81,7 +81,7 @@ class TestPynaVizController:
 
     def test_control_id_setter(self):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             ctrl = SpanController(camera, renderer=renderer, controller_id=None)
@@ -95,7 +95,7 @@ class TestPynaVizController:
     @pytest.mark.parametrize("auto_update", [True, False])
     def test_request_draw(self, auto_update):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             ctrl = SpanController(camera, auto_update=auto_update, renderer=renderer, controller_id=None)
@@ -113,7 +113,7 @@ class TestPynaVizController:
     )
     def test_update_event(self, update_type, kwargs):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             ctrl = SpanController(camera, renderer=renderer)
@@ -124,7 +124,7 @@ class TestPynaVizController:
 
     def test_update_zoom(self):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             ctrl = SpanController(camera, renderer=renderer)
@@ -134,7 +134,7 @@ class TestPynaVizController:
 
     def test_update_zoom_to_point(self):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             ctrl = SpanController(camera, renderer=renderer)
@@ -144,7 +144,7 @@ class TestPynaVizController:
 
     def test_update_pan(self):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             ctrl = SpanController(camera, renderer=renderer)
@@ -163,7 +163,7 @@ class TestPynaVizController:
     )
     def test_sync_pan(self, update_dict, expectation, event_pan_update):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             ctrl = SpanController(camera, renderer=renderer, dict_sync_funcs=update_dict)
@@ -183,7 +183,7 @@ class TestPynaVizController:
     )
     def test_sync_zoom(self, update_dict, expectation, event_zoom_update):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             ctrl = SpanController(camera, renderer=renderer, dict_sync_funcs=update_dict)
@@ -203,7 +203,7 @@ class TestPynaVizController:
     )
     def test_sync_zoom_to_point(self, update_dict, expectation, event_zoom_to_point_update):
         camera = pygfx.OrthographicCamera()
-        canvas = WgpuCanvas()
+        canvas = RenderCanvas()
         renderer = renderers.WgpuRenderer(canvas)
         try:
             ctrl = SpanController(camera, renderer=renderer, dict_sync_funcs=update_dict)

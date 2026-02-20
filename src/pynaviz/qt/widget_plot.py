@@ -133,12 +133,12 @@ class TsdWidget(BaseWidget):
 
 class TsdFrameWidget(BaseWidget):
 
-    def __init__(self, data, index=None, size=(640, 480), set_parent=True, interval_sets=None):
+    def __init__(self, data, index=None, size=(640, 480), set_parent=True, interval_sets=None, display_mode="lines"):
         super().__init__(size=size)
 
         # Canvas
         parent = self if set_parent else None
-        self.plot = PlotTsdFrame(data, index=index, parent=parent)
+        self.plot = PlotTsdFrame(data, index=index, parent=parent, display_mode=display_mode)
 
         # Top level menu container
         interval_sets = expand_with_time_support(data.time_support, interval_sets)
@@ -146,9 +146,13 @@ class TsdFrameWidget(BaseWidget):
 
         # Add custom menu items
         self.button_container.action_menu.addSeparator()
-        xvy_action = self.button_container.action_menu.addAction("Plot x vs y")
-        xvy_action.setObjectName("x_vs_y")
-        xvy_action.triggered.connect(self.button_container._popup_menu)
+        for action_name, object_name, func in [
+            ("Plot x vs y", "x_vs_y", self.button_container._popup_menu),
+            ("Toogle display mode (m)", "heatmap", self.button_container._popup_menu),
+        ]:
+            action = self.button_container.action_menu.addAction(action_name)
+            action.setObjectName(object_name)
+            action.triggered.connect(func)
 
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container, 0)
