@@ -333,7 +333,7 @@ class GetController(CustomController):
         controller_id: Optional[int] = None,
         data: Optional[Any] = None,
         buffer: pygfx.Buffer = None,
-        callback: Optional[Callable] = None,
+        plot_callbacks: Optional[list[Callable]] = None,
     ):
         super().__init__(
             camera=camera,
@@ -350,7 +350,7 @@ class GetController(CustomController):
             self._current_time = None
 
         self.buffer = buffer
-        self._plot_callbacks = [callback] if callback is not None else []
+        self._plot_callbacks = list(plot_callbacks) if plot_callbacks is not None else []
 
     def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
         """Set the visible X and Y ranges for an OrthographicCamera."""

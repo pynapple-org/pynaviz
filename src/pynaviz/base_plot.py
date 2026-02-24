@@ -116,7 +116,7 @@ class _BasePlot(IntervalSetInterface):
         Default colormap name used for visual mapping (e.g., "viridis").
     """
 
-    def __init__(self, data, parent=None, maintain_aspect=False):
+    def __init__(self, data, parent=None, maintain_aspect=False, background="black"):
         super().__init__()
 
         # Store the input data for later use
@@ -140,6 +140,10 @@ class _BasePlot(IntervalSetInterface):
 
         # Create a new scene to hold and manage objects
         self.scene = gfx.Scene()
+
+        # Store and optionally render the background color
+        self._background = background
+        self.scene.add(gfx.Background.from_color(background))
 
         # Add a horizontal ruler (x-axis) with ticks above
         self.ruler_x = gfx.Ruler(
@@ -212,6 +216,17 @@ class _BasePlot(IntervalSetInterface):
             )
             return
         self._cmap = value
+
+    def _default_line_color(self):
+        """Return a line color that contrasts with the background.
+
+        Returns "black" for light backgrounds and "white" for dark or unset backgrounds.
+        """
+        if self._background == "black":
+            return "white"
+        c = gfx.Color(self._background)
+        luminance = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+        return "black" if luminance > 0.5 else "white"
 
     def animate(self):
         """
@@ -391,9 +406,10 @@ class PlotTsd(_BasePlot):
     """
 
     def __init__(
-        self, data: nap.Tsd, index: Optional[int] = None, parent: Optional[Any] = None
+        self, data: nap.Tsd, index: Optional[int] = None, parent: Optional[Any] = None,
+        background: Optional[str] = "black",
     ) -> None:
-        super().__init__(data=data, parent=parent)
+        super().__init__(data=data, parent=parent, background=background)
 
         # Create a controller for span-based interaction, syncing, and user inputs
         self.controller = SpanController(
@@ -452,6 +468,8 @@ class PlotTsdFrame(_BasePlot):
         up to 256 MB of memory.
     display_mode : str, default "lines"
         Initial display mode ("lines" or "image"). Toggle with the "m" key.
+    background : str or tuple, optional
+        Background color (e.g. ``"white"``, ``"black"``, ``"#272822"``).
     """
 
     def __init__(
@@ -461,18 +479,20 @@ class PlotTsdFrame(_BasePlot):
         parent: Optional[Any] = None,
         window_size: Optional[float] = None,
         display_mode: str = "lines",
+        background: Optional[str] = "black",
     ):
-        super().__init__(data=data, parent=parent)
+        super().__init__(data=data, parent=parent, background=background)
         self._data = data
 
         if display_mode not in ("lines", "image"):
             raise ValueError(f"display_mode must be 'lines' or 'image', got '{display_mode}'")
         self._display_mode = display_mode
 
+        default_color = self._default_line_color()
         self._modes = {
-            "lines": LinesMode(data, self._manager, window_size),
+            "lines": LinesMode(data, self._manager, window_size, default_color=default_color),
             "image": ImageMode(data, self._manager),
-            "x_vs_y": XvsYMode(data, self._manager),
+            "x_vs_y": XvsYMode(data, self._manager, default_color=default_color),
         }
         self._mode = self._modes[display_mode]
         self._mode.initialize_graphic()
@@ -503,7 +523,7 @@ class PlotTsdFrame(_BasePlot):
                 renderer=self.renderer,
                 data=None,
                 buffer=None,
-                callback=self._modes["x_vs_y"]._update_buffer,
+                plot_callbacks=self._modes["x_vs_y"].get_callbacks(),
                 enabled=False,
             ),
         }
@@ -626,7 +646,10 @@ class PlotTsdFrame(_BasePlot):
                 )
                 self.controller.set_ylim(0, self.data.shape[1])
             else:
-                self.controller.set_ylim(float(np.nanmin(minmax[:, 0])), float(np.nanmax(minmax[:, 1])))
+                if self._manager.is_sorted or self._manager.is_grouped:
+                    self.controller.set_ylim(0, float(np.max(self._manager.offset) + 1))
+                else:
+                    self.controller.set_ylim(float(np.nanmin(minmax[:, 0])), float(np.nanmax(minmax[:, 1])))
             self.canvas.request_draw(self.animate)
 
     def _update(self, action_name):
@@ -729,7 +752,7 @@ class PlotTsdFrame(_BasePlot):
         self,
         x_col: Union[str, int, float],
         y_col: Union[str, int, float],
-        color: Union[str, tuple] = "white",
+        color: Union[str, tuple] = None,
         thickness: float = 1.0,
         markersize: float = 10.0,
     ) -> None:
@@ -741,8 +764,8 @@ class PlotTsdFrame(_BasePlot):
             Column name for the x-axis.
         y_col : str or int or float
             Column name for the y-axis.
-        color : str or tuple, default "white"
-            Line color.
+        color : str or tuple, optional
+            Line color. Defaults to a color that contrasts with the background.
         thickness : float, default 1.0
             Line thickness.
         markersize : float, default 10.0
@@ -757,6 +780,8 @@ class PlotTsdFrame(_BasePlot):
         self._display_mode = "x_vs_y"
         self._mode = self._modes["x_vs_y"]
         self._mode._request_draw = lambda: self.canvas.request_draw(self.animate)
+        if color is None:
+            color = self._default_line_color()
         self._mode.update_parameters(x_col, y_col, color, thickness, markersize)
         self._mode.initialize_graphic()
         self.scene.add(self._mode.graphic)
@@ -794,9 +819,9 @@ class PlotTsGroup(_BasePlot):
         Parent widget in a Qt application, if applicable.
     """
 
-    def __init__(self, data: nap.TsGroup, index=None, parent=None):
+    def __init__(self, data: nap.TsGroup, index=None, parent=None, background: Optional[str] = "black"):
         # Initialize the base plot with provided data
-        super().__init__(data=data, parent=parent)
+        super().__init__(data=data, parent=parent, background=background)
 
         # Pynaviz-specific controller that handles pan/zoom and synchronization
         self.controller = SpanController(
@@ -977,9 +1002,9 @@ class PlotTs(_BasePlot):
 
     """
 
-    def __init__(self, data: nap.Ts, index=None, parent=None):
+    def __init__(self, data: nap.Ts, index=None, parent=None, background: Optional[str] = "black"):
         # Initialize the base plot with provided data
-        super().__init__(data=data, parent=parent)
+        super().__init__(data=data, parent=parent, background=background)
 
         # Disable aspect ratio lock (x and y can scale independently)
         self.camera.maintain_aspect = False
@@ -1090,8 +1115,8 @@ class PlotIntervalSet(_BasePlot):
         Dictionary of rectangle meshes for each interval.
     """
 
-    def __init__(self, data: nap.IntervalSet, index=None, parent=None):
-        super().__init__(data=data, parent=parent)
+    def __init__(self, data: nap.IntervalSet, index=None, parent=None, background: Optional[str] = "black"):
+        super().__init__(data=data, parent=parent, background=background)
         self.camera.maintain_aspect = False
 
         # Pynaviz specific controller

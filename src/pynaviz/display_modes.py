@@ -34,10 +34,11 @@ class LinesMode:
 
     controller_key = "span"
 
-    def __init__(self, data, manager, window_size=None):
+    def __init__(self, data, manager, window_size=None, default_color="white"):
         self.data = data
         self.window_size = window_size
         self.manager = manager
+        self._default_color = default_color
         if window_size is None:
             size = (256 * 1024**2) // (data.shape[1] * 60)
             window_size = np.floor(size / data.rate)
@@ -69,7 +70,11 @@ class LinesMode:
         """Create the gfx.Line graphic (no-op if already created)."""
         if hasattr(self, "graphic"):
             return
-        colors = np.ones((self.buffer.shape[0], 4), dtype=np.float32)
+        c = gfx.Color(self._default_color)
+        colors = np.tile(
+            np.array([c.r, c.g, c.b, c.a], dtype=np.float32),
+            (self.buffer.shape[0], 1),
+        )
         self.graphic = gfx.Line(
             gfx.Geometry(positions=self.buffer, colors=colors),
             gfx.LineMaterial(thickness=1.0, color_mode="vertex"),
@@ -379,13 +384,13 @@ class XvsYMode:
 
     controller_key = "get"
 
-    def __init__(self, data, manager, window_size=None):
+    def __init__(self, data, manager, window_size=None, default_color="white"):
         self.data = data
         self.manager = manager
         self.window_size = window_size
         self.x_col = None
         self.y_col = None
-        self.color = "white"
+        self.color = default_color
         self.thickness = 1.0
         self.markersize = 10.0
         self._request_draw = None
@@ -405,13 +410,18 @@ class XvsYMode:
             gfx.PointsMaterial(size=self.markersize, color="red", opacity=1),
         )
 
-    def update_parameters(self, x_col, y_col, color="white", thickness=1.0, markersize=10.0):
+    def update_parameters(self, x_col, y_col, color=None, thickness=1.0, markersize=10.0):
         """Set plotting parameters before calling initialize_graphic."""
         self.x_col = x_col
         self.y_col = y_col
-        self.color = color
+        if color is not None:
+            self.color = color
         self.thickness = thickness
         self.markersize = markersize
+
+    def get_callbacks(self):
+        """Return the frame-update callback for the GetController."""
+        return [self._update_buffer]
 
     def _update_buffer(self, frame_index, event_type=None):
         """Move the time-point marker to the given frame index."""
