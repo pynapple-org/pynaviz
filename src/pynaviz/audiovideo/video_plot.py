@@ -125,7 +125,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
             controller_id=index,
             data=self._data,
             buffer=self.texture,
-            callback=self._update_buffer,
+            plot_callbacks=[self._update_buffer],
         )
 
         # List to hold time series points that can be superposed

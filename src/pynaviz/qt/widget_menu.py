@@ -12,6 +12,7 @@ Main Classes:
 """
 
 from collections import OrderedDict
+from types import SimpleNamespace
 from typing import Any, Callable
 
 import numpy as np
@@ -443,6 +444,9 @@ class MenuWidget(QWidget):
             return
         if popup_name in ["overlay_time_series", "overlay_skeleton"]:
             self.show_overlay_menu(popup_name)
+            return
+        if popup_name == "heatmap":
+            self.plot._toggle_display_mode(SimpleNamespace(type="key_down", key="m"))
             return
 
         kwargs = get_popup_kwargs(popup_name, self, action)

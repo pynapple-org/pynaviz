@@ -19,6 +19,8 @@ class TsdFrameStreaming:
         A function that receives a slice object indicating the time window to display.
     window_size : float
         The size of the time window (in same units as TsdFrame timestamps).
+        Window_size determines the base resolution of the streaming. The class will attempt to
+        maintain a window of this size, adjusting the slice as the user pans or zooms.
     """
 
     def __init__(self, data: nap.TsdFrame, callback: Callable[[slice], None], window_size: float):
@@ -89,8 +91,6 @@ class TsdFrameStreaming:
             Additional arguments passed to the callback (not used in this base class).
         """
         new_slice_ = self.get_slice(position[0] - width / 2, position[0] + width / 2)
-
-        # print(self._slice_, new_slice_)
 
         if new_slice_ == self._slice_:
             if not self._flushed:
