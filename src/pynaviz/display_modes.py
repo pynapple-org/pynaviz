@@ -112,6 +112,7 @@ class LinesMode:
                 else:
                     right_offset = time.shape[0] - self.stream._max_n
 
+            # Load the current slice of data into the buffer, applying scale and offset.
             data = np.array(self.data.values[slice_, :])
 
             for i, c in enumerate(self.data.columns):

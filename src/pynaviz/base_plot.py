@@ -29,7 +29,6 @@ from .synchronization_rules import (
 from .threads.metadata_to_color_maps import MetadataMappingThread
 from .utils import (
     GRADED_COLOR_LIST,
-    RenderTriggerSource,
     get_plot_attribute,
     get_plot_min_max,
     trim_kwargs,
