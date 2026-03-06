@@ -180,7 +180,8 @@ class IntervalSetsDialog(QDialog):
         header = self.view.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         header.setStretchLastSection(True)
-        self.view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        self.view.verticalHeader().setDefaultSectionSize(28)
 
 
         color_delegate = ComboDelegate(self.view)

@@ -205,7 +205,7 @@ class ImageMode:
         Maximum number of time points in the image buffer (GPU texture width).
     """
 
-    controller_key = "span_ylock"
+    controller_key = "span_image"
 
     def __init__(self, data, manager, max_n=16384):
         self.data = data
@@ -287,6 +287,8 @@ class ImageMode:
         # Align image pixels to actual time positions on the x-axis.
         # Uses n_filled (actual data pixels) not buffer width, otherwise the
         # image is compressed when data doesn't fill the entire buffer.
+        if n_filled == 0:
+            return
         self.graphic.local.x = t_start
         self.graphic.local.scale_x = (t_end - t_start) / n_filled
 

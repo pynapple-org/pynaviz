@@ -114,26 +114,31 @@ class HelpBox(QFrame):
             "Play/Pause: Space\n"
             "Save layout: Ctrl+s\n"
             "Load layout: Ctrl+o\n"
-            "Reset view: r\n\n"
+            "Reset view: r\n"
+            "Pan left/right by one page: <- / ->\n"
+            "Jump to next/prev superposed epoch: Ctrl+-> / Ctrl+<-\n"
+            "Lock/unlock y-axis: y\n"
+            "Lock/unlock x-axis: x\n\n"
             "Specific to TsdFrame:\n"
             "Increase contrast: i\n"
             "Decrease contrast: d\n\n"
+            "Specific to TsGroup:\n"
+            "Increase marker size: i\n"
+            "Decrease marker size: d\n\n"
             "Specific to IntervalSet & Timestamps:\n"
-            "Jump to next interval/timestamp: n or ->\n"
-            "Jump to previous interval/timestamp: p or <-\n"
+            "Jump to next interval/timestamp: n or Ctrl+->\n"
+            "Jump to previous interval/timestamp: p or Ctrl+<-\n"
         )
 
         # Frameless floating box
         self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
         self.setFrameShape(QFrame.Shape.Box)
         self.setLineWidth(1)
-        self.setFixedSize(800, 600)
 
         # Layout with help text
         layout = QVBoxLayout(self)
         label = QLabel(text)
         label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        label.setWordWrap(True)
         layout.addWidget(label)
 
         # Add close button
@@ -911,6 +916,11 @@ def _extract_name_value(v: Any):
         return _filter_paths(str(v))
 
     if hasattr(v, "__module__"):
+        if isinstance(v, nap.NWBFile):
+            nap_obj_dict = {}
+            for key in v.keys():
+                nap_obj_dict[key] = NWBReference(nwb_file=v, key=key)
+            return v.__class__.__name__, nap_obj_dict
         if "pynapple" in v.__module__:
             return v.__class__.__name__, v
         if "pynaviz" in v.__module__ and isinstance(v, VideoHandler):
@@ -927,6 +937,12 @@ def get_pynapple_variables(
 
     if isinstance(variables, str):
         variables = [variables]
+
+    if isinstance(variables, nap.NWBFile):
+        new_vars = {}
+        for key in variables.keys():
+            new_vars[key] = NWBReference(nwb_file=variables, key=key)
+        return new_vars
 
     new_vars = {}
 

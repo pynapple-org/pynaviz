@@ -318,6 +318,45 @@ class SpanYLockController(SpanController):
         return super()._zoom(fx, 1, cam_state)
 
 
+class SpanXLockController(SpanController):
+    """
+    Vertical panning with x-axis locked (prevents horizontal pan/zoom).
+    """
+
+    def _update_pan(self, delta, *, vecx, vecy):
+        """Update pan in y axis only, forcing vecx to be 0."""
+        super()._update_pan(delta, vecx=0, vecy=vecy)
+
+    def _update_zoom(self, delta):
+        """Zoom in y axis only, enforcing fx to be 1."""
+        if isinstance(delta, (int, float)):
+            delta = (delta, delta)
+        assert isinstance(delta, tuple) and len(delta) == 2
+
+        fy = 2 ** delta[1]
+        new_cam_state = self._zoom(1, fy, self._get_camera_state())
+        self._set_camera_state(new_cam_state)
+        self._send_sync_event(
+            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
+        )
+
+    def _zoom(self, fx, fy, cam_state):
+        """Zoom in y axis only, enforcing fx to be 1."""
+        return super()._zoom(1, fy, cam_state)
+
+
+class SpanXYLockController(SpanController):
+    """
+    Both axes locked — no manual pan or zoom. Playback (advance) still works.
+    """
+
+    def _update_pan(self, delta, *, vecx, vecy):
+        pass  # no-op
+
+    def _update_zoom(self, delta):
+        pass  # no-op
+
+
 class GetController(CustomController):
     """
     The class for grabbing a single time point
