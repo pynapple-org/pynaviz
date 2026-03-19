@@ -17,7 +17,13 @@ import pynapple as nap
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
 
-from .controller import GetController, SpanController, SpanXLockController, SpanXYLockController, SpanYLockController
+from .controller import (
+    GetController,
+    SpanController,
+    SpanXLockController,
+    SpanXYLockController,
+    SpanYLockController,
+)
 from .display_modes import ImageMode, LinesMode, XvsYMode
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
