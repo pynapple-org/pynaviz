@@ -1,6 +1,8 @@
-import multiprocessing as mp
 import queue
-from multiprocessing import Event, Lock, Queue, shared_memory
+from multiprocessing import shared_memory
+
+import multiprocessing as mp
+_mp_ctx = mp.get_context("spawn")
 
 import numpy as np
 import pytest
@@ -91,11 +93,11 @@ def mp_primitives():
     Creates multiprocessing communication primitives.
     """
     return {
-        'request_queue': Queue(),
-        'response_queue': Queue(),
-        'frame_ready': Event(),
-        'stop_event': Event(),
-        'buffer_lock': Lock(),
+        'request_queue': _mp_ctx.Queue(),
+        'response_queue': _mp_ctx.Queue(),
+        'frame_ready': _mp_ctx.Event(),
+        'stop_event': _mp_ctx.Event(),
+        'buffer_lock': _mp_ctx.Lock(),
     }
 
 
@@ -121,7 +123,7 @@ def test_worker_starts_and_stops_cleanly(
     print(f"Using video: {video_config['video_path']}")
 
     # Start the worker process
-    process = mp.Process(
+    process = _mp_ctx.Process(
         target=video_worker_process,
         args=(
             video_config['video_path'],
@@ -208,7 +210,7 @@ def test_worker_processes_frame_request(
     print(f"\n=== TEST 2: Process Frame Request (trigger={trigger_source}) ===")
 
     # Start worker
-    process = mp.Process(
+    process = _mp_ctx.Process(
         target=video_worker_process,
         args=(
             video_config['video_path'],
@@ -326,7 +328,7 @@ def test_worker_processes_frame_last_request(
     print(f"\n=== TEST 2: Process Frame Request (trigger={trigger_source}) ===")
 
     # Start worker
-    process = mp.Process(
+    process = _mp_ctx.Process(
         target=video_worker_process,
         args=(
             video_config['video_path'],

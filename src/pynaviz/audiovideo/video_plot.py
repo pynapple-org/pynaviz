@@ -12,8 +12,11 @@ import sys
 import threading
 import weakref
 from abc import ABC, abstractmethod
-from multiprocessing import Event, Process, Queue, current_process, set_start_method, shared_memory
+import multiprocessing
+from multiprocessing import Event, Queue, current_process, set_start_method, shared_memory
 from multiprocessing import Lock as MultiProcessLock
+
+_mp_ctx = multiprocessing.get_context("spawn")
 from typing import Any, Optional
 
 import av
@@ -340,7 +343,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
             # Worker process to read video frames asynchronously
             self.worker_lock = MultiProcessLock()
-            self._worker = Process(
+            self._worker = _mp_ctx.Process(
                 target=video_worker_process,
                 args=(
                     video_path,
