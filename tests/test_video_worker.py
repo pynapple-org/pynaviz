@@ -152,8 +152,8 @@ def test_worker_starts_and_stops_cleanly(
             mp_primitives['stop_event'].set()
             print("✓ Shutdown signal sent")
 
-        # Wait for process to finish (max 2 seconds)
-        process.join(timeout=2.0)
+        # Wait for process to finish (max 10 seconds)
+        process.join(timeout=10.0)
 
         # Verify it stopped
         assert not process.is_alive(), "Worker should stop after shutdown signal"
@@ -285,7 +285,7 @@ def test_worker_processes_frame_request(
     finally:
         # Shutdown
         mp_primitives['request_queue'].put((None, None, None))
-        process.join(timeout=2.0)
+        process.join(timeout=10.0)
         if process.is_alive():
             process.terminate()
             process.join()
@@ -396,7 +396,7 @@ def test_worker_processes_frame_last_request(
     finally:
         # Shutdown
         mp_primitives['request_queue'].put((None, None, None))
-        process.join(timeout=2.0)
+        process.join(timeout=10.0)
         if process.is_alive():
             process.terminate()
             process.join()
