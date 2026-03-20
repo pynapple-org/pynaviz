@@ -1,9 +1,6 @@
+import multiprocessing as mp
 import queue
 from multiprocessing import shared_memory
-
-import multiprocessing as mp
-# Enforce spawn for linux too (consistent with macOS and windows)
-_mp_ctx = mp.get_context("spawn")
 
 import numpy as np
 import pytest
@@ -11,6 +8,8 @@ import pytest
 from pynaviz.audiovideo.video_worker import video_worker_process
 from pynaviz.utils import RenderTriggerSource
 
+# Enforce spawn for linux too (consistent with macOS and windows)
+_mp_ctx = mp.get_context("spawn")
 
 @pytest.fixture
 def test_video_path():
