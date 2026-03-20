@@ -17,7 +17,13 @@ import pynapple as nap
 from matplotlib.colors import Colormap
 from matplotlib.pyplot import colormaps
 
-from .controller import GetController, SpanController, SpanYLockController
+from .controller import (
+    GetController,
+    SpanController,
+    SpanXLockController,
+    SpanXYLockController,
+    SpanYLockController,
+)
 from .display_modes import ImageMode, LinesMode, XvsYMode
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
@@ -181,6 +187,14 @@ class _BasePlot(IntervalSetInterface):
         else:
             index = []
         self._manager = _PlotManager(index=index, base_plot=self)
+
+        # Axis lock state — toggled by "y" and "x" keys
+        self._y_locked = False
+        self._x_locked = False
+        self._active_controller_key = None  # set by subclasses that use _controllers
+
+        # Register epoch-jump handler for all plot types (no-op until epochs are added)
+        self.renderer.add_event_handler(self._jump_epoch, "key_down")
 
 
     @property
@@ -363,6 +377,106 @@ class _BasePlot(IntervalSetInterface):
     def group_by(self, metadata_name: str):
         pass
 
+    def _switch_controller(self, from_key, to_key):
+        """Disable *from_key* controller, enable *to_key*, and transfer the ID."""
+        old = self._controllers[from_key]
+        new = self._controllers[to_key]
+        old.enabled = False
+        cid = old._controller_id
+        new.enabled = True
+        if new._controller_id is None:
+            new.controller_id = cid
+        self.controller = new
+        self._active_controller_key = to_key
+        self.controller._send_switch_event()
+
+    def _get_span_lock_key(self):
+        """Return the controller key matching the current y/x lock state."""
+        # In image mode Y is always locked by the display; only x-lock varies.
+        if self._active_controller_key in ("span_image", "span_image_xlock"):
+            return "span_image_xlock" if self._x_locked else "span_image"
+        # Lines mode: full 4-way matrix
+        if self._y_locked and self._x_locked:
+            return "span_xylock"
+        elif self._y_locked:
+            return "span_ylock"
+        elif self._x_locked:
+            return "span_xlock"
+        return "span"
+
+    def _toggle_y_lock(self, event):
+        """Toggle y-axis lock on 'y' keypress."""
+        if event.type != "key_down" or event.key != "y":
+            return
+        if self._active_controller_key not in ("span", "span_ylock", "span_xlock", "span_xylock"):
+            return
+        self._y_locked = not self._y_locked
+        self._switch_controller(self._active_controller_key, self._get_span_lock_key())
+
+    def _toggle_x_lock(self, event):
+        """Toggle x-axis lock on 'x' keypress."""
+        if event.type != "key_down" or event.key != "x":
+            return
+        if self._active_controller_key not in (
+            "span", "span_ylock", "span_xlock", "span_xylock",
+            "span_image", "span_image_xlock",
+        ):
+            return
+        self._x_locked = not self._x_locked
+        self._switch_controller(self._active_controller_key, self._get_span_lock_key())
+
+    def _page_pan(self, event):
+        """Pan left/right by one full x-axis width on ArrowLeft/ArrowRight (no modifier)."""
+        if event.type != "key_down":
+            return
+        if event.key not in ("ArrowLeft", "ArrowRight"):
+            return
+        if "Control" in event.modifiers:
+            return  # Ctrl+Arrow is reserved for jump-to-interval
+        if not isinstance(self.controller, SpanController):
+            return
+        xmin, xmax = self.controller.get_xlim()
+        width = xmax - xmin
+        if event.key == "ArrowRight":
+            self.controller.set_xlim(xmin + width, xmax + width)
+        else:
+            self.controller.set_xlim(xmin - width, xmax - width)
+
+    def jump_to_next_epoch(self) -> None:
+        """Jump to the start of the next superposed epoch (across all added interval sets)."""
+        if not self._epochs:
+            return
+        all_starts = np.sort(np.concatenate([ep.start for ep in self._epochs.values()]))
+        current_t = self.controller._get_camera_state()["position"][0]
+        index = np.searchsorted(all_starts, current_t, side="right")
+        index = np.clip(index, 0, len(all_starts) - 1)
+        new_t = all_starts[index]
+        if new_t > current_t:
+            self.controller.go_to(new_t)
+
+    def jump_to_previous_epoch(self) -> None:
+        """Jump to the start of the previous superposed epoch (across all added interval sets)."""
+        if not self._epochs:
+            return
+        all_starts = np.sort(np.concatenate([ep.start for ep in self._epochs.values()]))
+        current_t = self.controller._get_camera_state()["position"][0]
+        index = np.searchsorted(all_starts, current_t, side="left") - 1
+        index = np.clip(index, 0, len(all_starts) - 1)
+        new_t = all_starts[index]
+        if new_t < current_t:
+            self.controller.go_to(new_t)
+
+    def _jump_epoch(self, event):
+        """Jump to next/previous superposed epoch on Ctrl+Arrow (when epochs are present)."""
+        if event.type != "key_down" or "Control" not in event.modifiers:
+            return
+        if not self._epochs:
+            return
+        if event.key == "ArrowRight":
+            self.jump_to_next_epoch()
+        elif event.key == "ArrowLeft":
+            self.jump_to_previous_epoch()
+
     def close(self):
         if hasattr(self, "color_mapping_thread"):
             self.color_mapping_thread.shutdown()
@@ -410,14 +524,16 @@ class PlotTsd(_BasePlot):
     ) -> None:
         super().__init__(data=data, parent=parent, background=background)
 
-        # Create a controller for span-based interaction, syncing, and user inputs
-        self.controller = SpanController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,
-            plot_callbacks=[],
-        )
+        # Create controllers for span-based interaction (with optional axis locks)
+        _ctrl_kwargs = dict(camera=self.camera, renderer=self.renderer, dict_sync_funcs=dict_sync_funcs, plot_callbacks=[])
+        self._controllers = {
+            "span": SpanController(controller_id=index, **_ctrl_kwargs),
+            "span_ylock": SpanYLockController(enabled=False, **_ctrl_kwargs),
+            "span_xlock": SpanXLockController(enabled=False, **_ctrl_kwargs),
+            "span_xylock": SpanXYLockController(enabled=False, **_ctrl_kwargs),
+        }
+        self._active_controller_key = "span"
+        self.controller = self._controllers["span"]
 
         # Prepare geometry: stack time, data, and zeros (Z=0) into (N, 3) float32 positions
         positions = np.stack((data.t, data.d, np.zeros_like(data.d))).T
@@ -431,6 +547,11 @@ class PlotTsd(_BasePlot):
 
         # Add rulers and line to the scene
         self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time, self.line)
+
+        # Register key handlers for axis lock toggles and panning
+        self.renderer.add_event_handler(self._toggle_y_lock, "key_down")
+        self.renderer.add_event_handler(self._toggle_x_lock, "key_down")
+        self.renderer.add_event_handler(self._page_pan, "key_down")
 
         # By default showing only the first second.
         # Weirdly rulers don't show if show_rect is not called
@@ -501,21 +622,45 @@ class PlotTsdFrame(_BasePlot):
         self.renderer.add_event_handler(self._rescale, "key_down")
         self.renderer.add_event_handler(self._reset, "key_down")
         self.renderer.add_event_handler(self._toggle_display_mode, "key_down")
+        self.renderer.add_event_handler(self._toggle_y_lock, "key_down")
+        self.renderer.add_event_handler(self._toggle_x_lock, "key_down")
+        self.renderer.add_event_handler(self._page_pan, "key_down")
 
+        _span_kwargs = dict(camera=self.camera, renderer=self.renderer, dict_sync_funcs=dict_sync_funcs)
+        _lines_cbs = self._modes["lines"].get_callbacks()
         self._controllers = {
             "span": SpanController(
-                camera=self.camera,
-                renderer=self.renderer,
                 controller_id=index,
-                dict_sync_funcs=dict_sync_funcs,
-                plot_callbacks=self._modes["lines"].get_callbacks(),
+                plot_callbacks=_lines_cbs,
+                **_span_kwargs,
             ),
+            # y-lock toggled by the user in lines mode — uses lines callbacks
             "span_ylock": SpanYLockController(
-                camera=self.camera,
-                renderer=self.renderer,
-                dict_sync_funcs=dict_sync_funcs,
+                plot_callbacks=_lines_cbs,
+                enabled=False,
+                **_span_kwargs,
+            ),
+            # image mode controller — uses image callbacks, key separate from span_ylock
+            "span_image": SpanYLockController(
                 plot_callbacks=self._modes["image"].get_callbacks(),
                 enabled=False,
+                **_span_kwargs,
+            ),
+            # image mode + x-axis locked
+            "span_image_xlock": SpanXYLockController(
+                plot_callbacks=self._modes["image"].get_callbacks(),
+                enabled=False,
+                **_span_kwargs,
+            ),
+            "span_xlock": SpanXLockController(
+                plot_callbacks=_lines_cbs,
+                enabled=False,
+                **_span_kwargs,
+            ),
+            "span_xylock": SpanXYLockController(
+                plot_callbacks=_lines_cbs,
+                enabled=False,
+                **_span_kwargs,
             ),
             "get": GetController(
                 camera=self.camera,
@@ -536,6 +681,7 @@ class PlotTsdFrame(_BasePlot):
                 self.controller = ctrl
             else:
                 ctrl.enabled = False
+        self._active_controller_key = initial_key
 
         self._flush(start=0, end=1)
 
@@ -583,7 +729,9 @@ class PlotTsdFrame(_BasePlot):
         if event.type == "key_down" and event.key == "r":
             if self._display_mode == "image":
                 self.scene.remove(self._mode.graphic)
-                self._switch_controller("span_ylock", "span")
+                self._y_locked = False
+                self._x_locked = False
+                self._switch_controller(self._active_controller_key, "span")
                 self._display_mode = "lines"
                 self._mode = self._modes["lines"]
                 self._mode.initialize_graphic()
@@ -592,7 +740,9 @@ class PlotTsdFrame(_BasePlot):
             elif self._display_mode == "x_vs_y":
                 self.scene.remove(self._mode.graphic)
                 self.scene.remove(self._mode.time_point)
-                self._switch_controller("get", "span")
+                self._y_locked = False
+                self._x_locked = False
+                self._switch_controller(self._active_controller_key, "span")
                 self.scene.add(self.ruler_ref_time)
                 self._display_mode = "lines"
                 self._mode = self._modes["lines"]
@@ -606,25 +756,15 @@ class PlotTsdFrame(_BasePlot):
             self.controller.set_ylim(float(np.nanmin(minmax[:, 0])), float(np.nanmax(minmax[:, 1])))
             self.canvas.request_draw(self.animate)
 
-    def _switch_controller(self, from_key, to_key):
-        """Disable *from_key* controller, enable *to_key*, and transfer the ID."""
-        old = self._controllers[from_key]
-        new = self._controllers[to_key]
-        old.enabled = False
-        cid = old._controller_id
-        new.enabled = True
-        if new._controller_id is None:
-            new.controller_id = cid
-        self.controller = new
-        self.controller._send_switch_event()
-
     def _toggle_display_mode(self, event):
         """Toggle between 'lines' and 'image' on 'm' key."""
         if event.type == "key_down" and event.key == "m":
             if not isinstance(self.controller, SpanController):
                 return
 
-            old_key = self._mode.controller_key
+            old_key = self._active_controller_key
+            self._y_locked = False
+            self._x_locked = False
             self.scene.remove(self._mode.graphic)
 
             self._display_mode = "image" if self._display_mode == "lines" else "lines"
@@ -822,13 +962,16 @@ class PlotTsGroup(_BasePlot):
         # Initialize the base plot with provided data
         super().__init__(data=data, parent=parent, background=background)
 
-        # Pynaviz-specific controller that handles pan/zoom and synchronization
-        self.controller = SpanController(
-            camera=self.camera,
-            renderer=self.renderer,
-            controller_id=index,
-            dict_sync_funcs=dict_sync_funcs,  # shared synchronization registry
-        )
+        # Create controllers for span-based interaction (with optional axis locks)
+        _ctrl_kwargs = dict(camera=self.camera, renderer=self.renderer, dict_sync_funcs=dict_sync_funcs)
+        self._controllers = {
+            "span": SpanController(controller_id=index, **_ctrl_kwargs),
+            "span_ylock": SpanYLockController(enabled=False, **_ctrl_kwargs),
+            "span_xlock": SpanXLockController(enabled=False, **_ctrl_kwargs),
+            "span_xylock": SpanXYLockController(enabled=False, **_ctrl_kwargs),
+        }
+        self._active_controller_key = "span"
+        self.controller = self._controllers["span"]
 
         # Store PyGFX graphics objects (one per unit in TsGroup)
         self.graphic = {}
@@ -866,8 +1009,12 @@ class PlotTsGroup(_BasePlot):
             *list(self.graphic.values()),
         )
 
-        # Connect a key event handler ("r" key resets the view)
+        # Connect key event handlers
+        self.renderer.add_event_handler(self._rescale, "key_down")
         self.renderer.add_event_handler(self._reset, "key_down")
+        self.renderer.add_event_handler(self._toggle_y_lock, "key_down")
+        self.renderer.add_event_handler(self._toggle_x_lock, "key_down")
+        self.renderer.add_event_handler(self._page_pan, "key_down")
 
         # By default, show the first second and full raster vertically
         self.controller.set_view(0, 1, 0, np.max(self._manager.offset) + 1)
@@ -892,6 +1039,15 @@ class PlotTsGroup(_BasePlot):
                 "float32"
             )
             self._buffers[c].update_full()
+
+    def _rescale(self, event):
+        """Increase ('i') or decrease ('d') spike marker size."""
+        if event.type != "key_down" or event.key not in ("i", "d"):
+            return
+        factor = 1.2 if event.key == "i" else 1 / 1.2
+        for pts in self.graphic.values():
+            pts.material.size = max(1.0, pts.material.size * factor)
+        self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
         """
@@ -1045,6 +1201,7 @@ class PlotTs(_BasePlot):
 
         # Connect key event handler for jumping to next/previous timestamp
         self.renderer.add_event_handler(self._jump, "key_down")
+        self.renderer.add_event_handler(self._page_pan, "key_down")
 
         # Adjust camera to show full data range:
         self.controller.set_view(0, 1, -0.1, 1.0)
@@ -1062,9 +1219,13 @@ class PlotTs(_BasePlot):
             Key event containing type and pressed key.
         """
         if event.type == "key_down":
-            if event.key == "ArrowRight" or event.key == "n":
+            ctrl = "Control" in event.modifiers
+            # Ctrl+Arrow defers to _jump_epoch when superposed epochs are present
+            if ctrl and self._epochs:
+                return
+            if (ctrl and event.key == "ArrowRight") or event.key == "n":
                 self.jump_next()
-            elif event.key == "ArrowLeft" or event.key == "p":
+            elif (ctrl and event.key == "ArrowLeft") or event.key == "p":
                 self.jump_previous()
 
     def jump_next(self) -> None:
@@ -1136,11 +1297,35 @@ class PlotIntervalSet(_BasePlot):
         # Connect specific event handler for IntervalSet
         self.renderer.add_event_handler(self._reset, "key_down")
         self.renderer.add_event_handler(self._jump, "key_down")
+        self.renderer.add_event_handler(self._page_pan, "key_down")
 
         # By default, showing only the first second.
         self.controller.set_view(0, 1, -0.1, 1)
 
         self.canvas.request_draw(self.animate)
+
+    def _create_and_plot_rectangle(self, epoch, color, transparency):
+        """Create one mesh per interval for independent vertical positioning."""
+        _, _, ymin, ymax = get_plot_min_max(self)
+        color = gfx.Color(*gfx.Color(color).rgb, transparency)
+        height = ymax - ymin
+        mesh_dict = dict()
+        ruler = getattr(self, "ruler_x", None)
+        depth = (ruler.start_pos[-1] - 1) if ruler is not None else -1001.0
+
+        for i, ep in enumerate(epoch):
+            width = ep.end[0] - ep.start[0]
+            geom = gfx.plane_geometry(width, height)
+            material = gfx.MeshBasicMaterial(color=color, pick_write=True)
+            mesh = gfx.Mesh(geom, material)
+            mesh.local.position = np.array(
+                [ep.start[0] + width / 2, ymin + height / 2, depth], dtype=np.float32
+            )
+            mesh_dict[i] = mesh
+
+        self.scene.add(*mesh_dict.values())
+        self.canvas.request_draw(self.animate)
+        return mesh_dict
 
     def _reset(self, event):
         """
@@ -1246,9 +1431,13 @@ class PlotIntervalSet(_BasePlot):
             Key event containing type and pressed key.
         """
         if event.type == "key_down":
-            if event.key == "ArrowRight" or event.key == "n":
+            ctrl = "Control" in event.modifiers
+            # Ctrl+Arrow defers to _jump_epoch when superposed epochs are present
+            if ctrl and self._epochs:
+                return
+            if (ctrl and event.key == "ArrowRight") or event.key == "n":
                 self.jump_next()
-            elif event.key == "ArrowLeft" or event.key == "p":
+            elif (ctrl and event.key == "ArrowLeft") or event.key == "p":
                 self.jump_previous()
 
     def jump_next(self) -> None:

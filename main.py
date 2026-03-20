@@ -52,3 +52,4 @@ df[y_col] = df[y_col]*-1 + 480 # Flipping y axis
 skeleton = nap.TsdFrame(t=df.index.values/30, d=df.values, columns=df.columns)
 
 scope(globals())
+

@@ -405,7 +405,8 @@ class MenuWidget(QWidget):
         if hasattr(self.plot, "_controllers"):
             # If 'get' controller is enabled (i.e., in x vs y mode),
             # Need to disable all others actions
-            if self.plot._controllers["get"].enabled:
+            get_ctrl = self.plot._controllers.get("get")
+            if get_ctrl is not None and get_ctrl.enabled:
                 for act in self.action_menu.actions():
                     act.setEnabled(act.objectName() == "x_vs_y")
             else:
@@ -420,7 +421,8 @@ class MenuWidget(QWidget):
         if hasattr(self.plot, "_controllers"):
             # If 'get' controller is enabled (i.e., in x vs y mode),
             # Need to disable channel selection
-            if self.plot._controllers["get"].enabled:
+            get_ctrl = self.plot._controllers.get("get")
+            if get_ctrl is not None and get_ctrl.enabled:
                 return
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.show()
