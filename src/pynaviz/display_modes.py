@@ -215,6 +215,9 @@ class ImageMode:
         self.stream = TsdFrameStreaming(
             data, callback=self.flush, window_size=self.window_size
         )
+        # Clamp to max_n: floating-point rounding in _get_slice can yield
+        # _max_n = max_n + 1, which would exceed the GPU texture size limit.
+        self.stream._max_n = min(self.stream._max_n, max_n)
 
         self.buffer = np.zeros((data.shape[1], self.stream._max_n), dtype="float32")
         self._n_visible = data.shape[1]
