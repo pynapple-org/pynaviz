@@ -1,6 +1,6 @@
 import multiprocessing as mp
 import queue
-from multiprocessing import Event, Lock, Queue, shared_memory
+from multiprocessing import shared_memory
 
 import numpy as np
 import pytest
@@ -8,6 +8,8 @@ import pytest
 from pynaviz.audiovideo.video_worker import video_worker_process
 from pynaviz.utils import RenderTriggerSource
 
+# Enforce spawn for linux too (consistent with macOS and windows)
+_mp_ctx = mp.get_context("spawn")
 
 @pytest.fixture
 def test_video_path():
@@ -91,11 +93,11 @@ def mp_primitives():
     Creates multiprocessing communication primitives.
     """
     return {
-        'request_queue': Queue(),
-        'response_queue': Queue(),
-        'frame_ready': Event(),
-        'stop_event': Event(),
-        'buffer_lock': Lock(),
+        'request_queue': _mp_ctx.Queue(),
+        'response_queue': _mp_ctx.Queue(),
+        'frame_ready': _mp_ctx.Event(),
+        'stop_event': _mp_ctx.Event(),
+        'buffer_lock': _mp_ctx.Lock(),
     }
 
 
@@ -121,7 +123,7 @@ def test_worker_starts_and_stops_cleanly(
     print(f"Using video: {video_config['video_path']}")
 
     # Start the worker process
-    process = mp.Process(
+    process = _mp_ctx.Process(
         target=video_worker_process,
         args=(
             video_config['video_path'],
@@ -152,8 +154,8 @@ def test_worker_starts_and_stops_cleanly(
             mp_primitives['stop_event'].set()
             print("✓ Shutdown signal sent")
 
-        # Wait for process to finish (max 2 seconds)
-        process.join(timeout=2.0)
+        # Wait for process to finish (max 10 seconds)
+        process.join(timeout=10.0)
 
         # Verify it stopped
         assert not process.is_alive(), "Worker should stop after shutdown signal"
@@ -208,7 +210,7 @@ def test_worker_processes_frame_request(
     print(f"\n=== TEST 2: Process Frame Request (trigger={trigger_source}) ===")
 
     # Start worker
-    process = mp.Process(
+    process = _mp_ctx.Process(
         target=video_worker_process,
         args=(
             video_config['video_path'],
@@ -234,8 +236,8 @@ def test_worker_processes_frame_request(
         print(f"Requesting frame at index {requested_idx}")
         mp_primitives['request_queue'].put((requested_idx, move_key_frame, trigger_source))
 
-        # Wait for frame_ready event (max 2 seconds)
-        is_ready = mp_primitives['frame_ready'].wait(timeout=2.0)
+        # Wait for frame_ready event (longer timeout needed with spawn start method)
+        is_ready = mp_primitives['frame_ready'].wait(timeout=15.0)
         assert is_ready, "frame_ready Event should be set within timeout"
         print("✓ frame_ready Event was set")
 
@@ -285,7 +287,7 @@ def test_worker_processes_frame_request(
     finally:
         # Shutdown
         mp_primitives['request_queue'].put((None, None, None))
-        process.join(timeout=2.0)
+        process.join(timeout=10.0)
         if process.is_alive():
             process.terminate()
             process.join()
@@ -326,7 +328,7 @@ def test_worker_processes_frame_last_request(
     print(f"\n=== TEST 2: Process Frame Request (trigger={trigger_source}) ===")
 
     # Start worker
-    process = mp.Process(
+    process = _mp_ctx.Process(
         target=video_worker_process,
         args=(
             video_config['video_path'],
@@ -353,8 +355,8 @@ def test_worker_processes_frame_last_request(
         for i in [3, 2, 1, 0]:
             mp_primitives['request_queue'].put((requested_idx - i, move_key_frame, trigger_source))
 
-        # Wait for frame_ready event (max 2 seconds)
-        is_ready = mp_primitives['frame_ready'].wait(timeout=2.0)
+        # Wait for frame_ready event (longer timeout needed with spawn start method)
+        is_ready = mp_primitives['frame_ready'].wait(timeout=15.0)
         assert is_ready, "frame_ready Event should be set within timeout"
         print("✓ frame_ready Event was set")
 
@@ -396,7 +398,7 @@ def test_worker_processes_frame_last_request(
     finally:
         # Shutdown
         mp_primitives['request_queue'].put((None, None, None))
-        process.join(timeout=2.0)
+        process.join(timeout=10.0)
         if process.is_alive():
             process.terminate()
             process.join()

@@ -634,6 +634,7 @@ class VideoHandler(BaseAudioVideo):
             self.get(0)
 
         preceding_frame = self.current_frame
+        last_frame = self.current_frame  # safe fallback if no packet yields frames
         go_to_next_packet = False
 
         while collected < num_frames:
@@ -699,9 +700,10 @@ class VideoHandler(BaseAudioVideo):
                 else:
                     go_to_next_packet = True
 
+                last_frame = frame
                 preceding_frame = frame
 
-        return indices[-1], frames, frame
+        return indices[-1], frames, last_frame
 
     def __getitem__(self, idx: slice | int) -> NDArray | av.VideoFrame | List[av.VideoFrame]:
         """
