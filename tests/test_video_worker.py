@@ -236,8 +236,8 @@ def test_worker_processes_frame_request(
         print(f"Requesting frame at index {requested_idx}")
         mp_primitives['request_queue'].put((requested_idx, move_key_frame, trigger_source))
 
-        # Wait for frame_ready event (max 2 seconds)
-        is_ready = mp_primitives['frame_ready'].wait(timeout=2.0)
+        # Wait for frame_ready event (longer timeout needed with spawn start method)
+        is_ready = mp_primitives['frame_ready'].wait(timeout=15.0)
         assert is_ready, "frame_ready Event should be set within timeout"
         print("✓ frame_ready Event was set")
 
@@ -355,8 +355,8 @@ def test_worker_processes_frame_last_request(
         for i in [3, 2, 1, 0]:
             mp_primitives['request_queue'].put((requested_idx - i, move_key_frame, trigger_source))
 
-        # Wait for frame_ready event (max 2 seconds)
-        is_ready = mp_primitives['frame_ready'].wait(timeout=2.0)
+        # Wait for frame_ready event (longer timeout needed with spawn start method)
+        is_ready = mp_primitives['frame_ready'].wait(timeout=15.0)
         assert is_ready, "frame_ready Event should be set within timeout"
         print("✓ frame_ready Event was set")
 
