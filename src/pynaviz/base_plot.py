@@ -156,7 +156,7 @@ class _BasePlot(IntervalSetInterface):
         )
 
         # Add a vertical ruler (y-axis) with ticks on the left and minimum spacing
-        self.ruler_y = gfx.Ruler(tick_side="left")
+        self.ruler_y = gfx.Ruler(tick_side="right")
 
         # A vertical reference line, for the center time point
         self.ruler_ref_time = gfx.Line(
@@ -266,8 +266,8 @@ class _BasePlot(IntervalSetInterface):
         self.ruler_x.update(self.camera, self.canvas.get_logical_size())
 
         # Y axis
-        self.ruler_y.start_pos = 0, world_ymin, -10
-        self.ruler_y.end_pos = 0, world_ymax, -10
+        self.ruler_y.start_pos = world_xmin, world_ymin, -10
+        self.ruler_y.end_pos = world_xmin, world_ymax, -10
         self.ruler_y.start_value = self.ruler_y.start_pos[1]
         self.ruler_y.update(self.camera, self.canvas.get_logical_size())
 
