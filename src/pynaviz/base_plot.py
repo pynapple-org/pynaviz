@@ -807,7 +807,11 @@ class PlotTsdFrame(_BasePlot):
         """Refresh the plot after a sort_by, group_by, or toggle_visibility action."""
         if action_name in ["sort_by", "group_by"]:
             if self._manager.is_sorted ^ self._manager.is_grouped:
-                self._manager.scale = 1 / np.diff(self._get_min_max(), 1).flatten()
+                minmax = self._get_min_max()
+                range_vals = np.diff(minmax, 1)
+                # safety scaling for constant lines
+                range_vals[range_vals == 0] = np.min(range_vals[range_vals != 0])
+                self._manager.scale = 1 / range_vals
 
             self._manager.offset = self._manager.offset + 1 - self._manager.offset.min()
             self._flush(*self.controller.get_xlim())
