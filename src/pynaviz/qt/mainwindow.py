@@ -624,7 +624,7 @@ class MainWindow(QMainWindow):
                         "key_path": d.property("key_path"),
                         "index": int(name.split("_")[-1]),
                         "name": name,
-                        "manager_state_dict": d.widget().plot._manager.get_state(),
+                        "manager_state_dict": d.widget().plot.get_state(),
                         }
                 docks.append(info)
                 order.append(int(name.split("_")[-1]))
@@ -863,9 +863,9 @@ class MainWindow(QMainWindow):
 
         # restore manager if any
         if manager_state_dict is not None:
-            current_manager = widget.plot._manager
             # restore the manager
-            widget.plot._manager = current_manager.from_state(widget.plot, manager_state_dict, index=current_manager.index)
+            available_isets = {k: v for k, v in self.variables.items() if isinstance(v, nap.IntervalSet)}
+            widget.plot.from_state(manager_state_dict, available_isets=available_isets)
 
         widget_name = "/".join(key_path)
         dock = self._create_dock(widget_name, widget, key_path)

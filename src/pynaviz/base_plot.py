@@ -196,6 +196,18 @@ class _BasePlot(IntervalSetInterface):
         # Register epoch-jump handler for all plot types (no-op until epochs are added)
         self.renderer.add_event_handler(self._jump_epoch, "key_down")
 
+    def get_state(self) -> dict:
+        state = {}
+        if self._manager is not None:
+            state["manager"] = self._manager.get_state()
+        state["interval_sets"] = self._interval_state
+        return state
+
+    def from_state(self, state: dict, available_isets: dict):
+        index = self._manager.index
+        self._manager = self._manager.from_state(self, state=state["manager"], index=index)
+        self._interval_set_from_state(state["interval_sets"], available_isets=available_isets)
+        self.canvas.request_draw(self.animate)
 
     @property
     def data(self):

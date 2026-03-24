@@ -39,6 +39,9 @@ class IntervalSetInterface:
         # map label -> single batched gfx.Mesh for all intervals
         self._interval_rects = dict()
 
+        # store colors, alphas for each inteval set
+        self._interval_state = {}
+
     def add_interval_sets(
         self,
         epochs: Iterable[nap.IntervalSet] | nap.IntervalSet,
@@ -126,6 +129,9 @@ class IntervalSetInterface:
         ):
             self.controller._plot_callbacks.remove(self._update_all_isets)
 
+        # remove from state
+        del self._interval_state[label]
+
     def _plot_intervals(
         self,
         labels: Iterable[str] | str,
@@ -158,9 +164,16 @@ class IntervalSetInterface:
 
         if isinstance(colors, str):
             colors = [colors] * len(labels)
-
-        if colors is None:
+        elif colors is None:
             colors = [None] * len(labels)
+        else:
+            # unpack the color
+            if len(labels) != 1:
+                # this is a internal design issue, should raise
+                raise ValueError("When colors are provided as RGBs (only during layout loading), "
+                                 "each IntervalSet is processed one at the time. "
+                                 "This call is generating multiple interval sets rectangles with a single color.")
+            colors = [pygfx.Color(*colors)]
 
         color_idx = len(self._interval_rects) + 1
         for label, color, transparency in zip(labels, colors, alpha):
@@ -179,7 +192,7 @@ class IntervalSetInterface:
                     else color
                 )
                 mesh = self._create_and_plot_rectangle(
-                    self._epochs[label], col, transparency
+                    label, col, transparency
                 )
                 self._interval_rects[label] = mesh
                 color_idx += 1
@@ -225,10 +238,15 @@ class IntervalSetInterface:
 
         return positions, indices
 
-    def _create_and_plot_rectangle(self, epoch, color, transparency):
+    def _create_and_plot_rectangle(self, label, color, transparency):
         """Create a single batched mesh for all intervals in epoch."""
+        epoch = self._epochs[label]
         _, _, ymin, ymax = get_plot_min_max(self)
-        color = pygfx.Color(*pygfx.Color(color).rgb, transparency)
+        self._interval_state[label] = {
+            "colors": list(pygfx.Color(color).rgb),
+            "alpha": transparency
+        }
+        color = pygfx.Color(*self._interval_state[label]["colors"], transparency)
 
         ruler = getattr(self, "ruler_x", None)
         depth = (ruler.start_pos[-1] - 1) if ruler is not None else -1001.0
@@ -254,13 +272,15 @@ class IntervalSetInterface:
         """Update color and/or y-extent of the batched mesh for label."""
         mesh = self._interval_rects[label]
         epoch = self._epochs[label]
-
         current_color = mesh.material.color
         if color is None:
             color = current_color
+        transparency = transparency if transparency is not None else current_color.a
+        self._interval_state[label] = {"colors": list(pygfx.Color(color).rgb), "alpha": transparency}
+
         new_color = pygfx.Color(
-            *pygfx.Color(color).rgb,
-            transparency if transparency is not None else current_color.a,
+            *self._interval_state[label]["colors"],
+            self._interval_state[label]["alpha"],
         )
         if mesh.material.color != new_color:
             mesh.material.color = new_color
@@ -284,3 +304,15 @@ class IntervalSetInterface:
         positions[2::4, 1] = ymax
         positions[3::4, 1] = ymax
         mesh.geometry.positions.set_data(positions)
+
+    def _interval_set_from_state(self, state: dict, available_isets: dict):
+        """Restore IntervalSet overlay."""
+        for label, props in state.items():
+            if label in available_isets:
+                self.add_interval_sets(
+                    available_isets[label],
+                    **props,
+                    labels=label,
+                )
+            else:
+                print(f"IntervalSet ``{label}`` not found.")
