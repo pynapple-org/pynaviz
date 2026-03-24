@@ -435,8 +435,9 @@ class MenuWidget(QWidget):
     def show_select_iset_menu(self) -> None:
         """Opens the interval set selection dialog."""
         for row in self._interval_sets_model.rows:
-            row["checked"] = row["name"] in  self.plot._interval_state
-            row["alpha"] =  self.plot._interval_state.get("alpha", 0.5)
+            row["checked"] = row["name"] in self.plot._interval_state
+            if row["checked"]:
+                row["alpha"] = self.plot._interval_state[row["name"]].get("alpha", 0.5)
         dialog = IntervalSetsDialog(self._interval_sets_model, parent=self)
         dialog.show()
 
