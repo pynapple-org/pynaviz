@@ -577,7 +577,7 @@ class MainWindow(QMainWindow):
             var = _get_variable_from_key_path(self.variables, widget['key_path'])
             if var is not None:
                 print(f"Adding var from path {widget['key_path']}.")
-                self.add_dock_widget(var, widget['key_path'],  manager_state_dict=widget["manager_state_dict"])
+                self.add_dock_widget(var, widget['key_path'],  state_dict=widget["state_dict"])
 
                 # Note: simply matching the widget name stored in the payload results in a bug
                 # when the following happens:
@@ -605,6 +605,18 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print("Error restoring layout:", e)
 
+    def _get_plot_state(self, plot):
+        """Get plot state, remapping interval set auto-labels to variable names."""
+        state = plot.get_state()
+        available_isets = {k: v for k, v in self.variables.items() if isinstance(v, nap.IntervalSet)}
+        remapped = {}
+        for label, props in state.get("interval_sets", {}).items():
+            epoch = plot._epochs.get(label)
+            var_name = next((k for k, v in available_isets.items() if v is epoch), label)
+            remapped[var_name] = props
+        state["interval_sets"] = remapped
+        return state
+
     def _get_layout_dict(self):
         geom = bytes(self.saveGeometry())
         state = bytes(self.saveState(version=0))  # Potentially add package versioning later
@@ -624,7 +636,7 @@ class MainWindow(QMainWindow):
                         "key_path": d.property("key_path"),
                         "index": int(name.split("_")[-1]),
                         "name": name,
-                        "manager_state_dict": d.widget().plot.get_state(),
+                        "state_dict": self._get_plot_state(d.widget().plot),
                         }
                 docks.append(info)
                 order.append(int(name.split("_")[-1]))
@@ -855,17 +867,17 @@ class MainWindow(QMainWindow):
         dock.setTitleBarWidget(widget.button_container)
         return dock
 
-    def add_dock_widget(self, variable: Any, key_path: list[str], manager_state_dict: dict | None = None) -> QDockWidget | None:
+    def add_dock_widget(self, variable: Any, key_path: list[str], state_dict: dict | None = None) -> QDockWidget | None:
         """Add a new dock widget to the main window based on the variable or its key path"""
         widget = self._create_widget_for_variable(variable)
         if widget is None:
             return
 
         # restore manager if any
-        if manager_state_dict is not None:
+        if state_dict is not None:
             # restore the manager
             available_isets = {k: v for k, v in self.variables.items() if isinstance(v, nap.IntervalSet)}
-            widget.plot.from_state(manager_state_dict, available_isets=available_isets)
+            widget.plot.from_state(state_dict, available_isets=available_isets)
 
         widget_name = "/".join(key_path)
         dock = self._create_dock(widget_name, widget, key_path)
