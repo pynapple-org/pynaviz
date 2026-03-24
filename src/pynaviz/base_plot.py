@@ -197,19 +197,42 @@ class _BasePlot(IntervalSetInterface):
         self.renderer.add_event_handler(self._jump_epoch, "key_down")
 
     def get_plot_state(self):
-        """Get whatever value for scaling.
+        """Return plot-type-specific display state for serialization.
 
-        This method should return:
-        - scale array: for LinesMode
-        - clim tuple: for ImageMode
-        - size float: for TsGroup
+        Subclasses override this to capture whatever is needed to restore
+        the current visual appearance — e.g. display mode and scale for
+        ``PlotTsdFrame``, or marker sizes for ``PlotTsGroup``.  The base
+        implementation returns ``None`` (no plot-specific state).
+
+        Returns
+        -------
+        dict or None
         """
         pass
 
     def set_plot_state(self, state):
+        """Restore plot-type-specific display state produced by :meth:`get_plot_state`.
+
+        Parameters
+        ----------
+        state : dict or None
+            Value previously returned by :meth:`get_plot_state`.
+        """
         pass
 
     def get_state(self) -> dict:
+        """Return the full serializable state of this plot.
+
+        Aggregates three layers:
+
+        - ``"manager"``: sort_by / group_by / color_by actions.
+        - ``"interval_sets"``: overlay color and alpha keyed by label.
+        - ``"plot"``: plot-type-specific state (mode, scale, clim, …).
+
+        Returns
+        -------
+        dict
+        """
         state = {}
         if self._manager is not None:
             state["manager"] = self._manager.get_state()
@@ -218,8 +241,19 @@ class _BasePlot(IntervalSetInterface):
         return state
 
     def from_state(self, state: dict, available_isets: dict):
-        # if statements guards vs trying to load incompatible states
-        # (when the layout was saved in previous pynaviz versions)
+        """Restore the full plot state from a previously saved dict.
+
+        Guards against missing keys so that layouts saved by older
+        versions of pynaviz can still be loaded without error.
+
+        Parameters
+        ----------
+        state : dict
+            Dictionary produced by :meth:`get_state`.
+        available_isets : dict
+            Mapping of variable name → ``nap.IntervalSet`` used to
+            look up overlays by name.
+        """
         if "manager" in state:
             index = self._manager.index
             self._manager = self._manager.from_state(self, state=state["manager"], index=index)
@@ -756,11 +790,21 @@ class PlotTsdFrame(_BasePlot):
             self.canvas.request_draw(self.animate)
 
     def _set_mode(self, mode: str, state=None) -> None:
-        """Switch to *mode* and optionally apply mode-specific state.
+        """Switch display mode and optionally restore mode-specific state.
 
-        If *mode* already matches the current display mode and *state* is None
-        this is a no-op.  Otherwise the mode graphic is swapped, the controller
-        is adjusted, *state* is applied, and the canvas is redrawn.
+        This is the single entry point for all mode transitions (lines →
+        image, lines → x_vs_y, etc.) as well as for applying saved state
+        to the current mode without switching.  It is called by
+        ``_reset``, ``_toggle_display_mode``, ``plot_x_vs_y``, and
+        ``set_plot_state``.
+
+        Parameters
+        ----------
+        mode : str
+            Target display mode: ``"lines"``, ``"image"``, or ``"x_vs_y"``.
+        state : dict or None
+            Mode-specific state returned by the mode's ``get_state()``.
+            When ``None`` and the mode is unchanged this is a no-op.
         """
         switching = self._display_mode != mode
         if not switching and state is None:
@@ -980,14 +1024,27 @@ class PlotTsdFrame(_BasePlot):
         })
 
     def get_plot_state(self) -> dict:
-        state = {
-           "mode_state": self._mode.get_state(),
-           "mode": self._display_mode,
-        }
-        return state
+        """Return the current display mode and its serializable state.
 
+        Returns
+        -------
+        dict
+            ``{"mode": str, "mode_state": ...}`` where ``mode_state`` is
+            whatever the active mode's ``get_state()`` returns.
+        """
+        return {
+           "mode": self._display_mode,
+           "mode_state": self._mode.get_state(),
+        }
 
     def set_plot_state(self, state):
+        """Restore display mode and mode-specific state.
+
+        Parameters
+        ----------
+        state : dict or None
+            Value produced by :meth:`get_plot_state`.
+        """
         if state is None:
             return
         self._set_mode(state["mode"], state["mode_state"])
@@ -1103,9 +1160,24 @@ class PlotTsGroup(_BasePlot):
         self.canvas.request_draw(self.animate)
 
     def get_plot_state(self):
+        """Return spike marker sizes keyed by neuron ID.
+
+        Returns
+        -------
+        dict
+            ``{"scale": {neuron_id: size, …}}``.
+        """
         return {"scale": {k: pts.material.size for k, pts in self.graphic.items()}}
 
     def set_plot_state(self, state):
+        """Restore spike marker sizes.
+
+        Parameters
+        ----------
+        state : dict
+            Value produced by :meth:`get_plot_state`.  Integer neuron-ID
+            keys are recovered from their JSON string representation.
+        """
         scale_state = state["scale"]
         for k, size in scale_state.items():
             if isinstance(k, str):

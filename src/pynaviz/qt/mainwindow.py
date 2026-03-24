@@ -606,7 +606,15 @@ class MainWindow(QMainWindow):
             print("Error restoring layout:", e)
 
     def _get_plot_state(self, plot):
-        """Get plot state, remapping interval set auto-labels to variable names."""
+        """Collect plot state, remapping interval set labels to variable names.
+
+        When a user calls ``plot.add_interval_sets(epochs)`` without an
+        explicit label, pynaviz auto-generates one (e.g. ``interval_0``).
+        This method replaces such labels with the matching key from
+        ``self.variables`` using object identity, so that
+        :meth:`_interval_set_from_state` can look them up by name on load.
+        Labels that have no matching variable are kept as-is.
+        """
         state = plot.get_state()
         available_isets = {k: v for k, v in self.variables.items() if isinstance(v, nap.IntervalSet)}
         remapped = {}

@@ -188,9 +188,17 @@ class LinesMode:
         self.graphic.geometry.colors.set_data(new_colors)
 
     def get_state(self):
+        """Return per-column scale factors as a JSON-serializable list."""
         return self.manager.scale.tolist()
 
     def set_state(self, scale_state):
+        """Restore per-column scale factors.
+
+        Parameters
+        ----------
+        scale_state : list of float
+            Value produced by :meth:`get_state`.
+        """
         self.manager.scale = scale_state
 
 
@@ -378,9 +386,17 @@ class ImageMode:
         return np.stack([np.nanmin(self.buffer, 0), np.nanmax(self.buffer, 0)]).T
 
     def get_state(self):
+        """Return the colormap intensity range as a (vmin, vmax) tuple."""
         return self.graphic.material.clim
 
     def set_state(self, scale_state):
+        """Restore the colormap intensity range.
+
+        Parameters
+        ----------
+        scale_state : tuple of float
+            Value produced by :meth:`get_state`.
+        """
         self.graphic.material.clim = scale_state
 
 
@@ -449,6 +465,14 @@ class XvsYMode:
             self._request_draw()
 
     def get_state(self):
+        """Return all parameters needed to reconstruct this x-vs-y view.
+
+        Returns
+        -------
+        dict
+            Keys: ``window_size``, ``x_col``, ``y_col``, ``color``,
+            ``thickness``, ``markersize``.
+        """
         return {
             "window_size": self.window_size,
             "x_col": self.x_col,
@@ -458,7 +482,13 @@ class XvsYMode:
             "markersize": self.markersize,
         }
 
-
     def set_state(self, state):
+        """Restore x-vs-y parameters from a previously saved state.
+
+        Parameters
+        ----------
+        state : dict
+            Value produced by :meth:`get_state`.
+        """
         for k, v in state.items():
             setattr(self, k, v)

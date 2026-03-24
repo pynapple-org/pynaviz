@@ -306,7 +306,18 @@ class IntervalSetInterface:
         mesh.geometry.positions.set_data(positions)
 
     def _interval_set_from_state(self, state: dict, available_isets: dict):
-        """Restore IntervalSet overlay."""
+        """Restore interval set overlays from a saved state.
+
+        Parameters
+        ----------
+        state : dict
+            Mapping of label → ``{"colors": …, "alpha": …}`` as produced
+            by the ``interval_sets`` entry in :meth:`_BasePlot.get_state`.
+            Labels are expected to be variable names so they can be looked
+            up directly in *available_isets*.
+        available_isets : dict
+            Mapping of variable name → ``nap.IntervalSet``.
+        """
         for label, props in state.items():
             if label in available_isets:
                 self.add_interval_sets(
