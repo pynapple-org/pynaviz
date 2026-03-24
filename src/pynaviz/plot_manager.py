@@ -282,7 +282,7 @@ class _PlotManager:
             } if kwargs is not None else None
             for action, kwargs in self._actions.items()
         }
-        return dict(_actions=serializable_actions, _scale=self.scale.tolist())
+        return dict(_actions=serializable_actions)
 
     def from_state(self, base_plot: "_BasePlot", state: dict, index: list) -> '_PlotManager':
         """
@@ -309,7 +309,5 @@ class _PlotManager:
             attr = getattr(base_plot, action, None)
             if kwargs is not None and attr is not None:
                 attr(**kwargs)
-        # use safe get for backward compatibility with older layout save
-        self.scale = state.get("_scale", self.scale)
         return self
 

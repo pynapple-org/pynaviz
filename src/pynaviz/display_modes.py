@@ -187,6 +187,12 @@ class LinesMode:
                 new_colors[sl, -1] = 1.0
         self.graphic.geometry.colors.set_data(new_colors)
 
+    def get_state(self):
+        return self.manager.scale.tolist()
+
+    def set_state(self, scale_state):
+        self.manager.scale = scale_state
+
 
 class ImageMode:
     """Heatmap display mode with a 2D texture and locked y-axis.
@@ -371,6 +377,12 @@ class ImageMode:
         """
         return np.stack([np.nanmin(self.buffer, 0), np.nanmax(self.buffer, 0)]).T
 
+    def get_state(self):
+        return self.graphic.material.clim
+
+    def set_state(self, scale_state):
+        self.graphic.material.clim = scale_state
+
 
 class XvsYMode:
     """Scatter/line x-vs-y display mode using a GetController.
@@ -435,3 +447,18 @@ class XvsYMode:
         self.time_point.geometry.positions.update_full()
         if self._request_draw is not None:
             self._request_draw()
+
+    def get_state(self):
+        return {
+            "window_size": self.window_size,
+            "x_col": self.x_col,
+            "y_col": self.y_col,
+            "color": self.color,
+            "thickness": self.thickness,
+            "markersize": self.markersize,
+        }
+
+
+    def set_state(self, state):
+        for k, v in state.items():
+            setattr(self, k, v)

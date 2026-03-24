@@ -196,18 +196,32 @@ class _BasePlot(IntervalSetInterface):
         # Register epoch-jump handler for all plot types (no-op until epochs are added)
         self.renderer.add_event_handler(self._jump_epoch, "key_down")
 
+    def get_plot_state(self):
+        """Get whatever value for scaling.
+
+        This method should return:
+        - scale array: for LinesMode
+        - clim tuple: for ImageMode
+        - size float: for TsGroup
+        """
+        pass
+
+    def set_plot_state(self, state):
+        pass
+
     def get_state(self) -> dict:
         state = {}
         if self._manager is not None:
             state["manager"] = self._manager.get_state()
         state["interval_sets"] = self._interval_state
+        state["plot"] = self.get_plot_state()
         return state
 
     def from_state(self, state: dict, available_isets: dict):
         index = self._manager.index
         self._manager = self._manager.from_state(self, state=state["manager"], index=index)
         self._interval_set_from_state(state["interval_sets"], available_isets=available_isets)
-        self.canvas.request_draw(self.animate)
+        self.set_plot_state(state["plot"])
 
     @property
     def data(self):
@@ -736,72 +750,97 @@ class PlotTsdFrame(_BasePlot):
             self._mode.rescale(event.key)
             self.canvas.request_draw(self.animate)
 
+    def _set_mode(self, mode: str, state=None) -> None:
+        """Switch to *mode* and optionally apply mode-specific state.
+
+        If *mode* already matches the current display mode and *state* is None
+        this is a no-op.  Otherwise the mode graphic is swapped, the controller
+        is adjusted, *state* is applied, and the canvas is redrawn.
+        """
+        switching = self._display_mode != mode
+        if not switching and state is None:
+            return
+
+        if switching:
+            old_key = self._active_controller_key
+            self.scene.remove(self._mode.graphic)
+            if self._display_mode == "x_vs_y":
+                self.scene.remove(self._mode.time_point)
+                self.scene.add(self.ruler_ref_time)
+            self._y_locked = False
+            self._x_locked = False
+            self._display_mode = mode
+            self._mode = self._modes[mode]
+            if old_key != self._mode.controller_key:
+                self._switch_controller(old_key, self._mode.controller_key)
+
+        if mode == "x_vs_y":
+            if switching:
+                self._mode._request_draw = lambda: self.canvas.request_draw(self.animate)
+            if state is not None:
+                self._mode.update_parameters(
+                    state["x_col"], state["y_col"],
+                    state.get("color", self._default_line_color()),
+                    state.get("thickness", 1.0),
+                    state.get("markersize", 10.0),
+                )
+            if switching:
+                self._mode.initialize_graphic()
+                self.scene.remove(self.ruler_ref_time)
+                self.scene.add(self._mode.graphic)
+                self.scene.add(self._mode.time_point)
+            current_time = self.ruler_ref_time.geometry.positions.data[0][0]
+            self.controller.frame_index = self.data.get_slice(current_time).start
+            self.controller._current_time = current_time
+            self.controller.data = self.data.loc[[self._mode.x_col, self._mode.y_col]]
+            self.controller.buffer = self._mode.time_point.geometry.positions
+            self._mode._update_buffer(self.controller.frame_index)
+            self.controller.set_view(
+                np.nanmin(self._mode.buffer[:, 0]), np.nanmax(self._mode.buffer[:, 0]),
+                np.nanmin(self._mode.buffer[:, 1]), np.nanmax(self._mode.buffer[:, 1]),
+            )
+            self.canvas.request_draw(self.animate)
+            return
+
+        # lines / image
+        if switching:
+            self._mode.initialize_graphic()
+            self.scene.add(self._mode.graphic)
+
+        if state is not None:
+            self._mode.set_state(state)
+
+        self._flush(*self.controller.get_xlim())
+        minmax = self._get_min_max()
+        if self._display_mode == "image":
+            if state is None:
+                self._mode.graphic.material.clim = (
+                    float(np.nanmin(minmax[:, 0])),
+                    float(np.nanmax(minmax[:, 1])),
+                )
+            self.controller.set_ylim(0, self.data.shape[1])
+        else:  # lines
+            if self._manager.is_sorted or self._manager.is_grouped:
+                self.controller.set_ylim(0, float(np.max(self._manager.offset) + 1))
+            else:
+                self.controller.set_ylim(
+                    float(np.nanmin(minmax[:, 0])), float(np.nanmax(minmax[:, 1]))
+                )
+        self.canvas.request_draw(self.animate)
+
     def _reset(self, event):
         """Handle 'r' key to reset the view. Transitions back to lines mode."""
         if event.type == "key_down" and event.key == "r":
-            if self._display_mode == "image":
-                self.scene.remove(self._mode.graphic)
-                self._y_locked = False
-                self._x_locked = False
-                self._switch_controller(self._active_controller_key, "span")
-                self._display_mode = "lines"
-                self._mode = self._modes["lines"]
-                self._mode.initialize_graphic()
-                self.scene.add(self._mode.graphic)
-
-            elif self._display_mode == "x_vs_y":
-                self.scene.remove(self._mode.graphic)
-                self.scene.remove(self._mode.time_point)
-                self._y_locked = False
-                self._x_locked = False
-                self._switch_controller(self._active_controller_key, "span")
-                self.scene.add(self.ruler_ref_time)
-                self._display_mode = "lines"
-                self._mode = self._modes["lines"]
-                self._mode.initialize_graphic()
-                self.scene.add(self._mode.graphic)
-
             self._manager.reset(self)
-            self._flush(*self.controller.get_xlim())
-
-            minmax = self._get_min_max()
-            self.controller.set_ylim(float(np.nanmin(minmax[:, 0])), float(np.nanmax(minmax[:, 1])))
-            self.canvas.request_draw(self.animate)
+            self._set_mode("lines")
 
     def _toggle_display_mode(self, event):
         """Toggle between 'lines' and 'image' on 'm' key."""
         if event.type == "key_down" and event.key == "m":
             if not isinstance(self.controller, SpanController):
                 return
-
-            old_key = self._active_controller_key
-            self._y_locked = False
-            self._x_locked = False
-            self.scene.remove(self._mode.graphic)
-
-            self._display_mode = "image" if self._display_mode == "lines" else "lines"
-            self._mode = self._modes[self._display_mode]
-            self._mode.initialize_graphic()
-            self.scene.add(self._mode.graphic)
-
-            if old_key != self._mode.controller_key:
-                self._switch_controller(old_key, self._mode.controller_key)
-
-            self._flush(*self.controller.get_xlim())
-
-            minmax = self._get_min_max()
-            if self._display_mode == "image":
-                self._mode.graphic.material.clim = (
-                    float(np.nanmin(minmax[:, 0])),
-                    float(np.nanmax(minmax[:, 1])),
-                )
-                self.controller.set_ylim(0, self.data.shape[1])
-            else:
-                if self._manager.is_sorted or self._manager.is_grouped:
-                    self.controller.set_ylim(0, float(np.max(self._manager.offset) + 1))
-                else:
-                    self.controller.set_ylim(float(np.nanmin(minmax[:, 0])), float(np.nanmax(minmax[:, 1])))
-            self.canvas.request_draw(self.animate)
+            new_mode = "image" if self._display_mode == "lines" else "lines"
+            self._set_mode(new_mode)
 
     def _update(self, action_name):
         """Refresh the plot after a sort_by, group_by, or toggle_visibility action."""
@@ -928,32 +967,25 @@ class PlotTsdFrame(_BasePlot):
         """
         if x_col not in self.data.columns or y_col not in self.data.columns:
             raise ValueError(f"Columns {x_col} and {y_col} must be in data columns.")
-
-        self.scene.remove(self._mode.graphic)
-        self._switch_controller(self._mode.controller_key, "get")
-
-        self._display_mode = "x_vs_y"
-        self._mode = self._modes["x_vs_y"]
-        self._mode._request_draw = lambda: self.canvas.request_draw(self.animate)
         if color is None:
             color = self._default_line_color()
-        self._mode.update_parameters(x_col, y_col, color, thickness, markersize)
-        self._mode.initialize_graphic()
-        self.scene.add(self._mode.graphic)
-        self.scene.add(self._mode.time_point)
+        self._set_mode("x_vs_y", state={
+            "x_col": x_col, "y_col": y_col,
+            "color": color, "thickness": thickness, "markersize": markersize,
+        })
 
-        current_time = self.ruler_ref_time.geometry.positions.data[0][0]
-        self.controller.frame_index = self.data.get_slice(current_time).start
-        self.controller._current_time = current_time
-        self.controller.data = self.data.loc[[x_col, y_col]]
-        self.controller.buffer = self._mode.time_point.geometry.positions
-        self._mode._update_buffer(self.controller.frame_index)
+    def get_plot_state(self) -> dict:
+        state = {
+           "mode_state": self._mode.get_state(),
+           "mode": self._display_mode,
+        }
+        return state
 
-        self.controller.set_view(
-            np.nanmin(self._mode.buffer[:, 0]), np.nanmax(self._mode.buffer[:, 0]),
-            np.nanmin(self._mode.buffer[:, 1]), np.nanmax(self._mode.buffer[:, 1]),
-        )
-        self.canvas.request_draw(self.animate)
+
+    def set_plot_state(self, state):
+        if state is None:
+            return
+        self._set_mode(state["mode"], state["mode_state"])
 
 
 class PlotTsGroup(_BasePlot):
@@ -1063,6 +1095,17 @@ class PlotTsGroup(_BasePlot):
         factor = 1.2 if event.key == "i" else 1 / 1.2
         for pts in self.graphic.values():
             pts.material.size = max(1.0, pts.material.size * factor)
+        self.canvas.request_draw(self.animate)
+
+    def get_plot_state(self):
+        return {"scale": {k: pts.material.size for k, pts in self.graphic.items()}}
+
+    def set_plot_state(self, state):
+        scale_state = state["scale"]
+        for k, size in scale_state.items():
+            graphic = self.graphic.get(k, None)
+            if graphic is not None:
+                self.graphic[k].material.size = size
         self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
@@ -1477,4 +1520,3 @@ class PlotIntervalSet(_BasePlot):
         new_t = self.data.start[index]
         if new_t < current_t:
             self.controller.go_to(new_t)
-
