@@ -101,7 +101,7 @@ class _PlotManager:
     @offset.setter
     def offset(self, values: np.ndarray) -> None:
         values = np.asarray(values, dtype=np.float32)
-        if len(values) == len(self.data):
+        if len(values) == len(self.data.index):
             self.data["offset"] = values
 
     @property
@@ -122,7 +122,7 @@ class _PlotManager:
         # safeguard for load_layout:
         # If users load a var with the same name but different cols
         # scale must be reset
-        if len(values) == len(self.data):
+        if len(values) == len(self.data.index):
             self.data["scale"] = values
 
     def sort_by(self, values: dict, metadata_name: str, mode: str) -> None:
