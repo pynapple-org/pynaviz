@@ -100,7 +100,9 @@ class _PlotManager:
 
     @offset.setter
     def offset(self, values: np.ndarray) -> None:
-        self.data["offset"] = values
+        values = np.asarray(values, dtype=np.float32)
+        if len(values) == len(self.data):
+            self.data["offset"] = values
 
     @property
     def scale(self) -> np.ndarray:
@@ -116,7 +118,12 @@ class _PlotManager:
 
     @scale.setter
     def scale(self, values: np.ndarray) -> None:
-        self.data["scale"] = values
+        values = np.asarray(values, dtype=np.float32)
+        # safeguard for load_layout:
+        # If users load a var with the same name but different cols
+        # scale must be reset
+        if len(values) == len(self.data):
+            self.data["scale"] = values
 
     def sort_by(self, values: dict, metadata_name: str, mode: str) -> None:
         """
@@ -275,7 +282,7 @@ class _PlotManager:
             } if kwargs is not None else None
             for action, kwargs in self._actions.items()
         }
-        return dict(_actions=serializable_actions)
+        return dict(_actions=serializable_actions, _scale=self.scale.tolist())
 
     def from_state(self, base_plot: "_BasePlot", state: dict, index: list) -> '_PlotManager':
         """
@@ -302,5 +309,7 @@ class _PlotManager:
             attr = getattr(base_plot, action, None)
             if kwargs is not None and attr is not None:
                 attr(**kwargs)
+        # use safe get for backward compatibility with older layout save
+        self.scale = state.get("_scale", self.scale)
         return self
 
