@@ -1108,9 +1108,11 @@ class PlotTsGroup(_BasePlot):
     def set_plot_state(self, state):
         scale_state = state["scale"]
         for k, size in scale_state.items():
+            if isinstance(k, str):
+                k = int(k)
             graphic = self.graphic.get(k, None)
             if graphic is not None:
-                self.graphic[k].material.size = size
+                graphic.material.size = size
         self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
