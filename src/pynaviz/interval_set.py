@@ -242,11 +242,11 @@ class IntervalSetInterface:
         """Create a single batched mesh for all intervals in epoch."""
         epoch = self._epochs[label]
         _, _, ymin, ymax = get_plot_min_max(self)
+        color = pygfx.Color(*pygfx.Color(color).rgb, transparency)
         self._interval_state[label] = {
-            "colors": list(pygfx.Color(color).rgb),
-            "alpha": transparency
+            "colors": list(color.rgb),
+            "alpha": float(color.a)
         }
-        color = pygfx.Color(*self._interval_state[label]["colors"], transparency)
 
         ruler = getattr(self, "ruler_x", None)
         depth = (ruler.start_pos[-1] - 1) if ruler is not None else -1001.0
@@ -275,8 +275,8 @@ class IntervalSetInterface:
         current_color = mesh.material.color
         if color is None:
             color = current_color
-        transparency = transparency if transparency is not None else current_color.a
-        self._interval_state[label] = {"colors": list(pygfx.Color(color).rgb), "alpha": transparency}
+        transparency = transparency if transparency is not None else float(current_color.a)
+        self._interval_state[label] = {"colors": list(pygfx.Color(color).rgb), "alpha": float(np.float32(transparency))}
 
         new_color = pygfx.Color(
             *self._interval_state[label]["colors"],
