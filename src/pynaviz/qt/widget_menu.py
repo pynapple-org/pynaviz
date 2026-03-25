@@ -425,9 +425,9 @@ class MenuWidget(QWidget):
             if get_ctrl is not None and get_ctrl.enabled:
                 return
         if hasattr(self.plot, "_manager"):
-            visible = self.plot._manager.visible
+            data = self.plot._manager.data
             for key in self.channel_model.checks:
-                self.channel_model.checks[key] = bool(visible.loc[key])
+                self.channel_model.checks[key] =  data.loc[key]["visible"]
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.show()
 
