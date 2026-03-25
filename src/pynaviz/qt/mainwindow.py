@@ -616,12 +616,11 @@ class MainWindow(QMainWindow):
         Labels that have no matching variable are kept as-is.
         """
         state = plot.get_state()
-        available_isets = {k: v for k, v in self.variables.items() if isinstance(v, nap.IntervalSet)}
-        available_tsdframes = {k: v for k, v in self.variables.items() if isinstance(v, nap.TsdFrame)}
+        id_to_name = {id(v): k for k, v in self.variables.items()}
         remapped_iset = {}
         for label, props in state.get("interval_sets", {}).items():
             epoch = plot._epochs.get(label)
-            var_name = next((k for k, v in available_isets.items() if v is epoch), label)
+            var_name = id_to_name.get(id(epoch), label)
             remapped_iset[var_name] = props
         state["interval_sets"] = remapped_iset
 
@@ -629,7 +628,7 @@ class MainWindow(QMainWindow):
             remapped_tsdframes = {}
             for label, props in state.get("plot", {}).items():
                 tsdframe = plot.points[label].data
-                var_name = next((k for k, v in available_tsdframes.items() if v is tsdframe), label)
+                var_name = id_to_name.get(id(tsdframe), label)
                 remapped_tsdframes[var_name] = props
             state["plot"] = remapped_tsdframes
 
