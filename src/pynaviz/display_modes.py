@@ -391,18 +391,24 @@ class ImageMode:
         return np.stack([np.nanmin(self.buffer, 0), np.nanmax(self.buffer, 0)]).T
 
     def get_state(self):
-        """Return the colormap intensity range as a (vmin, vmax) tuple."""
-        return self.graphic.material.clim
+        """Return the colormap intensity range and visibility as a dict."""
+        return {
+            "clim": self.graphic.material.clim,
+            "visible": self.manager.visible.tolist(),
+        }
 
-    def set_state(self, scale_state):
-        """Restore the colormap intensity range.
+    def set_state(self, state):
+        """Restore the colormap intensity range and visibility.
 
         Parameters
         ----------
-        scale_state : tuple of float
+        state : dict
             Value produced by :meth:`get_state`.
         """
-        self.graphic.material.clim = scale_state
+        self.graphic.material.clim = state["clim"]
+        if "visible" in state:
+            self.manager.visible = state["visible"]
+            self.update_visibility()
 
 
 class XvsYMode:

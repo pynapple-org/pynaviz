@@ -436,3 +436,52 @@ def test_save_load_layout_tsgroup_marker_size(rescale_key, main_window__dock, tm
                          action_kwargs={"key": rescale_key}, qtbot=qtbot)
 
     _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+@pytest.mark.parametrize("varname", ["tsdframe", "tsgroup", "interval_set"])
+def test_save_load_layout_visibility(varname, main_window__dock, tmp_path, qtbot):
+    """Channel/interval visibility persists through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == varname:
+            widget = dock_widget.widget()
+            visible = widget.plot._manager.visible.copy()
+            visible[0] = False
+            widget.plot._manager.visible = visible
+            widget.plot._update("toggle_visibility")
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+def test_save_load_layout_image_mode_visibility(main_window__dock, tmp_path, qtbot):
+    """Channel visibility in image mode persists through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == "tsdframe":
+            widget = dock_widget.widget()
+            apply_action(widget=widget, action_type="toggle_display_mode",
+                         action_kwargs={}, qtbot=qtbot)
+            visible = widget.plot._manager.visible.copy()
+            visible[0] = False
+            widget.plot._manager.visible = visible
+            widget.plot._update("toggle_visibility")
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+@pytest.mark.parametrize("varname,from_key,to_key", [
+    ("tsdframe", "span", "span_ylock"),
+    ("tsgroup", "span", "span_ylock"),
+])
+def test_save_load_layout_active_controller(varname, from_key, to_key, main_window__dock, tmp_path, qtbot):
+    """Active controller key persists through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == varname:
+            widget = dock_widget.widget()
+            widget.plot._switch_controller(from_key, to_key)
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)

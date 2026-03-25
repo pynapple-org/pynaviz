@@ -240,6 +240,7 @@ class _BasePlot(IntervalSetInterface):
             state["manager"] = self._manager.get_state()
         state["interval_sets"] = self._interval_state
         state["plot"] = self.get_plot_state()
+        state["active_controller"] = self._active_controller_key
         return state
 
     def from_state(self, state: dict, available_vars: dict):
@@ -264,6 +265,8 @@ class _BasePlot(IntervalSetInterface):
             self._interval_set_from_state(state["interval_sets"], available_isets=available_isets)
         if "plot" in state:
             self.set_plot_state(state["plot"], available_vars=available_vars)
+        if "active_controller" in state and state["active_controller"] is not None:
+            self._switch_controller(self._active_controller_key, state["active_controller"])
 
     @property
     def data(self):
