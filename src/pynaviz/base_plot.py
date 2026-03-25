@@ -196,7 +196,7 @@ class _BasePlot(IntervalSetInterface):
         # Register epoch-jump handler for all plot types (no-op until epochs are added)
         self.renderer.add_event_handler(self._jump_epoch, "key_down")
 
-    def get_plot_state(self):
+    def get_plot_state(self) -> dict:
         """Return plot-type-specific display state for serialization.
 
         Subclasses override this to capture whatever is needed to restore
@@ -210,13 +210,15 @@ class _BasePlot(IntervalSetInterface):
         """
         pass
 
-    def set_plot_state(self, state):
+    def set_plot_state(self, state, available_vars: Optional[dict]):
         """Restore plot-type-specific display state produced by :meth:`get_plot_state`.
 
         Parameters
         ----------
         state : dict or None
             Value previously returned by :meth:`get_plot_state`.
+        available_vars: dict
+            The available nap variables.
         """
         pass
 
@@ -240,7 +242,7 @@ class _BasePlot(IntervalSetInterface):
         state["plot"] = self.get_plot_state()
         return state
 
-    def from_state(self, state: dict, available_isets: dict):
+    def from_state(self, state: dict, available_vars: dict):
         """Restore the full plot state from a previously saved dict.
 
         Guards against missing keys so that layouts saved by older
@@ -250,17 +252,18 @@ class _BasePlot(IntervalSetInterface):
         ----------
         state : dict
             Dictionary produced by :meth:`get_state`.
-        available_isets : dict
-            Mapping of variable name → ``nap.IntervalSet`` used to
+        available_vars : dict
+            Mapping of ``variable name → nap variable`` used to
             look up overlays by name.
         """
         if "manager" in state:
             index = self._manager.index
             self._manager = self._manager.from_state(self, state=state["manager"], index=index)
         if "interval_sets" in state:
+            available_isets = {k: v for k, v in state["interval_sets"].items() if isinstance(v, nap.IntervalSet)}
             self._interval_set_from_state(state["interval_sets"], available_isets=available_isets)
         if "plot" in state:
-            self.set_plot_state(state["plot"])
+            self.set_plot_state(state["plot"], available_vars=available_vars)
 
     @property
     def data(self):
@@ -1037,13 +1040,15 @@ class PlotTsdFrame(_BasePlot):
            "mode_state": self._mode.get_state(),
         }
 
-    def set_plot_state(self, state):
+    def set_plot_state(self, state, available_vars=None) -> None:
         """Restore display mode and mode-specific state.
 
         Parameters
         ----------
         state : dict or None
             Value produced by :meth:`get_plot_state`.
+        **available_vars:
+            Unused, no extra argument needed.
         """
         if state is None:
             return
@@ -1159,7 +1164,7 @@ class PlotTsGroup(_BasePlot):
             pts.material.size = max(1.0, pts.material.size * factor)
         self.canvas.request_draw(self.animate)
 
-    def get_plot_state(self):
+    def get_plot_state(self) -> dict:
         """Return spike marker sizes keyed by neuron ID.
 
         Returns
@@ -1169,7 +1174,7 @@ class PlotTsGroup(_BasePlot):
         """
         return {"scale": {k: pts.material.size for k, pts in self.graphic.items()}}
 
-    def set_plot_state(self, state):
+    def set_plot_state(self, state, available_vars: Optional[dict]=None):
         """Restore spike marker sizes.
 
         Parameters
@@ -1177,6 +1182,8 @@ class PlotTsGroup(_BasePlot):
         state : dict
             Value produced by :meth:`get_plot_state`.  Integer neuron-ID
             keys are recovered from their JSON string representation.
+        available_vars : dict, optional
+            Unused, dict of available variables.
         """
         scale_state = state["scale"]
         for k, size in scale_state.items():
