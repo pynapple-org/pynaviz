@@ -260,7 +260,7 @@ class _BasePlot(IntervalSetInterface):
             index = self._manager.index
             self._manager = self._manager.from_state(self, state=state["manager"], index=index)
         if "interval_sets" in state:
-            available_isets = {k: v for k, v in state["interval_sets"].items() if isinstance(v, nap.IntervalSet)}
+            available_isets = {k: v for k, v in available_vars.items() if isinstance(v, nap.IntervalSet)}
             self._interval_set_from_state(state["interval_sets"], available_isets=available_isets)
         if "plot" in state:
             self.set_plot_state(state["plot"], available_vars=available_vars)
