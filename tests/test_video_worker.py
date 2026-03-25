@@ -1,6 +1,6 @@
 import multiprocessing as mp
 import queue
-from multiprocessing import Event, Lock, Queue, shared_memory
+from multiprocessing import shared_memory
 
 import numpy as np
 import pytest
