@@ -617,13 +617,15 @@ class MainWindow(QMainWindow):
         """
         state = plot.get_state()
         id_to_name = {id(v): k for k, v in self.variables.items()}
+
+        # remap IntervalSets and tsdframes
+        # (when named with default labels `interval_set_n`)
         remapped_iset = {}
         for label, props in state.get("interval_sets", {}).items():
             epoch = plot._epochs.get(label)
             var_name = id_to_name.get(id(epoch), label)
             remapped_iset[var_name] = props
         state["interval_sets"] = remapped_iset
-
         if hasattr(plot, "points"):
             remapped_tsdframes = {}
             for label, props in state.get("plot", {}).items():
