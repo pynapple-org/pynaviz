@@ -893,9 +893,8 @@ class MainWindow(QMainWindow):
 
         # restore manager if any
         if state_dict is not None:
-            # restore the manager
-            available_isets = {k: v for k, v in self.variables.items() if isinstance(v, nap.IntervalSet)}
-            widget.plot.from_state(state_dict, available_vars=available_isets)
+            # restore the plot
+            widget.plot.from_state(state_dict, available_vars=self.variables)
 
         widget_name = "/".join(key_path)
         dock = self._create_dock(widget_name, widget, key_path)
