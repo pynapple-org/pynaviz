@@ -617,12 +617,22 @@ class MainWindow(QMainWindow):
         """
         state = plot.get_state()
         available_isets = {k: v for k, v in self.variables.items() if isinstance(v, nap.IntervalSet)}
-        remapped = {}
+        available_tsdframes = {k: v for k, v in self.variables.items() if isinstance(v, nap.TsdFrame)}
+        remapped_iset = {}
         for label, props in state.get("interval_sets", {}).items():
             epoch = plot._epochs.get(label)
             var_name = next((k for k, v in available_isets.items() if v is epoch), label)
-            remapped[var_name] = props
-        state["interval_sets"] = remapped
+            remapped_iset[var_name] = props
+        state["interval_sets"] = remapped_iset
+
+        if hasattr(plot, "points"):
+            remapped_tsdframes = {}
+            for label, props in state.get("plot", {}).items():
+                tsdframe = plot.points[label].data
+                var_name = next((k for k, v in available_tsdframes.items() if v is tsdframe), label)
+                remapped_tsdframes[var_name] = props
+            state["plot"] = remapped_tsdframes
+
         return state
 
     def _get_layout_dict(self):
