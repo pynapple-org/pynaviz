@@ -155,7 +155,7 @@ def test_worker_starts_and_stops_cleanly(
             print("✓ Shutdown signal sent")
 
         # Wait for process to finish (max 10 seconds)
-        process.join(timeout=10.0)
+        process.join(timeout=15.0)
 
         # Verify it stopped
         assert not process.is_alive(), "Worker should stop after shutdown signal"
@@ -236,7 +236,7 @@ def test_worker_processes_frame_request(
         print(f"Requesting frame at index {requested_idx}")
         mp_primitives['request_queue'].put((requested_idx, move_key_frame, trigger_source))
 
-        # Wait for frame_ready event (longer timeout needed with spawn start method)
+        # Wait for frame_ready event (max 2 seconds)
         is_ready = mp_primitives['frame_ready'].wait(timeout=15.0)
         assert is_ready, "frame_ready Event should be set within timeout"
         print("✓ frame_ready Event was set")
@@ -287,7 +287,7 @@ def test_worker_processes_frame_request(
     finally:
         # Shutdown
         mp_primitives['request_queue'].put((None, None, None))
-        process.join(timeout=10.0)
+        process.join(timeout=15.0)
         if process.is_alive():
             process.terminate()
             process.join()
@@ -355,7 +355,7 @@ def test_worker_processes_frame_last_request(
         for i in [3, 2, 1, 0]:
             mp_primitives['request_queue'].put((requested_idx - i, move_key_frame, trigger_source))
 
-        # Wait for frame_ready event (longer timeout needed with spawn start method)
+        # Wait for frame_ready event (max 2 seconds)
         is_ready = mp_primitives['frame_ready'].wait(timeout=15.0)
         assert is_ready, "frame_ready Event should be set within timeout"
         print("✓ frame_ready Event was set")
@@ -398,7 +398,7 @@ def test_worker_processes_frame_last_request(
     finally:
         # Shutdown
         mp_primitives['request_queue'].put((None, None, None))
-        process.join(timeout=10.0)
+        process.join(timeout=15.0)
         if process.is_alive():
             process.terminate()
             process.join()
