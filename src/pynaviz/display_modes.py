@@ -188,18 +188,23 @@ class LinesMode:
         self.graphic.geometry.colors.set_data(new_colors)
 
     def get_state(self):
-        """Return per-column scale factors as a JSON-serializable list."""
-        return self.manager.scale.tolist()
+        """Return per-column scale factors and visibility as a JSON-serializable dict."""
+        return {
+            "scale": self.manager.scale.tolist(),
+            "visible": self.manager.visible.tolist(),
+        }
 
-    def set_state(self, scale_state):
-        """Restore per-column scale factors.
+    def set_state(self, state):
+        """Restore per-column scale factors and visibility.
 
         Parameters
         ----------
-        scale_state : list of float
+        state : dict
             Value produced by :meth:`get_state`.
         """
-        self.manager.scale = scale_state
+        self.manager.scale = state["scale"]
+        self.manager.visible = state["visible"]
+        self.update_visibility()
 
 
 class ImageMode:
