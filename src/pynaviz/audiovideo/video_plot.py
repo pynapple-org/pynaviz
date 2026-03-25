@@ -5,7 +5,6 @@ Module for time-synchronized video plotting using pygfx and multiprocessing.
 
 import abc
 import atexit
-import multiprocessing
 import pathlib
 import queue
 import signal
@@ -13,7 +12,7 @@ import sys
 import threading
 import weakref
 from abc import ABC, abstractmethod
-from multiprocessing import Event, Queue, current_process, set_start_method, shared_memory
+from multiprocessing import Event, Process, Queue, current_process, set_start_method, shared_memory
 from multiprocessing import Lock as MultiProcessLock
 from typing import Any, Optional
 
@@ -29,9 +28,6 @@ from ..utils import GRADED_COLOR_LIST
 from .skeleton_plot import PlotPoints
 from .video_handling import VideoHandler
 from .video_worker import RenderTriggerSource, video_worker_process
-
-# Enforce spawn on all platforms (avoids fork+FFmpeg segfaults on Linux)
-_mp_ctx = multiprocessing.get_context("spawn")
 
 # WeakSet to avoid keeping dead references
 _active_plot_videos = weakref.WeakSet()
@@ -344,7 +340,7 @@ class PlotVideo(PlotBaseVideoTensor):
 
             # Worker process to read video frames asynchronously
             self.worker_lock = MultiProcessLock()
-            self._worker = _mp_ctx.Process(
+            self._worker = Process(
                 target=video_worker_process,
                 args=(
                     video_path,
