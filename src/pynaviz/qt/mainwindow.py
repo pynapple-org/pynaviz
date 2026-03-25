@@ -606,13 +606,13 @@ class MainWindow(QMainWindow):
             print("Error restoring layout:", e)
 
     def _get_plot_state(self, plot):
-        """Collect plot state, remapping interval set labels to variable names.
+        """Collect plot state, remapping auto-generated labels to variable names.
 
-        When a user calls ``plot.add_interval_sets(epochs)`` without an
-        explicit label, pynaviz auto-generates one (e.g. ``interval_0``).
-        This method replaces such labels with the matching key from
-        ``self.variables`` using object identity, so that
-        :meth:`_interval_set_from_state` can look them up by name on load.
+        When a user calls ``plot.add_interval_sets(epochs)`` or
+        ``plot.superpose_points(tsdframe)`` without an explicit label, pynaviz
+        auto-generates one (e.g. ``interval_0``, ``points_1``). This method
+        replaces such labels with the matching key from ``self.variables`` using
+        object identity, so that they can be looked up by name on load.
         Labels that have no matching variable are kept as-is.
         """
         state = plot.get_state()
