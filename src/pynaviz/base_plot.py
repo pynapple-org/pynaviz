@@ -1165,17 +1165,20 @@ class PlotTsGroup(_BasePlot):
         self.canvas.request_draw(self.animate)
 
     def get_plot_state(self) -> dict:
-        """Return spike marker sizes keyed by neuron ID.
+        """Return spike marker sizes and visibility keyed by neuron ID.
 
         Returns
         -------
         dict
-            ``{"scale": {neuron_id: size, …}}``.
+            ``{"scale": {neuron_id: size, …}, "visible": [bool, …]}``.
         """
-        return {"scale": {k: pts.material.size for k, pts in self.graphic.items()}}
+        return {
+            "scale": {k: pts.material.size for k, pts in self.graphic.items()},
+            "visible": self._manager.visible.tolist(),
+        }
 
     def set_plot_state(self, state, available_vars: Optional[dict]=None):
-        """Restore spike marker sizes.
+        """Restore spike marker sizes and visibility.
 
         Parameters
         ----------
@@ -1192,6 +1195,9 @@ class PlotTsGroup(_BasePlot):
             graphic = self.graphic.get(k, None)
             if graphic is not None:
                 graphic.material.size = size
+        if "visible" in state:
+            self._manager.visible = state["visible"]
+            self._update("toggle_visibility")
         self.canvas.request_draw(self.animate)
 
     def _reset(self, event):
@@ -1520,6 +1526,30 @@ class PlotIntervalSet(_BasePlot):
             self.ruler_y.ticks = {0.5: ""}
 
         self.canvas.request_draw(self.animate)
+
+    def get_plot_state(self) -> dict:
+        """Return interval visibility as a JSON-serializable list.
+
+        Returns
+        -------
+        dict
+            ``{"visible": [bool, …]}`` ordered by manager index.
+        """
+        return {"visible": self._manager.visible.tolist()}
+
+    def set_plot_state(self, state, available_vars=None):
+        """Restore interval visibility.
+
+        Parameters
+        ----------
+        state : dict
+            Value produced by :meth:`get_plot_state`.
+        available_vars : dict, optional
+            Unused.
+        """
+        if "visible" in state:
+            self._manager.visible = state["visible"]
+            self._update("toggle_visibility")
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
         """
