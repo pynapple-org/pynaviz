@@ -485,3 +485,24 @@ def test_save_load_layout_active_controller(varname, from_key, to_key, main_wind
             widget.plot._switch_controller(from_key, to_key)
 
     _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+def test_save_load_layout_view_and_time(main_window__dock, tmp_path, qtbot):
+    """Camera view (xmin, xmax, ymin, ymax) and current time persist through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        main_window.add_dock_widget(var, [name])
+
+    # Pan to a non-default time
+    new_time = 5.0
+    main_window.ctrl_group.set_interval(new_time, None)
+
+    # Also change the y-range on one span controller to verify ymin/ymax round-trips
+    docks = sorted(
+        [d for d in main_window.findChildren(QDockWidget) if d.objectName() != "VariablesDock"],
+        key=lambda d: int(d.objectName().split("_")[-1]),
+    )
+    first_ctrl = docks[0].widget().plot.controller
+    first_ctrl.set_ylim(-42.0, 42.0)
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot, compare_screenshots=False)

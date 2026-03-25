@@ -236,6 +236,7 @@ class _BasePlot(IntervalSetInterface):
         dict
         """
         state = {}
+        state["view"] = self.controller.get_view()
         if self._manager is not None:
             state["manager"] = self._manager.get_state()
         state["interval_sets"] = self._interval_state
