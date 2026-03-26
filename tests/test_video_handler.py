@@ -3,13 +3,14 @@ import pathlib
 import av
 import imageio.v3 as iio
 import numpy as np
+import pygfx as gfx
+import pynapple as nap
 import pytest
 
 from pynaviz import PlotVideo
-from pynaviz.utils import GRADED_COLOR_LIST
 from pynaviz.audiovideo import video_handling
-import pynapple as nap
-import pygfx as gfx
+from pynaviz.utils import GRADED_COLOR_LIST
+
 
 @pytest.fixture()
 def video_info(request):
@@ -184,7 +185,7 @@ def test_points_overlay(video_info, tsdframe_shape: tuple[int, int]):
     video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
     tsdframe = nap.TsdFrame(
         t=np.arange(tsdframe_shape[0]),
-        d=np.random.randn(*tsdframe_shape)
+        d=100 + np.random.randn(*tsdframe_shape)
     )
     video_obj.superpose_points(tsdframe, color = "red", markersize=3, thickness=5, label="label")
     state = video_obj.points["label"].get_state()
@@ -205,7 +206,7 @@ def test_points_overlay_params(video_info, tsdframe_shape: tuple[int, int], colo
     video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
     tsdframe = nap.TsdFrame(
         t=np.arange(tsdframe_shape[0]),
-        d=np.random.randn(*tsdframe_shape)
+        d=100 + np.random.randn(*tsdframe_shape)
     )
     video_obj.superpose_points(tsdframe, color = color, markersize=3, thickness=5, label=label)
     if label is None:
@@ -218,4 +219,24 @@ def test_points_overlay_params(video_info, tsdframe_shape: tuple[int, int], colo
         color = gfx.Color(color).rgba
     state = video_obj.points[actual_label].get_state()
     assert state == {"color": color, "markersize": 3., "thickness": 5.}
+    video_obj.close()
+
+@pytest.mark.parametrize("video_info", ["mp4"], indirect=True)
+def test_roundtrip_points(video_info):
+    _, _, video = video_info
+    tsdframe = nap.TsdFrame(
+        t=np.arange(10),
+        d=100 + np.random.randn(10, 4)
+    )
+    video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
+    video_obj.superpose_points(tsdframe, color=None, markersize=3, thickness=5, label="label")
+    video_obj.show()
+    img = video_obj.renderer.snapshot()
+    state = video_obj.get_plot_state()
+    video_obj.close()
+    video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
+    video_obj.set_plot_state(state, available_vars={"label": tsdframe})
+    video_obj.show()
+    img2 = video_obj.renderer.snapshot()
+    np.testing.assert_allclose(img, img2, atol=1)
     video_obj.close()
