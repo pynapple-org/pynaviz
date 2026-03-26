@@ -6,8 +6,10 @@ import numpy as np
 import pytest
 
 from pynaviz import PlotVideo
+from pynaviz.utils import GRADED_COLOR_LIST
 from pynaviz.audiovideo import video_handling
-
+import pynapple as nap
+import pygfx as gfx
 
 @pytest.fixture()
 def video_info(request):
@@ -174,15 +176,46 @@ def test_getitem_multiple_times(video_info):
     video_obj.close()
 
 
-# @pytest.mark.parametrize(
-#     "start, stop, step",
-#     [
-#         (0, 5, 1),
-#         (10, 20, 2),
-#         (95, 100, 1),
-#         (99, 100, 1),
-#         (0, 100, 25),
-#     ],
-# )
-# @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
-# def test_getitem_negative_slicing_step(video_info):
+@pytest.mark.parametrize("tsdframe_shape", [(10, 2), (10, 4), (10, 6)])
+@pytest.mark.parametrize("video_info", ["mp4"], indirect=True)
+def test_points_overlay(video_info, tsdframe_shape: tuple[int, int]):
+    _, _, video = video_info
+    video = pathlib.Path(video)
+    video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
+    tsdframe = nap.TsdFrame(
+        t=np.arange(tsdframe_shape[0]),
+        d=np.random.randn(*tsdframe_shape)
+    )
+    video_obj.superpose_points(tsdframe, color = "red", markersize=3, thickness=5, label="label")
+    state = video_obj.points["label"].get_state()
+    if tsdframe_shape[1] > 2:
+        assert state == {"color": (1., 0., 0., 1.), "markersize": 3, "thickness": 5}
+    else:
+        assert state == {"color": (1., 0., 0., 1.), "markersize": 3}
+    video_obj.close()
+
+
+@pytest.mark.parametrize("tsdframe_shape", [(10, 4)])
+@pytest.mark.parametrize("video_info", ["mp4"], indirect=True)
+@pytest.mark.parametrize("color", ["red", None])
+@pytest.mark.parametrize("label", ["label", None])
+def test_points_overlay_params(video_info, tsdframe_shape: tuple[int, int], color, label):
+    _, _, video = video_info
+    video = pathlib.Path(video)
+    video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
+    tsdframe = nap.TsdFrame(
+        t=np.arange(tsdframe_shape[0]),
+        d=np.random.randn(*tsdframe_shape)
+    )
+    video_obj.superpose_points(tsdframe, color = color, markersize=3, thickness=5, label=label)
+    if label is None:
+        actual_label = "points_1"
+    else:
+        actual_label = label
+    if color is None:
+        color = gfx.Color(GRADED_COLOR_LIST[0]).rgba
+    else:
+        color = gfx.Color(color).rgba
+    state = video_obj.points[actual_label].get_state()
+    assert state == {"color": color, "markersize": 3., "thickness": 5.}
+    video_obj.close()
