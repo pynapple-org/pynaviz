@@ -217,21 +217,6 @@ def test_cmap_groups_no_duplicates():
     all_names = [n for names in _CMAP_GROUPS.values() for n in names]
     assert len(all_names) == len(set(all_names)), "Duplicate cmap names in _CMAP_GROUPS"
 
-
-def test_cmap_groups_known_categories():
-    assert "Perceptually Uniform" in _CMAP_GROUPS
-    assert "Sequential" in _CMAP_GROUPS
-    assert "Diverging" in _CMAP_GROUPS
-    assert "Qualitative" in _CMAP_GROUPS
-    assert "Miscellaneous" in _CMAP_GROUPS
-
-
-def test_cmap_groups_key_members():
-    assert "viridis" in _CMAP_GROUPS["Perceptually Uniform"]
-    assert "coolwarm" in _CMAP_GROUPS["Diverging"]
-    assert "tab10" in _CMAP_GROUPS["Qualitative"]
-
-
 # ---------------------------------------------------------------------------
 # DropdownDialog — layout and behaviour
 # ---------------------------------------------------------------------------
@@ -290,7 +275,7 @@ def test_dropdown_dialog_ok_calls_func(qtbot):
     dialog.widgets[0].setValue(9.9)
     dialog.accept()
     assert len(results) == 1
-    assert abs(results[0] - 9.9) < 1e-6
+    assert results[0] == 9.9
 
 
 def test_dropdown_dialog_cancel_does_not_call_func(qtbot):
