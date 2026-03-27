@@ -1063,7 +1063,64 @@ def get_pynapple_variables(
     return new_vars
 
 def scope(variables: Union[dict, list, tuple, str], layout_path: str = None):
+    """Launch the pynaviz GUI and block until the window is closed.
 
+    Parameters
+    ----------
+    variables : dict, list, tuple, or str
+        The data to visualise.  Several input formats are accepted:
+
+        **dict** (recommended) — keys become the display names shown in the
+        variable panel; values are the objects to visualise::
+
+            viz.scope({
+                "spikes": tsgroup,
+                "lfp": tsdframe,
+                "epochs": interval_set,
+                "recording": "/path/to/video.mp4",
+            })
+
+        **list / tuple** — names are inferred automatically from each object's
+        class name (``TsGroup``, ``TsdFrame``, …).  Duplicate class names get a
+        numeric suffix (``TsGroup_0``, ``TsGroup_1``, …)::
+
+            viz.scope([tsgroup, tsdframe, interval_set])
+
+        **str** — a single file path, treated the same as a one-element list.
+
+        **Supported object types:**
+
+        - ``nap.Ts`` — spike-train / event timestamps
+        - ``nap.Tsd`` — one-dimensional time series
+        - ``nap.TsdFrame`` — multi-channel time series (pandas DataFrame with time index)
+        - ``nap.TsdTensor`` — N-D time series (e.g. pose estimates)
+        - ``nap.TsGroup`` — collection of spike trains, optionally with metadata
+        - ``nap.IntervalSet`` — epoch / interval data, optionally with metadata
+        - ``nap.NWBFile`` — NWB file opened with pynapple; all contained objects
+          are unpacked and added individually
+        - ``str`` / ``pathlib.Path`` pointing to:
+            - ``.nwb`` file — loaded via pynapple, objects unpacked as above
+            - ``.npz`` file — loaded via pynapple, must contain a single pynapple object
+            - ``.mp4`` / ``.avi`` / ``.mov`` / ``.mkv`` — video file, displayed
+              in a video player dock
+        - ``VideoHandler`` — a pynaviz video handler instance (advanced use;
+          allows sharing a pre-initialised decoder across docks)
+
+        Objects that do not match any of the above are silently ignored.
+
+    layout_path : str or None, optional
+        Path to a previously saved ``.json`` layout file.  When provided the
+        GUI restores the dock arrangement, camera views, and applied actions
+        (group-by, sort-by, color-by, interval overlays, …) from that file.
+        Variables in *variables* are matched to saved docks by their key name;
+        docks whose variable is not found are skipped.
+
+    Notes
+    -----
+    This call blocks until the GUI window is closed.  It starts (or reuses) a
+    ``QApplication`` internally, so it is safe to call from a plain Python
+    script or a Jupyter notebook.
+    """
     # Filtering for pynapple variables
     variables = get_pynapple_variables(variables)
 
