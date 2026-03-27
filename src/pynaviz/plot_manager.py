@@ -84,7 +84,7 @@ class _PlotManager:
     @visible.setter
     def visible(self, values: np.ndarray) -> None:
         "There is no callback when setting visibility."
-        self.data["visible"] = values
+        self.data["visible"] = np.asarray(values, dtype=np.bool)
 
     @property
     def offset(self) -> np.ndarray:
@@ -100,7 +100,9 @@ class _PlotManager:
 
     @offset.setter
     def offset(self, values: np.ndarray) -> None:
-        self.data["offset"] = values
+        values = np.asarray(values, dtype=np.float32)
+        if len(values) == len(self.data.index):
+            self.data["offset"] = values
 
     @property
     def scale(self) -> np.ndarray:
@@ -116,7 +118,12 @@ class _PlotManager:
 
     @scale.setter
     def scale(self, values: np.ndarray) -> None:
-        self.data["scale"] = values
+        values = np.asarray(values, dtype=np.float32)
+        # safeguard for load_layout:
+        # If users load a var with the same name but different cols
+        # scale must be reset
+        if len(values) == len(self.data.index):
+            self.data["scale"] = values
 
     def sort_by(self, values: dict, metadata_name: str, mode: str) -> None:
         """
@@ -259,14 +266,18 @@ class _PlotManager:
         }
 
     def get_state(self) -> dict:
-        """
-        Returns the current state of the plot manager in a serializable format.
+        """Return the applied actions in a JSON-serializable format.
+
+        Only the *actions* (group_by, sort_by, color_by) are persisted —
+        not the derived offset/scale arrays, which are recomputed when the
+        actions are replayed via :meth:`from_state`.
 
         Returns
         -------
         dict
-            Dictionary containing all information needed to restore the current
-            visual state, including sorting, grouping, scaling, and visibility.
+            ``{"_actions": {"group_by": …, "sort_by": …, "color_by": …}}``
+            where each value is either ``None`` or the kwargs dict that was
+            passed to the corresponding action.
         """
         serializable_actions = {
             action: {
@@ -278,23 +289,28 @@ class _PlotManager:
         return dict(_actions=serializable_actions)
 
     def from_state(self, base_plot: "_BasePlot", state: dict, index: list) -> '_PlotManager':
-        """
-        Creates a new PlotManager instance from a previously saved state.
+        """Restore the manager by replaying saved actions.
+
+        Resets the manager to defaults and re-applies each non-null action
+        from *state* in order (group_by → sort_by → color_by), so that
+        offsets and color maps are recomputed from scratch rather than
+        stored directly.  Modifies this instance in place and returns it.
 
         Parameters
         ----------
-        base_plot:
-            The _BasePlot object that applies the action.
+        base_plot : _BasePlot
+            The plot whose action methods (group_by, sort_by, color_by)
+            will be called to replay the state.
         state : dict
-            Dictionary containing the saved state from get_state() method.
-        index :
-            The index of the plot manager to use. If None, assume that the index
-            is unchanged, so use the stored one.
+            Value produced by :meth:`get_state`.
+        index : list
+            Index to use when resetting.  Should match the current data
+            index of *base_plot*.
 
         Returns
         -------
         _PlotManager
-            New instance with the restored state.
+            This instance, after restoration.
         """
         # Create instance with the saved index & order etc.
         self.reset(base_plot, index=index)

@@ -243,6 +243,27 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
 
         self.controller.renderer_request_draw()
 
+    def get_plot_state(self):
+        return {
+            label: pts.get_state()
+            for label, pts in self.points.items()
+        }
+
+    def set_plot_state(self, state: dict, available_vars: dict):
+        frame_index = self.controller.frame_index
+        time_array = getattr(self.data.index, "values", self.data.index)
+        time = time_array[frame_index]
+        for label, pts_state in state.items():
+            if label in available_vars:
+                tsdframe = available_vars[label]
+                # skeletons needs at least 2 (x,y) time series.
+                if not isinstance(tsdframe, nap.TsdFrame) or tsdframe.shape[1] < 4:
+                    continue
+                self.points[label] = PlotPoints.from_state(pts_state, scene=self.scene, tsdframe=tsdframe, initial_time=time)
+            else:
+                print(f"TsdFrame ``{label}`` not found.")
+
+
 
 class PlotTsdTensor(PlotBaseVideoTensor):
     """

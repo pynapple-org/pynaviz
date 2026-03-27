@@ -424,6 +424,10 @@ class MenuWidget(QWidget):
             get_ctrl = self.plot._controllers.get("get")
             if get_ctrl is not None and get_ctrl.enabled:
                 return
+        if hasattr(self.plot, "_manager"):
+            data = self.plot._manager.data
+            for key in self.channel_model.checks:
+                self.channel_model.checks[key] =  data.loc[key]["visible"]
         dialog = ChannelList(self.channel_model, parent=self)
         dialog.show()
 
@@ -434,6 +438,10 @@ class MenuWidget(QWidget):
 
     def show_select_iset_menu(self) -> None:
         """Opens the interval set selection dialog."""
+        for row in self._interval_sets_model.rows:
+            row["checked"] = row["name"] in self.plot._interval_state
+            if row["checked"]:
+                row["alpha"] = self.plot._interval_state[row["name"]].get("alpha", 0.5)
         dialog = IntervalSetsDialog(self._interval_sets_model, parent=self)
         dialog.show()
 

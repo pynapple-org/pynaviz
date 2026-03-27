@@ -32,7 +32,7 @@ class PlotPoints:
 
         # ---- Points ----
         geom_points = gfx.Geometry(positions=xy)
-        mat_points = gfx.PointsMaterial(color=color, size=markersize)
+        mat_points: gfx.PointsMaterial = gfx.PointsMaterial(color=color, size=markersize)
         self.points = gfx.Points(geom_points, mat_points)
         scene.add(self.points)
 
@@ -103,3 +103,18 @@ class PlotPoints:
         else:
             self.lines.material.opacity = 1
             self.lines.material.thickness = thickness
+
+    def get_state(self) -> dict:
+        pts_material: gfx.PointsMaterial = self.points.material
+        line_material: gfx.LineMaterial = self.lines.material
+        return {
+            "color": pts_material.color.rgba,
+            "markersize": pts_material.size,
+            "thickness": line_material.thickness,
+        }
+
+    @classmethod
+    def from_state(cls, state, scene, tsdframe, initial_time: float=0.):
+        return cls(tsdframe, initial_time=initial_time, scene=scene, **state)
+
+

@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from typing import Literal
 
 import numpy as np
@@ -38,6 +39,10 @@ def apply_action(
             "group_by",
             "sort_by",
             "color_by",
+            "add_interval_sets",
+            "toggle_display_mode",
+            "rescale",
+            "plot_x_vs_y",
             "skip_forward",
             "skip_backward",
             "set_time",
@@ -74,6 +79,15 @@ def apply_action(
         return
     action_kwargs = action_kwargs or {}
 
+    if action_type == "toggle_display_mode":
+        widget.plot._toggle_display_mode(SimpleNamespace(type="key_down", key="m"))
+        return
+
+    if action_type == "rescale":
+        key = action_kwargs.get("key", "i")
+        widget.plot._rescale(SimpleNamespace(type="key_down", key=key))
+        return
+
     if action_type not in ["play_pause", "stop", "set_time"]:
         # add the underscore for private method, clear unnecessary kwargs
         if action_type in ["skip_forward", "skip_backward"]:
@@ -82,7 +96,7 @@ def apply_action(
                 print("No kwargs needed for skip_forward or skip_backward")
             action_kwargs = {}
         if hasattr(widget.plot, action_type):
-            # group_by, sort_by, color_by are action of _BasePlot
+            # group_by, sort_by, color_by, add_interval_sets, plot_x_vs_y are actions of _BasePlot
             action = getattr(widget.plot, action_type)
             action(**action_kwargs)
         elif hasattr(widget, action_type):
@@ -310,3 +324,185 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, colo
 
     main_window.close()
     main_window_new.close()
+
+
+
+def _take_screenshots(window):
+    screenshots = {}
+    count = 0
+    for d in window.findChildren(QDockWidget):
+        if d.objectName() != "VariablesDock":
+            base_plot = d.widget().plot
+            base_plot.renderer.render(base_plot.scene, base_plot.camera)
+            screenshots[count, base_plot.__class__.__name__] = base_plot.renderer.snapshot()
+            count += 1
+    return screenshots
+
+
+def _assert_round_trip(main_window, variables, tmp_path, qtbot, compare_screenshots=True):
+    """Save layout, reload, compare state_dict entries and optionally screenshots."""
+    layout_path = tmp_path / "layout.json"
+    # Render before capturing state so float32 precision values (e.g. alpha from pygfx) are stable
+    orig_screenshots = _take_screenshots(main_window)
+    layout_dict_orig = main_window._get_layout_dict()
+    main_window._save_layout(layout_path)
+    main_window.close()
+
+    main_window_new = viz.qt.mainwindow.MainWindow(variables=variables, layout_path=layout_path)
+    qtbot.addWidget(main_window_new)
+
+    new_screenshots = _take_screenshots(main_window_new)
+    layout_dict_new = main_window_new._get_layout_dict()
+    layout_dict_orig.pop("geometry_b64")
+    layout_dict_new.pop("geometry_b64")
+    assert layout_dict_orig == layout_dict_new
+
+    if compare_screenshots:
+        for k, img in orig_screenshots.items():
+            np.testing.assert_allclose(img, new_screenshots[k], atol=1)
+
+    main_window_new.close()
+
+
+@pytest.mark.parametrize("varname", ["tsdframe", "tsgroup", "tsd"])
+def test_save_load_layout_interval_sets(varname, main_window__dock, tmp_path, qtbot):
+    """Interval set overlay persists through save/load (dict + screenshot)."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == varname:
+            widget = dock_widget.widget()
+            apply_action(
+                widget=widget,
+                action_type="add_interval_sets",
+                action_kwargs={"epochs": variables["interval_set"]},
+                qtbot=qtbot,
+            )
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+def test_save_load_layout_image_mode(main_window__dock, tmp_path, qtbot):
+    """Image display mode persists through save/load (dict + screenshot)."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == "tsdframe":
+            widget = dock_widget.widget()
+            apply_action(widget=widget, action_type="toggle_display_mode",
+                         action_kwargs={}, qtbot=qtbot)
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+@pytest.mark.parametrize("rescale_key", ["i", "d"])
+def test_save_load_layout_rescale(rescale_key, main_window__dock, tmp_path, qtbot):
+    """Rescaled amplitude (lines mode scale) persists through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == "tsdframe":
+            widget = dock_widget.widget()
+            apply_action(widget=widget, action_type="sort_by",
+                         action_kwargs={"metadata_name": "channel"}, qtbot=qtbot)
+            apply_action(widget=widget, action_type="rescale",
+                         action_kwargs={"key": rescale_key}, qtbot=qtbot)
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+def test_save_load_layout_xvsy(main_window__dock, tmp_path, qtbot):
+    """X-vs-Y mode persists through save/load (dict + screenshot)."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == "tsdframe":
+            widget = dock_widget.widget()
+            apply_action(widget=widget, action_type="plot_x_vs_y",
+                         action_kwargs={"x_col": 0, "y_col": 1}, qtbot=qtbot)
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+@pytest.mark.parametrize("rescale_key", ["i", "d"])
+def test_save_load_layout_tsgroup_marker_size(rescale_key, main_window__dock, tmp_path, qtbot):
+    """TsGroup marker size persists through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == "tsgroup":
+            widget = dock_widget.widget()
+            apply_action(widget=widget, action_type="rescale",
+                         action_kwargs={"key": rescale_key}, qtbot=qtbot)
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+@pytest.mark.parametrize("varname", ["tsdframe", "tsgroup", "interval_set"])
+def test_save_load_layout_visibility(varname, main_window__dock, tmp_path, qtbot):
+    """Channel/interval visibility persists through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == varname:
+            widget = dock_widget.widget()
+            visible = widget.plot._manager.visible.copy()
+            visible[0] = False
+            widget.plot._manager.visible = visible
+            widget.plot._update("toggle_visibility")
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+def test_save_load_layout_image_mode_visibility(main_window__dock, tmp_path, qtbot):
+    """Channel visibility in image mode persists through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == "tsdframe":
+            widget = dock_widget.widget()
+            apply_action(widget=widget, action_type="toggle_display_mode",
+                         action_kwargs={}, qtbot=qtbot)
+            visible = widget.plot._manager.visible.copy()
+            visible[0] = False
+            widget.plot._manager.visible = visible
+            widget.plot._update("toggle_visibility")
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+@pytest.mark.parametrize("varname,from_key,to_key", [
+    ("tsdframe", "span", "span_ylock"),
+    ("tsgroup", "span", "span_ylock"),
+])
+def test_save_load_layout_active_controller(varname, from_key, to_key, main_window__dock, tmp_path, qtbot):
+    """Active controller key persists through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        dock_widget = main_window.add_dock_widget(var, [name])
+        if name == varname:
+            widget = dock_widget.widget()
+            widget.plot._switch_controller(from_key, to_key)
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot)
+
+
+def test_save_load_layout_view_and_time(main_window__dock, tmp_path, qtbot):
+    """Camera view (xmin, xmax, ymin, ymax) and current time persist through save/load."""
+    main_window, variables = main_window__dock
+    for name, var in variables.items():
+        main_window.add_dock_widget(var, [name])
+
+    # Pan to a non-default time
+    new_time = 5.0
+    main_window.ctrl_group.set_interval(new_time, None)
+
+    # Also change the y-range on one span controller to verify ymin/ymax round-trips
+    docks = sorted(
+        [d for d in main_window.findChildren(QDockWidget) if d.objectName() != "VariablesDock"],
+        key=lambda d: int(d.objectName().split("_")[-1]),
+    )
+    first_ctrl = docks[0].widget().plot.controller
+    first_ctrl.set_ylim(-42.0, 42.0)
+
+    _assert_round_trip(main_window, variables, tmp_path, qtbot, compare_screenshots=False)

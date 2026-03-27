@@ -187,6 +187,25 @@ class LinesMode:
                 new_colors[sl, -1] = 1.0
         self.graphic.geometry.colors.set_data(new_colors)
 
+    def get_state(self):
+        """Return per-column scale factors and visibility as a JSON-serializable dict."""
+        return {
+            "scale": self.manager.scale.tolist(),
+            "visible": self.manager.visible.tolist(),
+        }
+
+    def set_state(self, state):
+        """Restore per-column scale factors and visibility.
+
+        Parameters
+        ----------
+        state : dict
+            Value produced by :meth:`get_state`.
+        """
+        self.manager.scale = state["scale"]
+        self.manager.visible = state["visible"]
+        self.update_visibility()
+
 
 class ImageMode:
     """Heatmap display mode with a 2D texture and locked y-axis.
@@ -371,6 +390,26 @@ class ImageMode:
         """
         return np.stack([np.nanmin(self.buffer, 0), np.nanmax(self.buffer, 0)]).T
 
+    def get_state(self):
+        """Return the colormap intensity range and visibility as a dict."""
+        return {
+            "clim": self.graphic.material.clim,
+            "visible": self.manager.visible.tolist(),
+        }
+
+    def set_state(self, state):
+        """Restore the colormap intensity range and visibility.
+
+        Parameters
+        ----------
+        state : dict
+            Value produced by :meth:`get_state`.
+        """
+        self.graphic.material.clim = state["clim"]
+        if "visible" in state:
+            self.manager.visible = state["visible"]
+            self.update_visibility()
+
 
 class XvsYMode:
     """Scatter/line x-vs-y display mode using a GetController.
@@ -435,3 +474,32 @@ class XvsYMode:
         self.time_point.geometry.positions.update_full()
         if self._request_draw is not None:
             self._request_draw()
+
+    def get_state(self):
+        """Return all parameters needed to reconstruct this x-vs-y view.
+
+        Returns
+        -------
+        dict
+            Keys: ``window_size``, ``x_col``, ``y_col``, ``color``,
+            ``thickness``, ``markersize``.
+        """
+        return {
+            "window_size": self.window_size,
+            "x_col": self.x_col,
+            "y_col": self.y_col,
+            "color": self.color,
+            "thickness": self.thickness,
+            "markersize": self.markersize,
+        }
+
+    def set_state(self, state):
+        """Restore x-vs-y parameters from a previously saved state.
+
+        Parameters
+        ----------
+        state : dict
+            Value produced by :meth:`get_state`.
+        """
+        for k, v in state.items():
+            setattr(self, k, v)
