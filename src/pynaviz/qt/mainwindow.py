@@ -341,6 +341,72 @@ class VariableDock(QDockWidget):
 
 
 class MainWindow(QMainWindow):
+    """Main application window for pynaviz.
+
+    ``MainWindow`` is the top-level Qt widget that hosts all plot docks.
+    It is normally created indirectly through :func:`pynaviz.scope`, but can
+    also be instantiated directly when embedding pynaviz inside a larger Qt
+    application or when writing tests.
+
+    Layout
+    ------
+    The window is divided into three areas:
+
+    - **Left panel** — ``VariableDock``: a tree widget listing all variables
+      passed at construction time.  Double-clicking an entry opens a new plot
+      dock for that variable.
+    - **Central / right area** — plot docks, one per visualised variable.
+      Docks can be dragged, tabbed, floated, or closed.
+    - **Bottom status bar** — a global time display and time-unit selector
+      that reflects the current playback position shared across all docks.
+
+    Time synchronisation
+    --------------------
+    All open plot docks share a single :class:`ControllerGroup`
+    (``self.ctrl_group``).  Panning or scrubbing in any dock updates the
+    shared time and propagates to every other dock automatically.
+
+    Keyboard shortcuts
+    ------------------
+    Global (window-level):
+
+    - **Space** — play / pause
+    - **Ctrl+S** — save layout
+    - **Ctrl+O** — load layout
+
+    Per-dock (active when the mouse is over or the canvas has focus):
+
+    - **r** — reset view
+    - **← / →** — pan left / right by one page
+    - **y** — toggle y-axis lock (span mode only; no-op in x-vs-y or image mode)
+    - **x** — toggle x-axis lock (span and image mode; no-op in x-vs-y mode)
+    - **Ctrl+← / Ctrl+→** — jump to previous / next superposed epoch; requires at
+      least one ``IntervalSet`` to be overlaid on that dock via *Select IntervalSet*
+      (works on any plot type, not only ``IntervalSet`` plots)
+    - **i / d** — increase / decrease contrast (TsdFrame) or marker size (TsGroup)
+
+    Parameters
+    ----------
+    variables : dict or None, optional
+        Mapping of ``{name: object}`` to populate the variable panel.
+        Accepts the same types as :func:`pynaviz.scope`.  Defaults to an
+        empty dict (no variables pre-loaded).
+    layout_path : str, pathlib.Path, or None, optional
+        Path to a ``.json`` layout file produced by *Save Layout*.  When
+        given, the window restores the saved dock arrangement, camera views,
+        and plot actions immediately after construction.  Variables are
+        matched to saved docks by name; unmatched docks are skipped.
+
+    Attributes
+    ----------
+    variables : dict
+        Live mapping of all variables currently known to the window,
+        including any loaded via *File → Open* after construction.
+    ctrl_group : ControllerGroup
+        Shared time controller that synchronises all open plot docks.
+    variable_dock : VariableDock
+        The left-panel tree widget.
+    """
 
     _file_extensions = {
             "Pynapple": [".npz"],
@@ -351,6 +417,14 @@ class MainWindow(QMainWindow):
         }
 
     def __init__(self, variables: dict | None = None, layout_path: str | pathlib.Path | None = None):
+        """
+        Raises
+        ------
+        RuntimeError
+            If no ``QApplication`` instance exists.  Create one before
+            instantiating ``MainWindow`` directly, or use :func:`pynaviz.scope`
+            which handles this automatically.
+        """
         if not QApplication.instance():  # pragma: no cover
             raise RuntimeError("A Qt application must be created.")
         super().__init__()
