@@ -30,7 +30,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
-    QSpacerItem,
     QStyle,
     QVBoxLayout,
     QWidget,
@@ -128,41 +127,24 @@ class DropdownDialog(QDialog):
         self.setWindowModality(Qt.WindowModality.NonModal)
 
         num_cols = min(len(widgets), 3)
-        num_rows = len(widgets) // num_cols
-        self.setFixedWidth(200 * num_cols)
-        self.setFixedHeight(min(150 * num_rows, 400))
 
         self._func = func
         self.widgets: dict[int, QWidget] = {}
 
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(8)
 
-        # Scrollable area
+        # Scrollable area (useful when there are many widgets)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll.setFrameShape(scroll.Shape.NoFrame)
         scroll_content = QWidget()
-        scroll_content.setSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum
-        )
 
-        grid_layout = QGridLayout()
-        inner_layout = QVBoxLayout()
-        inner_layout.addLayout(grid_layout)
+        grid_layout = QGridLayout(scroll_content)
+        grid_layout.setContentsMargins(4, 4, 4, 4)
+        grid_layout.setSpacing(8)
 
-        spacer = QSpacerItem(
-            0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
-        )
-        h_spacer = QSpacerItem(
-            0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
-        )
-        inner_layout.addItem(spacer)
-
-        outer_layout = QHBoxLayout()
-        outer_layout.addLayout(inner_layout)
-        outer_layout.addItem(h_spacer)
-
-        scroll_content.setLayout(outer_layout)
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
@@ -170,14 +152,13 @@ class DropdownDialog(QDialog):
         def make_labeled_widget(label_text: str, widget: QWidget) -> QWidget:
             label = QLabel(label_text)
             label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-            widget.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             wrapper = QWidget()
-            layout = QHBoxLayout()
-            layout.setContentsMargins(1, 0, 1, 0)
-            layout.setSpacing(2)
+            layout = QHBoxLayout(wrapper)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(8)
             layout.addWidget(label)
             layout.addWidget(widget)
-            wrapper.setLayout(layout)
             return wrapper
 
         for i, (label, params) in enumerate(widgets.items()):
