@@ -122,9 +122,9 @@ class CustomController(ABC, PanZoomController):
         Camera internals use float32, so values are normalised through float32
         to keep ``get_view`` stable across a ``set_view`` → ``get_view`` roundtrip.
         """
-        xlim = self.get_xlim()
-        ylim = self.get_ylim()
-        return tuple(np.array(xlim + ylim, dtype=np.float32))
+        xmin, xmax = self.get_xlim()
+        ymin, ymax = self.get_ylim()
+        return tuple(float(np.float32(v)) for v in (xmin, xmax, ymin, ymax))
 
     @abstractmethod
     def sync(self, event):
