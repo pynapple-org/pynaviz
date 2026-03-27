@@ -111,20 +111,20 @@ class CustomController(ABC, PanZoomController):
         half_width = self.camera.width / 2
         return self.camera.local.x - half_width, self.camera.local.x + half_width
 
+    def get_ylim(self):
+        """Return the current y boundaries"""
+        half_height = self.camera.height / 2
+        return self.camera.local.y - half_height, self.camera.local.y + half_height
+
     def get_view(self) -> tuple[float, float, float, float]:
         """Return the current visible range as (xmin, xmax, ymin, ymax).
 
         Camera internals use float32, so values are normalised through float32
         to keep ``get_view`` stable across a ``set_view`` → ``get_view`` roundtrip.
         """
-        half_w = self.camera.width / 2
-        half_h = self.camera.height / 2
-        x = self.camera.local.x
-        y = self.camera.local.y
-        return tuple(
-            float(np.float32(v))
-            for v in (x - half_w, x + half_w, y - half_h, y + half_h)
-        )
+        xlim = self.get_xlim()
+        ylim = self.get_ylim()
+        return tuple(np.array(xlim + ylim, dtype=np.float32))
 
     @abstractmethod
     def sync(self, event):
