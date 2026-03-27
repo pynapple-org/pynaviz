@@ -37,7 +37,7 @@ class PlotPoints:
         scene.add(self.points)
 
         # # ---- Lines ----
-        if self.n_points:
+        if self.n_points > 1:
             edges = list(itertools.combinations(range(self.n_points), 2))
             self.n_lines = len(edges)
             self.edges_idx = np.array(edges).flatten()
@@ -65,7 +65,8 @@ class PlotPoints:
         current_xy = self.data.get(t)
         xy = np.hstack((current_xy.reshape(self.n_points, 2), np.ones((self.n_points, 1)))).astype("float32")
         self.points.geometry.positions.set_data(xy)
-        self.lines.geometry.positions.set_data(xy[self.edges_idx])
+        if self.n_points > 1:
+            self.lines.geometry.positions.set_data(xy[self.edges_idx])
 
     def set_color(self, color):
         """
@@ -106,12 +107,14 @@ class PlotPoints:
 
     def get_state(self) -> dict:
         pts_material: gfx.PointsMaterial = self.points.material
-        line_material: gfx.LineMaterial = self.lines.material
-        return {
-            "color": pts_material.color.rgba,
-            "markersize": pts_material.size,
-            "thickness": line_material.thickness,
+        state = {
+                "color": pts_material.color.rgba,
+                "markersize": pts_material.size,
         }
+        if self.n_points > 1:
+            line_material: gfx.LineMaterial = self.lines.material
+            state.update({"thickness": line_material.thickness})
+        return state
 
     @classmethod
     def from_state(cls, state, scene, tsdframe, initial_time: float=0.):
