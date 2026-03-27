@@ -18,7 +18,7 @@ from typing import Any, Callable
 import numpy as np
 import pynapple as nap
 from PySide6.QtCore import QPoint, QSize, Qt
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -73,17 +73,64 @@ def widget_factory(parameters: dict) -> QWidget:
         The configured widget instance.
     """
     widget_type = parameters.pop("type")
+    icon_factory = parameters.pop("icon_factory", None)
+    icon_size = parameters.pop("icon_size", QSize(16, 16))
+    clear_text = parameters.pop("clear_text", False)
+    groups = parameters.pop("groups", None)
+    current_value = parameters.pop("current_value", None)
     if widget_type == QComboBox:
         widget = QComboBox()
-        for arg_name, attr_name in WIDGET_PARAMS[QComboBox].items():
-            method = getattr(widget, attr_name, None)
-            value = parameters.get(arg_name)
-            if method and value is not None:
-                if arg_name == "values":
-                    for i, v in enumerate(value):
-                        method(i, v)
-                else:
-                    method(value)
+        if groups is not None:
+            if icon_factory is not None:
+                widget.setIconSize(icon_size)
+                widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+                widget.setMinimumContentsLength(0)
+                widget.setMinimumWidth(icon_size.width() + 36)  # icon + padding + arrow button
+            current_index = 0
+            combo_index = 0
+            for g_idx, (group_name, group_items) in enumerate(groups.items()):
+                if g_idx > 0:
+                    widget.insertSeparator(widget.count())
+                    combo_index += 1
+                widget.addItem(group_name)
+                header = widget.model().item(widget.count() - 1)
+                header.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                font = header.font()
+                font.setBold(True)
+                header.setFont(font)
+                combo_index += 1
+                for name in group_items:
+                    widget.addItem(name)
+                    if name == current_value:
+                        current_index = combo_index
+                    if icon_factory is not None:
+                        idx = widget.count() - 1
+                        widget.setItemData(idx, name)
+                        widget.setItemIcon(idx, QIcon(icon_factory(name)))
+                        if clear_text:
+                            widget.setItemText(idx, "")
+                            widget.setItemData(idx, name, Qt.ItemDataRole.ToolTipRole)
+                    combo_index += 1
+            widget.setCurrentIndex(current_index)
+        else:
+            for arg_name, attr_name in WIDGET_PARAMS[QComboBox].items():
+                method = getattr(widget, attr_name, None)
+                value = parameters.get(arg_name)
+                if method and value is not None:
+                    if arg_name == "values":
+                        for i, v in enumerate(value):
+                            method(i, v)
+                    else:
+                        method(value)
+            if icon_factory is not None:
+                widget.setIconSize(icon_size)
+                for i in range(widget.count()):
+                    text = widget.itemText(i)
+                    widget.setItemIcon(i, QIcon(icon_factory(text)))
+                    widget.setItemData(i, text)
+                    if clear_text:
+                        widget.setItemText(i, "")
+                        widget.setItemData(i, text, Qt.ItemDataRole.ToolTipRole)
     elif widget_type == QDoubleSpinBox:
         widget = QDoubleSpinBox()
         for arg_name, attr_name in WIDGET_PARAMS[QDoubleSpinBox].items():
