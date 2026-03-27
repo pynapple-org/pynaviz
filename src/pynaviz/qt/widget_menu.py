@@ -210,8 +210,8 @@ class DropdownDialog(QDialog):
 
         for i, (label, params) in enumerate(widgets.items()):
             widget = widget_factory(params)
-            if hasattr(widget, "currentIndexChanged"):
-                widget.currentIndexChanged.connect(self.item_changed)
+            if hasattr(widget, "activated"):
+                widget.activated.connect(self.item_changed)
             if hasattr(widget, "valueChanged"):
                 widget.valueChanged.connect(self.item_changed)
 
