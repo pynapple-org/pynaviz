@@ -316,7 +316,14 @@ class _PlotManager:
         self.reset(base_plot, index=index)
         for action, kwargs in state['_actions'].items():
             attr = getattr(base_plot, action, None)
-            if kwargs is not None and attr is not None:
-                attr(**kwargs)
+            if kwargs is None or attr is None:
+                continue
+            metadata_name = kwargs.get("metadata_name")
+            if metadata_name is not None:
+                metadata = getattr(base_plot.data, "metadata", None)
+                if metadata is not None and metadata_name not in metadata.columns:
+                    print(f"Skipping '{action}': metadata field '{metadata_name}' not found in current data.")
+                    continue
+            attr(**kwargs)
         return self
 

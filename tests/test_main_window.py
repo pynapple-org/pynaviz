@@ -487,6 +487,43 @@ def test_save_load_layout_active_controller(varname, from_key, to_key, main_wind
     _assert_round_trip(main_window, variables, tmp_path, qtbot)
 
 
+@pytest.mark.parametrize("action,kwargs", [
+    ("group_by", {"metadata_name": "channel"}),
+    ("sort_by", {"metadata_name": "channel"}),
+    ("color_by", {"metadata_name": "channel", "cmap_name": "viridis", "vmin": 0, "vmax": 4}),
+])
+def test_restore_layout_skips_stale_metadata_action(action, kwargs, main_window__dock, tmp_path, qtbot):
+    """Layout restore silently skips actions referencing metadata fields that no longer exist."""
+    main_window, variables = main_window__dock
+    tsdframe = variables["tsdframe"]
+
+    dock_widget = main_window.add_dock_widget(tsdframe, ["tsdframe"])
+    widget = dock_widget.widget()
+    apply_action(widget=widget, action_type=action, action_kwargs=kwargs, qtbot=qtbot)
+    assert widget.plot._manager._actions[action] is not None
+
+    layout_path = tmp_path / "layout.json"
+    main_window._save_layout(layout_path)
+    main_window.close()
+
+    # drop_info modifies in place — tsdframe (and variables["tsdframe"]) no longer has "channel"
+    tsdframe.drop_info("channel")
+
+    main_window_new = viz.qt.mainwindow.MainWindow(
+        variables=variables, layout_path=layout_path
+    )
+    qtbot.addWidget(main_window_new)
+
+    tsdframe_dock = next(
+        d for d in main_window_new.findChildren(QDockWidget)
+        if d.objectName() != "VariablesDock"
+    )
+    # Stale action must have been skipped — manager entry stays None
+    assert tsdframe_dock.widget().plot._manager._actions[action] is None
+
+    main_window_new.close()
+
+
 def test_save_load_layout_view_and_time(main_window__dock, tmp_path, qtbot):
     """Camera view (xmin, xmax, ymin, ymax) and current time persist through save/load."""
     main_window, variables = main_window__dock
