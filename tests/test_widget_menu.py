@@ -9,7 +9,6 @@ from PySide6.QtWidgets import QComboBox, QDoubleSpinBox
 from pynaviz.qt.drop_down_dict_builder import _CMAP_GROUPS, _cmap_icon, _color_icon
 from pynaviz.qt.widget_menu import DropdownDialog, widget_factory
 
-
 # ---------------------------------------------------------------------------
 # widget_factory — flat combobox
 # ---------------------------------------------------------------------------
@@ -171,7 +170,6 @@ def test_color_icon_returns_pixmap(qtbot):
 
 def test_color_icon_fill(qtbot):
     """The pixmap is filled with the requested colour (sample centre pixel)."""
-    from PySide6.QtGui import QColor
     px = _color_icon("red")
     img = px.toImage()
     center = img.pixelColor(16, 8)
