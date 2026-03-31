@@ -1,11 +1,60 @@
-import bisect
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
-from PySide6.QtGui import QAction
+import numpy as np
+from PySide6.QtCore import QSize
+from PySide6.QtGui import QAction, QColor, QImage, QPixmap
 from PySide6.QtWidgets import QComboBox, QWidget
 
 from pynaviz.utils import GRADED_COLOR_LIST
+
+_CMAP_GROUPS = OrderedDict([
+    ("Perceptually Uniform", [
+        "viridis", "plasma", "inferno", "magma", "cividis",
+    ]),
+    ("Sequential", [
+        "Greys", "Purples", "Blues", "Greens", "Oranges", "Reds",
+        "YlOrBr", "YlOrRd", "OrRd", "PuRd", "RdPu", "BuPu",
+        "GnBu", "PuBu", "YlGnBu", "PuBuGn", "BuGn", "YlGn",
+        "binary", "gist_yarg", "gist_gray", "gray", "bone", "pink",
+        "spring", "summer", "autumn", "winter", "cool", "Wistia",
+        "hot", "afmhot", "gist_heat", "copper",
+    ]),
+    ("Diverging", [
+        "PiYG", "PRGn", "BrBG", "PuOr", "RdGy", "RdBu",
+        "RdYlBu", "RdYlGn", "Spectral", "coolwarm", "bwr", "seismic",
+        "berlin", "managua", "vanimo",
+    ]),
+    ("Cyclic", ["twilight", "twilight_shifted", "hsv"]),
+    ("Qualitative", [
+        "Pastel1", "Pastel2", "Paired", "Accent", "Dark2",
+        "Set1", "Set2", "Set3", "tab10", "tab20", "tab20b", "tab20c",
+    ]),
+    ("Miscellaneous", [
+        "flag", "prism", "ocean", "gist_earth", "terrain", "gist_stern",
+        "gnuplot", "gnuplot2", "CMRmap", "cubehelix", "brg", "gist_rainbow",
+        "rainbow", "jet", "turbo", "nipy_spectral", "gist_ncar",
+    ]),
+])
+
+
+def _color_icon(name: str) -> QPixmap:
+    px = QPixmap(32, 16)
+    px.fill(QColor(name))
+    return px
+
+
+def _cmap_icon(name: str, width: int = 64, height: int = 12) -> QPixmap:
+    try:
+        cmap = plt.colormaps[name]
+    except KeyError:
+        px = QPixmap(width, height)
+        px.fill(QColor("gray"))
+        return px
+    rgba = (cmap(np.linspace(0, 1, width)) * 255).astype(np.uint8)
+    rgba_2d = np.ascontiguousarray(np.tile(rgba, (height, 1, 1)))
+    img = QImage(rgba_2d.tobytes(), width, height, width * 4, QImage.Format.Format_RGBA8888)
+    return QPixmap.fromImage(img)
 
 
 def _get_meta_combo(widget):
@@ -38,13 +87,22 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
         if meta is None:
             return
 
-        cmap_list = sorted(plt.colormaps())
-        idx = bisect.bisect_left(cmap_list, cmap)
+        # Build groups, appending any installed cmaps not in the known lists to Miscellaneous
+        registered = set(plt.colormaps())
+        known = {name for names in _CMAP_GROUPS.values() for name in names}
+        groups = OrderedDict(
+            (cat, [n for n in names if n in registered])
+            for cat, names in _CMAP_GROUPS.items()
+        )
+        groups["Miscellaneous"] += sorted(registered - known - {n + "_r" for n in known})
         parameters = {
             "type": QComboBox,
             "name": "colormap",
-            "items": cmap_list,
-            "current_index": idx,
+            "groups": groups,
+            "current_value": cmap,
+            "icon_factory": _cmap_icon,
+            "icon_size": QSize(64, 12),
+            "clear_text": True,
         }
         kwargs = dict(
             widgets=OrderedDict(Metadata=meta, Colormap=parameters),
@@ -70,6 +128,9 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
             "name": "colors",
             "items": GRADED_COLOR_LIST,
             "current_index": 0,
+            "icon_factory": _color_icon,
+            "icon_size": QSize(32, 16),
+            "clear_text": True,
         }
         kwargs = dict(
             widgets=cols,
