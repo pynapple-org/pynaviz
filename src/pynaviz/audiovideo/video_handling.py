@@ -263,37 +263,17 @@ class VideoHandler(BaseAudioVideo):
                 current_index = 0
                 flush_every = 10
 
-                if self._packet_pts_reliable():
-                    # Fast path: demux only, no decode.
-                    # bisect.insort maintains display order even for B-frame content.
-                    # No intermediate flushes for the same reason as _build_index_fixed_size:
-                    # B-frame packets arrive out of display order so any partial sorted list
-                    # has wrong values at some positions. Flush only when complete.
-                    pts_list: list[int] = []
-                    for packet in container.demux(stream):
-                        if not self._running:
-                            return
-                        if packet.pts is None or packet.size == 0:
-                            continue
-                        bisect.insort(pts_list, packet.pts)
-                        current_index += 1
-                    with self._lock:
-                        self.all_pts = pts_list
-                        self._i = current_index
-                else:
-                    # Slow path: decode every frame for reliable PTS.
-                    pts_list = []
-                    for packet in container.demux(stream):
-                        if not self._running:
-                            return
-                        for frame in packet.decode():
-                            if frame.pts is not None:
-                                pts_list.append(frame.pts)
-                                if current_index % flush_every == 1:
-                                    with self._lock:
-                                        self.all_pts = pts_list
-                                        self._i = current_index
-                                current_index += 1
+                for packet in container.demux(stream):
+                    if not self._running:
+                        return
+                    for frame in packet.decode():
+                        if frame.pts is not None:
+                            pts_list.append(frame.pts)
+                            if current_index % flush_every == 1:
+                                with self._lock:
+                                    self.all_pts = pts_list
+                                    self._i = current_index
+                            current_index += 1
         except Exception as e:
             print("Index thread error:", e)
         finally:
