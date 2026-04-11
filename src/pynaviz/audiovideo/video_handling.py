@@ -261,8 +261,11 @@ class VideoHandler(BaseAudioVideo):
                 pts_list = []
 
                 current_index = 0
-                flush_every = 10  # number of frames over which flushing to all points
+                flush_every = 10
+
                 for packet in container.demux(stream):
+                    if not self._running:
+                        return
                     for frame in packet.decode():
                         if frame.pts is not None:
                             pts_list.append(frame.pts)
@@ -691,14 +694,21 @@ class VideoHandler(BaseAudioVideo):
                     self._append_frame(frames, collected, preceding_frame)
                     collected += 1
                     go_to_next_packet = False
+                    if collected < num_frames:
+                        target_pts, use_time = self._get_target_frame_pts(indices[collected])
 
                 elif found_current:
                     self._append_frame(frames, collected, frame)
                     collected += 1
                     go_to_next_packet = False
+                    if collected < num_frames:
+                        target_pts, use_time = self._get_target_frame_pts(indices[collected])
 
                 else:
                     go_to_next_packet = True
+
+                if collected >= num_frames:
+                    break
 
                 last_frame = frame
                 preceding_frame = frame
