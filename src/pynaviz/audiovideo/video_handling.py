@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import bisect
 import pathlib
 import threading
 import time
@@ -226,6 +227,28 @@ class VideoHandler(BaseAudioVideo):
         finally:
             self._pts_keyframe_ready.set()
 
+    def _packet_pts_reliable(self, n: int = 8) -> bool:
+        """
+        Probe the first ``n`` packets to check whether PTS is available at the
+        packet level (without decoding).
+
+        Opens a throwaway container so the caller's demux position is unaffected.
+        Returns ``False`` for containers that do not populate packet PTS
+        (e.g. AVI), in which case callers must fall back to full decode.
+        """
+        pts_seen = []
+        with av.open(self.file_path) as probe:
+            stream = probe.streams.video[self.stream_index]
+            for packet in probe.demux(stream):
+                if packet.size == 0:
+                    continue
+                if packet.pts is None:
+                    return False
+                pts_seen.append(packet.pts)
+                if len(pts_seen) >= n:
+                    break
+        return len(pts_seen) > 0 and not all(p == 0 for p in pts_seen)
+
     def _build_index_fixed_size(self):
         try:
             with av.open(self.file_path) as container:
@@ -238,15 +261,40 @@ class VideoHandler(BaseAudioVideo):
                 self.all_pts = np.empty(n_frames, dtype=np.int64)
                 self._i = 0  # Number of valid entries
 
-                for packet in container.demux(stream):
-                    if not self._running:
-                        return
-                    for frame in packet.decode():
-                        if self._i >= n_frames:
+                if self._packet_pts_reliable():
+                    # Fast path: read PTS from packet headers — no decode needed.
+                    # bisect.insort keeps pts_list in display order even when packets
+                    # arrive out of order (B-frames). No intermediate flushes: at any
+                    # partial state, B-frame packets that haven't arrived yet leave
+                    # "future" P-frame PTS at wrong positions, making direct index
+                    # lookups incorrect. Since demux-only finishes in ~1ms the main
+                    # thread extrapolation fallback runs only briefly before the full
+                    # sorted index is ready.
+                    pts_list: list[int] = []
+                    for packet in container.demux(stream):
+                        if not self._running:
+                            return
+                        if packet.pts is None or packet.size == 0:
+                            continue
+                        if len(pts_list) >= n_frames:
                             break
-                        with self._lock:
-                            self.all_pts[self._i] = frame.pts
-                            self._i += 1
+                        bisect.insort(pts_list, packet.pts)
+                    with self._lock:
+                        n = len(pts_list)
+                        self.all_pts[:n] = pts_list
+                        self._i = n
+                else:
+                    # Slow path: decode every frame to obtain reliable PTS.
+                    # Required for containers like AVI that don't store packet PTS.
+                    for packet in container.demux(stream):
+                        if not self._running:
+                            return
+                        for frame in packet.decode():
+                            if self._i >= n_frames:
+                                break
+                            with self._lock:
+                                self.all_pts[self._i] = frame.pts
+                                self._i += 1
         except Exception as e:
             print("Index thread error:", e)
         finally:
@@ -258,19 +306,41 @@ class VideoHandler(BaseAudioVideo):
                 if not self._running:
                     return
                 stream = container.streams.video[self.stream_index]
-                pts_list = []
 
                 current_index = 0
-                flush_every = 10  # number of frames over which flushing to all points
-                for packet in container.demux(stream):
-                    for frame in packet.decode():
-                        if frame.pts is not None:
-                            pts_list.append(frame.pts)
-                            if current_index % flush_every == 1:
-                                with self._lock:
-                                    self.all_pts = pts_list
-                                    self._i = current_index
-                            current_index += 1
+                flush_every = 10
+
+                if self._packet_pts_reliable():
+                    # Fast path: demux only, no decode.
+                    # bisect.insort maintains display order even for B-frame content.
+                    # No intermediate flushes for the same reason as _build_index_fixed_size:
+                    # B-frame packets arrive out of display order so any partial sorted list
+                    # has wrong values at some positions. Flush only when complete.
+                    pts_list: list[int] = []
+                    for packet in container.demux(stream):
+                        if not self._running:
+                            return
+                        if packet.pts is None or packet.size == 0:
+                            continue
+                        bisect.insort(pts_list, packet.pts)
+                        current_index += 1
+                    with self._lock:
+                        self.all_pts = pts_list
+                        self._i = current_index
+                else:
+                    # Slow path: decode every frame for reliable PTS.
+                    pts_list = []
+                    for packet in container.demux(stream):
+                        if not self._running:
+                            return
+                        for frame in packet.decode():
+                            if frame.pts is not None:
+                                pts_list.append(frame.pts)
+                                if current_index % flush_every == 1:
+                                    with self._lock:
+                                        self.all_pts = pts_list
+                                        self._i = current_index
+                                current_index += 1
         except Exception as e:
             print("Index thread error:", e)
         finally:
@@ -691,14 +761,21 @@ class VideoHandler(BaseAudioVideo):
                     self._append_frame(frames, collected, preceding_frame)
                     collected += 1
                     go_to_next_packet = False
+                    if collected < num_frames:
+                        target_pts, use_time = self._get_target_frame_pts(indices[collected])
 
                 elif found_current:
                     self._append_frame(frames, collected, frame)
                     collected += 1
                     go_to_next_packet = False
+                    if collected < num_frames:
+                        target_pts, use_time = self._get_target_frame_pts(indices[collected])
 
                 else:
                     go_to_next_packet = True
+
+                if collected >= num_frames:
+                    break
 
                 last_frame = frame
                 preceding_frame = frame
