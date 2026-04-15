@@ -74,6 +74,29 @@ The `scope` function accepts many input types:
 See the [User Guide](https://pynaviz.readthedocs.io) for more details.
 
 
+## Keyboard shortcuts
+
+**Global**
+
+| Shortcut | Action |
+|---|---|
+| `Space` | Play / pause |
+| `Ctrl+S` | Save layout |
+| `Ctrl+O` | Load layout |
+
+**Per-dock** (active when the mouse is over the canvas)
+
+| Shortcut | Action |
+|---|---|
+| `r` | Reset view |
+| `← / →` | Pan left / right by one page |
+| `y` | Lock / unlock y-axis |
+| `x` | Lock / unlock x-axis |
+| `Ctrl+← / Ctrl+→` | Jump to previous / next superposed epoch (requires an IntervalSet overlay) |
+| `i` / `d` | Increase / decrease contrast (TsdFrame) or marker size (TsGroup) |
+| `n` / `p` | Jump to next / previous interval or timestamp (IntervalSet & Ts) |
+
+
 ## Basic usage
 
 This example demonstrates how to create some example time series and launch the visualization GUI:

@@ -157,6 +157,50 @@ The :func:`scope` function accepts many input types:
 
 See the `User Guide <user_guide.html>`_ for more details.
 
+
+Keyboard shortcuts
+------------------
+
+Global
+~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Shortcut
+     - Action
+   * - :kbd:`Space`
+     - Play / pause
+   * - :kbd:`Ctrl+S`
+     - Save layout
+   * - :kbd:`Ctrl+O`
+     - Load layout
+
+Per-dock (active when the mouse is over the canvas)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Shortcut
+     - Action
+   * - :kbd:`r`
+     - Reset view
+   * - :kbd:`← / →`
+     - Pan left / right by one page
+   * - :kbd:`y`
+     - Lock / unlock y-axis
+   * - :kbd:`x`
+     - Lock / unlock x-axis
+   * - :kbd:`Ctrl+← / Ctrl+→`
+     - Jump to previous / next superposed epoch (requires an ``IntervalSet`` overlay)
+   * - :kbd:`i` / :kbd:`d`
+     - Increase / decrease contrast (TsdFrame) or marker size (TsGroup)
+   * - :kbd:`n` / :kbd:`p`
+     - Jump to next / previous interval or timestamp (IntervalSet & Ts)
+
 .. toctree::
     :maxdepth: 1
     :hidden:
