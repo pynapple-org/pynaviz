@@ -57,27 +57,105 @@ PYthon Neural Analysis VIZualization
             API
 
 
+Overview
+--------
 
 Pynaviz provides interactive, high-performance visualizations designed to work seamlessly
 with Pynapple time series and video data. It allows synchronized exploration of neural signals
-and behavioral recordings. It is build on top of `pygfx <https://pygfx.org/>`_, a modern GPU-based rendering engine.
+and behavioral recordings. It is built on top of `pygfx <https://pygfx.org/>`_, a modern GPU-based rendering engine.
 
-To install pynaviz, please refer to the `Installation instructions <installing.html>`_.
 
-The simplest way to get started is to use the Qt-based graphical user interface (GUI) either from the command line :
+Installation
+------------
 
 .. code-block:: bash
 
     $ pip install pynaviz[qt]
-    $ pynaviz
+
+Please refer to the `Installation instructions <installing.html>`_ for more details.
 
 
-or from a Python script:
+Quick start
+-----------
+
+From the command line
+~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    $ pynaviz [files ...] [-l layout.json]
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 25 25
+
+   * - Example
+     - Argument
+     - Notes
+   * - ``$ pynaviz``
+     - *(no arguments)*
+     - Opens an empty viewer
+   * - ``$ pynaviz data.nwb``
+     - ``files``
+     - One or more ``.nwb`` files; objects unpacked individually
+   * - ``$ pynaviz data.npz``
+     - ``files``
+     - One or more ``.npz`` files; must contain a single pynapple object each
+   * - ``$ pynaviz recording.mp4``
+     - ``files``
+     - One or more video files (``.mp4``, ``.avi``, ``.mov``, ``.mkv``)
+   * - ``$ pynaviz data.nwb recording.mp4``
+     - ``files``
+     - Multiple files of different types can be mixed
+   * - ``$ pynaviz -l layout.json``
+     - ``-l`` / ``--layout``
+     - Restore a previously saved layout (``.json``)
+   * - ``$ pynaviz data.nwb -l layout.json``
+     - ``files`` + ``-l``
+     - Load files and restore layout simultaneously
+
+From a Python script
+~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
     from pynaviz import scope
-    scope("nwb_file.nwb") # replace with your NWB file path or a dictionnary of pynapple time series objects
+
+The :func:`scope` function accepts many input types:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 25 25
+
+   * - Example
+     - Input type
+     - Notes
+   * - ``scope({"lfp": tsdframe, "spikes": tsgroup})``
+     - ``dict``
+     - Keys become display names in the variable panel
+   * - ``scope([tsdframe, tsgroup, interval_set])``
+     - ``list`` / ``tuple``
+     - Names inferred from class (``TsdFrame``, ``TsGroup``, …)
+   * - ``scope(tsgroup)``
+     - ``nap.TsGroup``
+     - Collection of spike trains. Same for all pynapple objects (``Tsd``, ``TsdFrame``, …)
+   * - ``scope(nap.load_file("data.nwb"))``
+     - ``nap.NWBFile``
+     - All contained objects unpacked individually
+   * - ``scope(nap.EphysReader("rec/", format="NeuroScopeIO"))``
+     - ``nap.EphysReader``
+     - All contained objects unpacked individually
+   * - ``scope("data.nwb")``
+     - ``str`` / ``pathlib.Path`` — ``.nwb``
+     - Loaded via pynapple, objects unpacked
+   * - ``scope("data.npz")``
+     - ``str`` / ``pathlib.Path`` — ``.npz``
+     - Must contain a single pynapple object
+   * - ``scope("recording.mp4")``
+     - ``str`` / ``pathlib.Path`` — video
+     - ``.mp4``, ``.avi``, ``.mov``, ``.mkv`` supported
+
+See the `User Guide <user_guide.html>`_ for more details.
 
 .. toctree::
     :maxdepth: 1
@@ -89,17 +167,10 @@ or from a Python script:
     API <api>
 
 
-|
-
-See the `User Guide <user_guide.html>`_ for more details on how to use pynaviz.
-
-
-
-
 Support
-~~~~~~~
+-------
 
-This package is supported by the Center for Computational Neuroscience, in the Flatiron Institute of the Simons Foundation
+This package is supported by the Center for Computational Neuroscience, in the Flatiron Institute of the Simons Foundation.
 
 .. image:: _static/CCN-logo-wText.png
    :width: 200px
@@ -110,4 +181,3 @@ This package is supported by the Center for Computational Neuroscience, in the F
    :width: 200px
    :class: only-dark
    :target: https://www.simonsfoundation.org/flatiron/center-for-computational-neuroscience/
-

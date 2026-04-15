@@ -68,6 +68,17 @@ class NWBReference:
     key: str
 
 
+@dataclass
+class EphysReference:
+    """Store reference to EphysReader and variable key.
+
+    Keeps the EphysReader (and its Neo reader/blocks) alive to prevent
+    lazy-loaded data from being garbage collected.
+    """
+    ephys_reader: nap.EphysReader
+    key: str
+
+
 def get_children_dict(parent: QTreeWidget | QTreeWidgetItem):
     """Helper function to get children as a dictionary"""
     children = {}
@@ -991,6 +1002,9 @@ class MainWindow(QMainWindow):
         elif isinstance(var, NWBReference):
             var = var.nwb_file[var.key]
             return self._create_widget_for_variable(var)
+        elif isinstance(var, EphysReference):
+            var = var.ephys_reader[var.key]
+            return self._create_widget_for_variable(var)
         elif isinstance(var, VideoWidget):
             return var  # already a widget
         else:
@@ -1086,6 +1100,9 @@ def _extract_name_value(v: Any):
             for key in v.keys():
                 nap_obj_dict[key] = NWBReference(nwb_file=v, key=key)
             return v.__class__.__name__, nap_obj_dict
+        if isinstance(v, nap.EphysReader):
+            nap_obj_dict = {key: EphysReference(ephys_reader=v, key=key) for key in v.keys()}
+            return v.name, nap_obj_dict
         if "pynapple" in v.__module__:
             return v.__class__.__name__, v
         if "pynaviz" in v.__module__ and isinstance(v, VideoHandler):
@@ -1108,6 +1125,9 @@ def get_pynapple_variables(
         for key in variables.keys():
             new_vars[key] = NWBReference(nwb_file=variables, key=key)
         return new_vars
+
+    if isinstance(variables, nap.EphysReader):
+        return {key: EphysReference(ephys_reader=variables, key=key) for key in variables.keys()}
 
     new_vars = {}
 
@@ -1172,6 +1192,8 @@ def scope(variables: Union[dict, list, tuple, str], layout_path: str = None):
         - ``nap.IntervalSet`` — epoch / interval data, optionally with metadata
         - ``nap.NWBFile`` — NWB file opened with pynapple; all contained objects
           are unpacked and added individually
+        - ``nap.EphysReader`` — Neo-backed electrophysiology reader; all contained
+          objects are unpacked and added individually
         - ``str`` / ``pathlib.Path`` pointing to:
             - ``.nwb`` file — loaded via pynapple, objects unpacked as above
             - ``.npz`` file — loaded via pynapple, must contain a single pynapple object
