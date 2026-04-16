@@ -178,6 +178,9 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         open_action = QAction("&Open...", self)
         open_action.triggered.connect(self.open_file)
         file_menu.addAction(open_action)
+        open_folder_action = QAction("Open &Folder...", self)
+        open_folder_action.triggered.connect(self.open_folder)
+        file_menu.addAction(open_folder_action)
         file_menu.addSeparator()
         file_menu.addAction("&Load layout", self._load_layout)
         file_menu.addAction("&Save layout", self._save_layout)
@@ -288,13 +291,25 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         )
         self._load_multiple_files(filenames)
 
+    def open_folder(self):
+        """Open a directory containing electrophysiology recordings (e.g. NeuroScopeIO)."""
+        folder = QFileDialog.getExistingDirectory(self, "Open Folder")
+        if folder:
+            self._load_multiple_files([folder])
+
     def _load_multiple_files(self, filenames: list[str]):
-        def get_type(name: pathlib.Path) -> None | Literal["Pynapple", "NWB", "Video"]:
+        from .variable_loader import EPHYS_EXTENSIONS
+
+        def get_type(name: pathlib.Path) -> None | Literal["Pynapple", "NWB", "Video", "Ephys"]:
+            if name.is_dir():
+                return "Ephys"
             file_type = None
             for tp, exts in self._file_extensions.items():
                 if name.suffix in exts:
                     file_type = tp
                     break
+            if file_type is None and name.suffix.lower() in EPHYS_EXTENSIONS:
+                file_type = "Ephys"
             return file_type
 
         new_vars = {}
@@ -305,11 +320,11 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
             if name.name in self.variables:
                 continue
 
-            if file_type is None:
-                print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
+            if not name.exists():
+                print(f"Path {name} does not exist. Skipping.")
                 continue
-            elif not name.exists():
-                print(f"File {name} does not exist. Skipping.")
+            elif file_type is None:
+                print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
                 continue
             elif file_type in ["Pynapple"]:
                 data = nap.load_file(name)
@@ -326,6 +341,14 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
                 new_vars.update({name.name: nap_obj_dict})
             elif file_type == "Video":
                 new_vars.update({name.name: name})
+            elif file_type == "Ephys":
+                try:
+                    data = nap.EphysReader(str(name))
+                    nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key) for key in data.keys()}
+                    new_vars.update({name.name: nap_obj_dict})
+                except Exception as e:
+                    print(f"Could not load {name} as EphysReader: {e}")
+                    continue
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
             self._open_file_paths.add(name.as_posix())
@@ -547,7 +570,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         super().closeEvent(event)
 
 
-def scope(variables: Union[dict, list, tuple, str], layout_path: str = None):
+def scope(variables: Union[dict, list, tuple, str], layout_path: str = None, ephys_format: str | None = None):
     """Launch the pynaviz GUI and block until the window is closed.
 
     Parameters
@@ -601,6 +624,11 @@ def scope(variables: Union[dict, list, tuple, str], layout_path: str = None):
         (group-by, sort-by, color-by, interval overlays, …) from that file.
         Variables in *variables* are matched to saved docks by their key name;
         docks whose variable is not found are skipped.
+    ephys_format : str or None, optional
+        Neo IO class name to use when loading electrophysiology files or
+        directories via ``nap.EphysReader`` (e.g. ``"PlexonIO"``,
+        ``"NeuroScopeIO"``).  When ``None`` (default) the format is
+        auto-detected from the file/directory contents.
 
     Notes
     -----
@@ -608,7 +636,7 @@ def scope(variables: Union[dict, list, tuple, str], layout_path: str = None):
     ``QApplication`` internally, so it is safe to call from a plain Python
     script or a Jupyter notebook.
     """
-    variables = get_pynapple_variables(variables)
+    variables = get_pynapple_variables(variables, ephys_format=ephys_format)
 
     global app
     app = QApplication.instance()

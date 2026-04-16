@@ -7,7 +7,6 @@ import pynapple as nap
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QCursor, QFontMetrics
 from PySide6.QtWidgets import (
-    QApplication,
     QDockWidget,
     QFrame,
     QHBoxLayout,

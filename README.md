@@ -39,7 +39,7 @@ pip install pynaviz
 ### From the command line
 
 ```bash
-$ pynaviz [files ...] [-l layout.json]
+$ pynaviz [files ...] [-l layout.json] [-f FORMAT]
 ```
 
 | Example | Argument | Notes |
@@ -49,6 +49,10 @@ $ pynaviz [files ...] [-l layout.json]
 | `$ pynaviz data.npz` | `files` | One or more `.npz` files; must contain a single pynapple object each |
 | `$ pynaviz recording.mp4` | `files` | One or more video files (`.mp4`, `.avi`, `.mov`, `.mkv`) |
 | `$ pynaviz data.nwb recording.mp4` | `files` | Multiple files of different types can be mixed |
+| `$ pynaviz recording.plx` | `files` | Ephys file; format auto-detected via `nap.EphysReader` |
+| `$ pynaviz rec/` | `files` | Directory; auto-detected as NeuroScopeIO if `.dat` + `.xml` are present |
+| `$ pynaviz rec/ -f NeuroScopeIO` | `files` + `-f` | Directory with explicit Neo IO format |
+| `$ pynaviz recording.plx -f PlexonIO` | `files` + `-f` | Ephys file with explicit format |
 | `$ pynaviz -l layout.json` | `-l` / `--layout` | Restore a previously saved layout (`.json`) |
 | `$ pynaviz data.nwb -l layout.json` | `files` + `-l` | Load files and restore layout simultaneously |
 
@@ -70,6 +74,8 @@ The `scope` function accepts many input types:
 | `scope("data.nwb")` | `str` / `pathlib.Path` — `.nwb` | Loaded via pynapple, objects unpacked |
 | `scope("data.npz")` | `str` / `pathlib.Path` — `.npz` | Must contain a single pynapple object |
 | `scope("recording.mp4")` | `str` / `pathlib.Path` — video | `.mp4`, `.avi`, `.mov`, `.mkv` supported |
+| `scope("recording.plx")` | `str` / `pathlib.Path` — ephys file | Loaded via `nap.EphysReader`; format auto-detected |
+| `scope("rec/")` | `str` / `pathlib.Path` — directory | Directory passed to `nap.EphysReader`; auto-detects NeuroScopeIO |
 
 See the [User Guide](https://pynaviz.readthedocs.io) for more details.
 

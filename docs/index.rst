@@ -83,7 +83,7 @@ From the command line
 
 .. code-block:: bash
 
-    $ pynaviz [files ...] [-l layout.json]
+    $ pynaviz [files ...] [-l layout.json] [-f FORMAT]
 
 .. list-table::
    :header-rows: 1
@@ -107,6 +107,18 @@ From the command line
    * - ``$ pynaviz data.nwb recording.mp4``
      - ``files``
      - Multiple files of different types can be mixed
+   * - ``$ pynaviz recording.plx``
+     - ``files``
+     - Ephys file; format auto-detected via ``nap.EphysReader``
+   * - ``$ pynaviz rec/``
+     - ``files``
+     - Directory; auto-detected as NeuroScopeIO if ``.dat`` + ``.xml`` are present
+   * - ``$ pynaviz rec/ -f NeuroScopeIO``
+     - ``files`` + ``-f``
+     - Directory with explicit Neo IO format
+   * - ``$ pynaviz recording.plx -f PlexonIO``
+     - ``files`` + ``-f``
+     - Ephys file with explicit format
    * - ``$ pynaviz -l layout.json``
      - ``-l`` / ``--layout``
      - Restore a previously saved layout (``.json``)
@@ -154,6 +166,12 @@ The :func:`scope` function accepts many input types:
    * - ``scope("recording.mp4")``
      - ``str`` / ``pathlib.Path`` — video
      - ``.mp4``, ``.avi``, ``.mov``, ``.mkv`` supported
+   * - ``scope("recording.plx")``
+     - ``str`` / ``pathlib.Path`` — ephys file
+     - Loaded via ``nap.EphysReader``; format auto-detected
+   * - ``scope("rec/")``
+     - ``str`` / ``pathlib.Path`` — directory
+     - Directory passed to ``nap.EphysReader``; auto-detects NeuroScopeIO
 
 See the `User Guide <user_guide.html>`_ for more details.
 
