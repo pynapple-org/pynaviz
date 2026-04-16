@@ -1,10 +1,10 @@
 :html_theme.sidebar_secondary.remove:
 
 
-pynaviz
-=======
+Pynaviz : python neural analysis visualization
+----------------------------------------------
 
-PYthon Neural Analysis VIZualization
+|
 
 .. grid:: 4
    :gutter: 2
