@@ -299,6 +299,7 @@ class PlotVideo(PlotBaseVideoTensor):
         self,
         video: str | pathlib.Path | VideoHandler,
         t: Optional[NDArray] = None,
+        buffer_size_sec: float = 1.,
         stream_index: int = 0,
         index=None,
         start_worker: bool = True,
@@ -313,6 +314,11 @@ class PlotVideo(PlotBaseVideoTensor):
             Path to the video file to be visualized or a VideoHandler object.
         t : NDArray, optional
             Time vector to use for syncing frames.
+        buffer_size_sec: float
+            Duration of the recently-decoded frame cache in seconds (default 1 s).
+            Frames within this window are returned instantly on re-access without
+            any seek or decode. Larger values improve responsiveness during scrubbing
+            at the cost of additional memory.
         stream_index : int, default=0
             Index of the stream to read in the video file.
         index : int, optional
@@ -325,7 +331,10 @@ class PlotVideo(PlotBaseVideoTensor):
         """
         self._closed = False
         if isinstance(video, (str, pathlib.Path)):
-            data = VideoHandler(video, time=t, stream_index=stream_index)
+            with av.open(video) as container:
+                average_rate = container.streams.video[stream_index].average_rate
+                buffer_size = max(int(buffer_size_sec * average_rate), 1)
+            data = VideoHandler(video, time=t, stream_index=stream_index, buffer_size=buffer_size)
         else:
             if not isinstance(video, VideoHandler):
                 raise ValueError("video must be a file path or a VideoHandler instance.")
