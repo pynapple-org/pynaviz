@@ -157,6 +157,9 @@ class VideoHandler(BaseAudioVideo):
         self.key_mask = None
 
         self._i = 0  # number of committed (valid) PTS entries
+        # None means the total frame count is not yet known (e.g. vp9/webm);
+        # set to the final count by _build_index before signalling _index_ready.
+        self._n_frames: int | None = self.stream.frames if self.stream.frames > 0 else None
         self._index_thread = threading.Thread(target=self._build_index, daemon=True)
 
         self._index_ready = threading.Event()
@@ -329,6 +332,18 @@ class VideoHandler(BaseAudioVideo):
         except Exception as e:
             print("Index thread error:", e)
         finally:
+            self._n_frames = self._i
+            if self._time_provided and len(self.time) != self._i:
+                warnings.warn(
+                    f"The provided time array has length {len(self.time)}, but the video has {self._i} frames. "
+                    "Overriding time with `np.linspace(time[0], time[-1], n_frames)`.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                self.time = np.linspace(self.time[0], self.time[-1], self._i)
+            elif not self._time_provided and len(self.time) != self._i:
+                frame_duration = 1 / float(self.stream.average_rate)
+                self.time = np.linspace(0, frame_duration * self._i - frame_duration, self._i)
             self._index_ready.set()
 
     def _get_frame_idx(self, pts: int) -> int:
@@ -417,7 +432,7 @@ class VideoHandler(BaseAudioVideo):
         idx = self.last_loaded_idx
         if idx is None:
             # fallback to safe keyframe
-            self._pts_keyframe_ready.wait(2.0)
+            self._wait_for_key_pts()
             if len(self._keyframe_pts) > 0:
                 idx = self._get_frame_idx(self._keyframe_pts[0])[0] + 1
             else:
@@ -595,25 +610,9 @@ class VideoHandler(BaseAudioVideo):
           may grow while the background indexer discovers frames. A warning is
           emitted until indexing is complete.
         """
-        if (
-            self._time_provided
-        ):  # TODO maybe check what is the actual number of frames decoded and throw a warning
-            return len(self.time), self.stream.width, self.stream.height
-        has_frames = hasattr(self.stream, "frames") and self.stream.frames > 0
-        is_done_unpacking = self._index_ready.is_set()
-        if not has_frames and not is_done_unpacking:
-            warnings.warn(
-                message="Video ``shape``, which corresponds to the number of frames, is being "
-                "calculated runtime and will be updated.",
-                stacklevel=2,
-            )
-        with self._lock:
-            current_len = self._i
-        return (
-            (len(self.time), self.stream.width, self.stream.height)
-            if has_frames
-            else (current_len, self.stream.width, self.stream.height)
-        )
+        if self._n_frames is None:
+            self._wait_for_all_pts()
+        return self._n_frames, self.stream.width, self.stream.height
 
     @property
     def index(self) -> NDArray:
@@ -624,18 +623,7 @@ class VideoHandler(BaseAudioVideo):
         Otherwise, a uniformly spaced array derived from the stream rate is used
         and may be updated as indexing progresses.
         """
-        if self._time_provided:
-            return self.time
-        else:
-            has_frames = hasattr(self.stream, "frames") and self.stream.frames > 0
-            is_done_unpacking = self._index_ready.is_set()
-            if not has_frames and not is_done_unpacking:
-                warnings.warn(
-                    message="Video ``shape``, which corresponds to the number of frames, is being "
-                    "calculated runtime and will be updated.",
-                    stacklevel=2,
-                )
-            return self.time
+        return self.time
 
     @property
     def t(self) -> NDArray:
@@ -648,14 +636,18 @@ class VideoHandler(BaseAudioVideo):
         """
         return self.time
 
-    def _wait_for_index(self, timeout=2.0):
-        """Wait up to timeout.
-
-        For debugging purposes, or testing, make sure that the
-        threads are completed.
-        """
+    def _wait_for_all_pts(self, timeout=None):
+        """Wait until the PTS index thread has finished."""
         self._index_ready.wait(timeout)
+
+    def _wait_for_key_pts(self, timeout=None):
+        """Wait until the keyframe PTS thread has finished."""
         self._pts_keyframe_ready.wait(timeout)
+
+    def _wait_for_index(self, timeout=None):
+        """Wait until both the PTS index and keyframe threads have finished."""
+        self._wait_for_all_pts(timeout)
+        self._wait_for_key_pts(timeout)
 
     def get_slice(self, start: float, end: float = None):
         # TODO check start and end are sorted
@@ -678,14 +670,15 @@ class VideoHandler(BaseAudioVideo):
         idx_end: int,
         step: int = 1,
     ) -> Tuple[int, List[av.VideoFrame] | NDArray, av.VideoFrame]:
-        effective_end = min(idx_end, self.shape[0])
+        n_frames = self._n_frames if self._n_frames is not None else self.shape[0]
+        effective_end = min(idx_end, n_frames)
         indices = np.arange(idx_start, effective_end, step)
         num_frames = len(indices)
         time_threshold_all = self.round_fn(indices)
 
         if self.return_frame_array:
             frames = np.empty(
-                (num_frames, self.shape[2], self.shape[1], 3),
+                (num_frames, self.stream.height, self.stream.width, 3),
                 dtype=np.float32,
             )
         else:
@@ -776,21 +769,24 @@ class VideoHandler(BaseAudioVideo):
               otherwise a ``list[av.VideoFrame]``.
         """
         if isinstance(idx, slice):
+            # Resolve frame count once — fast path if already known, otherwise waits.
+            n_frames = self._n_frames if self._n_frames is not None else self.shape[0]
+
             # Fill in missing slice components
             start = idx.start or 0
-            if start >= self.shape[0]:
+            if start >= n_frames:
                 if self.return_frame_array:
-                    return np.empty((0, self.shape[2], self.shape[1], 3))
+                    return np.empty((0, self.stream.height, self.stream.width, 3))
                 else:
                     return []
-            stop = idx.stop if idx.stop is not None else self.shape[0]
+            stop = idx.stop if idx.stop is not None else n_frames
             step = idx.step if idx.step is not None else 1
 
             # convert negative vals
-            start = start if start >= 0 else start + self.shape[0]
-            start = max(0, min(start, self.shape[0]))
-            stop = stop + self.shape[0] if stop < 0 else stop
-            stop = max(0, min(stop, self.shape[0]))
+            start = start if start >= 0 else start + n_frames
+            start = max(0, min(start, n_frames))
+            stop = stop + n_frames if stop < 0 else stop
+            stop = max(0, min(stop, n_frames))
 
             # revert slice if negative step
             revert = step < 0
@@ -820,7 +816,8 @@ class VideoHandler(BaseAudioVideo):
         with self._set_get_from_index(True):
             # TODO Check borders
             idx_start = idx if not hasattr(idx, "start") else idx.start
-            idx_start = idx_start if idx_start >= 0 else self.shape[0] + idx_start
+            n_frames = self._n_frames if self._n_frames is not None else self.shape[0]
+            idx_start = idx_start if idx_start >= 0 else n_frames + idx_start
             frame = self.get(idx_start)
             # handle slice requesting a single frame:
             # for arrays add 1 dimension (1, pixel, pixel)
