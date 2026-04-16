@@ -77,6 +77,17 @@ def test_video_handler_get_frame_snapshots(
 
 
 @pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+def test_pts_ordering(video_info):
+    frame_pts, _, video = video_info
+    with video_handling.VideoHandler(video, time=np.arange(100)) as handler:
+        handler._wait_for_index(15)
+        np.testing.assert_array_equal(handler.all_pts, np.sort(handler.all_pts))
+        np.testing.assert_array_equal(
+            handler.all_pts, np.asarray(frame_pts, dtype=handler.all_pts.dtype)
+        )
+
+
+@pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
 def test_getitem_single_index_return_frame(video_info):
     _, _, video_path = video_info
     with video_handling.VideoHandler(
@@ -240,3 +251,128 @@ def test_roundtrip_points(video_info):
     img2 = video_obj.renderer.snapshot()
     np.testing.assert_allclose(img, img2, atol=1)
     video_obj.close()
+
+
+# ---------------------------------------------------------------------------
+# Buffer integration tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+def test_get_populates_buffer(video_info):
+    """A frame decoded via get() should land in the buffer."""
+    _, _, video_path = video_info
+    with video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=False
+    ) as video:
+        video.get(5.0)
+        idx = video_handling.VideoHandler._ts_to_index(5.0, video.time)
+        assert idx in video._buffer
+
+
+@pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+def test_get_hits_buffer_on_second_call(video_info):
+    """Second get() for the same timestamp must return the cached frame
+    without re-decoding — proved by closing the container between calls."""
+    _, _, video_path = video_info
+    with video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=False
+    ) as video:
+        first = video.get(5.0)
+
+        # Close the underlying container so any attempt to decode would raise.
+        video.container.close()
+        video.container = None
+
+        second = video.get(5.0)
+
+    assert first.pts == second.pts
+
+
+@pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+def test_getitem_int_populates_buffer(video_info):
+    """video[idx] (integer index) routes through get(), so the frame should
+    end up in the buffer."""
+    _, _, video_path = video_info
+    with video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=False
+    ) as video:
+        idx = 10
+        video[idx]
+        assert idx in video._buffer
+
+
+@pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+def test_getitem_int_hits_buffer_on_second_call(video_info):
+    """video[idx] called twice: second call must come from the buffer."""
+    _, _, video_path = video_info
+    with video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=False
+    ) as video:
+        idx = 10
+        first = video[idx]
+
+        video.container.close()
+        video.container = None
+
+        second = video[idx]
+
+    assert first.pts == second.pts
+
+
+@pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+def test_buffer_fifo_eviction_in_handler(video_info):
+    """Accessing more than buffer_size distinct frames evicts the earliest one."""
+    _, _, video_path = video_info
+    buf_size = 5
+    with video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=False, buffer_size=buf_size
+    ) as video:
+        # warm up: access buf_size + 1 distinct frames (skip 0; __init__ decodes it)
+        for i in range(1, buf_size + 2):
+            video[i]
+
+        # frame at index 1 was inserted first and should have been evicted
+        assert 1 not in video._buffer
+        # the most recent buf_size frames must still be present
+        for i in range(2, buf_size + 2):
+            assert i in video._buffer
+
+
+@pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+def test_getitem_decoupled_current_frame_and_pts_decoding_via_get(video_info):
+    _, _, video_path = video_info
+    with video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=False
+    ) as video_obj:
+        # populate the buffer with frames 10 and 11
+        _ = video_obj[10]
+        _ = video_obj[11]
+        # move current_frame back to 10 via buffer (should not advance the stream)
+        _ = video_obj[10]
+        # current_frame and stream pts must now differ
+        assert video_obj.current_frame.pts != video_obj._stream_pts
+        # decoding the next frame must still be correct
+        frame = video_obj[12]
+        with video_obj._set_get_from_index(True):
+            video_obj.get(12)
+            assert video_obj.current_frame.pts == frame.pts
+
+
+@pytest.mark.parametrize("video_info", ["mp4", "mkv", "avi"], indirect=True)
+def test_getitem_decoupled_current_frame_and_pts_decoding_via_decode_multiple(video_info):
+    _, _, video_path = video_info
+    with video_handling.VideoHandler(
+        video_path, time=np.arange(100), return_frame_array=False
+    ) as video_obj:
+        # populate the buffer via a slice
+        _ = video_obj[10:12]
+        # move current_frame back to 10 via buffer (should not advance the stream)
+        _ = video_obj[10]
+        # current_frame and stream pts must now differ
+        assert video_obj.current_frame.pts != video_obj._stream_pts
+        # decoding the next slice must still be correct
+        frames = video_obj[12:14]
+        with video_obj._set_get_from_index(True):
+            for i, frame in zip(range(12, 14), frames):
+                video_obj.get(i)
+                assert video_obj.current_frame.pts == frame.pts

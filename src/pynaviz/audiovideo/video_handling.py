@@ -4,6 +4,7 @@ import pathlib
 import threading
 import time
 import warnings
+from collections import deque
 from contextlib import contextmanager
 from typing import List, Optional, Tuple
 
@@ -14,6 +15,53 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .base_audiovideo import BaseAudioVideo
+
+# Number of packets to buffer before flushing to the index for codecs without
+# B-frames (where packet PTS are already in display order).
+_INDEX_FLUSH_EVERY = 64
+
+
+def _needs_flush(count_keyframes: int, temp: list, has_b_frames: bool, n_b_frames: int = 1) -> bool:
+    """True when the buffered GOP / batch is ready to commit to the index."""
+    if has_b_frames:
+        return (count_keyframes == n_b_frames) and bool(temp)
+    return len(temp) >= _INDEX_FLUSH_EVERY
+
+
+class FrameBuffer:
+    """Fixed-size FIFO cache mapping frame index → raw av.VideoFrame.
+
+    Frames are stored in their native pixel format; conversion happens on
+    retrieval, matching the existing behaviour of VideoHandler.
+
+    Parameters
+    ----------
+    maxsize :
+        Maximum number of frames to keep. When full the oldest-inserted
+        entry is evicted before adding a new one.
+    """
+
+    def __init__(self, maxsize: int = 30) -> None:
+        self._maxsize = maxsize
+        self._cache: dict[int, av.VideoFrame] = {}
+        self._order: deque[int] = deque()
+
+    def get(self, idx: int) -> av.VideoFrame | None:
+        """Return the cached frame for *idx*, or ``None`` on a miss."""
+        return self._cache.get(idx)
+
+    def put(self, idx: int, frame: av.VideoFrame) -> None:
+        """Insert *frame* under *idx*, evicting the oldest entry if full."""
+        if idx in self._cache:
+            return
+        if len(self._cache) == self._maxsize:
+            evict = self._order.popleft()
+            del self._cache[evict]
+        self._cache[idx] = frame
+        self._order.append(idx)
+
+    def __contains__(self, idx: int) -> bool:
+        return idx in self._cache
 
 
 class VideoHandler(BaseAudioVideo):
@@ -64,12 +112,17 @@ class VideoHandler(BaseAudioVideo):
         stream_index: int = 0,
         time: Optional[NDArray] = None,
         return_frame_array: bool = True,
+        buffer_size: int = 30,
     ) -> None:
         super().__init__(video_path)
         self.stream = self.container.streams.video[stream_index]
         self.stream_index = stream_index
         self.return_frame_array = return_frame_array
-
+        self._buffer = FrameBuffer(maxsize=buffer_size)
+        # pts of the last frame *actually decoded* from the stream — used for
+        # seek decisions.  current_frame can be updated by buffer / cache hits
+        # without advancing the stream, so it must not be used for this purpose.
+        self._stream_pts: int | None = None
 
         # default to linspace
         # TODO : what if number of frames is 0.
@@ -99,15 +152,12 @@ class VideoHandler(BaseAudioVideo):
             self.round_fn = lambda x: x
 
         # These will be initialized in the thread once n_frames is known
-        self.all_pts = None
+        self.all_pts: np.ndarray | list = []
         self.all_times = None
         self.key_mask = None
 
-        self._i = 0  # write position
-        if self.stream.frames and self.stream.frames > 0:
-            self._index_thread = threading.Thread(target=self._build_index_fixed_size, daemon=True)
-        else:
-            self._index_thread = threading.Thread(target=self._build_index_dynamic, daemon=True)
+        self._i = 0  # number of committed (valid) PTS entries
+        self._index_thread = threading.Thread(target=self._build_index, daemon=True)
 
         self._index_ready = threading.Event()
         self._index_thread.start()
@@ -226,54 +276,56 @@ class VideoHandler(BaseAudioVideo):
         finally:
             self._pts_keyframe_ready.set()
 
-    def _build_index_fixed_size(self):
+    def _build_index(self):
         try:
             with av.open(self.file_path) as container:
                 stream = container.streams.video[self.stream_index]
                 n_frames = stream.frames
+                ctx = stream.codec_context
+                has_b_frames = bool(ctx.has_b_frames)
+                # guard against max_b_frames set to None for non-b-frame codecs
+                max_b_frames = max(getattr(ctx, "max_b_frames", 1) or 1, 1)
+                process = sorted if has_b_frames else lambda x: x
+                temp = []
+                # setup config for fixed-size and variable size index.
+                if n_frames > 0:
+                    # preallocate indices
+                    with self._lock:
+                        self.all_pts = np.empty(n_frames, dtype=np.int64)
 
-                if not n_frames or n_frames <= 0:
-                    raise ValueError("Cannot determine total number of frames in stream.")
-
-                self.all_pts = np.empty(n_frames, dtype=np.int64)
-                self._i = 0  # Number of valid entries
-
-                for packet in container.demux(stream):
-                    if not self._running:
-                        return
-                    for frame in packet.decode():
-                        if self._i >= n_frames:
-                            break
+                    def update(extracted_pts):
+                        chunk = process(extracted_pts)
                         with self._lock:
-                            self.all_pts[self._i] = frame.pts
-                            self._i += 1
-        except Exception as e:
-            print("Index thread error:", e)
-        finally:
-            self._index_ready.set()
+                            self.all_pts[self._i: self._i + len(chunk)] = chunk
+                            self._i += len(chunk)
+                        extracted_pts.clear()
+                else:
+                    def update(extracted_pts):
+                        chunk = process(extracted_pts)
+                        with self._lock:
+                            self.all_pts.extend(chunk)
+                            self._i = len(self.all_pts)
+                        extracted_pts.clear()
 
-    def _build_index_dynamic(self):
-        try:
-            with av.open(self.file_path) as container:
-                if not self._running:
-                    return
-                stream = container.streams.video[self.stream_index]
-                pts_list = []
-
-                current_index = 0
-                flush_every = 10
-
+                # extraction loop: demux only — no decode — sort per GOP if needed.
+                count_key_frames = 0
                 for packet in container.demux(stream):
                     if not self._running:
                         return
-                    for frame in packet.decode():
-                        if frame.pts is not None:
-                            pts_list.append(frame.pts)
-                            if current_index % flush_every == 1:
-                                with self._lock:
-                                    self.all_pts = pts_list
-                                    self._i = current_index
-                            current_index += 1
+                    if packet.pts is None or packet.pts < 0:
+                        continue
+
+                    count_key_frames += packet.is_keyframe
+                    if _needs_flush(count_key_frames, temp, has_b_frames, max_b_frames):
+                        update(temp)
+                        count_key_frames = 0
+                    temp.append(packet.pts)
+
+                if temp:
+                    update(temp)
+                with self._lock:
+                    self.all_pts = np.asarray(self.all_pts[: self._i], dtype=np.int64)
+
         except Exception as e:
             print("Index thread error:", e)
         finally:
@@ -299,10 +351,10 @@ class VideoHandler(BaseAudioVideo):
         # Wait until enough index is available
         # Estimate pts from index (using filled index if available)
         with self._lock:
-            done = self.all_pts[min(self._i, len(self.all_pts) - 1)] > pts
+            done = self._i > 0 and self.all_pts[self._i - 1] > pts
         if done:
             # the pts for this timestamp has been filled
-            idx = np.searchsorted(self.all_pts, pts, side="right")
+            idx = np.searchsorted(self.all_pts[: self._i], pts, side="left")
             use_time = False
         else:
             # keep going until at least two frames have been decoded by the thread
@@ -367,7 +419,7 @@ class VideoHandler(BaseAudioVideo):
             # fallback to safe keyframe
             self._pts_keyframe_ready.wait(2.0)
             if len(self._keyframe_pts) > 0:
-                idx = self._get_frame_idx(self._keyframe_pts[0])[0]
+                idx = self._get_frame_idx(self._keyframe_pts[0])[0] + 1
             else:
                 idx = 0  # safe fallback
 
@@ -406,7 +458,7 @@ class VideoHandler(BaseAudioVideo):
         self.current_frame = frame
 
         # Get the index of the key frame
-        self.last_loaded_idx = self._get_frame_idx(frame.pts)[0] - 1
+        self.last_loaded_idx = self._get_frame_idx(frame.pts)[0]
 
         # Return both
         return (
@@ -451,11 +503,19 @@ class VideoHandler(BaseAudioVideo):
                 else self.current_frame
             )
 
+        cached = self._buffer.get(idx)
+        if cached is not None:
+            self.current_frame = cached
+            self.last_loaded_idx = idx
+            return (
+                cached.to_ndarray(format="rgb24")[::-1] / 255.0
+                if self.return_frame_array
+                else cached
+            )
+
         target_pts, use_time = self._get_target_frame_pts(idx)
 
-        if not hasattr(self.current_frame, "pts") or self._need_seek_call(
-            self.current_frame.pts, target_pts
-        ):
+        if self._stream_pts is None or self._need_seek_call(self._stream_pts, target_pts):
             self.container.seek(
                 int(target_pts), backward=True, any_frame=False, stream=self.stream
             )
@@ -466,6 +526,8 @@ class VideoHandler(BaseAudioVideo):
         if preceding_frame is not None:
             self.last_loaded_idx = idx
             self.current_frame = preceding_frame
+            self._stream_pts = preceding_frame.pts
+            self._buffer.put(idx, preceding_frame)
 
         return (
             self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
@@ -612,7 +674,6 @@ class VideoHandler(BaseAudioVideo):
 
     def _decode_multiple(
         self,
-        target_pts,
         idx_start: int,
         idx_end: int,
         step: int = 1,
@@ -637,81 +698,59 @@ class VideoHandler(BaseAudioVideo):
             self.get(0)
 
         preceding_frame = self.current_frame
-        last_frame = self.current_frame  # safe fallback if no packet yields frames
-        go_to_next_packet = False
+        last_frame = self.current_frame
+        decoder = None  # frame-level iterator; reset after every seek
 
         while collected < num_frames:
-            if not go_to_next_packet:
-                target_pts, use_time = self._get_target_frame_pts(indices[collected])
+            # check buffer first
+            cached = self._buffer.get(indices[collected])
+            if cached is not None:
+                self.current_frame = cached
+                self.last_loaded_idx = indices[collected]
+                self._append_frame(frames, collected, cached)
+                preceding_frame = cached
+                last_frame = cached
+                collected += 1
+                continue
 
-            # First frame shortcut
-            if collected == 0 and hasattr(self.current_frame, "pts"):
-                if self.current_frame.pts == target_pts:
-                    self._append_frame(frames, collected, self.current_frame)
-                    collected = 1
-                    continue
-                elif self.current_frame.pts > target_pts:
-                    self.current_frame = None
-                    self.container.seek(
-                        int(target_pts),
-                        backward=True,
-                        any_frame=False,
-                        stream=self.stream,
-                    )
-                    go_to_next_packet = True
+            target_pts, use_time = self._get_target_frame_pts(indices[collected])
 
-            if not go_to_next_packet and self._need_seek_call(preceding_frame.pts, target_pts):
+            # Open a decoder (or re-open after a seek) when needed.
+            if decoder is None or (
+                self._need_seek_call(self._stream_pts, target_pts)
+            ):
                 self.container.seek(
-                    int(target_pts),
-                    backward=True,
-                    any_frame=False,
-                    stream=self.stream,
+                    int(target_pts), backward=True, any_frame=False, stream=self.stream
                 )
+                decoder = self.container.decode(self.stream)
 
-            packet = next(self.container.demux(self.stream))
-
+            # Advance one frame. container.decode handles B-frame buffering
+            # internally, so zero-frame packets are transparent to us.
             try:
-                decoded = packet.decode()
-                while len(decoded) == 0:
-                    decoded = packet.decode()
-            except av.error.EOFError:
-                # end of the video, rewind
+                frame = next(f for f in decoder if f.pts is not None)
+                self._buffer.put(self._get_frame_idx(frame.pts)[0], frame)
+                self._stream_pts = frame.pts
+            except StopIteration:
                 break
 
-            for frame in decoded:
-                if frame.pts is None:
-                    continue
+            time_threshold = time_threshold_all[collected]
+            found_next = (
+                (frame.pts > target_pts) if not use_time else (frame.time > time_threshold)
+            )
+            found_current = (
+                (frame.pts == target_pts) if not use_time else (frame.time == time_threshold)
+            )
 
-                time_threshold = time_threshold_all[collected]
-                found_next = (
-                    (frame.pts > target_pts) if not use_time else (frame.time > time_threshold)
-                )
-                found_current = (
-                    (frame.pts == target_pts) if not use_time else (frame.time == time_threshold)
-                )
+            if found_next:
+                frame = preceding_frame or frame
+                self._append_frame(frames, collected, frame)
+                collected += 1
+            elif found_current:
+                self._append_frame(frames, collected, frame)
+                collected += 1
 
-                if found_next:
-                    self._append_frame(frames, collected, preceding_frame)
-                    collected += 1
-                    go_to_next_packet = False
-                    if collected < num_frames:
-                        target_pts, use_time = self._get_target_frame_pts(indices[collected])
-
-                elif found_current:
-                    self._append_frame(frames, collected, frame)
-                    collected += 1
-                    go_to_next_packet = False
-                    if collected < num_frames:
-                        target_pts, use_time = self._get_target_frame_pts(indices[collected])
-
-                else:
-                    go_to_next_packet = True
-
-                if collected >= num_frames:
-                    break
-
-                last_frame = frame
-                preceding_frame = frame
+            last_frame = frame
+            preceding_frame = frame
 
         return indices[-1], frames, last_frame
 
@@ -760,20 +799,21 @@ class VideoHandler(BaseAudioVideo):
             if (stop - start) // step > 1:
                 target_pts, use_time = self._get_target_frame_pts(start)
 
-                if not hasattr(self.current_frame, "pts") or self._need_seek_call(
-                    self.current_frame.pts, target_pts
+                if self._stream_pts is None or self._need_seek_call(
+                    self._stream_pts, target_pts
                 ):
                     self.container.seek(
                         int(target_pts), backward=True, any_frame=False, stream=self.stream
                     )
 
                 frame_idx, frames, last_frame = self._decode_multiple(
-                    target_pts, start, stop, step=step
+                    start, stop, step=step
                 )
                 # update current decoded frame
                 if len(frames):
                     self.last_loaded_idx = frame_idx
                     self.current_frame = last_frame
+                    self._stream_pts = last_frame.pts
                 return frames if not revert else frames[::-1]
 
         # Default case: single index
