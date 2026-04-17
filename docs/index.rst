@@ -206,13 +206,13 @@ Per-dock (active when the mouse is over the canvas)
      - Action
    * - :kbd:`r`
      - Reset view
-   * - :kbd:`←` / `→`
+   * - :kbd:`←` / :kbd:`→`
      - Pan left / right by one page
    * - :kbd:`y`
      - Lock / unlock y-axis
    * - :kbd:`x`
      - Lock / unlock x-axis
-   * - :kbd:`Ctrl+← / Ctrl+→`
+   * - :kbd:`Ctrl+←` / :kbd:`Ctrl+→`
      - Jump to previous / next superposed epoch (requires an ``IntervalSet`` overlay)
    * - :kbd:`i` / :kbd:`d`
      - Increase / decrease contrast (TsdFrame) or marker size (TsGroup)

@@ -12,6 +12,7 @@ from typing import Any
 import pynapple as nap
 
 from .references import EphysReference, NWBReference
+from ..audiovideo.video_handling import VideoHandler
 
 EPHYS_EXTENSIONS = {".plx", ".ncs", ".smr", ".nev", ".mcd", ".dat", ".lfp", ".eeg"}
 
@@ -26,7 +27,7 @@ def _filter_paths(path: str, ephys_format: str | None = None) -> tuple | None:
             nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key) for key in data.keys()}
             return p.name, nap_obj_dict
         except Exception as e:
-            print(f"Could not load directory {path} as EphysReader: {e}")
+            print(f"Could not load directory {path} as EphysReader: \n{e}")
             return None, None
 
     if os.path.isfile(path):
@@ -69,14 +70,12 @@ def _extract_name_value(v: Any, ephys_format: str | None = None):
             for key in v.keys():
                 nap_obj_dict[key] = NWBReference(nwb_file=v, key=key)
             return v.__class__.__name__, nap_obj_dict
-        if isinstance(v, nap.EphysReader):
+        elif isinstance(v, nap.EphysReader):
             nap_obj_dict = {key: EphysReference(ephys_reader=v, key=key) for key in v.keys()}
             return v.name, nap_obj_dict
-        if "pynapple" in v.__module__:
+        elif "pynapple" in v.__module__:
             return v.__class__.__name__, v
-        # Import VideoHandler lazily to avoid circular import
-        from .widget_plot import VideoHandler
-        if "pynaviz" in v.__module__ and isinstance(v, VideoHandler):
+        elif isinstance(v, VideoHandler):
             return v.__class__.__name__, v
 
     return None, None

@@ -19,7 +19,7 @@ def main():
         prog="pynaviz",
         description=(
             "Visualize and synchronize time series using pynapple. "
-            "Accepted inputs: .nwb, .npz, movie files (.mp4/.avi/.mov/.mkv), "
+            "Accepted inputs: .nwb, .npz (formatted for pynapple), movie files (.mp4/.avi/.mov/.mkv), "
             "electrophysiology files (.plx, .ncs, .smr, …), directories containing "
             "electrophysiology recordings, and .json layout files. "
             "If no files are provided, an empty viewer is launched."

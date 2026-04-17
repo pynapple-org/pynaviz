@@ -95,10 +95,10 @@ See the [User Guide](https://pynaviz.readthedocs.io) for more details.
 | Shortcut | Action |
 |---|---|
 | `r` | Reset view |
-| `← / →` | Pan left / right by one page |
+| `←` / `→` | Pan left / right by one page |
 | `y` | Lock / unlock y-axis |
 | `x` | Lock / unlock x-axis |
-| `Ctrl+← / Ctrl+→` | Jump to previous / next superposed epoch (requires an IntervalSet overlay) |
+| `Ctrl+←` / `Ctrl+→` | Jump to previous / next superposed epoch (requires an IntervalSet overlay) |
 | `i` / `d` | Increase / decrease contrast (TsdFrame) or marker size (TsGroup) |
 | `n` / `p` | Jump to next / previous interval or timestamp (IntervalSet & Ts) |
 
