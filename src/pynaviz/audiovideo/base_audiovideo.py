@@ -51,8 +51,15 @@ class BaseAudioVideo:
             return True
 
         with self._lock:
-            # return if empty list or empty array or not enough frmae
-            if len(self._keyframe_pts) == 0 or self._keyframe_pts[-1] < target_frame_pts:
+            if len(self._keyframe_pts) == 0:
+                return True
+            # While the keyframe thread is still running we may not yet know
+            # about a keyframe that sits between current position and target.
+            # Seek conservatively so we don't miss it.
+            # Once the thread is done the list is complete: no keyframe beyond
+            # the last known one exists, so the absence of one is not a reason
+            # to seek — we can stream forward safely.
+            if not self._pts_keyframe_ready.is_set() and self._keyframe_pts[-1] < target_frame_pts:
                 return True
 
         # roll back the stream if audiovideo is scrolled backwards
@@ -63,10 +70,8 @@ class BaseAudioVideo:
         idx = np.searchsorted(self._keyframe_pts, target_frame_pts, side="right")
         closest_keyframe_pts = self._keyframe_pts[max(0, idx - 1)]
 
-        # if target_frame_pts is larger than current (and if code
-        # arrives here, it is, see second return statement),
-        # then seek forward if there is a future keyframe closest
-        # to the target.
+        # seek forward only if there is a keyframe between current position
+        # and the target (i.e. a closer starting point exists).
         return closest_keyframe_pts > current_frame_pts
 
 
