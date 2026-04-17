@@ -206,7 +206,7 @@ Per-dock (active when the mouse is over the canvas)
      - Action
    * - :kbd:`r`
      - Reset view
-   * - :kbd:`← / →`
+   * - :kbd:`←` / `→`
      - Pan left / right by one page
    * - :kbd:`y`
      - Lock / unlock y-axis
