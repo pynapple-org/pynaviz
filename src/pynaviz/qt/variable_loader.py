@@ -11,8 +11,8 @@ from typing import Any
 
 import pynapple as nap
 
-from .references import EphysReference, NWBReference
 from ..audiovideo.video_handling import VideoHandler
+from .references import EphysReference, NWBReference
 
 EPHYS_EXTENSIONS = {".plx", ".ncs", ".smr", ".nev", ".mcd", ".dat", ".lfp", ".eeg"}
 
