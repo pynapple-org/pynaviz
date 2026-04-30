@@ -1,6 +1,6 @@
 # Installation
 
-We recommend using the **Qt-based interface** for the best interactive experience:
+We recommend using the **Qt-based interface** to have access to our graphical user interface. Without Qt, pynaviz can still be used, but in a programmatic way (via scripting).
 
 ```bash
 pip install pynaviz[qt]

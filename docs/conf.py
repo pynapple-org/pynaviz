@@ -81,7 +81,7 @@ autodoc_default_options = {
 
 html_theme = 'pydata_sphinx_theme'
 
-# html_logo = "_static/Logo/Pynapple_final_logo.png"
+html_logo = "_static/Pynaviz_logo_color.svg"
 # html_favicon = "_static/Icon/Pynapple_final_icon.png"
 
 

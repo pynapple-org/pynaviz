@@ -1,5 +1,5 @@
 import pathlib
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import fsspec
 import numpy as np
@@ -7,6 +7,12 @@ import pynapple as nap
 import pytest
 
 import pynaviz as viz
+from pynaviz.qt.references import EphysReference
+
+has_ephys_reader = hasattr(nap, "EphysReader")
+skip_no_ephys = pytest.mark.skipif(
+    not has_ephys_reader, reason="requires pynapple >= 0.11 (EphysReader)"
+)
 
 
 def download_osf_file_chunked(url, output_path, chunk_size=8192):
@@ -184,4 +190,118 @@ def test_open_file_dialog(mock_dialog, shared_test_files, qtbot):
     for item in flat_items[0:3]:
         print(item.text(0))
         main_window.variable_dock.on_item_double_clicked(item, 0)
+    main_window.close()
+
+
+# ---------------------------------------------------------------------------
+# open_folder (EphysReader / directory support)
+# ---------------------------------------------------------------------------
+
+
+@skip_no_ephys
+@patch("pynaviz.qt.mainwindow.QFileDialog.getExistingDirectory")
+def test_open_folder_calls_load(mock_dialog, tmp_path, qtbot):
+    """open_folder passes the selected directory to _load_multiple_files."""
+    rec_dir = tmp_path / "session"
+    rec_dir.mkdir()
+
+    mock_reader = MagicMock()
+    mock_reader.keys.return_value = ["lfp", "mua"]
+    mock_reader.name = "session"
+
+    mock_dialog.return_value = str(rec_dir)
+
+    main_window = viz.qt.mainwindow.MainWindow({})
+    qtbot.addWidget(main_window)
+
+    with patch("pynaviz.qt.mainwindow.nap.EphysReader", return_value=mock_reader):
+        main_window.open_folder()
+
+    mock_dialog.assert_called_once()
+    assert "session" in main_window.variables
+    inner = main_window.variables["session"]
+    assert set(inner.keys()) == {"lfp", "mua"}
+    for ref in inner.values():
+        assert isinstance(ref, EphysReference)
+
+    main_window.close()
+
+
+@skip_no_ephys
+@patch("pynaviz.qt.mainwindow.QFileDialog.getExistingDirectory")
+def test_open_folder_cancelled(mock_dialog, tmp_path, qtbot):
+    """open_folder does nothing when the dialog is cancelled (returns empty string)."""
+    mock_dialog.return_value = ""
+
+    main_window = viz.qt.mainwindow.MainWindow({})
+    qtbot.addWidget(main_window)
+    main_window.open_folder()
+
+    assert main_window.variables == {}
+    main_window.close()
+
+
+@skip_no_ephys
+def test_load_multiple_files_directory(tmp_path, qtbot):
+    """_load_multiple_files loads a directory as an EphysReader tree."""
+    rec_dir = tmp_path / "rec"
+    rec_dir.mkdir()
+
+    mock_reader = MagicMock()
+    mock_reader.keys.return_value = ["ch0", "ch1"]
+    mock_reader.name = "rec"
+
+    main_window = viz.qt.mainwindow.MainWindow({})
+    qtbot.addWidget(main_window)
+
+    with patch("pynaviz.qt.mainwindow.nap.EphysReader", return_value=mock_reader):
+        main_window._load_multiple_files([str(rec_dir)])
+
+    assert "rec" in main_window.variables
+    for ref in main_window.variables["rec"].values():
+        assert isinstance(ref, EphysReference)
+
+    main_window.close()
+
+
+@skip_no_ephys
+@pytest.mark.parametrize("ext", [".plx", ".ncs", ".smr"])
+def test_load_multiple_files_ephys_extension(tmp_path, ext, qtbot):
+    """_load_multiple_files loads known ephys file extensions via EphysReader."""
+    ephys_file = tmp_path / f"recording{ext}"
+    ephys_file.write_bytes(b"fake")
+
+    mock_reader = MagicMock()
+    mock_reader.keys.return_value = ["sig"]
+    mock_reader.name = "recording"
+
+    main_window = viz.qt.mainwindow.MainWindow({})
+    qtbot.addWidget(main_window)
+
+    with patch("pynaviz.qt.mainwindow.nap.EphysReader", return_value=mock_reader):
+        main_window._load_multiple_files([str(ephys_file)])
+
+    assert ephys_file.name in main_window.variables
+    for ref in main_window.variables[ephys_file.name].values():
+        assert isinstance(ref, EphysReference)
+
+    main_window.close()
+
+
+@skip_no_ephys
+def test_load_multiple_files_ephys_error_skipped(tmp_path, qtbot, capsys):
+    """If EphysReader raises on an ephys file, the file is skipped gracefully."""
+    ephys_file = tmp_path / "bad.plx"
+    ephys_file.write_bytes(b"fake")
+
+    main_window = viz.qt.mainwindow.MainWindow({})
+    qtbot.addWidget(main_window)
+
+    with patch("pynaviz.qt.mainwindow.nap.EphysReader", side_effect=Exception("bad")):
+        main_window._load_multiple_files([str(ephys_file)])
+
+    assert main_window.variables == {}
+    captured = capsys.readouterr()
+    assert "EphysReader" in captured.out or "bad" in captured.out
+
     main_window.close()

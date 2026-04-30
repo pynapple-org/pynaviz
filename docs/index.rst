@@ -1,10 +1,10 @@
 :html_theme.sidebar_secondary.remove:
 
 
-pynaviz
-=======
+Pynaviz : python neural analysis visualization
+----------------------------------------------
 
-PYthon Neural Analysis VIZualization
+|
 
 .. grid:: 4
    :gutter: 2
@@ -57,49 +57,66 @@ PYthon Neural Analysis VIZualization
             API
 
 
+Overview
+--------
 
 Pynaviz provides interactive, high-performance visualizations designed to work seamlessly
 with Pynapple time series and video data. It allows synchronized exploration of neural signals
-and behavioral recordings. It is build on top of `pygfx <https://pygfx.org/>`_, a modern GPU-based rendering engine.
+and behavioral recordings. It is built on top of `pygfx <https://pygfx.org/>`_, a modern GPU-based rendering engine.
 
-To install pynaviz, please refer to the `Installation instructions <installing.html>`_.
+There are two ways to use Pynaviz:
 
-The simplest way to get started is to use the Qt-based graphical user interface (GUI) either from the command line :
+- **GUI** — launch an interactive viewer from the command line (``pynaviz``) or from a Python
+  script via :func:`scope`.  Drop in files, scrub through time, and arrange plots without
+  writing any additional code.
+- **Programmatic** — embed the individual plot widgets (``TsdWidget``, ``TsGroupWidget``, …)
+  directly inside your own Qt application for tighter integration with custom pipelines.
+
+
+Installation
+------------
 
 .. code-block:: bash
 
     $ pip install pynaviz[qt]
-    $ pynaviz
+
+Please refer to the `Installation instructions <installing.html>`_ for more details.
 
 
-or from a Python script:
+Quick start
+-----------
+
+From the command line:
+
+.. code-block:: bash
+
+    $ pynaviz data.nwb recording.mp4 -l layout.json
+
+From a Python script:
 
 .. code-block:: python
 
     from pynaviz import scope
-    scope("nwb_file.nwb") # replace with your NWB file path or a dictionnary of pynapple time series objects
+    scope({"lfp": tsdframe, "spikes": tsgroup})
+
+See the `GUI reference <gui_reference.html>`_ for the full list of accepted file types,
+``scope()`` input forms, and keyboard shortcuts.
 
 .. toctree::
     :maxdepth: 1
     :hidden:
 
     Installing <installing>
+    GUI reference <gui_reference>
     User guide <user_guide>
     Example gallery <examples>
     API <api>
 
 
-|
-
-See the `User Guide <user_guide.html>`_ for more details on how to use pynaviz.
-
-
-
-
 Support
-~~~~~~~
+-------
 
-This package is supported by the Center for Computational Neuroscience, in the Flatiron Institute of the Simons Foundation
+This package is supported by the Center for Computational Neuroscience, in the Flatiron Institute of the Simons Foundation.
 
 .. image:: _static/CCN-logo-wText.png
    :width: 200px
@@ -110,4 +127,3 @@ This package is supported by the Center for Computational Neuroscience, in the F
    :width: 200px
    :class: only-dark
    :target: https://www.simonsfoundation.org/flatiron/center-for-computational-neuroscience/
-
