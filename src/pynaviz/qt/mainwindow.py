@@ -472,18 +472,38 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         """Register the widget's plot in the controller group."""
         self.ctrl_group.add(widget.plot, self._n_dock_open)
 
-    def _create_widget_for_variable(self, var) -> object | None:
+    def _get_same_level_interval_sets(self, key_path: list[str]) -> dict[str, nap.IntervalSet]:
+        """Return all IntervalSets that are siblings of key_path in the variables tree."""
+        parent_path = key_path[:-1]
+        parent_dict = _get_variable_from_key_path(self.variables, parent_path) if parent_path else self.variables
+        if not isinstance(parent_dict, dict):
+            return {}
+        result = {}
+        for sibling_key, sibling_val in parent_dict.items():
+            if sibling_key == key_path[-1]:
+                continue
+            resolved = sibling_val
+            if isinstance(resolved, EphysReference):
+                resolved = resolved.ephys_reader[resolved.key]
+            elif isinstance(resolved, NWBReference):
+                resolved = resolved.nwb_file[resolved.key]
+            if isinstance(resolved, nap.IntervalSet):
+                label = '/'.join(parent_path + [sibling_key])
+                result[label] = resolved
+        return result
+
+    def _create_widget_for_variable(self, var, key_path: list[str] | None = None) -> object | None:
         """Return the correct widget based on the variable type."""
-        # TODO: grab iset only from the same tree level.
         index = self._n_dock_open
-        if isinstance(var, nap.TsGroup):
+        if key_path is not None:
+            interval_sets = self._get_same_level_interval_sets(key_path)
+        else:
             interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
+        if isinstance(var, nap.TsGroup):
             return TsGroupWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.Tsd):
-            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
             return TsdWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdFrame):
-            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
             return TsdFrameWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdTensor):
             tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
@@ -504,10 +524,10 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
                 return None
         elif isinstance(var, NWBReference):
             var = var.nwb_file[var.key]
-            return self._create_widget_for_variable(var)
+            return self._create_widget_for_variable(var, key_path=key_path)
         elif isinstance(var, EphysReference):
             var = var.ephys_reader[var.key]
-            return self._create_widget_for_variable(var)
+            return self._create_widget_for_variable(var, key_path=key_path)
         elif isinstance(var, VideoWidget):
             return var  # already a widget
         else:
@@ -540,7 +560,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
 
     def add_dock_widget(self, variable: Any, key_path: list[str], state_dict: dict | None = None) -> QDockWidget | None:
         """Add a new dock widget to the main window based on the variable or its key path."""
-        widget = self._create_widget_for_variable(variable)
+        widget = self._create_widget_for_variable(variable, key_path=key_path)
         if widget is None:
             return
 
