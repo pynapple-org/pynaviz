@@ -41,6 +41,7 @@ from ..qt.tsdframe_selection import TsdFramesDialog, TsdFramesModel
 from ..qt.widget_list_selection import (
     ChannelList,
     ChannelListModel,
+    GroupedChannelList,
 )
 from ..utils import get_plot_attribute
 
@@ -447,17 +448,46 @@ class MenuWidget(QWidget):
     def show_select_menu(self) -> None:
         """Opens the channel list selection dialog."""
         if hasattr(self.plot, "_controllers"):
-            # If 'get' controller is enabled (i.e., in x vs y mode),
-            # Need to disable channel selection
             get_ctrl = self.plot._controllers.get("get")
             if get_ctrl is not None and get_ctrl.enabled:
                 return
+
+        manager = getattr(self.plot, "_manager", None)
+
+        if manager is not None and manager.is_grouped:
+            metadata_name = manager._actions["group_by"]["metadata_name"]
+            channel_names = list(manager.index)
+            groups_mapping = {
+                ch: str(self.plot.data.metadata.loc[ch][metadata_name])
+                for ch in channel_names
+            }
+            visibility_mapping = {
+                ch: bool(manager.data.loc[ch]["visible"])
+                for ch in channel_names
+            }
+            order_mapping = (
+                {ch: int(manager.data.loc[ch]["order"]) for ch in channel_names}
+                if manager.is_sorted
+                else None
+            )
+            dialog = GroupedChannelList(
+                channel_names, groups_mapping, order_mapping, visibility_mapping, parent=self
+            )
+            dialog.visibilityChanged.connect(self._change_visibility_from_array)
+            dialog.show()
+        else:
+            if manager is not None:
+                for key in self.channel_model.checks:
+                    self.channel_model.checks[key] = manager.data.loc[key]["visible"]
+            dialog = ChannelList(self.channel_model, parent=self)
+            dialog.show()
+
+    def _change_visibility_from_array(self, visibility_array) -> None:
+        """Update plot visibility from an ordered bool array (tree dialog callback)."""
         if hasattr(self.plot, "_manager"):
-            data = self.plot._manager.data
-            for key in self.channel_model.checks:
-                self.channel_model.checks[key] =  data.loc[key]["visible"]
-        dialog = ChannelList(self.channel_model, parent=self)
-        dialog.show()
+            self.plot._manager.visible = visibility_array
+        if hasattr(self.plot, "_update"):
+            self.plot._update("toggle_visibility")
 
     def show_overlay_menu(self, popup_name) -> None:
         """Opens the TsdFrame overlay selection dialog."""
