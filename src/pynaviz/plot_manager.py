@@ -60,6 +60,7 @@ class _PlotManager:
             "color_by": None,
         }
         self.y_ticks = None
+        self._base_offset: np.ndarray | None = None
 
     @property
     def is_sorted(self) -> bool:
@@ -249,6 +250,57 @@ class _PlotManager:
         if was_grouped or was_sorted:
             self.scale = self.scale + (self.scale * factor)
 
+    def snapshot_base_offset(self) -> None:
+        """Snapshot the current offset array as the reference for compaction."""
+        self._base_offset = self.data["offset"].copy()
+
+    def compact_visible_offsets(self) -> float:
+        """Recompute display offsets for visible channels, closing gaps from hidden ones.
+
+        Returns
+        -------
+        float
+            New y-axis maximum (largest visible display offset), or 0.0 if
+            sort/group is not active or no base snapshot exists.
+        """
+        if not (self.is_sorted or self.is_grouped) or self._base_offset is None:
+            return 0.0
+
+        visible = self.visible
+        base = self._base_offset
+
+        visible_indices = np.where(visible)[0]
+        if len(visible_indices) == 0:
+            return 0.0
+
+        visible_base = base[visible_indices]
+        sort_order = np.argsort(visible_base, kind="stable")
+        sorted_visible_indices = visible_indices[sort_order]
+        sorted_visible_base = visible_base[sort_order]
+
+        # Start new display from 1.0 to match the +1 shift applied after sort/group.
+        new_display = base.copy()
+        current_display = 1.0
+        prev_base = sorted_visible_base[0]
+        new_display[sorted_visible_indices[0]] = current_display
+
+        for i in range(1, len(sorted_visible_indices)):
+            curr_base = sorted_visible_base[i]
+            gap = curr_base - prev_base
+
+            if gap == 0:
+                pass  # same display position
+            elif self.is_grouped and gap > 1:
+                current_display += 2  # group boundary
+            else:
+                current_display += 1  # consecutive within group or sort gap
+
+            new_display[sorted_visible_indices[i]] = current_display
+            prev_base = curr_base
+
+        self.data["offset"] = new_display.astype(np.float32)
+        return float(current_display)
+
     def reset(self, base_plot: "_BasePlot", index=None) -> None:
         """
         Resets offset and scale to default values (0 and 1 respectively).
@@ -259,6 +311,7 @@ class _PlotManager:
         self.data["offset"] = base_plot._initialize_offset(index)
         self.data["scale"] = np.ones(len(index))
         self.y_ticks = None
+        self._base_offset = None
         self._actions = {
             "group_by": None,
             "sort_by": None,

@@ -207,10 +207,10 @@ def test_lines_mode_update_visibility(dummy_tsdframe):
     v = viz.PlotTsdFrame(dummy_tsdframe)
     mode = v._modes["lines"]
 
-    # All channels visible initially
-    colors = mode.graphic.geometry.colors.data
-    for _, sl in mode._buffer_slices.items():
-        assert np.all(colors[sl, -1] == 1.0)
+    # All channels visible initially — positions are real (non-NaN) values
+    first_col = dummy_tsdframe.columns[0]
+    sl0 = mode._buffer_slices[first_col]
+    assert not np.all(np.isnan(mode.buffer[sl0, 0]))
 
     # Hide first channel
     vis = v._manager.visible.copy()
@@ -218,15 +218,20 @@ def test_lines_mode_update_visibility(dummy_tsdframe):
     v._manager.visible = vis
     mode.update_visibility()
 
-    colors = mode.graphic.geometry.colors.data
-    first_col = dummy_tsdframe.columns[0]
-    sl = mode._buffer_slices[first_col]
-    assert np.all(colors[sl, -1] == 0.0)
+    # Hidden channel: positions are NaN
+    assert np.all(np.isnan(mode.buffer[sl0, 0]))
+    assert np.all(np.isnan(mode.buffer[sl0, 1]))
 
-    # Other channels still visible
+    # Other channels still have real data
     for c in dummy_tsdframe.columns[1:]:
         sl = mode._buffer_slices[c]
-        assert np.all(colors[sl, -1] == 1.0)
+        assert not np.all(np.isnan(mode.buffer[sl, 0]))
+
+    # Un-hide the channel — positions are restored
+    vis[0] = True
+    v._manager.visible = vis
+    mode.update_visibility()
+    assert not np.all(np.isnan(mode.buffer[sl0, 0]))
 
     v.close()
 
@@ -428,6 +433,155 @@ def test_xvsy_mode_get_callbacks(dummy_tsdframe):
 
 
 # ── Mode switching ───────────────────────────────────────────────────────────
+
+# ── compact_visible_offsets tests ────────────────────────────────────────────
+
+def test_compact_offsets_snapshotted_after_group_by(dummy_tsdframe):
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    v.group_by(metadata_name="group")
+    assert v._manager._base_offset is not None
+    np.testing.assert_array_equal(v._manager._base_offset, v._manager.offset)
+    v.close()
+
+
+def test_compact_offsets_snapshotted_after_sort_by(dummy_tsdframe):
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    v.sort_by(metadata_name="channel")
+    assert v._manager._base_offset is not None
+    np.testing.assert_array_equal(v._manager._base_offset, v._manager.offset)
+    v.close()
+
+
+def test_compact_offsets_group_by_hide_whole_group(dummy_tsdframe):
+    # dummy_tsdframe: columns [0,1,2,3,4], group metadata [0,0,1,0,1]
+    # After group_by: group 0 channels at 1, group 1 channels at 3
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    v.group_by(metadata_name="group")
+
+    group1_cols = [c for c in dummy_tsdframe.columns if dummy_tsdframe.metadata.loc[c]["group"] == 1]
+
+    # Hide all group 1 channels
+    vis = v._manager.visible.copy()
+    for c in group1_cols:
+        vis[list(dummy_tsdframe.columns).index(c)] = False
+    v._manager.visible = vis
+
+    y_max = v._manager.compact_visible_offsets()
+
+    # All visible channels were in group 0 → same offset (1)
+    for c in dummy_tsdframe.columns:
+        if dummy_tsdframe.metadata.loc[c]["group"] == 0:
+            assert v._manager.data.loc[c]["offset"] == pytest.approx(1.0)
+
+    # y_max should be 1 (only group 0 visible, no gap needed)
+    assert y_max == pytest.approx(1.0)
+    v.close()
+
+
+def test_compact_offsets_group_by_partial_hide(dummy_tsdframe):
+    # Hide only one channel from group 1; group 1 still has channels → gap preserved
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    v.group_by(metadata_name="group")
+
+    group1_cols = [c for c in dummy_tsdframe.columns if dummy_tsdframe.metadata.loc[c]["group"] == 1]
+    vis = v._manager.visible.copy()
+    # Hide only the first channel from group 1
+    vis[list(dummy_tsdframe.columns).index(group1_cols[0])] = False
+    v._manager.visible = vis
+
+    y_max = v._manager.compact_visible_offsets()
+
+    # Remaining visible group 1 channel should still be above group 0 (offset > 1)
+    remaining_g1 = [c for c in group1_cols if c != group1_cols[0]]
+    for c in remaining_g1:
+        assert v._manager.data.loc[c]["offset"] > 1.0
+
+    # y_max >= 3 since two groups are still visible
+    assert y_max >= 3.0
+    v.close()
+
+
+def test_compact_offsets_sort_by_hide_rank(dummy_tsdframe):
+    # After sort_by, hiding one channel should compact remaining without gaps
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    v.sort_by(metadata_name="channel")
+
+    offsets_before = v._manager.offset.copy()
+
+    # Hide one channel
+    vis = v._manager.visible.copy()
+    vis[0] = False
+    v._manager.visible = vis
+
+    y_max = v._manager.compact_visible_offsets()
+    offsets_after = v._manager.offset.copy()
+
+    # y_max should be less than before (one less channel)
+    assert y_max < offsets_before.max()
+
+    # Visible offsets should be consecutive starting at 1 (no gaps)
+    _ = sorted(offsets_after[vis])
+    assert y_max >= 1.0
+
+    v.close()
+
+
+def test_compact_offsets_restore_on_show_all(dummy_tsdframe):
+    # Hide a group, then show all — offsets should return to base
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    v.group_by(metadata_name="group")
+
+    base = v._manager._base_offset.copy()
+
+    # Hide group 1
+    group1_cols = [c for c in dummy_tsdframe.columns if dummy_tsdframe.metadata.loc[c]["group"] == 1]
+    vis = v._manager.visible.copy()
+    for c in group1_cols:
+        vis[list(dummy_tsdframe.columns).index(c)] = False
+    v._manager.visible = vis
+    v._manager.compact_visible_offsets()
+
+    # Show all again
+    v._manager.visible = np.ones(len(dummy_tsdframe.columns), dtype=bool)
+    y_max = v._manager.compact_visible_offsets()
+
+    # Offsets should match the original base
+    np.testing.assert_array_almost_equal(v._manager.offset, base)
+    assert y_max == pytest.approx(float(base.max()))
+
+    v.close()
+
+
+def test_compact_offsets_no_op_without_sort_group(dummy_tsdframe):
+    # compact_visible_offsets should do nothing when no sort/group is active
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    offsets_before = v._manager.offset.copy()
+
+    y_max = v._manager.compact_visible_offsets()
+
+    np.testing.assert_array_equal(v._manager.offset, offsets_before)
+    assert y_max == pytest.approx(0.0)
+    v.close()
+
+
+def test_toggle_visibility_updates_ylim_with_group_by(dummy_tsdframe):
+    # After group_by and hiding a whole group, ylim should shrink
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    v.group_by(metadata_name="group")
+
+    ylim_before = v.controller.get_ylim()
+
+    group1_cols = [c for c in dummy_tsdframe.columns if dummy_tsdframe.metadata.loc[c]["group"] == 1]
+    vis = v._manager.visible.copy()
+    for c in group1_cols:
+        vis[list(dummy_tsdframe.columns).index(c)] = False
+    v._manager.visible = vis
+    v._update("toggle_visibility")
+
+    ylim_after = v.controller.get_ylim()
+    assert ylim_after[1] < ylim_before[1]
+    v.close()
+
 
 def test_toggle_display_mode(dummy_tsdframe):
     v = viz.PlotTsdFrame(dummy_tsdframe)

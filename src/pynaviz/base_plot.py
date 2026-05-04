@@ -909,10 +909,14 @@ class PlotTsdFrame(_BasePlot):
                 self._manager.scale = 1 / range_vals
 
             self._manager.offset = self._manager.offset + 1 - self._manager.offset.min()
+            self._manager.snapshot_base_offset()
             self._flush(*self.controller.get_xlim())
             self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
 
         if action_name == "toggle_visibility":
+            if self._manager.is_sorted or self._manager.is_grouped:
+                y_max = self._manager.compact_visible_offsets()
+                self.controller.set_ylim(0, y_max + 1)
             self._mode.update_visibility()
 
         self.canvas.request_draw(self.animate)

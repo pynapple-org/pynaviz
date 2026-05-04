@@ -96,6 +96,8 @@ class LinesMode:
         """
         if self.stream._max_n == self.data.shape[0]:
             for i, c in enumerate(self.data.columns):
+                if not self.manager.data.loc[c]["visible"]:
+                    continue
                 sl = self._buffer_slices[c]
                 self.buffer[sl, 0] = self.data.t.astype("float32")
                 self.buffer[sl, 1] = self.data.d[:, i].astype("float32")
@@ -116,6 +118,8 @@ class LinesMode:
             data = np.array(self.data.values[slice_, :])
 
             for i, c in enumerate(self.data.columns):
+                if not self.manager.data.loc[c]["visible"]:
+                    continue
                 sl = self._buffer_slices[c]
                 sl = slice(sl.start + left_offset, sl.stop + right_offset)
                 self.buffer[sl, 0] = time
@@ -178,14 +182,11 @@ class LinesMode:
         self.manager.color_by(values, metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
 
     def update_visibility(self):
-        """Toggle channel visibility via the alpha channel of vertex colors."""
-        new_colors = self.graphic.geometry.colors.data.copy()
+        """Hide channels by NaN-ing their buffer positions; show them by re-flushing."""
         for c, sl in self._buffer_slices.items():
             if not self.manager.data.loc[c]["visible"]:
-                new_colors[sl, -1] = 0.0
-            else:
-                new_colors[sl, -1] = 1.0
-        self.graphic.geometry.colors.set_data(new_colors)
+                self.buffer[sl, 0:2] = np.nan
+        self.flush(self.stream._slice_)
 
     def get_state(self):
         """Return per-column scale factors and visibility as a JSON-serializable dict."""
