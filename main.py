@@ -51,5 +51,14 @@ tsdframe = nap.TsdFrame(
 # df[y_col] = df[y_col]*-1 + 480 # Flipping y axis
 # skeleton = nap.TsdFrame(t=df.index.values/30, d=df.values, columns=df.columns)
 
-scope(globals())
-
+scope(
+    {"tsd1": tsd1,
+     "tsd2": tsd2,
+     "tsd3": tsd3,
+     "tsg": tsg,
+     "tsdframe": tsdframe,
+     # "pose": pose,
+     # "tsdtensor": tsdtensor,
+     # "iset": iset,
+     }
+)
