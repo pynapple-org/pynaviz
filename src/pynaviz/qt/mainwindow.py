@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..controller_group import ControllerGroup
+from ..format_profiles import FORMAT_PROFILES
 from .icons import icon_base64
 from .layout_manager import LayoutManagerMixin
 from .references import EphysReference, NWBReference
@@ -37,6 +38,26 @@ from .widget_plot import (
     VideoHandler,
     VideoWidget,
 )
+
+
+def _apply_format_profile(widget, format_profiles: dict) -> None:
+    """Apply sort/group/color defaults for the given widget type, if a profile exists."""
+    profile = format_profiles.get(type(widget).__name__)
+    if profile is None:
+        return
+    plot = getattr(widget, "plot", None)
+    if plot is None:
+        return
+    metadata = getattr(getattr(widget, "button_container", None), "metadata", None)
+    if metadata is None:
+        return
+    cols = set(metadata.columns)
+    if profile.group_by and profile.group_by in cols:
+        plot.group_by(profile.group_by)
+    if profile.sort_by and profile.sort_by in cols:
+        plot.sort_by(profile.sort_by, mode=profile.sort_mode)
+    if profile.color_by and profile.color_by in cols:
+        plot.color_by(profile.color_by, cmap_name=profile.cmap_name)
 
 
 class MainWindow(LayoutManagerMixin, QMainWindow):
@@ -526,8 +547,12 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
             var = var.nwb_file[var.key]
             return self._create_widget_for_variable(var, key_path=key_path)
         elif isinstance(var, EphysReference):
+            format_profiles = FORMAT_PROFILES.get(var.format)
             var = var.ephys_reader[var.key]
-            return self._create_widget_for_variable(var, key_path=key_path)
+            widget = self._create_widget_for_variable(var, key_path=key_path)
+            if format_profiles is not None and widget is not None:
+                _apply_format_profile(widget, format_profiles)
+            return widget
         elif isinstance(var, VideoWidget):
             return var  # already a widget
         else:
