@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QHBoxLayout,
     QHeaderView,
+    QLabel,
     QPushButton,
     QStyledItemDelegate,
     QTableView,
@@ -34,7 +35,7 @@ class IntervalSetsModel(QAbstractTableModel):
             {
                 "name": k,
                 "colors": self.colors[i%len(self.colors)],
-                "alpha": 0.5,
+                "alpha": 0.2,
                 "checked": False
             }
             for i, k in enumerate(interval_sets.keys())
@@ -173,7 +174,6 @@ class IntervalSetsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Interval Sets")
         self.setWindowFlags(Qt.WindowType.Window)
-        self.setMinimumSize(400, 300)
 
         self.view = QTableView(self)
         self.view.setModel(model)
@@ -182,7 +182,7 @@ class IntervalSetsDialog(QDialog):
         header.setStretchLastSection(True)
         self.view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         self.view.verticalHeader().setDefaultSectionSize(28)
-
+        self.view.verticalHeader().setVisible(False)
 
         color_delegate = ComboDelegate(self.view)
         self.view.setItemDelegateForColumn(1, color_delegate)
@@ -191,6 +191,15 @@ class IntervalSetsDialog(QDialog):
         self.view.setItemDelegateForColumn(2, alpha_delegate)
 
         layout = QVBoxLayout()
+
+        instructions = QLabel(
+            "1. Select the IntervalSet(s) you want to overlay.\n"
+            "\n"
+            "2. Jump to the next / previous interval by pressing Ctrl+→ / Ctrl+←."
+            "\n"
+        )
+        instructions.setWordWrap(True)
+        layout.addWidget(instructions)
         layout.addWidget(self.view)
 
         button_layout = QHBoxLayout()
@@ -205,4 +214,21 @@ class IntervalSetsDialog(QDialog):
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
-        self.adjustSize()
+        self._resize_to_content()
+
+    def _resize_to_content(self):
+        """Resize the dialog to fit the table rows and column content."""
+        view = self.view
+        model = view.model()
+
+        view.resizeColumnsToContents()
+        col_width = sum(view.columnWidth(c) for c in range(model.columnCount()))
+
+        row_height = view.verticalHeader().defaultSectionSize()
+        header_height = view.horizontalHeader().height()
+        table_height = header_height + model.rowCount() * row_height
+
+        margins = self.layout().contentsMargins()
+        extra = margins.top() + margins.bottom() + self.layout().spacing() + 300
+
+        self.resize(max(400, col_width + 60), max(120, table_height + extra))
