@@ -32,3 +32,4 @@ class EphysReference:
     """
     ephys_reader: nap.EphysReader
     key: str
+    format: str | None = None

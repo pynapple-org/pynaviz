@@ -17,6 +17,21 @@ from .references import EphysReference, NWBReference
 EPHYS_EXTENSIONS = {".plx", ".ncs", ".smr", ".nev", ".mcd", ".dat", ".lfp", ".eeg"}
 
 
+def _infer_ephys_format(reader) -> str | None:
+    """Return the Neo IO class name used by an EphysReader, or None on failure.
+
+    EphysReader sets ``self._reader`` for Neo-backed formats. The Neurosuite
+    path skips Neo entirely (no ``_reader`` attribute), so we return
+    ``"NeuroScopeIO"`` in that case.
+    """
+    try:
+        if hasattr(reader, "_reader"):
+            return type(reader._reader).__name__
+        return "NeuroScopeIO"
+    except Exception:
+        return None
+
+
 def _filter_paths(path: str, ephys_format: str | None = None) -> tuple | None:
     """Filter paths and return either a valid video path or a pynapple object."""
     p = pathlib.Path(path)
@@ -24,7 +39,8 @@ def _filter_paths(path: str, ephys_format: str | None = None) -> tuple | None:
     if p.is_dir():
         try:
             data = nap.EphysReader(path, format=ephys_format)
-            nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key) for key in data.keys()}
+            fmt = ephys_format or _infer_ephys_format(data)
+            nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()}
             return p.name, nap_obj_dict
         except Exception as e:
             print(f"Could not load directory {path} as EphysReader: \n{e}")
@@ -50,7 +66,8 @@ def _filter_paths(path: str, ephys_format: str | None = None) -> tuple | None:
         elif ext in EPHYS_EXTENSIONS or ephys_format is not None:
             try:
                 data = nap.EphysReader(path, format=ephys_format)
-                nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key) for key in data.keys()}
+                fmt = ephys_format or _infer_ephys_format(data)
+                nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()}
                 return base_name, nap_obj_dict
             except Exception as e:
                 print(f"Could not load {path} as EphysReader: {e}")
@@ -71,7 +88,8 @@ def _extract_name_value(v: Any, ephys_format: str | None = None):
                 nap_obj_dict[key] = NWBReference(nwb_file=v, key=key)
             return v.__class__.__name__, nap_obj_dict
         elif isinstance(v, nap.EphysReader):
-            nap_obj_dict = {key: EphysReference(ephys_reader=v, key=key) for key in v.keys()}
+            fmt = ephys_format or _infer_ephys_format(v)
+            nap_obj_dict = {key: EphysReference(ephys_reader=v, key=key, format=fmt) for key in v.keys()}
             return v.name, nap_obj_dict
         elif "pynapple" in v.__module__:
             return v.__class__.__name__, v
@@ -96,7 +114,8 @@ def get_pynapple_variables(
         return {variables.__class__.__name__: nap_obj_dict}
 
     if isinstance(variables, nap.EphysReader):
-        nap_obj_dict = {key: EphysReference(ephys_reader=variables, key=key) for key in variables.keys()}
+        fmt = ephys_format or _infer_ephys_format(variables)
+        nap_obj_dict = {key: EphysReference(ephys_reader=variables, key=key, format=fmt) for key in variables.keys()}
         return {variables.name: nap_obj_dict}
 
     new_vars = {}
