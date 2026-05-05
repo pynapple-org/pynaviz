@@ -1,6 +1,7 @@
 import os
 import pathlib
 import sys
+import tempfile
 from typing import Any, Literal, Union
 
 import pynapple as nap
@@ -38,6 +39,11 @@ from .widget_plot import (
     VideoHandler,
     VideoWidget,
 )
+
+
+def _session_layout_path() -> pathlib.Path:
+    """Return the per-process temp file used to persist the layout across scope() calls."""
+    return pathlib.Path(tempfile.gettempdir()) / f"pynaviz_session_{os.getpid()}.json"
 
 
 def _apply_format_profile(widget, format_profiles: dict) -> None:
@@ -187,7 +193,8 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
 
         # Loading layout if provided
         if layout_path is not None and os.path.isfile(layout_path):
-            self._restore_layout(layout_path)
+            verbose = pathlib.Path(layout_path) != _session_layout_path()
+            self._restore_layout(layout_path, verbose=verbose)
 
     # ------------------------------------------------------------------
     # Menu bar & status bar
@@ -609,6 +616,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
 
     def closeEvent(self, event: QEvent):
         """Handle the close event to ensure proper cleanup."""
+        self._save_layout(file_name=_session_layout_path(), verbose=False)
         for dock in self.findChildren(QDockWidget):
             if dock.objectName() != "VariablesDock":
                 self._cleanup_and_close_dock(dock)
@@ -683,6 +691,11 @@ def scope(variables: Union[dict, list, tuple, str], layout_path: str = None, eph
     """
     variables = get_pynapple_variables(variables, ephys_format=ephys_format)
 
+    if layout_path is None:
+        session_file = _session_layout_path()
+        if session_file.exists():
+            layout_path = str(session_file)
+
     global app
     app = QApplication.instance()
     if app is None:
@@ -700,6 +713,8 @@ def scope(variables: Union[dict, list, tuple, str], layout_path: str = None, eph
     gui = MainWindow(variables=variables, layout_path=layout_path)
 
     gui.show()
+    gui.raise_()
+    gui.activateWindow()
 
     app.exit(app.exec())
 
