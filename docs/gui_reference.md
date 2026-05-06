@@ -40,6 +40,11 @@ from pynaviz import scope
 | `scope("recording.plx")` | `str` / `pathlib.Path` — ephys file | Loaded via `nap.EphysReader`; format auto-detected |
 | `scope("rec/")` | `str` / `pathlib.Path` — directory | Passed to `nap.EphysReader`; auto-detects NeuroScopeIO |
 
+## Opening plots
+
+Double-click any variable in the left-hand **Variables** panel to open it as a new plot dock.
+Multiple docks can be open simultaneously and are all linked to the same time cursor.
+
 ## Keyboard shortcuts
 
 **Global**
@@ -59,5 +64,24 @@ from pynaviz import scope
 | `y` | Lock / unlock y-axis |
 | `x` | Lock / unlock x-axis |
 | `Ctrl+←` / `Ctrl+→` | Jump to previous / next superposed epoch (requires an `IntervalSet` overlay) |
-| `i` / `d` | Increase / decrease contrast (TsdFrame) or marker size (TsGroup) |
-| `n` / `p` | Jump to next / previous interval or timestamp (IntervalSet & Ts) |
+| `Double-click` | Show / hide crosshair (displays time & value at cursor position) |
+| `Escape` | Dismiss crosshair |
+
+**Specific to TsdFrame**
+
+| Shortcut | Action |
+|---|---|
+| `i` / `d` | Increase / decrease contrast |
+
+**Specific to TsGroup**
+
+| Shortcut | Action |
+|---|---|
+| `i` / `d` | Increase / decrease marker size |
+
+**Specific to IntervalSet & Ts**
+
+| Shortcut | Action |
+|---|---|
+| `n` / `Ctrl+→` | Jump to next interval or timestamp |
+| `p` / `Ctrl+←` | Jump to previous interval or timestamp |
