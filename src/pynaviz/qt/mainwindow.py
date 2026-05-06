@@ -5,7 +5,7 @@ from typing import Any, Literal, Union
 
 import pynapple as nap
 from PySide6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap, QShortcut
+from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -16,10 +16,67 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
+    QSlider,
     QStatusBar,
     QStyle,
+    QStyleOptionSlider,
     QWidget,
 )
+
+_TIMEBAR_RESOLUTION = 1_000_000
+
+
+class _TimeSlider(QSlider):
+    """Horizontal slider with click-to-seek and a view-window indicator band."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._view_start_frac: float = 0.0
+        self._view_end_frac: float = 0.0
+
+    def set_view_window(self, start_frac: float, end_frac: float) -> None:
+        """Set the shaded band that shows the currently visible time window."""
+        self._view_start_frac = max(0.0, min(1.0, start_frac))
+        self._view_end_frac = max(0.0, min(1.0, end_frac))
+        self.update()
+
+    def _groove_rect(self):
+        opt = QStyleOptionSlider()
+        self.initStyleOption(opt)
+        return self.style().subControlRect(
+            QStyle.ComplexControl.CC_Slider,
+            opt,
+            QStyle.SubControl.SC_SliderGroove,
+            self,
+        )
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self._view_end_frac <= self._view_start_frac:
+            return
+        groove = self._groove_rect()
+        x1 = groove.x() + int(self._view_start_frac * groove.width())
+        x2 = groove.x() + int(self._view_end_frac * groove.width())
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(x1, groove.y(), x2 - x1, groove.height(), QColor(255, 255, 255, 80))
+        painter.end()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            groove = self._groove_rect()
+            click_x = int(event.position().x()) - groove.x()
+            value = QStyle.sliderValueFromPosition(
+                self.minimum(), self.maximum(), click_x, groove.width()
+            )
+            self.setValue(value)
+        super().mousePressEvent(event)
+
+    def wheelEvent(self, event):
+        ticks = event.angleDelta().y() / 120  # standard wheel tick = 120 units
+        step = int(ticks * _TIMEBAR_RESOLUTION / 100)  # 1 % of range per tick
+        self.setValue(self.value() + step)
+        event.accept()
 
 from ..controller_group import ControllerGroup
 from ..format_profiles import FORMAT_PROFILES
@@ -269,7 +326,31 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         self.time_unit_combo.currentIndexChanged.connect(self._on_unit_changed)
         bottom_layout.addWidget(self.time_unit_combo)
 
-        status_bar.addWidget(bottom_container)
+        # --- Time bar (scrubber) ---
+        self.time_slider = _TimeSlider(Qt.Orientation.Horizontal)
+        self.time_slider.setRange(0, _TIMEBAR_RESOLUTION)
+        self.time_slider.setMinimumHeight(28)
+        self.time_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                height: 10px;
+                border-radius: 5px;
+                background: #555;
+            }
+            QSlider::handle:horizontal {
+                width: 18px;
+                height: 18px;
+                margin: -4px 0;
+                border-radius: 9px;
+                background: #aaa;
+            }
+            QSlider::handle:horizontal:hover {
+                background: #fff;
+            }
+        """)
+        self.time_slider.valueChanged.connect(self._on_timebar_scrub)
+        bottom_layout.addWidget(self.time_slider, 1)  # stretch=1 fills remaining space
+
+        status_bar.addWidget(bottom_container, 1)
 
     def _toggle_help_box(self):
         from .variable_dock import HelpBox
@@ -453,6 +534,35 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         multiplier = self.time_unit_combo.currentData()
         self.ctrl_group.set_interval(value / multiplier, None)
 
+    def _on_timebar_scrub(self, value: int) -> None:
+        """Translate a slider integer position to a time and pan all controllers there."""
+        min_time, max_time = self._get_max_min_time()
+        if max_time <= min_time:
+            return
+        t = min_time + (value / _TIMEBAR_RESOLUTION) * (max_time - min_time)
+        self.ctrl_group.set_interval(t, None)
+
+    def _update_timebar(self, min_time: float, max_time: float, current_time: float) -> None:
+        """Update the slider position and view-window band without triggering a scrub event."""
+        if max_time <= min_time:
+            return
+        total = max_time - min_time
+        frac = (current_time - min_time) / total
+        value = int(max(0.0, min(1.0, frac)) * _TIMEBAR_RESOLUTION)
+        self.time_slider.blockSignals(True)
+        self.time_slider.setValue(value)
+        self.time_slider.blockSignals(False)
+
+        # Update the view-window band from the first available controller xlim
+        for ctrl in self.ctrl_group._controller_group.values():
+            if hasattr(ctrl, "get_xlim"):
+                xmin, xmax = ctrl.get_xlim()
+                self.time_slider.set_view_window(
+                    (xmin - min_time) / total,
+                    (xmax - min_time) / total,
+                )
+                break
+
     def _update_time_label(self, current_time):
         time_multiplier = self.time_unit_combo.currentData()
         self.time_spin_box.blockSignals(True)
@@ -460,6 +570,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         if max_time != -float("inf") and min_time != float("inf"):
             self.time_spin_box.setMinimum(min_time * time_multiplier)
             self.time_spin_box.setMaximum(max_time * time_multiplier)
+            self._update_timebar(min_time, max_time, current_time)
         self.time_spin_box.setValue(time_multiplier * current_time)
         self.time_spin_box.blockSignals(False)
 
@@ -604,6 +715,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
             time_multiplier = self.time_unit_combo.currentData()
             self.time_spin_box.setMinimum(min_time * time_multiplier)
             self.time_spin_box.setMaximum(max_time * time_multiplier)
+            self._update_timebar(min_time, max_time, self.ctrl_group.current_time)
 
         return dock
 
