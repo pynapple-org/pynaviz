@@ -67,7 +67,7 @@ class LayoutManagerMixin:
         self._n_dock_open = 0
         assert len(self.ctrl_group._controller_group) == 0, "Controller group not empty after removing all docks."
 
-    def _restore_docks(self, docks_payload: list[dict]) -> dict[str, QDockWidget]:
+    def _restore_docks(self, docks_payload: list[dict], verbose: bool = True) -> dict[str, QDockWidget]:
         """Recreate each dock from the payload, skipping missing variables.
 
         Returns a mapping from the saved dock name to the live QDockWidget after
@@ -87,9 +87,11 @@ class LayoutManagerMixin:
         for widget in docks_payload:
             var = _get_variable_from_key_path(self.variables, widget['key_path'])
             if var is None:
-                print(f"Variable '{widget['name']}' not found. Skipping dock.")
+                if verbose:
+                    print(f"Variable '{widget['name']}' not found. Skipping dock.")
                 continue
-            print(f"Adding var from path {widget['key_path']}.")
+            if verbose:
+                print(f"Adding var from path {widget['key_path']}.")
             self.add_dock_widget(var, widget['key_path'], state_dict=widget["state_dict"])
             dock_name = self._get_current_dock_name(widget['name'])
             dock = self.findChild(QDockWidget, dock_name)
@@ -132,27 +134,29 @@ class LayoutManagerMixin:
         if current_time is not None:
             self.ctrl_group.set_interval(start=current_time, end=None)
 
-    def _restore_geometry(self, payload: dict):
+    def _restore_geometry(self, payload: dict, verbose: bool = True):
         """Restore Qt window geometry and dock layout from the payload."""
         geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))
         state = QByteArray.fromBase64(payload["state_b64"].encode("ascii"))
         try:
             self.restoreGeometry(geom)
             ok = self.restoreState(state, payload.get("version", 0))
-            print("restoreState ok:", ok)
+            if verbose:
+                print("restoreState ok:", ok)
         except Exception as e:
-            print("Error restoring layout:", e)
+            if verbose:
+                print("Error restoring layout:", e)
 
-    def _restore_layout(self, file_name):
+    def _restore_layout(self, file_name, verbose: bool = True):
         with open(file_name, "r", encoding="utf-8") as f:
             payload = json.load(f)
 
         self._clear_layout()
         self._load_multiple_files(payload.get("file_paths", []))
         docks_payload = payload.get("docks", [])
-        saved_to_dock = self._restore_docks(docks_payload)
+        saved_to_dock = self._restore_docks(docks_payload, verbose=verbose)
         self._restore_views(docks_payload, saved_to_dock)
-        self._restore_geometry(payload)
+        self._restore_geometry(payload, verbose=verbose)
 
     def _get_plot_state(self, plot):
         """Collect plot state, remapping auto-generated labels to variable names.
@@ -220,8 +224,9 @@ class LayoutManagerMixin:
         }
         return payload
 
-    def _save_layout(self, file_name: str | pathlib.Path | None = None):
-        print("Saving layout...")
+    def _save_layout(self, file_name: str | pathlib.Path | None = None, verbose: bool = True):
+        if verbose:
+            print("Saving layout...")
         if file_name is None:
             dt = datetime.now().strftime("%Y-%m-%d_%H-%M")
             default_file = os.path.join(os.getcwd(), f"layout_{dt}.json")
@@ -240,4 +245,5 @@ class LayoutManagerMixin:
 
             with open(file_name, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2)
-            print(f"Layout saved to {file_name}")
+            if verbose:
+                print(f"Layout saved to {file_name}")
