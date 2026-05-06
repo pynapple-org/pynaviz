@@ -37,6 +37,7 @@ from .utils import (
     GRADED_COLOR_LIST,
     get_plot_attribute,
     get_plot_min_max,
+    map_screen_to_world,
     trim_kwargs,
 )
 
@@ -170,6 +171,22 @@ class _BasePlot(IntervalSetInterface):
             for child in ruler.children:
                 child.render_order = 1
 
+        # Crosshair lines: shown on right-click, anchored to world coordinates
+        self._crosshair_v = gfx.Line(
+            gfx.Geometry(positions=np.zeros((2, 3), dtype="float32")),
+            gfx.LineMaterial(thickness=1.0, color="#FFD700"),
+        )
+        self._crosshair_h = gfx.Line(
+            gfx.Geometry(positions=np.zeros((2, 3), dtype="float32")),
+            gfx.LineMaterial(thickness=1.0, color="#FFD700"),
+        )
+        for _ch in (self._crosshair_v, self._crosshair_h):
+            _ch.visible = False
+            _ch.render_order = 2
+        self._crosshair_pos = None       # (world_x, world_y) anchor, or None
+        self._crosshair_label_callback = None  # set by Qt widget layer
+        self.scene.add(self._crosshair_v, self._crosshair_h)
+
         # Use an orthographic camera to preserve scale without perspective distortion
         self.camera = gfx.OrthographicCamera(maintain_aspect=maintain_aspect)
 
@@ -195,6 +212,8 @@ class _BasePlot(IntervalSetInterface):
 
         # Register epoch-jump handler for all plot types (no-op until epochs are added)
         self.renderer.add_event_handler(self._jump_epoch, "key_down")
+        self.renderer.add_event_handler(self._dismiss_crosshair, "key_down")
+        self.renderer.add_event_handler(self._on_pointer_down, "double_click")
 
     def get_plot_state(self) -> dict:
         """Return plot-type-specific display state for serialization.
@@ -352,7 +371,61 @@ class _BasePlot(IntervalSetInterface):
         )
         self.ruler_ref_time.geometry.positions.update_full()
 
+        if self._crosshair_pos is not None:
+            self._update_crosshair()
+
         self.renderer.render(self.scene, self.camera)
+
+    # ------------------------------------------------------------------
+    # Crosshair (right-click)
+    # ------------------------------------------------------------------
+
+    def _on_pointer_down(self, event):
+        if self._crosshair_pos is not None:
+            # Second right-click: hide crosshair
+            self._crosshair_pos = None
+            self._crosshair_v.visible = False
+            self._crosshair_h.visible = False
+            if self._crosshair_label_callback:
+                self._crosshair_label_callback(None, None, None)
+            return
+        world = map_screen_to_world(
+            self.camera, (event.x, event.y), self.renderer.logical_size
+        )
+        self._crosshair_pos = (float(world[0]), float(world[1]))
+        self._update_crosshair()
+
+    def _dismiss_crosshair(self, event):
+        if event.type != "key_down" or event.key != "Escape":
+            return
+        if self._crosshair_pos is None:
+            return
+        self._crosshair_pos = None
+        self._crosshair_v.visible = False
+        self._crosshair_h.visible = False
+        if self._crosshair_label_callback:
+            self._crosshair_label_callback(None, None, None)
+
+    def _update_crosshair(self):
+        x, y = self._crosshair_pos
+        xmin, xmax, ymin, ymax = get_plot_min_max(self)
+        self._crosshair_v.geometry.positions.data[:] = [
+            [x, ymin - 10, 0], [x, ymax + 10, 0]
+        ]
+        self._crosshair_v.geometry.positions.update_full()
+        self._crosshair_v.visible = True
+        self._crosshair_h.geometry.positions.data[:] = [
+            [xmin - 10, y, 0], [xmax + 10, y, 0]
+        ]
+        self._crosshair_h.geometry.positions.update_full()
+        self._crosshair_h.visible = True
+        if self._crosshair_label_callback:
+            self._crosshair_label_callback(x, y, self._get_crosshair_label(x, y))
+
+    def _get_crosshair_label(self, x, y):
+        return f"t = {x:.4f} s\ny = {y:.4f}"
+
+    # ------------------------------------------------------------------
 
     def show(self):
         """To show the canvas in case of GLFW context used"""
@@ -1033,6 +1106,15 @@ class PlotTsdFrame(_BasePlot):
             "x_col": x_col, "y_col": y_col,
             "color": color, "thickness": thickness, "markersize": markersize,
         })
+
+    def _get_crosshair_label(self, x, y):
+        if self._display_mode == "image":
+            ch = int(np.clip(np.round(y), 0, self.data.shape[1] - 1))
+            col = self.data.columns[ch]
+            idx = int(np.clip(np.searchsorted(self.data.t, x), 0, len(self.data) - 1))
+            val = self.data.values[idx, ch]
+            return f"t = {x:.4f} s\nch = {col}\nval = {val:.4f}"
+        return f"t = {x:.4f} s\ny = {y:.4f}"
 
     def get_plot_state(self) -> dict:
         """Return the current display mode and its serializable state.

@@ -77,7 +77,7 @@ class LinesMode:
         )
         self.graphic = gfx.Line(
             gfx.Geometry(positions=self.buffer, colors=colors),
-            gfx.LineMaterial(thickness=1.0, color_mode="vertex"),
+            gfx.LineMaterial(thickness=0.2, color_mode="vertex"),
         )
 
     def get_callbacks(self):

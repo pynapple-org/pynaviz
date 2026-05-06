@@ -30,7 +30,7 @@ from .icons import icon_base64
 from .layout_manager import LayoutManagerMixin
 from .references import EphysReference, NWBReference
 from .variable_dock import VariableDock, _get_variable_from_key_path
-from .variable_loader import get_pynapple_variables
+from .variable_loader import _infer_ephys_format, get_pynapple_variables
 from .widget_plot import (
     IntervalSetWidget,
     TsdFrameWidget,
@@ -453,7 +453,8 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
             elif file_type == "Ephys":
                 try:
                     data = nap.EphysReader(str(name))
-                    nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key) for key in data.keys()}
+                    fmt = _infer_ephys_format(data)
+                    nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()}
                     new_vars.update({name.name: nap_obj_dict})
                 except Exception as e:
                     print(f"Could not load {name} as EphysReader: {e}")
