@@ -213,7 +213,7 @@ class _BasePlot(IntervalSetInterface):
         # Register epoch-jump handler for all plot types (no-op until epochs are added)
         self.renderer.add_event_handler(self._jump_epoch, "key_down")
         self.renderer.add_event_handler(self._dismiss_crosshair, "key_down")
-        self.renderer.add_event_handler(self._on_pointer_down, "pointer_down")
+        self.renderer.add_event_handler(self._on_pointer_down, "double_click")
 
     def get_plot_state(self) -> dict:
         """Return plot-type-specific display state for serialization.
@@ -381,8 +381,6 @@ class _BasePlot(IntervalSetInterface):
     # ------------------------------------------------------------------
 
     def _on_pointer_down(self, event):
-        if event.button != 2:
-            return
         if self._crosshair_pos is not None:
             # Second right-click: hide crosshair
             self._crosshair_pos = None
