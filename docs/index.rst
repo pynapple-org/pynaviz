@@ -66,10 +66,10 @@ and behavioral recordings. It is built on top of `pygfx <https://pygfx.org/>`_, 
 
 There are two ways to use Pynaviz:
 
-- **GUI** — launch an interactive viewer from the command line (``pynaviz``) or from a Python
+- `GUI <gui_reference.html>`_ — launch an interactive viewer from the command line (``pynaviz``) or from a Python
   script via :func:`scope`.  Drop in files, scrub through time, and arrange plots without
   writing any additional code.
-- **Programmatic** — embed the individual plot widgets (``TsdWidget``, ``TsGroupWidget``, …)
+- `Programmatic <user_guide.html>`_ — embed the individual plot widgets (``TsdWidget``, ``TsGroupWidget``, …)
   directly inside your own Qt application for tighter integration with custom pipelines.
 
 
