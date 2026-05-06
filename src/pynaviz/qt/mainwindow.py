@@ -24,6 +24,24 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..controller_group import ControllerGroup
+from ..format_profiles import FORMAT_PROFILES
+from .icons import icon_base64
+from .layout_manager import LayoutManagerMixin
+from .references import EphysReference, NWBReference
+from .variable_dock import VariableDock, _get_variable_from_key_path
+from .variable_loader import get_pynapple_variables
+from .widget_plot import (
+    IntervalSetWidget,
+    TsdFrameWidget,
+    TsdTensorWidget,
+    TsdWidget,
+    TsGroupWidget,
+    TsWidget,
+    VideoHandler,
+    VideoWidget,
+)
+
 _TIMEBAR_RESOLUTION = 1_000_000
 
 
@@ -78,24 +96,6 @@ class _TimeSlider(QSlider):
         step = int(ticks * _TIMEBAR_RESOLUTION / 100)  # 1 % of range per tick
         self.setValue(self.value() + step)
         event.accept()
-
-from ..controller_group import ControllerGroup
-from ..format_profiles import FORMAT_PROFILES
-from .icons import icon_base64
-from .layout_manager import LayoutManagerMixin
-from .references import EphysReference, NWBReference
-from .variable_dock import VariableDock, _get_variable_from_key_path
-from .variable_loader import get_pynapple_variables
-from .widget_plot import (
-    IntervalSetWidget,
-    TsdFrameWidget,
-    TsdTensorWidget,
-    TsdWidget,
-    TsGroupWidget,
-    TsWidget,
-    VideoHandler,
-    VideoWidget,
-)
 
 
 def _session_layout_path() -> pathlib.Path:
