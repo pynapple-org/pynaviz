@@ -107,6 +107,20 @@ def map_screen_to_world(camera, pos, viewport_size):
     return pos_world
 
 
+def map_world_to_screen(plot, world_x, world_y):
+    """Convert world coordinates to logical screen pixel coordinates.
+
+    Inverts map_screen_to_world using the current camera view bounds.
+    """
+    world_xmin, world_xmax, world_ymin, world_ymax = get_plot_min_max(plot)
+    vw, vh = plot.renderer.logical_size
+    x_range = world_xmax - world_xmin or 1.0
+    y_range = world_ymax - world_ymin or 1.0
+    sx = (world_x - world_xmin) / x_range * vw
+    sy = (1.0 - (world_y - world_ymin) / y_range) * vh
+    return sx, sy
+
+
 def get_plot_min_max(plot):
     """
     Get xmin,xmax, ymin, ymax in world coordinates.
