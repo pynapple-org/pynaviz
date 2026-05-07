@@ -167,6 +167,24 @@ class VideoHandler(BaseAudioVideo):
         # decode first frame
         self.__getitem__(0)
 
+    def reopen(self):
+        """Reopen the video stream if it was previously closed. No-op if already open."""
+        super().reopen()
+        if self.stream is None:
+            self.stream = self.container.streams.video[self.stream_index]
+            self._stream_pts = None
+            self._buffer = FrameBuffer(maxsize=self._buffer._maxsize)
+            self.current_frame = None
+            self.all_pts = []
+            self.all_times = None
+            self.key_mask = None
+            self._i = 0
+            self._n_frames = self.stream.frames if self.stream.frames > 0 else None
+            self._index_ready = threading.Event()
+            self._index_thread = threading.Thread(target=self._build_index, daemon=True)
+            self._index_thread.start()
+            self.__getitem__(0)
+
     @staticmethod
     def _ts_to_index(ts: float, time: NDArray) -> int:
         """

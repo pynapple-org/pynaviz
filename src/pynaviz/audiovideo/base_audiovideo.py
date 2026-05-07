@@ -93,6 +93,18 @@ class BaseAudioVideo:
             self.container = None
             self.stream = None
 
+    def reopen(self):
+        """Reopen the stream if it was previously closed. No-op if already open."""
+        if self.container is not None:
+            return
+        self.container = av.open(self.file_path)
+        self._running = True
+        self.last_loaded_idx = None
+        self._keyframe_pts = []
+        self._pts_keyframe_ready = threading.Event()
+        self._keyframe_thread = threading.Thread(target=self._extract_keyframes_pts, daemon=True)
+        self._keyframe_thread.start()
+
     # context protocol
     # (with AudioHandler(path) as audiovideo ensure closing)
     def __enter__(self):
