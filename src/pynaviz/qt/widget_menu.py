@@ -12,12 +12,13 @@ Main Classes:
 """
 
 from collections import OrderedDict
+from types import SimpleNamespace
 from typing import Any, Callable
 
 import numpy as np
 import pynapple as nap
 from PySide6.QtCore import QPoint, QSize, Qt
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -29,7 +30,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
-    QSpacerItem,
     QStyle,
     QVBoxLayout,
     QWidget,
@@ -41,6 +41,7 @@ from ..qt.tsdframe_selection import TsdFramesDialog, TsdFramesModel
 from ..qt.widget_list_selection import (
     ChannelList,
     ChannelListModel,
+    GroupedChannelList,
 )
 from ..utils import get_plot_attribute
 
@@ -73,17 +74,64 @@ def widget_factory(parameters: dict) -> QWidget:
         The configured widget instance.
     """
     widget_type = parameters.pop("type")
+    icon_factory = parameters.pop("icon_factory", None)
+    icon_size = parameters.pop("icon_size", QSize(16, 16))
+    clear_text = parameters.pop("clear_text", False)
+    groups = parameters.pop("groups", None)
+    current_value = parameters.pop("current_value", None)
     if widget_type == QComboBox:
         widget = QComboBox()
-        for arg_name, attr_name in WIDGET_PARAMS[QComboBox].items():
-            method = getattr(widget, attr_name, None)
-            value = parameters.get(arg_name)
-            if method and value is not None:
-                if arg_name == "values":
-                    for i, v in enumerate(value):
-                        method(i, v)
-                else:
-                    method(value)
+        if groups is not None:
+            if icon_factory is not None:
+                widget.setIconSize(icon_size)
+                widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+                widget.setMinimumContentsLength(0)
+                widget.setMinimumWidth(icon_size.width() + 36)  # icon + padding + arrow button
+            current_index = 0
+            combo_index = 0
+            for g_idx, (group_name, group_items) in enumerate(groups.items()):
+                if g_idx > 0:
+                    widget.insertSeparator(widget.count())
+                    combo_index += 1
+                widget.addItem(group_name)
+                header = widget.model().item(widget.count() - 1)
+                header.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                font = header.font()
+                font.setBold(True)
+                header.setFont(font)
+                combo_index += 1
+                for name in group_items:
+                    widget.addItem(name)
+                    if name == current_value:
+                        current_index = combo_index
+                    if icon_factory is not None:
+                        idx = widget.count() - 1
+                        widget.setItemData(idx, name)
+                        widget.setItemIcon(idx, QIcon(icon_factory(name)))
+                        if clear_text:
+                            widget.setItemText(idx, "")
+                            widget.setItemData(idx, name, Qt.ItemDataRole.ToolTipRole)
+                    combo_index += 1
+            widget.setCurrentIndex(current_index)
+        else:
+            for arg_name, attr_name in WIDGET_PARAMS[QComboBox].items():
+                method = getattr(widget, attr_name, None)
+                value = parameters.get(arg_name)
+                if method and value is not None:
+                    if arg_name == "values":
+                        for i, v in enumerate(value):
+                            method(i, v)
+                    else:
+                        method(value)
+            if icon_factory is not None:
+                widget.setIconSize(icon_size)
+                for i in range(widget.count()):
+                    text = widget.itemText(i)
+                    widget.setItemIcon(i, QIcon(icon_factory(text)))
+                    widget.setItemData(i, text)
+                    if clear_text:
+                        widget.setItemText(i, "")
+                        widget.setItemData(i, text, Qt.ItemDataRole.ToolTipRole)
     elif widget_type == QDoubleSpinBox:
         widget = QDoubleSpinBox()
         for arg_name, attr_name in WIDGET_PARAMS[QDoubleSpinBox].items():
@@ -127,41 +175,24 @@ class DropdownDialog(QDialog):
         self.setWindowModality(Qt.WindowModality.NonModal)
 
         num_cols = min(len(widgets), 3)
-        num_rows = len(widgets) // num_cols
-        self.setFixedWidth(200 * num_cols)
-        self.setFixedHeight(min(150 * num_rows, 400))
 
         self._func = func
         self.widgets: dict[int, QWidget] = {}
 
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(8)
 
-        # Scrollable area
+        # Scrollable area (useful when there are many widgets)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll.setFrameShape(scroll.Shape.NoFrame)
         scroll_content = QWidget()
-        scroll_content.setSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum
-        )
 
-        grid_layout = QGridLayout()
-        inner_layout = QVBoxLayout()
-        inner_layout.addLayout(grid_layout)
+        grid_layout = QGridLayout(scroll_content)
+        grid_layout.setContentsMargins(4, 4, 4, 4)
+        grid_layout.setSpacing(8)
 
-        spacer = QSpacerItem(
-            0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
-        )
-        h_spacer = QSpacerItem(
-            0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
-        )
-        inner_layout.addItem(spacer)
-
-        outer_layout = QHBoxLayout()
-        outer_layout.addLayout(inner_layout)
-        outer_layout.addItem(h_spacer)
-
-        scroll_content.setLayout(outer_layout)
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
@@ -169,20 +200,19 @@ class DropdownDialog(QDialog):
         def make_labeled_widget(label_text: str, widget: QWidget) -> QWidget:
             label = QLabel(label_text)
             label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-            widget.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             wrapper = QWidget()
-            layout = QHBoxLayout()
-            layout.setContentsMargins(1, 0, 1, 0)
-            layout.setSpacing(2)
+            layout = QHBoxLayout(wrapper)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(8)
             layout.addWidget(label)
             layout.addWidget(widget)
-            wrapper.setLayout(layout)
             return wrapper
 
         for i, (label, params) in enumerate(widgets.items()):
             widget = widget_factory(params)
-            if hasattr(widget, "currentIndexChanged"):
-                widget.currentIndexChanged.connect(self.item_changed)
+            if hasattr(widget, "activated"):
+                widget.activated.connect(self.item_changed)
             if hasattr(widget, "valueChanged"):
                 widget.valueChanged.connect(self.item_changed)
 
@@ -404,7 +434,8 @@ class MenuWidget(QWidget):
         if hasattr(self.plot, "_controllers"):
             # If 'get' controller is enabled (i.e., in x vs y mode),
             # Need to disable all others actions
-            if self.plot._controllers["get"].enabled:
+            get_ctrl = self.plot._controllers.get("get")
+            if get_ctrl is not None and get_ctrl.enabled:
                 for act in self.action_menu.actions():
                     act.setEnabled(act.objectName() == "x_vs_y")
             else:
@@ -417,12 +448,46 @@ class MenuWidget(QWidget):
     def show_select_menu(self) -> None:
         """Opens the channel list selection dialog."""
         if hasattr(self.plot, "_controllers"):
-            # If 'get' controller is enabled (i.e., in x vs y mode),
-            # Need to disable channel selection
-            if self.plot._controllers["get"].enabled:
+            get_ctrl = self.plot._controllers.get("get")
+            if get_ctrl is not None and get_ctrl.enabled:
                 return
-        dialog = ChannelList(self.channel_model, parent=self)
-        dialog.show()
+
+        manager = getattr(self.plot, "_manager", None)
+
+        if manager is not None and manager.is_grouped:
+            metadata_name = manager._actions["group_by"]["metadata_name"]
+            channel_names = list(manager.index)
+            groups_mapping = {
+                ch: str(self.plot.data.metadata.loc[ch][metadata_name])
+                for ch in channel_names
+            }
+            visibility_mapping = {
+                ch: bool(manager.data.loc[ch]["visible"])
+                for ch in channel_names
+            }
+            order_mapping = (
+                {ch: int(manager.data.loc[ch]["order"]) for ch in channel_names}
+                if manager.is_sorted
+                else None
+            )
+            dialog = GroupedChannelList(
+                channel_names, groups_mapping, order_mapping, visibility_mapping, parent=self
+            )
+            dialog.visibilityChanged.connect(self._change_visibility_from_array)
+            dialog.show()
+        else:
+            if manager is not None:
+                for key in self.channel_model.checks:
+                    self.channel_model.checks[key] = manager.data.loc[key]["visible"]
+            dialog = ChannelList(self.channel_model, parent=self)
+            dialog.show()
+
+    def _change_visibility_from_array(self, visibility_array) -> None:
+        """Update plot visibility from an ordered bool array (tree dialog callback)."""
+        if hasattr(self.plot, "_manager"):
+            self.plot._manager.visible = visibility_array
+        if hasattr(self.plot, "_update"):
+            self.plot._update("toggle_visibility")
 
     def show_overlay_menu(self, popup_name) -> None:
         """Opens the TsdFrame overlay selection dialog."""
@@ -431,6 +496,10 @@ class MenuWidget(QWidget):
 
     def show_select_iset_menu(self) -> None:
         """Opens the interval set selection dialog."""
+        for row in self._interval_sets_model.rows:
+            row["checked"] = row["name"] in self.plot._interval_state
+            if row["checked"]:
+                row["alpha"] = self.plot._interval_state[row["name"]].get("alpha", 0.5)
         dialog = IntervalSetsDialog(self._interval_sets_model, parent=self)
         dialog.show()
 
@@ -443,6 +512,9 @@ class MenuWidget(QWidget):
             return
         if popup_name in ["overlay_time_series", "overlay_skeleton"]:
             self.show_overlay_menu(popup_name)
+            return
+        if popup_name == "heatmap":
+            self.plot._toggle_display_mode(SimpleNamespace(type="key_down", key="m"))
             return
 
         kwargs = get_popup_kwargs(popup_name, self, action)

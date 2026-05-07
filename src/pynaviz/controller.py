@@ -111,6 +111,21 @@ class CustomController(ABC, PanZoomController):
         half_width = self.camera.width / 2
         return self.camera.local.x - half_width, self.camera.local.x + half_width
 
+    def get_ylim(self):
+        """Return the current y boundaries"""
+        half_height = self.camera.height / 2
+        return self.camera.local.y - half_height, self.camera.local.y + half_height
+
+    def get_view(self) -> tuple[float, float, float, float]:
+        """Return the current visible range as (xmin, xmax, ymin, ymax).
+
+        Camera internals use float32, so values are normalised through float32
+        to keep ``get_view`` stable across a ``set_view`` → ``get_view`` roundtrip.
+        """
+        xmin, xmax = self.get_xlim()
+        ymin, ymax = self.get_ylim()
+        return tuple(float(np.float32(v)) for v in (xmin, xmax, ymin, ymax))
+
     @abstractmethod
     def sync(self, event):
         pass
@@ -278,6 +293,7 @@ class SpanController(CustomController):
         # To make sure all controller stays in sync
         self._send_sync_event(update_type="pan", current_time=target_time)
 
+
 class SpanYLockController(SpanController):
     """
     Horizontal time-panning with y-axis locked
@@ -317,6 +333,45 @@ class SpanYLockController(SpanController):
         return super()._zoom(fx, 1, cam_state)
 
 
+class SpanXLockController(SpanController):
+    """
+    Vertical panning with x-axis locked (prevents horizontal pan/zoom).
+    """
+
+    def _update_pan(self, delta, *, vecx, vecy):
+        """Update pan in y axis only, forcing vecx to be 0."""
+        super()._update_pan(delta, vecx=0, vecy=vecy)
+
+    def _update_zoom(self, delta):
+        """Zoom in y axis only, enforcing fx to be 1."""
+        if isinstance(delta, (int, float)):
+            delta = (delta, delta)
+        assert isinstance(delta, tuple) and len(delta) == 2
+
+        fy = 2 ** delta[1]
+        new_cam_state = self._zoom(1, fy, self._get_camera_state())
+        self._set_camera_state(new_cam_state)
+        self._send_sync_event(
+            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
+        )
+
+    def _zoom(self, fx, fy, cam_state):
+        """Zoom in y axis only, enforcing fx to be 1."""
+        return super()._zoom(1, fy, cam_state)
+
+
+class SpanXYLockController(SpanController):
+    """
+    Both axes locked — no manual pan or zoom. Playback (advance) still works.
+    """
+
+    def _update_pan(self, delta, *, vecx, vecy):
+        pass  # no-op
+
+    def _update_zoom(self, delta):
+        pass  # no-op
+
+
 class GetController(CustomController):
     """
     The class for grabbing a single time point
@@ -332,7 +387,7 @@ class GetController(CustomController):
         controller_id: Optional[int] = None,
         data: Optional[Any] = None,
         buffer: pygfx.Buffer = None,
-        callback: Optional[Callable] = None,
+        plot_callbacks: Optional[list[Callable]] = None,
     ):
         super().__init__(
             camera=camera,
@@ -349,7 +404,7 @@ class GetController(CustomController):
             self._current_time = None
 
         self.buffer = buffer
-        self._plot_callbacks = [callback] if callback is not None else []
+        self._plot_callbacks = list(plot_callbacks) if plot_callbacks is not None else []
 
     def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
         """Set the visible X and Y ranges for an OrthographicCamera."""

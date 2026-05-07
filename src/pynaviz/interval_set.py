@@ -13,25 +13,6 @@ from .utils import GRADED_COLOR_LIST, get_plot_min_max
 INTERVAL_PATTERN = re.compile(r"^interval_\d+$")
 
 
-def is_in_view(screen_xmin, screen_xmax, width, rectangle):
-    """Compute if a rectangle is in the field of view.
-
-    Parameters
-    ----------
-    screen_xmin :
-        Lower xlim of the canvas.
-    screen_xmax :
-        Upper xlim of the canvas.
-    width:
-        Rectangle width.
-    rectangle :
-        A rectangle as a pygfx.Mesh.
-    """
-    rect_center_x = rectangle.local.position[0]
-    rect_min, rect_max = rect_center_x - width / 2, rect_center_x + width / 2
-    return (screen_xmin < rect_max) and (screen_xmax > rect_min)
-
-
 def get_max_interval_index(labels):
     return max(
         (
@@ -55,8 +36,11 @@ class IntervalSetInterface:
         if epochs is not None:
             self.add_interval_sets(epochs, labels)
 
-        # map to the rectangle meshes
+        # map label -> single batched gfx.Mesh for all intervals
         self._interval_rects = dict()
+
+        # store colors, alphas for each inteval set
+        self._interval_state = {}
 
     def add_interval_sets(
         self,
@@ -116,7 +100,7 @@ class IntervalSetInterface:
             return
         if isinstance(colors, str):
             colors = pygfx.Color(colors)
-        self._update_rectangles(self._interval_rects[name], colors, alpha)
+        self._update_rectangles(name, colors, alpha)
 
     def remove_interval_set(self, label: str) -> None:
         """
@@ -135,8 +119,7 @@ class IntervalSetInterface:
             )
             return
         if label in self._interval_rects:
-            for rect in self._interval_rects[label].values():
-                self.scene.remove(rect)
+            self.scene.remove(self._interval_rects[label])
             del self._interval_rects[label]
             self.canvas.request_draw(self.animate)
         del self._epochs[label]
@@ -145,6 +128,9 @@ class IntervalSetInterface:
             f == self._update_all_isets for f in self.controller._plot_callbacks
         ):
             self.controller._plot_callbacks.remove(self._update_all_isets)
+
+        # remove from state
+        del self._interval_state[label]
 
     def _plot_intervals(
         self,
@@ -178,9 +164,16 @@ class IntervalSetInterface:
 
         if isinstance(colors, str):
             colors = [colors] * len(labels)
-
-        if colors is None:
+        elif colors is None:
             colors = [None] * len(labels)
+        else:
+            # unpack the color
+            if len(labels) != 1:
+                # this is a internal design issue, should raise
+                raise ValueError("When colors are provided as RGBs (only during layout loading), "
+                                 "each IntervalSet is processed one at the time. "
+                                 "This call is generating multiple interval sets rectangles with a single color.")
+            colors = [pygfx.Color(*colors)]
 
         color_idx = len(self._interval_rects) + 1
         for label, color, transparency in zip(labels, colors, alpha):
@@ -198,73 +191,139 @@ class IntervalSetInterface:
                     if color is None
                     else color
                 )
-                meshes = self._create_and_plot_rectangle(
-                    self._epochs[label], col, transparency
+                mesh = self._create_and_plot_rectangle(
+                    label, col, transparency
                 )
-                self._interval_rects[label] = meshes
+                self._interval_rects[label] = mesh
                 color_idx += 1
             else:
-                self._update_rectangles(
-                    self._interval_rects[label], color, transparency
-                )
+                self._update_rectangles(label, color, transparency)
 
     def _update_all_isets(self, *args, **kwargs):
         """Update all interval sets rectangles."""
-        for rectangles in self._interval_rects.values():
-            self._update_rectangles(rectangles)
+        for label in self._interval_rects:
+            self._update_rectangles(label)
 
-    def _update_rectangles(self, rectangles, color=None, transparency=None):
-        # set to current values if not provided
-        color = (
-            color
-            if color is not None
-            else next(iter(rectangles.values())).material.color
-        )
-        transparency = transparency if transparency is not None else color.a
+    def _build_batch_geometry(self, epoch, ymin, ymax, depth):
+        """Build batched positions and indices for all intervals in epoch.
 
-        xmin, xmax, ymin, ymax = get_plot_min_max(self)
-        new_height = ymax - ymin
-        for rect in rectangles.values():
-            # compute new height
-            position = np.asarray(rect.geometry.positions.data)
-            width, old_height = np.ptp(position[:, :2], axis=0)
-            if (old_height != new_height) and is_in_view(xmin, xmax, width, rect):
-                geom = pygfx.plane_geometry(width, new_height)
-                rect.geometry = geom
-                position = rect.local.position
-                rect.local.position = np.array(
-                    [position[0], ymin + new_height / 2, position[-1]], dtype=np.float32
-                )
+        Each interval contributes 4 vertices (BL, BR, TR, TL) and 2 triangles.
+        Returns positions (n*4, 3) float32 and indices (n*2, 3) uint32.
+        """
+        n = len(epoch)
+        starts = np.asarray(epoch.start, dtype="float32")
+        ends = np.asarray(epoch.end, dtype="float32")
 
-            # update color & transparency
-            new_color = pygfx.Color(*pygfx.Color(color).rgb, transparency)
-            if rect.material.color != new_color:
-                rect.material.color = new_color
+        positions = np.zeros((n * 4, 3), dtype="float32")
+        # x: BL=start, BR=end, TR=end, TL=start
+        positions[0::4, 0] = starts
+        positions[1::4, 0] = ends
+        positions[2::4, 0] = ends
+        positions[3::4, 0] = starts
+        # y: BL=ymin, BR=ymin, TR=ymax, TL=ymax
+        positions[0::4, 1] = ymin
+        positions[1::4, 1] = ymin
+        positions[2::4, 1] = ymax
+        positions[3::4, 1] = ymax
+        positions[:, 2] = depth
 
-    def _create_and_plot_rectangle(self, epoch, color, transparency):
+        base = np.arange(n, dtype="uint32") * 4
+        indices = np.empty((n * 2, 3), dtype="uint32")
+        indices[0::2, 0] = base       # triangle 0: BL
+        indices[0::2, 1] = base + 1   # triangle 0: BR
+        indices[0::2, 2] = base + 2   # triangle 0: TR
+        indices[1::2, 0] = base       # triangle 1: BL
+        indices[1::2, 1] = base + 2   # triangle 1: TR
+        indices[1::2, 2] = base + 3   # triangle 1: TL
+
+        return positions, indices
+
+    def _create_and_plot_rectangle(self, label, color, transparency):
+        """Create a single batched mesh for all intervals in epoch."""
+        epoch = self._epochs[label]
         _, _, ymin, ymax = get_plot_min_max(self)
         color = pygfx.Color(*pygfx.Color(color).rgb, transparency)
-        height = ymax - ymin
-        mesh_dict = dict()
+        self._interval_state[label] = {
+            "colors": list(color.rgb),
+            "alpha": float(color.a)
+        }
+
         ruler = getattr(self, "ruler_x", None)
-        if ruler is not None:
-            # plot rect behind ruler.
-            depth = ruler.start_pos[-1] - 1
+        depth = (ruler.start_pos[-1] - 1) if ruler is not None else -1001.0
+
+        n = len(epoch)
+        if n > 0:
+            positions, indices = self._build_batch_geometry(epoch, ymin, ymax, depth)
+            geom = pygfx.Geometry(positions=positions, indices=indices)
         else:
-            # hardcode a background level.
-            depth = -1001.0
-
-        for i, ep in enumerate(epoch):
-            width = ep.end[0] - ep.start[0]
-            geom = pygfx.plane_geometry(width, height)
-            material = pygfx.MeshBasicMaterial(color=color, pick_write=True)
-            mesh = pygfx.Mesh(geom, material)
-            mesh.local.position = np.array(
-                [ep.start[0] + width / 2, ymin + height / 2, depth], dtype=np.float32
+            geom = pygfx.Geometry(
+                positions=np.zeros((3, 3), dtype="float32"),
+                indices=np.zeros((1, 3), dtype="uint32"),
             )
-            # mesh_dict[ep.start[0], ep.end[0]] = mesh
-            mesh_dict[i] = mesh
 
-        self.scene.add(*mesh_dict.values())
+        material = pygfx.MeshBasicMaterial(color=color, pick_write=True)
+        mesh = pygfx.Mesh(geom, material)
+
+        self.scene.add(mesh)
         self.canvas.request_draw(self.animate)
-        return mesh_dict
+        return mesh
+
+    def _update_rectangles(self, label, color=None, transparency=None):
+        """Update color and/or y-extent of the batched mesh for label."""
+        mesh = self._interval_rects[label]
+        epoch = self._epochs[label]
+        current_color = mesh.material.color
+        if color is None:
+            color = current_color
+        transparency = transparency if transparency is not None else float(current_color.a)
+        self._interval_state[label] = {"colors": list(pygfx.Color(color).rgb), "alpha": float(np.float32(transparency))}
+
+        new_color = pygfx.Color(
+            *self._interval_state[label]["colors"],
+            self._interval_state[label]["alpha"],
+        )
+        if mesh.material.color != new_color:
+            mesh.material.color = new_color
+
+        if len(epoch) == 0:
+            return
+
+        _, _, ymin, ymax = get_plot_min_max(self)
+        positions = np.asarray(mesh.geometry.positions.data)
+        if len(positions) < 4:
+            return
+
+        old_ymin = float(positions[0, 1])
+        old_ymax = float(positions[2, 1])
+        if old_ymin == ymin and old_ymax == ymax:
+            return
+
+        positions = positions.copy()
+        positions[0::4, 1] = ymin
+        positions[1::4, 1] = ymin
+        positions[2::4, 1] = ymax
+        positions[3::4, 1] = ymax
+        mesh.geometry.positions.set_data(positions)
+
+    def _interval_set_from_state(self, state: dict, available_isets: dict):
+        """Restore interval set overlays from a saved state.
+
+        Parameters
+        ----------
+        state : dict
+            Mapping of label → ``{"colors": …, "alpha": …}`` as produced
+            by the ``interval_sets`` entry in :meth:`_BasePlot.get_state`.
+            Labels are expected to be variable names so they can be looked
+            up directly in *available_isets*.
+        available_isets : dict
+            Mapping of variable name → ``nap.IntervalSet``.
+        """
+        for label, props in state.items():
+            if label in available_isets:
+                self.add_interval_sets(
+                    available_isets[label],
+                    **props,
+                    labels=label,
+                )
+            else:
+                print(f"IntervalSet ``{label}`` not found.")

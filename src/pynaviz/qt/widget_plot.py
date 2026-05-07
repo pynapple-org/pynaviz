@@ -8,9 +8,9 @@ from typing import Optional, Tuple
 
 import pynapple as nap
 from numpy._typing import NDArray
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 from ..audiovideo import PlotTsdTensor, PlotVideo, VideoHandler
 from ..base_plot import (
@@ -93,6 +93,35 @@ class BaseWidget(QWidget):
         if self._playing and hasattr(self, "plot"):
             self.plot.controller.advance(0.025)
 
+    def _setup_crosshair_label(self, plot) -> None:
+        """Wire a floating QLabel overlay that follows the right-click crosshair."""
+        from ..utils import map_world_to_screen
+
+        label = QLabel(plot.canvas)
+        label.setStyleSheet(
+            "color: white; background-color: rgba(0,0,0,160);"
+            " padding: 3px 6px; border-radius: 3px; font-size: 11px;"
+        )
+        label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        label.hide()
+        self._crosshair_label = label
+
+        def _on_crosshair(world_x, world_y, text):
+            if world_x is None:
+                label.hide()
+                return
+            sx, sy = map_world_to_screen(plot, world_x, world_y)
+            label.setText(text.replace("\n", "<br>"))
+            label.adjustSize()
+            cw, ch = plot.canvas.get_logical_size()
+            lx = min(int(sx) + 12, cw - label.width() - 4)
+            ly = max(int(sy) - label.height() - 4, 4)
+            label.move(lx, ly)
+            label.show()
+            label.raise_()
+
+        plot._crosshair_label_callback = _on_crosshair
+
 
 class TsGroupWidget(BaseWidget):
 
@@ -110,6 +139,7 @@ class TsGroupWidget(BaseWidget):
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
         self.layout.addWidget(self.plot.canvas)
+        self._setup_crosshair_label(self.plot)
 
 
 class TsdWidget(BaseWidget):
@@ -128,16 +158,17 @@ class TsdWidget(BaseWidget):
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
         self.layout.addWidget(self.plot.canvas)
+        self._setup_crosshair_label(self.plot)
 
 
 class TsdFrameWidget(BaseWidget):
 
-    def __init__(self, data, index=None, size=(640, 480), set_parent=True, interval_sets=None):
+    def __init__(self, data, index=None, size=(640, 480), set_parent=True, interval_sets=None, display_mode="lines"):
         super().__init__(size=size)
 
         # Canvas
         parent = self if set_parent else None
-        self.plot = PlotTsdFrame(data, index=index, parent=parent)
+        self.plot = PlotTsdFrame(data, index=index, parent=parent, display_mode=display_mode)
 
         # Top level menu container
         interval_sets = expand_with_time_support(data.time_support, interval_sets)
@@ -145,13 +176,18 @@ class TsdFrameWidget(BaseWidget):
 
         # Add custom menu items
         self.button_container.action_menu.addSeparator()
-        xvy_action = self.button_container.action_menu.addAction("Plot x vs y")
-        xvy_action.setObjectName("x_vs_y")
-        xvy_action.triggered.connect(self.button_container._popup_menu)
+        for action_name, object_name, func in [
+            ("Plot x vs y", "x_vs_y", self.button_container._popup_menu),
+            ("Toogle display mode (m)", "heatmap", self.button_container._popup_menu),
+        ]:
+            action = self.button_container.action_menu.addAction(action_name)
+            action.setObjectName(object_name)
+            action.triggered.connect(func)
 
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container, 0)
         self.layout.addWidget(self.plot.canvas)
+        self._setup_crosshair_label(self.plot)
 
 
 class TsWidget(BaseWidget):
@@ -170,6 +206,7 @@ class TsWidget(BaseWidget):
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
         self.layout.addWidget(self.plot.canvas)
+        self._setup_crosshair_label(self.plot)
 
 
 class IntervalSetWidget(BaseWidget):
@@ -187,6 +224,7 @@ class IntervalSetWidget(BaseWidget):
          # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
         self.layout.addWidget(self.plot.canvas)
+        self._setup_crosshair_label(self.plot)
 
 
 class TsdTensorWidget(BaseWidget):
@@ -225,6 +263,7 @@ class TsdTensorWidget(BaseWidget):
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
         self.layout.addWidget(self.plot.canvas)
+        self._setup_crosshair_label(self.plot)
 
 
 class VideoWidget(BaseWidget):
@@ -267,7 +306,5 @@ class VideoWidget(BaseWidget):
         # Add overlay and canvas to layout
         self.layout.addWidget(self.button_container)
         self.layout.addWidget(self.plot.canvas)
-
-
-
+        self._setup_crosshair_label(self.plot)
 

@@ -60,6 +60,7 @@ class _PlotManager:
             "color_by": None,
         }
         self.y_ticks = None
+        self._base_offset: np.ndarray | None = None
 
     @property
     def is_sorted(self) -> bool:
@@ -84,7 +85,7 @@ class _PlotManager:
     @visible.setter
     def visible(self, values: np.ndarray) -> None:
         "There is no callback when setting visibility."
-        self.data["visible"] = values
+        self.data["visible"] = np.asarray(values, dtype=np.bool)
 
     @property
     def offset(self) -> np.ndarray:
@@ -100,7 +101,9 @@ class _PlotManager:
 
     @offset.setter
     def offset(self, values: np.ndarray) -> None:
-        self.data["offset"] = values
+        values = np.asarray(values, dtype=np.float32)
+        if len(values) == len(self.data.index):
+            self.data["offset"] = values
 
     @property
     def scale(self) -> np.ndarray:
@@ -116,7 +119,12 @@ class _PlotManager:
 
     @scale.setter
     def scale(self, values: np.ndarray) -> None:
-        self.data["scale"] = values
+        values = np.asarray(values, dtype=np.float32)
+        # safeguard for load_layout:
+        # If users load a var with the same name but different cols
+        # scale must be reset
+        if len(values) == len(self.data.index):
+            self.data["scale"] = values
 
     def sort_by(self, values: dict, metadata_name: str, mode: str) -> None:
         """
@@ -242,6 +250,57 @@ class _PlotManager:
         if was_grouped or was_sorted:
             self.scale = self.scale + (self.scale * factor)
 
+    def snapshot_base_offset(self) -> None:
+        """Snapshot the current offset array as the reference for compaction."""
+        self._base_offset = self.data["offset"].copy()
+
+    def compact_visible_offsets(self) -> float:
+        """Recompute display offsets for visible channels, closing gaps from hidden ones.
+
+        Returns
+        -------
+        float
+            New y-axis maximum (largest visible display offset), or 0.0 if
+            sort/group is not active or no base snapshot exists.
+        """
+        if not (self.is_sorted or self.is_grouped) or self._base_offset is None:
+            return 0.0
+
+        visible = self.visible
+        base = self._base_offset
+
+        visible_indices = np.where(visible)[0]
+        if len(visible_indices) == 0:
+            return 0.0
+
+        visible_base = base[visible_indices]
+        sort_order = np.argsort(visible_base, kind="stable")
+        sorted_visible_indices = visible_indices[sort_order]
+        sorted_visible_base = visible_base[sort_order]
+
+        # Start new display from 1.0 to match the +1 shift applied after sort/group.
+        new_display = base.copy()
+        current_display = 1.0
+        prev_base = sorted_visible_base[0]
+        new_display[sorted_visible_indices[0]] = current_display
+
+        for i in range(1, len(sorted_visible_indices)):
+            curr_base = sorted_visible_base[i]
+            gap = curr_base - prev_base
+
+            if gap == 0:
+                pass  # same display position
+            elif self.is_grouped and gap > 1:
+                current_display += 2  # group boundary
+            else:
+                current_display += 1  # consecutive within group or sort gap
+
+            new_display[sorted_visible_indices[i]] = current_display
+            prev_base = curr_base
+
+        self.data["offset"] = new_display.astype(np.float32)
+        return float(current_display)
+
     def reset(self, base_plot: "_BasePlot", index=None) -> None:
         """
         Resets offset and scale to default values (0 and 1 respectively).
@@ -252,6 +311,7 @@ class _PlotManager:
         self.data["offset"] = base_plot._initialize_offset(index)
         self.data["scale"] = np.ones(len(index))
         self.y_ticks = None
+        self._base_offset = None
         self._actions = {
             "group_by": None,
             "sort_by": None,
@@ -259,14 +319,18 @@ class _PlotManager:
         }
 
     def get_state(self) -> dict:
-        """
-        Returns the current state of the plot manager in a serializable format.
+        """Return the applied actions in a JSON-serializable format.
+
+        Only the *actions* (group_by, sort_by, color_by) are persisted —
+        not the derived offset/scale arrays, which are recomputed when the
+        actions are replayed via :meth:`from_state`.
 
         Returns
         -------
         dict
-            Dictionary containing all information needed to restore the current
-            visual state, including sorting, grouping, scaling, and visibility.
+            ``{"_actions": {"group_by": …, "sort_by": …, "color_by": …}}``
+            where each value is either ``None`` or the kwargs dict that was
+            passed to the corresponding action.
         """
         serializable_actions = {
             action: {
@@ -278,29 +342,41 @@ class _PlotManager:
         return dict(_actions=serializable_actions)
 
     def from_state(self, base_plot: "_BasePlot", state: dict, index: list) -> '_PlotManager':
-        """
-        Creates a new PlotManager instance from a previously saved state.
+        """Restore the manager by replaying saved actions.
+
+        Resets the manager to defaults and re-applies each non-null action
+        from *state* in order (group_by → sort_by → color_by), so that
+        offsets and color maps are recomputed from scratch rather than
+        stored directly.  Modifies this instance in place and returns it.
 
         Parameters
         ----------
-        base_plot:
-            The _BasePlot object that applies the action.
+        base_plot : _BasePlot
+            The plot whose action methods (group_by, sort_by, color_by)
+            will be called to replay the state.
         state : dict
-            Dictionary containing the saved state from get_state() method.
-        index :
-            The index of the plot manager to use. If None, assume that the index
-            is unchanged, so use the stored one.
+            Value produced by :meth:`get_state`.
+        index : list
+            Index to use when resetting.  Should match the current data
+            index of *base_plot*.
 
         Returns
         -------
         _PlotManager
-            New instance with the restored state.
+            This instance, after restoration.
         """
         # Create instance with the saved index & order etc.
         self.reset(base_plot, index=index)
         for action, kwargs in state['_actions'].items():
             attr = getattr(base_plot, action, None)
-            if kwargs is not None and attr is not None:
-                attr(**kwargs)
+            if kwargs is None or attr is None:
+                continue
+            metadata_name = kwargs.get("metadata_name")
+            if metadata_name is not None:
+                metadata = getattr(base_plot.data, "metadata", None)
+                if metadata is not None and metadata_name not in metadata.columns:
+                    print(f"Skipping '{action}': metadata field '{metadata_name}' not found in current data.")
+                    continue
+            attr(**kwargs)
         return self
 

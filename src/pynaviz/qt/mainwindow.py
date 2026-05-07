@@ -1,38 +1,36 @@
-import base64
-import json
 import os
 import pathlib
-import re
 import sys
-from collections import defaultdict
-from dataclasses import dataclass
-from datetime import datetime
+import tempfile
 from typing import Any, Literal, Union
 
 import pynapple as nap
 from PySide6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QCursor, QFontMetrics, QIcon, QKeySequence, QPixmap, QShortcut
+from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QPushButton,
+    QSlider,
     QStatusBar,
     QStyle,
-    QTreeWidget,
-    QTreeWidgetItem,
-    QVBoxLayout,
+    QStyleOptionSlider,
     QWidget,
 )
 
 from ..controller_group import ControllerGroup
+from ..format_profiles import FORMAT_PROFILES
 from .icons import icon_base64
+from .layout_manager import LayoutManagerMixin
+from .references import EphysReference, NWBReference
+from .variable_dock import VariableDock, _get_variable_from_key_path
+from .variable_loader import _infer_ephys_format, get_pynapple_variables
 from .widget_plot import (
     IntervalSetWidget,
     TsdFrameWidget,
@@ -44,297 +42,154 @@ from .widget_plot import (
     VideoWidget,
 )
 
-DOCK_LIST_STYLESHEET = """
-    * {
-        border : 2px solid black;
-        background : #272822;
-        color : #F8F8F2;
-        selection-color : yellow;
-        selection-background-color : #E69F66;
-    }
-"""
+_TIMEBAR_RESOLUTION = 1_000_000
 
 
+class _TimeSlider(QSlider):
+    """Horizontal slider with click-to-seek and a view-window indicator band."""
 
-@dataclass
-class NWBReference:
-    """Store reference to NWB file object and variable key.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._view_start_frac: float = 0.0
+        self._view_end_frac: float = 0.0
 
-    Keeps the NWB file (and its IO handle) alive to prevent HDF5 datasets
-    from being closed during garbage collection.
-    """
-    nwb_file: nap.io.NWBFile
-    key: str
+    def set_view_window(self, start_frac: float, end_frac: float) -> None:
+        """Set the shaded band that shows the currently visible time window."""
+        self._view_start_frac = max(0.0, min(1.0, start_frac))
+        self._view_end_frac = max(0.0, min(1.0, end_frac))
+        self.update()
 
-
-def get_children_dict(parent: QTreeWidget | QTreeWidgetItem):
-    """Helper function to get children as a dictionary"""
-    children = {}
-
-    if isinstance(parent, QTreeWidget):
-        count = parent.topLevelItemCount()
-        for i in range(count):
-            child = parent.topLevelItem(i)
-            children[child.text(0)] = child
-    else:
-        count = parent.childCount()
-        for i in range(count):
-            child = parent.child(i)
-            children[child.text(0)] = child
-
-    return children
-
-def _get_item_key_path(item: QTreeWidgetItem, key_path:None|list=None) -> list:
-    if key_path is None:
-        key_path = [item.text(0)]
-    parent = item.parent()
-    if parent is not None:
-        key_path.append(parent.text(0))
-        key_path = _get_item_key_path(parent, key_path)
-    else:
-        key_path = key_path[::-1]
-    return key_path
-
-def _get_variable_from_key_path(variables: dict, key_path: list[str]):
-    var = variables
-    for key in key_path:
-        var = var.get(key, None)
-        if var is None:
-            break
-    return var
-
-class HelpBox(QFrame):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        text = (
-            "Add variables by double-clicking them in the list.\n"
-            "Specific plot controls are available in each dock's menu (top-left corner).\n\n"
-            "Shortcuts:\n"
-            "Play/Pause: Space\n"
-            "Save layout: Ctrl+s\n"
-            "Load layout: Ctrl+o\n"
-            "Reset view: r\n\n"
-            "Specific to TsdFrame:\n"
-            "Increase contrast: i\n"
-            "Decrease contrast: d\n\n"
-            "Specific to IntervalSet & Timestamps:\n"
-            "Jump to next interval/timestamp: n or ->\n"
-            "Jump to previous interval/timestamp: p or <-\n"
+    def _groove_rect(self):
+        opt = QStyleOptionSlider()
+        self.initStyleOption(opt)
+        return self.style().subControlRect(
+            QStyle.ComplexControl.CC_Slider,
+            opt,
+            QStyle.SubControl.SC_SliderGroove,
+            self,
         )
 
-        # Frameless floating box
-        self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
-        self.setFrameShape(QFrame.Shape.Box)
-        self.setLineWidth(1)
-        self.setFixedSize(800, 600)
-
-        # Layout with help text
-        layout = QVBoxLayout(self)
-        label = QLabel(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        label.setWordWrap(True)
-        layout.addWidget(label)
-
-        # Add close button
-        close_button = QPushButton("Close")
-        close_button.clicked.connect(self.close)
-        close_button.setFixedWidth(100)
-        close_button.setStyleSheet("margin-top: 10px;")
-        layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignRight)
-
-        # Track clicks outside
-        if parent:
-            parent.installEventFilter(self)
-
-    def eventFilter(self, obj, event):
-        if event.type() == QEvent.Type.MouseButtonPress:
-            # Close the help box if clicking outside
-            if not self.geometry().contains(event.globalPosition().toPoint()):
-                self.close()
-        return super().eventFilter(obj, event)
-
-
-class VariableDock(QDockWidget):
-    def __init__(self, variables, gui):
-        """
-        Sidebar widget containing the list of variables.
-
-        Parameters
-        ----------
-        variables : dict
-            Dictionary of pynapple variables.
-        gui : QMainWindow
-            Reference to the main GUI instance.
-        """
-        super().__init__("Variables", gui)
-        self.gui = gui
-        self.variables = variables
-        self._interval_set_key_paths = []
-        self.setObjectName("VariablesDock")
-        self.setStyleSheet(DOCK_LIST_STYLESHEET)
-
-        self.collapsed_width = 20
-        self.expanded = True
-
-        # --- Dock settings ---
-        self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
-        self.setFeatures(
-            # QDockWidget.DockWidgetFeature.DockWidgetClosable |
-            QDockWidget.DockWidgetFeature.DockWidgetMovable |
-            QDockWidget.DockWidgetFeature.DockWidgetFloatable
-        )
-
-        # --- Main container inside dock ---
-        container = QWidget()
-        main_layout = QHBoxLayout(container)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        # --- Content area ---
-        self.content = QWidget()
-        content_layout = QVBoxLayout(self.content)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(0)
-
-        # Tree widget
-        self.treeWidget = QTreeWidget()
-        self.treeWidget.setHeaderHidden(True)
-        self.treeWidget.itemDoubleClicked.connect(self.on_item_double_clicked)
-        self._add_items_to_tree_widget(variables)
-        content_layout.addWidget(self.treeWidget)
-
-        main_layout.addWidget(self.content)
-
-        # --- Handle for collapsing ---
-        self.handle = QPushButton("◀")
-        self.handle.setFixedWidth(20)
-        self.handle.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.handle.setStyleSheet("""
-            QPushButton {
-                border: none;
-                background-color: #d0d0d0;
-            }
-            QPushButton:hover {
-                background-color: #c0c0c0;
-            }
-        """)
-        self.handle.clicked.connect(self.toggle)
-        main_layout.addWidget(self.handle)
-
-        # Set container as dock widget content
-        self.setWidget(container)
-
-        self._resize_dock()
-
-    def _resize_dock(self):
-        """Resize the dock based on content."""
-        app = QApplication.instance() or QApplication([])
-        font = app.font()
-        metrics = QFontMetrics(font)
-        if len(self.variables):
-            text_width = max(metrics.horizontalAdvance(s) for s in self.variables.keys())
-        else:
-            text_width = 100
-
-        tree_width = max(self.treeWidget.sizeHintForColumn(0), text_width) + 20
-        self.expanded_width = tree_width + 20
-        self.last_width = self.expanded_width
-        self.setFixedWidth(self.expanded_width)
-
-    def toggle(self):
-        """Collapse or expand the dock content."""
-        if self.expanded:
-            self.content.hide()
-            self.last_width = self.width()
-            self.setFixedWidth(self.collapsed_width)
-            self.handle.setText("▶")
-        else:
-            self.content.show()
-            # self.setMinimumWidth(100)
-            # self.setMaximumWidth(16777215)
-            self.setFixedWidth(self.expanded_width)
-            self.resize(self.last_width, self.height())
-            self.handle.setText("◀")
-        self.expanded = not self.expanded
-
-    def _add_items_to_tree_widget(self, item_dict: dict, parent: None | QTreeWidgetItem = None, clear: bool = False):
-        """Recursively add items to the tree widget from a nested dictionary.
-
-        Parameters
-        ----------
-        item_dict:
-            Nested dictionary representing the tree structure.
-        parent:
-            Parent QTreeWidgetItem to which items will be added. If None, items are added to the top level.
-        clear:
-            If True, clear the existing items in the tree widget before adding new ones.
-        """
-        if clear:
-            self.treeWidget.clear()
-            self._interval_set_key_paths = []
-
-        if parent is None:
-            parent = self.treeWidget
-
-        # Get existing children
-        children = get_children_dict(parent)
-
-
-        for key, value in item_dict.items():
-            if key in children:
-                child = children[key]
-                # Make sure it is another sub-tree with elements
-                assert isinstance(value, dict), ("Variable name for vars at the same level of a tree must be unique."
-                                                 f"\nName '{key}' is not unique")
-                self._add_items_to_tree_widget(value, parent=child, clear=False)
-            else:
-                # Create new item
-                item = QTreeWidgetItem(parent, [key])
-                if isinstance(value, dict):
-                    self._add_items_to_tree_widget(value, parent=item, clear=False)
-                elif isinstance(value, nap.IntervalSet):
-                    self._interval_set_key_paths.append(_get_item_key_path(item))
-
-        self._resize_dock()
-
-    def on_item_double_clicked(self, item, column):
-        """Handle double-click only for leaf items"""
-        if item.childCount() == 0:  # This is a leaf item
-            self.add_dock_widget(item)
-
-    @staticmethod
-    def _extract_variable_path(item: QTreeWidgetItem | list[str]) -> list[str] | None:
-        """Return the variable name from a QListWidgetItem or a string."""
-
-        if isinstance(item, QTreeWidgetItem):
-            return _get_item_key_path(item)
-        elif isinstance(item, list):
-            return item
-        else:
-            print("Invalid item type for dock widget.")
-            return None
-
-    def _get_variable(self, key_path: list[str]):
-        """Fetch the variable from variables and validate."""
-        var = _get_variable_from_key_path(self.variables, key_path)
-        if var is None:
-            print(f"Variable {'/'.join(key_path)} not found.")
-        return var
-
-    def add_dock_widget(self, item: QTreeWidgetItem | list[str]) -> QDockWidget | None:
-        key_path = self._extract_variable_path(item)
-        if not key_path:
-            return None
-
-        variable = self._get_variable(key_path)
-        if variable is None:
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self._view_end_frac <= self._view_start_frac:
             return
+        groove = self._groove_rect()
+        x1 = groove.x() + int(self._view_start_frac * groove.width())
+        x2 = groove.x() + int(self._view_end_frac * groove.width())
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(x1, groove.y(), x2 - x1, groove.height(), QColor(255, 255, 255, 80))
+        painter.end()
 
-        self.gui.add_dock_widget(variable, key_path)
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            groove = self._groove_rect()
+            click_x = int(event.position().x()) - groove.x()
+            value = QStyle.sliderValueFromPosition(
+                self.minimum(), self.maximum(), click_x, groove.width()
+            )
+            self.setValue(value)
+        super().mousePressEvent(event)
+
+    def wheelEvent(self, event):
+        ticks = event.angleDelta().y() / 120  # standard wheel tick = 120 units
+        step = int(ticks * _TIMEBAR_RESOLUTION / 100)  # 1 % of range per tick
+        self.setValue(self.value() + step)
+        event.accept()
 
 
-class MainWindow(QMainWindow):
+def _session_layout_path() -> pathlib.Path:
+    """Return the per-process temp file used to persist the layout across scope() calls."""
+    return pathlib.Path(tempfile.gettempdir()) / f"pynaviz_session_{os.getpid()}.json"
+
+
+def _apply_format_profile(widget, format_profiles: dict) -> None:
+    """Apply sort/group/color defaults for the given widget type, if a profile exists."""
+    profile = format_profiles.get(type(widget).__name__)
+    if profile is None:
+        return
+    plot = getattr(widget, "plot", None)
+    if plot is None:
+        return
+    metadata = getattr(getattr(widget, "button_container", None), "metadata", None)
+    if metadata is None:
+        return
+    cols = set(metadata.columns)
+    if profile.group_by and profile.group_by in cols:
+        plot.group_by(profile.group_by)
+    if profile.sort_by and profile.sort_by in cols:
+        plot.sort_by(profile.sort_by, mode=profile.sort_mode)
+    if profile.color_by and profile.color_by in cols:
+        plot.color_by(profile.color_by, cmap_name=profile.cmap_name)
+
+
+class MainWindow(LayoutManagerMixin, QMainWindow):
+    """Main application window for pynaviz.
+
+    ``MainWindow`` is the top-level Qt widget that hosts all plot docks.
+    It is normally created indirectly through :func:`pynaviz.scope`, but can
+    also be instantiated directly when embedding pynaviz inside a larger Qt
+    application or when writing tests.
+
+    Layout
+    ------
+    The window is divided into three areas:
+
+    - **Left panel** — ``VariableDock``: a tree widget listing all variables
+      passed at construction time.  Double-clicking an entry opens a new plot
+      dock for that variable.
+    - **Central / right area** — plot docks, one per visualised variable.
+      Docks can be dragged, tabbed, floated, or closed.
+    - **Bottom status bar** — a global time display and time-unit selector
+      that reflects the current playback position shared across all docks.
+
+    Time synchronisation
+    --------------------
+    All open plot docks share a single :class:`ControllerGroup`
+    (``self.ctrl_group``).  Panning or scrubbing in any dock updates the
+    shared time and propagates to every other dock automatically.
+
+    Keyboard shortcuts
+    ------------------
+    Global (window-level):
+
+    - **Space** — play / pause
+    - **Ctrl+S** — save layout
+    - **Ctrl+O** — load layout
+
+    Per-dock (active when the mouse is over or the canvas has focus):
+
+    - **r** — reset view
+    - **← / →** — pan left / right by one page
+    - **y** — toggle y-axis lock (span mode only; no-op in x-vs-y or image mode)
+    - **x** — toggle x-axis lock (span and image mode; no-op in x-vs-y mode)
+    - **Ctrl+← / Ctrl+→** — jump to previous / next superposed epoch; requires at
+      least one ``IntervalSet`` to be overlaid on that dock via *Select IntervalSet*
+      (works on any plot type, not only ``IntervalSet`` plots)
+    - **i / d** — increase / decrease contrast (TsdFrame) or marker size (TsGroup)
+
+    Parameters
+    ----------
+    variables : dict or None, optional
+        Mapping of ``{name: object}`` to populate the variable panel.
+        Accepts the same types as :func:`pynaviz.scope`.  Defaults to an
+        empty dict (no variables pre-loaded).
+    layout_path : str, pathlib.Path, or None, optional
+        Path to a ``.json`` layout file produced by *Save Layout*.  When
+        given, the window restores the saved dock arrangement, camera views,
+        and plot actions immediately after construction.  Variables are
+        matched to saved docks by name; unmatched docks are skipped.
+
+    Attributes
+    ----------
+    variables : dict
+        Live mapping of all variables currently known to the window,
+        including any loaded via *File → Open* after construction.
+    ctrl_group : ControllerGroup
+        Shared time controller that synchronises all open plot docks.
+    variable_dock : VariableDock
+        The left-panel tree widget.
+    """
 
     _file_extensions = {
             "Pynapple": [".npz"],
@@ -345,6 +200,14 @@ class MainWindow(QMainWindow):
         }
 
     def __init__(self, variables: dict | None = None, layout_path: str | pathlib.Path | None = None):
+        """
+        Raises
+        ------
+        RuntimeError
+            If no ``QApplication`` instance exists.  Create one before
+            instantiating ``MainWindow`` directly, or use :func:`pynaviz.scope`
+            which handles this automatically.
+        """
         if not QApplication.instance():  # pragma: no cover
             raise RuntimeError("A Qt application must be created.")
         super().__init__()
@@ -363,14 +226,14 @@ class MainWindow(QMainWindow):
         for k in self.variables.keys():
             if k != "data":
                 if isinstance(self.variables[k], nap.TsdFrame):
-                    self._tsdframe_keys.append(k) # Storing tsdframe keys for point and skeleton overlay
+                    self._tsdframe_keys.append(k)  # Storing tsdframe keys for point and skeleton overlay
 
         # ---- Top Menu Bar ----
         self._create_top_menu_bar()
 
         # ---- Variables Widget ----
         self.variable_dock = VariableDock(self.variables, self)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.variable_dock)#, Qt.Orientation.Horizontal)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.variable_dock)
 
         # ---- Bottom Status Bar ----
         self._create_status_bar()
@@ -387,7 +250,12 @@ class MainWindow(QMainWindow):
 
         # Loading layout if provided
         if layout_path is not None and os.path.isfile(layout_path):
-            self._restore_layout(layout_path)
+            verbose = pathlib.Path(layout_path) != _session_layout_path()
+            self._restore_layout(layout_path, verbose=verbose)
+
+    # ------------------------------------------------------------------
+    # Menu bar & status bar
+    # ------------------------------------------------------------------
 
     def _create_top_menu_bar(self):
         menu_bar = self.menuBar()
@@ -395,6 +263,9 @@ class MainWindow(QMainWindow):
         open_action = QAction("&Open...", self)
         open_action.triggered.connect(self.open_file)
         file_menu.addAction(open_action)
+        open_folder_action = QAction("Open &Folder...", self)
+        open_folder_action.triggered.connect(self.open_folder)
+        file_menu.addAction(open_folder_action)
         file_menu.addSeparator()
         file_menu.addAction("&Load layout", self._load_layout)
         file_menu.addAction("&Save layout", self._save_layout)
@@ -412,8 +283,7 @@ class MainWindow(QMainWindow):
         bottom_container = QWidget()
         bottom_layout = QHBoxLayout(bottom_container)
 
-
-        # --- play/pause button at bottom ---
+        # --- play/pause buttons ---
         self.skipBackwardBtn = QPushButton()
         self.skipBackwardBtn.setIcon(
             self.style().standardIcon(QStyle.StandardPixmap.SP_MediaSkipBackward)
@@ -443,30 +313,69 @@ class MainWindow(QMainWindow):
         self.skipForwardBtn.clicked.connect(self._skip_forward)
         bottom_layout.addWidget(self.skipForwardBtn)
 
-        # --- Timer ---
+        # --- Time spinbox & unit selector ---
         bottom_layout.setContentsMargins(0, 0, 0, 0)
         self.time_spin_box = QDoubleSpinBox()
         self.time_spin_box.setStyleSheet("font-size: 10pt;")
         self.time_spin_box.setMinimum(0)
         self.time_spin_box.setMaximum(1)
         self.time_spin_box.setValue(0.5)
-        self.time_spin_box.valueChanged.connect(
-            self._on_spinbox_changed
-        )
+        self.time_spin_box.valueChanged.connect(self._on_spinbox_changed)
         bottom_layout.addWidget(self.time_spin_box)
 
         self.time_unit_combo = QComboBox()
         self.time_unit_combo.setStyleSheet("font-size: 10pt;")
-        self.time_unit_combo.addItem('us', 1e6)  # text, data
+        self.time_unit_combo.addItem('us', 1e6)
         self.time_unit_combo.addItem('ms', 1e3)
         self.time_unit_combo.addItem('s', 1.0)
         self.time_unit_combo.setCurrentIndex(2)  # default to seconds
         self.time_unit_combo.setFixedWidth(55)
         self.time_unit_combo.currentIndexChanged.connect(self._on_unit_changed)
-        bottom_layout.addWidget(self.time_unit_combo)  # stretch factor = 0
+        bottom_layout.addWidget(self.time_unit_combo)
 
-        # Add the button container to the status bar
-        status_bar.addWidget(bottom_container)
+        # --- Time bar (scrubber) ---
+        self.time_slider = _TimeSlider(Qt.Orientation.Horizontal)
+        self.time_slider.setRange(0, _TIMEBAR_RESOLUTION)
+        self.time_slider.setMinimumHeight(28)
+        self.time_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                height: 10px;
+                border-radius: 5px;
+                background: #555;
+            }
+            QSlider::handle:horizontal {
+                width: 18px;
+                height: 18px;
+                margin: -4px 0;
+                border-radius: 9px;
+                background: #aaa;
+            }
+            QSlider::handle:horizontal:hover {
+                background: #fff;
+            }
+        """)
+        self.time_slider.valueChanged.connect(self._on_timebar_scrub)
+        bottom_layout.addWidget(self.time_slider, 1)  # stretch=1 fills remaining space
+
+        status_bar.addWidget(bottom_container, 1)
+
+    def _toggle_help_box(self):
+        from .variable_dock import HelpBox
+        # If the box exists and is visible, close it
+        if self.help_box and self.help_box.isVisible():
+            self.help_box.close()
+            return
+
+        self.help_box = HelpBox(parent=self)
+
+        # Position it below the button
+        btn_pos = self.mapToGlobal(QPoint(0, 0))
+        self.help_box.move(btn_pos)
+        self.help_box.show()
+
+    # ------------------------------------------------------------------
+    # File loading
+    # ------------------------------------------------------------------
 
     def open_file(self):
         extensions = self._file_extensions
@@ -491,14 +400,25 @@ class MainWindow(QMainWindow):
         )
         self._load_multiple_files(filenames)
 
+    def open_folder(self):
+        """Open a directory containing electrophysiology recordings (e.g. NeuroScopeIO)."""
+        folder = QFileDialog.getExistingDirectory(self, "Open Folder")
+        if folder:
+            self._load_multiple_files([folder])
+
     def _load_multiple_files(self, filenames: list[str]):
-        # create the variable dict
-        def get_type(name: pathlib.Path) -> None | Literal["Pynapple", "NWB", "Video"]:
+        from .variable_loader import EPHYS_EXTENSIONS
+
+        def get_type(name: pathlib.Path) -> None | Literal["Pynapple", "NWB", "Video", "Ephys"]:
+            if name.is_dir():
+                return "Ephys"
             file_type = None
             for tp, exts in self._file_extensions.items():
                 if name.suffix in exts:
                     file_type = tp
                     break
+            if file_type is None and name.suffix.lower() in EPHYS_EXTENSIONS:
+                file_type = "Ephys"
             return file_type
 
         new_vars = {}
@@ -509,11 +429,11 @@ class MainWindow(QMainWindow):
             if name.name in self.variables:
                 continue
 
-            if file_type is None:
-                print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
+            if not name.exists():
+                print(f"Path {name} does not exist. Skipping.")
                 continue
-            elif not name.exists():
-                print(f"File {name} does not exist. Skipping.")
+            elif file_type is None:
+                print(f"File type {pathlib.Path(name).suffix} not supported. Skipping.")
                 continue
             elif file_type in ["Pynapple"]:
                 data = nap.load_file(name)
@@ -530,157 +450,33 @@ class MainWindow(QMainWindow):
                 new_vars.update({name.name: nap_obj_dict})
             elif file_type == "Video":
                 new_vars.update({name.name: name})
+            elif file_type == "Ephys":
+                try:
+                    data = nap.EphysReader(str(name))
+                    fmt = _infer_ephys_format(data)
+                    nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()}
+                    new_vars.update({name.name: nap_obj_dict})
+                except Exception as e:
+                    print(f"Could not load {name} as EphysReader: {e}")
+                    continue
             else:
                 raise TypeError(f"Developer forgot to add file type `{file_type}` to the loader.")
             self._open_file_paths.add(name.as_posix())
         self.variables.update(new_vars)
         self.variable_dock._add_items_to_tree_widget(new_vars)
 
-    def _load_layout(self):
-        file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
-        if file_name:
-            self._restore_layout(file_name)
-
-    def _restore_layout(self, file_name):
-        with open(file_name, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-
-        # 0) Need to empty the gui
-        for d in self.findChildren(QDockWidget):
-            if d.objectName() != "VariablesDock":
-                d.close()
-                d.setParent(None)
-                d.deleteLater()
-
-        # Clear the main window state
-        self.restoreState(QByteArray())
-        self.restoreGeometry(QByteArray())
-
-        # Empty the controller group
-        index = list(self.ctrl_group._controller_group.keys())
-        for id in index:
-            self.ctrl_group.remove(id)
-        self._n_dock_open = 0
-        assert len(self.ctrl_group._controller_group) == 0, "Controller group not empty after removing all docks."
-
-        # 1) Reload the files
-        file_paths = payload.get("file_paths", [])
-        self._load_multiple_files(file_paths)
-
-        # 2) add every dock with the potential variable. Order them by number in the name
-        for widget in payload.get("docks", []):
-            var = _get_variable_from_key_path(self.variables, widget['key_path'])
-            if var is not None:
-                print(f"Adding var from path {widget['key_path']}.")
-                self.add_dock_widget(var, widget['key_path'],  manager_state_dict=widget["manager_state_dict"])
-
-                # Note: simply matching the widget name stored in the payload results in a bug
-                # when the following happens:
-                # 1. Open > 1 docks
-                # 2. Close any dock but the last -> now the last dock name is varname_N but N-1 docks are opened
-                # 3. Save layout and close, this will store widget["name"] == varname_N
-                # 4. Try to reopen loading the layout.
-                #    The last dock name will be varname_{N-1} but widget["name"] is varname_N
-                # To prevent this, adjust the index.
-
-                dock_name = re.sub(r"_\d+$", f"_{self._n_dock_open - 1}", widget['name'])
-                if self.findChild(QDockWidget, dock_name) is None:
-                    raise RuntimeError(f"Dock {widget['name']} was not created.")
-            else:
-                print(f"Variable '{widget['name']}' not found. Skipping dock.")
-
-        # 3) Restore geometry first, then layout
-        geom = QByteArray.fromBase64(payload["geometry_b64"].encode("ascii"))
-        state = QByteArray.fromBase64(payload["state_b64"].encode("ascii"))
-
-        try:
-            self.restoreGeometry(geom)
-            ok = self.restoreState(state, payload.get("version", 0))
-            print("restoreState ok:", ok)
-        except Exception as e:
-            print("Error restoring layout:", e)
-
-    def _get_layout_dict(self):
-        geom = bytes(self.saveGeometry())
-        state = bytes(self.saveState(version=0))  # Potentially add package versioning later
-
-        all_docks = self.findChildren(QDockWidget)
-        docks = []
-        order = []
-        for d in all_docks:
-            name = d.objectName()
-            if name != "VariablesDock":
-                info = {"visible": d.isVisible(),
-                        "floating": d.isFloating(),
-                        "area": self.dockWidgetArea(d).name,
-                        "pos": (d.x(), d.y()),
-                        "size": (d.width(), d.height()),
-                        "dtype": d.widget().plot.data.__class__.__name__,
-                        "key_path": d.property("key_path"),
-                        "index": int(name.split("_")[-1]),
-                        "name": name,
-                        "manager_state_dict": d.widget().plot._manager.get_state(),
-                        }
-                docks.append(info)
-                order.append(int(name.split("_")[-1]))
-        docks = [x for _, x in sorted(zip(order, docks))]
-
-        payload = {
-            "version": 0,
-            "geometry_b64": base64.b64encode(geom).decode("ascii"),
-            "state_b64": base64.b64encode(state).decode("ascii"),
-            "docks": docks,
-            "file_paths": list(self._open_file_paths),  # to reload files on layout load
-        }
-        return payload
-
-    def _save_layout(self, file_name: str | pathlib.Path | None = None):
-        print("Saving layout...")
-        if file_name is None:
-            dt = datetime.now().strftime("%Y-%m-%d_%H-%M")
-            default_file = os.path.join(os.getcwd(), f"layout_{dt}.json")
-            file_name, _ = QFileDialog.getSaveFileName(
-                self,
-                "Save Layout",
-                default_file,  # suggested file name
-                "Layout Files (*.json)"
-            )
-
-        if file_name:
-
-            file_name = pathlib.Path(file_name) if isinstance(file_name, str) else file_name
-            file_name = file_name.with_suffix(".json")
-
-            payload = self._get_layout_dict()
-
-            with open(file_name, "w", encoding="utf-8") as f:
-                json.dump(payload, f, indent=2)
-            print(f"Layout saved to {file_name}")
-
-    def _toggle_help_box(self):
-        # If the box exists and is visible, close it
-        if self.help_box and self.help_box.isVisible():
-            self.help_box.close()
-            return
-
-        self.help_box = HelpBox(parent=self)
-
-        # Position it below the button
-        btn_pos = self.mapToGlobal(QPoint(0, 0))
-        self.help_box.move(btn_pos)
-        self.help_box.show()
+    # ------------------------------------------------------------------
+    # Playback
+    # ------------------------------------------------------------------
 
     def _toggle_play(self):
         self.playing = not self.playing
         if self.playing:
-            # Switch to pause icon
-            # Update plotvideos to use only async reading
-            # TODO : look throuhgt docks and set a flag for all video plot to use async reading
+            # TODO: look through docks and set a flag for all video plots to use async reading
             self.timer.start(25)  # 40 FPS
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-pause"))
         else:
-            # Switch to play icon
-            # TODO : switch back to normal reading for plotvideos
+            # TODO: switch back to normal reading for plotvideos
             self.timer.stop()
             self.playPauseBtn.setIcon(QIcon.fromTheme("media-playback-start"))
             self.ctrl_group.set_interval(self.ctrl_group.current_time, None)
@@ -699,7 +495,6 @@ class MainWindow(QMainWindow):
         max_time = -float("inf")
         min_time = float("inf")
         for dock_widget in self.findChildren(QDockWidget):
-            # if not isinstance(dock_widget, QWidget):
             base_plot = getattr(dock_widget.widget(), "plot", None)
             if base_plot is not None:
                 data = base_plot.data
@@ -735,7 +530,7 @@ class MainWindow(QMainWindow):
             self._update_time_label(self.ctrl_group.current_time)
 
     def _on_unit_changed(self):
-        """When user changes units, update the spinbox display"""
+        """When user changes units, update the spinbox display."""
         multiplier = self.time_unit_combo.currentData()
         display_value = self.ctrl_group.current_time * multiplier
         self.time_spin_box.blockSignals(True)  # Prevent recursion
@@ -743,9 +538,38 @@ class MainWindow(QMainWindow):
         self.time_spin_box.blockSignals(False)
 
     def _on_spinbox_changed(self, value: float):
-        """Handle spinbox changes based on source enum"""
+        """Handle spinbox changes based on source enum."""
         multiplier = self.time_unit_combo.currentData()
         self.ctrl_group.set_interval(value / multiplier, None)
+
+    def _on_timebar_scrub(self, value: int) -> None:
+        """Translate a slider integer position to a time and pan all controllers there."""
+        min_time, max_time = self._get_max_min_time()
+        if max_time <= min_time:
+            return
+        t = min_time + (value / _TIMEBAR_RESOLUTION) * (max_time - min_time)
+        self.ctrl_group.set_interval(t, None)
+
+    def _update_timebar(self, min_time: float, max_time: float, current_time: float) -> None:
+        """Update the slider position and view-window band without triggering a scrub event."""
+        if max_time <= min_time:
+            return
+        total = max_time - min_time
+        frac = (current_time - min_time) / total
+        value = int(max(0.0, min(1.0, frac)) * _TIMEBAR_RESOLUTION)
+        self.time_slider.blockSignals(True)
+        self.time_slider.setValue(value)
+        self.time_slider.blockSignals(False)
+
+        # Update the view-window band from the first available controller xlim
+        for ctrl in self.ctrl_group._controller_group.values():
+            if hasattr(ctrl, "get_xlim"):
+                xmin, xmax = ctrl.get_xlim()
+                self.time_slider.set_view_window(
+                    (xmin - min_time) / total,
+                    (xmax - min_time) / total,
+                )
+                break
 
     def _update_time_label(self, current_time):
         time_multiplier = self.time_unit_combo.currentData()
@@ -754,15 +578,18 @@ class MainWindow(QMainWindow):
         if max_time != -float("inf") and min_time != float("inf"):
             self.time_spin_box.setMinimum(min_time * time_multiplier)
             self.time_spin_box.setMaximum(max_time * time_multiplier)
+            self._update_timebar(min_time, max_time, current_time)
         self.time_spin_box.setValue(time_multiplier * current_time)
         self.time_spin_box.blockSignals(False)
 
+    # ------------------------------------------------------------------
+    # Dock management
+    # ------------------------------------------------------------------
+
     def _cleanup_and_close_dock(self, dock):
-        """Properly clean up and close a dock widget"""
-        # Remove from controller group if registered
+        """Properly clean up and close a dock widget."""
         widget = dock.widget()
         if hasattr(widget, 'plot'):
-            # remove from controls
             ctrl_id = widget.plot.controller._controller_id
             widget.close()
             self.ctrl_group.remove(ctrl_id)
@@ -770,7 +597,6 @@ class MainWindow(QMainWindow):
 
     def _add_dock_to_gui(self, dock: QDockWidget) -> None:
         """Add dock to the GUI and balance right docks vertically."""
-
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
         # Balance heights of all right docks
@@ -786,21 +612,41 @@ class MainWindow(QMainWindow):
         """Register the widget's plot in the controller group."""
         self.ctrl_group.add(widget.plot, self._n_dock_open)
 
-    def _create_widget_for_variable(self, var) -> object | None:
+    def _get_same_level_interval_sets(self, key_path: list[str]) -> dict[str, nap.IntervalSet]:
+        """Return all IntervalSets that are siblings of key_path in the variables tree."""
+        parent_path = key_path[:-1]
+        parent_dict = _get_variable_from_key_path(self.variables, parent_path) if parent_path else self.variables
+        if not isinstance(parent_dict, dict):
+            return {}
+        result = {}
+        for sibling_key, sibling_val in parent_dict.items():
+            if sibling_key == key_path[-1]:
+                continue
+            resolved = sibling_val
+            if isinstance(resolved, EphysReference):
+                resolved = resolved.ephys_reader[resolved.key]
+            elif isinstance(resolved, NWBReference):
+                resolved = resolved.nwb_file[resolved.key]
+            if isinstance(resolved, nap.IntervalSet):
+                label = '/'.join(parent_path + [sibling_key])
+                result[label] = resolved
+        return result
+
+    def _create_widget_for_variable(self, var, key_path: list[str] | None = None) -> object | None:
         """Return the correct widget based on the variable type."""
-        # TODO: grab iset only from the same tree level.
         index = self._n_dock_open
-        if isinstance(var, nap.TsGroup):
+        if key_path is not None:
+            interval_sets = self._get_same_level_interval_sets(key_path)
+        else:
             interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
+        if isinstance(var, nap.TsGroup):
             return TsGroupWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.Tsd):
-            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
             return TsdWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdFrame):
-            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
             return TsdFrameWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdTensor):
-            tsdframes = {k:self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+            tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
             return TsdTensorWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
         elif isinstance(var, nap.Ts):
             return TsWidget(var, index=index, set_parent=True)
@@ -812,14 +658,20 @@ class MainWindow(QMainWindow):
         elif isinstance(var, (str, pathlib.Path)):
             try:
                 tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
-                video_widget = VideoWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
-                return video_widget
+                return VideoWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
             except Exception as e:
                 print(f"Error loading video from '{var}': {e}")
                 return None
         elif isinstance(var, NWBReference):
             var = var.nwb_file[var.key]
-            return self._create_widget_for_variable(var)
+            return self._create_widget_for_variable(var, key_path=key_path)
+        elif isinstance(var, EphysReference):
+            format_profiles = FORMAT_PROFILES.get(var.format)
+            var = var.ephys_reader[var.key]
+            widget = self._create_widget_for_variable(var, key_path=key_path)
+            if format_profiles is not None and widget is not None:
+                _apply_format_profile(widget, format_profiles)
+            return widget
         elif isinstance(var, VideoWidget):
             return var  # already a widget
         else:
@@ -850,115 +702,112 @@ class MainWindow(QMainWindow):
         dock.setTitleBarWidget(widget.button_container)
         return dock
 
-    def add_dock_widget(self, variable: Any, key_path: list[str], manager_state_dict: dict | None = None) -> QDockWidget | None:
-        """Add a new dock widget to the main window based on the variable or its key path"""
-        widget = self._create_widget_for_variable(variable)
+    def add_dock_widget(self, variable: Any, key_path: list[str], state_dict: dict | None = None) -> QDockWidget | None:
+        """Add a new dock widget to the main window based on the variable or its key path."""
+        widget = self._create_widget_for_variable(variable, key_path=key_path)
         if widget is None:
             return
 
         # restore manager if any
-        if manager_state_dict is not None:
-            current_manager = widget.plot._manager
-            # restore the manager
-            widget.plot._manager = current_manager.from_state(widget.plot, manager_state_dict, index=current_manager.index)
+        if state_dict is not None:
+            widget.plot.from_state(state_dict, available_vars=self.variables)
 
         widget_name = "/".join(key_path)
         dock = self._create_dock(widget_name, widget, key_path)
         self._add_dock_to_gui(dock)
         self._register_controller(widget)
-        # This should be increase only after registering the controller and the dock to the GUI
+        # This should be incremented only after registering the controller and the dock to the GUI
         self._n_dock_open += 1
         min_time, max_time = self._get_max_min_time()
         if max_time != -float("inf") and min_time != float("inf"):
             time_multiplier = self.time_unit_combo.currentData()
             self.time_spin_box.setMinimum(min_time * time_multiplier)
             self.time_spin_box.setMaximum(max_time * time_multiplier)
+            self._update_timebar(min_time, max_time, self.ctrl_group.current_time)
 
         return dock
 
     def closeEvent(self, event: QEvent):
         """Handle the close event to ensure proper cleanup."""
+        self._save_layout(file_name=_session_layout_path(), verbose=False)
         for dock in self.findChildren(QDockWidget):
             if dock.objectName() != "VariablesDock":
                 self._cleanup_and_close_dock(dock)
         super().closeEvent(event)
 
-def _filter_paths(path: str) -> tuple | None:
-    """Filter paths and return either a valid video path or a pynapple object."""
-    if os.path.isfile(path):
-        ext = os.path.splitext(path)[1].lower()
-        base_name = os.path.basename(path)
-        if ext in [".mp4", ".avi", ".mov", ".mkv"]:
-            return base_name, path
-        elif ext == ".nwb":
-            data = nap.load_file(path)
-            nap_obj_dict = {}
-            for key in data.keys():
-                nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
-            return base_name, nap_obj_dict
-        elif ext == ".npz":
-            data = nap.load_file(path)
-            if "pynapple" in data.__module__:
-                return base_name, data
-            else:
-                return None, None
 
-    return None, None
+def scope(variables: Union[dict, list, tuple, str], layout_path: str = None, ephys_format: str | None = None):
+    """Launch the pynaviz GUI and block until the window is closed.
 
-def _extract_name_value(v: Any):
-    """Return (base_name, value) if valid, otherwise (None, None)."""
-    if isinstance(v, (str, pathlib.Path)):
-        return _filter_paths(str(v))
+    Parameters
+    ----------
+    variables : dict, list, tuple, or str
+        The data to visualise.  Several input formats are accepted:
 
-    if hasattr(v, "__module__"):
-        if "pynapple" in v.__module__:
-            return v.__class__.__name__, v
-        if "pynaviz" in v.__module__ and isinstance(v, VideoHandler):
-            return v.__class__.__name__, v
+        **dict** (recommended) — keys become the display names shown in the
+        variable panel; values are the objects to visualise::
 
-    return None, None
+            viz.scope({
+                "spikes": tsgroup,
+                "lfp": tsdframe,
+                "epochs": interval_set,
+                "recording": "/path/to/video.mp4",
+            })
 
-def get_pynapple_variables(
-    variables: dict | list | tuple | str | None = None
-) -> dict:
+        **list / tuple** — names are inferred automatically from each object's
+        class name (``TsGroup``, ``TsdFrame``, …).  Duplicate class names get a
+        numeric suffix (``TsGroup_0``, ``TsGroup_1``, …)::
 
-    if variables is None:
-        return {}
+            viz.scope([tsgroup, tsdframe, interval_set])
 
-    if isinstance(variables, str):
-        variables = [variables]
+        **str** — a single file path, treated the same as a one-element list.
 
-    new_vars = {}
+        **Supported object types:**
 
-    if isinstance(variables, (list, tuple)):
-        name_counters = defaultdict(int)  # keep track of how many times a name was used
+        - ``nap.Ts`` — spike-train / event timestamps
+        - ``nap.Tsd`` — one-dimensional time series
+        - ``nap.TsdFrame`` — multi-channel time series (pandas DataFrame with time index)
+        - ``nap.TsdTensor`` — N-D time series (e.g. pose estimates)
+        - ``nap.TsGroup`` — collection of spike trains, optionally with metadata
+        - ``nap.IntervalSet`` — epoch / interval data, optionally with metadata
+        - ``nap.NWBFile`` — NWB file opened with pynapple; all contained objects
+          are unpacked and added individually
+        - ``nap.EphysReader`` — Neo-backed electrophysiology reader; all contained
+          objects are unpacked and added individually
+        - ``str`` / ``pathlib.Path`` pointing to:
+            - ``.nwb`` file — loaded via pynapple, objects unpacked as above
+            - ``.npz`` file — loaded via pynapple, must contain a single pynapple object
+            - ``.mp4`` / ``.avi`` / ``.mov`` / ``.mkv`` — video file, displayed
+              in a video player dock
+        - ``VideoHandler`` — a pynaviz video handler instance (advanced use;
+          allows sharing a pre-initialised decoder across docks)
 
-        for v in variables:
+        Objects that do not match any of the above are silently ignored.
 
-            base_name, value = _extract_name_value(v)
+    layout_path : str or None, optional
+        Path to a previously saved ``.json`` layout file.  When provided the
+        GUI restores the dock arrangement, camera views, and applied actions
+        (group-by, sort-by, color-by, interval overlays, …) from that file.
+        Variables in *variables* are matched to saved docks by their key name;
+        docks whose variable is not found are skipped.
+    ephys_format : str or None, optional
+        Neo IO class name to use when loading electrophysiology files or
+        directories via ``nap.EphysReader`` (e.g. ``"PlexonIO"``,
+        ``"NeuroScopeIO"``).  When ``None`` (default) the format is
+        auto-detected from the file/directory contents.
 
-            if base_name is None:
-                continue
+    Notes
+    -----
+    This call blocks until the GUI window is closed.  It starts (or reuses) a
+    ``QApplication`` internally, so it is safe to call from a plain Python
+    script or a Jupyter notebook.
+    """
+    variables = get_pynapple_variables(variables, ephys_format=ephys_format)
 
-            # Ensure unique name by appending _0, _1, etc. if needed
-            count = name_counters[base_name]
-            unique_name = f"{base_name}_{count}" if count > 0 else base_name
-
-            name_counters[base_name] += 1
-            new_vars[unique_name] = value
-
-    elif isinstance(variables, dict):
-        for k, v in variables.items():
-            base_name, value = _extract_name_value(v)
-            if base_name is not None:
-                new_vars[k] = value
-
-    return new_vars
-
-def scope(variables: Union[dict, list, tuple, str], layout_path: str = None):
-
-    # Filtering for pynapple variables
-    variables = get_pynapple_variables(variables)
+    if layout_path is None:
+        session_file = _session_layout_path()
+        if session_file.exists():
+            layout_path = str(session_file)
 
     global app
     app = QApplication.instance()
@@ -973,13 +822,12 @@ def scope(variables: Union[dict, list, tuple, str], layout_path: str = None):
     app.setApplicationName("Pynaviz")
     app.setOrganizationName("pynapple-org")
     app.setOrganizationDomain("pynaviz.github.io")
-    # # app.setStyle(QStyleFactory.create("Fusion"))
-    # from qt_material import apply_stylesheet
-    # apply_stylesheet(app, theme='dark_lightgreen.xml')
 
     gui = MainWindow(variables=variables, layout_path=layout_path)
 
     gui.show()
+    gui.raise_()
+    gui.activateWindow()
 
     app.exit(app.exec())
 

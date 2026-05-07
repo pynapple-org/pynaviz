@@ -125,7 +125,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
             controller_id=index,
             data=self._data,
             buffer=self.texture,
-            callback=self._update_buffer,
+            plot_callbacks=[self._update_buffer],
         )
 
         # List to hold time series points that can be superposed
@@ -144,6 +144,12 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         """Update the on-screen time text based on the current frame index."""
         if self.time_text:
             self.time_text.set_text(str(np.round(self.data.t[frame_index], 4)))
+
+    def _get_crosshair_label(self, x, y):
+        w, h = self.texture.size[0], self.texture.size[1]
+        px = int(np.clip(x, 0, w - 1))
+        py = int(np.clip(y, 0, h - 1))
+        return f"x = {px} px\ny = {py} px"
 
     def set_frame(self, target_time: float):
         """
@@ -243,6 +249,27 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
 
         self.controller.renderer_request_draw()
 
+    def get_plot_state(self):
+        return {
+            label: pts.get_state()
+            for label, pts in self.points.items()
+        }
+
+    def set_plot_state(self, state: dict, available_vars: dict):
+        frame_index = self.controller.frame_index
+        time_array = getattr(self.data.index, "values", self.data.index)
+        time = time_array[frame_index]
+        for label, pts_state in state.items():
+            if label in available_vars:
+                tsdframe = available_vars[label]
+                # skeletons needs at least 2 (x,y) time series.
+                if not isinstance(tsdframe, nap.TsdFrame) or tsdframe.shape[1] < 4:
+                    continue
+                self.points[label] = PlotPoints.from_state(pts_state, scene=self.scene, tsdframe=tsdframe, initial_time=time)
+            else:
+                print(f"TsdFrame ``{label}`` not found.")
+
+
 
 class PlotTsdTensor(PlotBaseVideoTensor):
     """
@@ -278,6 +305,7 @@ class PlotVideo(PlotBaseVideoTensor):
         self,
         video: str | pathlib.Path | VideoHandler,
         t: Optional[NDArray] = None,
+        buffer_size_sec: float = 1.,
         stream_index: int = 0,
         index=None,
         start_worker: bool = True,
@@ -292,6 +320,11 @@ class PlotVideo(PlotBaseVideoTensor):
             Path to the video file to be visualized or a VideoHandler object.
         t : NDArray, optional
             Time vector to use for syncing frames.
+        buffer_size_sec: float
+            Duration of the recently-decoded frame cache in seconds (default 1 s).
+            Frames within this window are returned instantly on re-access without
+            any seek or decode. Larger values improve responsiveness during scrubbing
+            at the cost of additional memory.
         stream_index : int, default=0
             Index of the stream to read in the video file.
         index : int, optional
@@ -304,11 +337,15 @@ class PlotVideo(PlotBaseVideoTensor):
         """
         self._closed = False
         if isinstance(video, (str, pathlib.Path)):
-            data = VideoHandler(video, time=t, stream_index=stream_index)
+            with av.open(video) as container:
+                average_rate = container.streams.video[stream_index].average_rate
+                buffer_size = max(int(buffer_size_sec * average_rate), 1)
+            data = VideoHandler(video, time=t, stream_index=stream_index, buffer_size=buffer_size)
         else:
             if not isinstance(video, VideoHandler):
                 raise ValueError("video must be a file path or a VideoHandler instance.")
             data = video
+            data.reopen()
         self._data = data
         video_path = data.file_path
         super().__init__(data, index=index, parent=parent)

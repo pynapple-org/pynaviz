@@ -1,5 +1,7 @@
+from collections import defaultdict
 from typing import Any
 
+import numpy as np
 import pynapple as nap
 from PySide6.QtCore import (
     QAbstractListModel,
@@ -9,7 +11,14 @@ from PySide6.QtCore import (
     QTimer,
     Signal,
 )
-from PySide6.QtWidgets import QDialog, QListView, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QDialog,
+    QListView,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class DynamicSelectionListView(QListView):
@@ -166,6 +175,159 @@ class ChannelList(QDialog):
         layout = QVBoxLayout()
         layout.addWidget(self.view)
         self.setLayout(layout)
+
+
+class GroupedChannelTree(QTreeWidget):
+    """A tree widget showing channels nested under their group labels.
+
+    Top-level items represent groups (tristate checkboxes); leaf items
+    represent individual channels. Toggling a group propagates to all its
+    children; toggling a leaf updates the parent's tristate state.
+
+    Parameters
+    ----------
+    channel_names : list
+        Ordered channel keys matching ``_manager.index``.
+    groups_mapping : dict
+        ``{channel_key: group_label_str}`` — the metadata value used to group.
+    order_mapping : dict or None
+        ``{channel_key: int}`` sort rank from ``_manager.data["order"]``.
+        When provided, channels within each group are shown in rank order.
+    visibility_mapping : dict
+        ``{channel_key: bool}`` initial visibility state.
+    """
+
+    visibilityChanged = Signal(object)  # emits np.ndarray of bool in _manager.index order
+
+    def __init__(
+        self,
+        channel_names: list,
+        groups_mapping: dict,
+        order_mapping: dict | None,
+        visibility_mapping: dict,
+        parent: QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self._channel_names = channel_names
+        self._updating = False
+
+        self.setHeaderHidden(True)
+        self._build(channel_names, groups_mapping, order_mapping, visibility_mapping)
+        self.collapseAll()
+        self.itemChanged.connect(self._on_item_changed)
+
+    def _build(self, channel_names, groups_mapping, order_mapping, visibility_mapping):
+        groups: dict[str, list] = defaultdict(list)
+        for ch in channel_names:
+            groups[groups_mapping[ch]].append(ch)
+
+        for group_label in sorted(groups.keys(), key=str):
+            channels = groups[group_label]
+            if order_mapping is not None:
+                channels = sorted(channels, key=lambda c: order_mapping[c])
+
+            group_item = QTreeWidgetItem(self, [str(group_label)])
+            group_item.setFlags(
+                Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
+            )
+
+            for ch in channels:
+                leaf = QTreeWidgetItem(group_item, [str(ch)])
+                leaf.setFlags(
+                    Qt.ItemFlag.ItemIsEnabled
+                    | Qt.ItemFlag.ItemIsUserCheckable
+                    | Qt.ItemFlag.ItemIsSelectable
+                )
+                state = Qt.CheckState.Checked if visibility_mapping[ch] else Qt.CheckState.Unchecked
+                leaf.setCheckState(0, state)
+
+            # Set initial group tristate from children without triggering _on_item_changed
+            self._set_parent_tristate(group_item)
+
+    @staticmethod
+    def _set_parent_tristate(parent: QTreeWidgetItem) -> None:
+        states = [parent.child(i).checkState(0) for i in range(parent.childCount())]
+        if all(s == Qt.CheckState.Checked for s in states):
+            parent.setCheckState(0, Qt.CheckState.Checked)
+        elif all(s == Qt.CheckState.Unchecked for s in states):
+            parent.setCheckState(0, Qt.CheckState.Unchecked)
+        else:
+            parent.setCheckState(0, Qt.CheckState.PartiallyChecked)
+
+    def _on_item_changed(self, item: QTreeWidgetItem, _column: int):
+        if self._updating:
+            return
+        self._updating = True
+
+        if item.parent() is None:
+            # Group node toggled: propagate to all children.
+            state = item.checkState(0)
+            if state == Qt.CheckState.PartiallyChecked:
+                # Promote partial → checked on a direct click of the group node.
+                state = Qt.CheckState.Checked
+                item.setCheckState(0, state)
+            for i in range(item.childCount()):
+                item.child(i).setCheckState(0, state)
+        else:
+            # Leaf toggled: update parent tristate manually.
+            self._set_parent_tristate(item.parent())
+
+        self._updating = False
+        self.visibilityChanged.emit(self._visibility_array())
+
+    def _visibility_array(self) -> np.ndarray:
+        """Return a bool array in ``_channel_names`` order."""
+        state_map: dict = {}
+        for i in range(self.topLevelItemCount()):
+            group = self.topLevelItem(i)
+            for j in range(group.childCount()):
+                leaf = group.child(j)
+                state_map[leaf.text(0)] = leaf.checkState(0) == Qt.CheckState.Checked
+        return np.array([state_map[str(ch)] for ch in self._channel_names], dtype=bool)
+
+
+class GroupedChannelList(QDialog):
+    """Dialog wrapping :class:`GroupedChannelTree` for group-by channel visibility.
+
+    Emits ``visibilityChanged(np.ndarray)`` — a bool array in ``_manager.index``
+    order — whenever any checkbox in the tree changes.
+
+    Parameters
+    ----------
+    channel_names : list
+        Ordered channel keys matching ``_manager.index``.
+    groups_mapping : dict
+        ``{channel_key: group_label_str}``.
+    order_mapping : dict or None
+        ``{channel_key: int}`` sort rank, or ``None`` if not sorted.
+    visibility_mapping : dict
+        ``{channel_key: bool}`` initial visibility.
+    parent : QWidget, optional
+    """
+
+    visibilityChanged = Signal(object)  # np.ndarray of bool
+
+    def __init__(
+        self,
+        channel_names: list,
+        groups_mapping: dict,
+        order_mapping: dict | None,
+        visibility_mapping: dict,
+        parent: QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self.setWindowTitle("Channel List")
+        self.setWindowModality(Qt.WindowModality.NonModal)
+
+        self.tree = GroupedChannelTree(
+            channel_names, groups_mapping, order_mapping, visibility_mapping, parent=self
+        )
+        self.tree.visibilityChanged.connect(self.visibilityChanged)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.tree)
+        self.setLayout(layout)
+        self.adjustSize()
 
 
 
