@@ -1,0 +1,47 @@
+﻿pynaviz.base\_plot.PlotTsGroup
+==============================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. autoclass:: PlotTsGroup
+   :members:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :toctree: ./
+   
+      ~PlotTsGroup.__init__
+      ~PlotTsGroup.add_interval_sets
+      ~PlotTsGroup.animate
+      ~PlotTsGroup.close
+      ~PlotTsGroup.color_by
+      ~PlotTsGroup.from_state
+      ~PlotTsGroup.get_plot_state
+      ~PlotTsGroup.get_state
+      ~PlotTsGroup.group_by
+      ~PlotTsGroup.jump_to_next_epoch
+      ~PlotTsGroup.jump_to_previous_epoch
+      ~PlotTsGroup.remove_interval_set
+      ~PlotTsGroup.set_plot_state
+      ~PlotTsGroup.show
+      ~PlotTsGroup.sort_by
+      ~PlotTsGroup.update_interval_set
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~PlotTsGroup.cmap
+      ~PlotTsGroup.data
+   
+   

@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsdFrame.get\_state
+==========================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsdFrame.get_state

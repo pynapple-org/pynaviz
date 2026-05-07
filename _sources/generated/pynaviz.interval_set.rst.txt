@@ -1,0 +1,18 @@
+﻿pynaviz.interval\_set
+=====================
+
+.. automodule:: pynaviz.interval_set
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_max_interval_index
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      IntervalSetInterface
+   

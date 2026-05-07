@@ -1,0 +1,104 @@
+# TsdFrame
+
+```python
+import pynapple as nap
+import pynaviz as viz
+
+print(tsdframe)
+```
+```
+Time (s)    0                   1                     2                     3                     4
+----------  ------------------  --------------------  --------------------  --------------------  --------------------
+0.0         1.0                 0.30901699437494745   -0.8090169943749473   -0.8090169943749476   0.30901699437494723
+0.01        0.9921147013144779  0.18738131458572474   -0.8763066800438636   -0.7289686274214116   0.4257792915650726
+0.02        0.9685831611286311  0.06279051952931353   -0.9297764858882513   -0.6374239897486895   0.5358267949789968
+0.03        0.9297764858882515  -0.0627905195293134   -0.9685831611286311   -0.5358267949789971   0.6374239897486893
+0.04        0.8763066800438636  -0.1873813145857246   -0.9921147013144778   -0.42577929156507294  0.7289686274214112
+0.05        0.8090169943749475  -0.30901699437494734  -1.0                  -0.30901699437494756  0.8090169943749473
+0.06        0.7289686274214116  -0.4257792915650727   -0.9921147013144779   -0.18738131458572463  0.8763066800438636
+...
+9.93        0.6374239897486843  0.9297764858882566    -0.0627905195293063   -0.9685831611286311   -0.5358267949789907
+9.94        0.7289686274214013  0.8763066800438674    -0.18738131458570997  -0.9921147013144751   -0.42577929156508626
+9.95        0.8090169943749508  0.8090169943749482    -0.30901699437495284  -1.0                  -0.3090169943749286
+9.96        0.8763066800438695  0.7289686274214081    -0.4257792915650836   -0.9921147013144754   -0.1873813145856989
+9.97        0.929776485888253   0.6374239897486809    -0.5358267949790002   -0.9685831611286319   -0.06279051952930922
+9.98        0.9685831611286303  0.5358267949790055    -0.637423989748687    -0.9297764858882501   0.06279051952929554
+9.99        0.9921147013144782  0.4257792915650765    -0.7289686274214134   -0.8763066800438588   0.18738131458571336
+Metadata
+group       0                   0                     1                     0                     1
+channel     1                   3                     0                     2                     4
+...         ...                 ...                   ...                   ...                   ...
+dtype: float64, shape: (1000, 5)
+```
+
+---
+## PlotTsdFrame                    
+
+```python
+v = viz.PlotTsdFrame(tsdframe)
+
+v.show()
+```
+![None](/_static/screenshots/test_plot_tsdframe.png)
+
+                    
+
+---
+## PlotTsdFrame - group_by                    
+
+```python
+v = viz.PlotTsdFrame(tsdframe)
+v.group_by(metadata_name='group')
+v.show()
+```
+![group_by](/_static/screenshots/test_plot_tsdframe_group_by_metadata_name=_class__str__.png)
+
+                    
+
+---
+## PlotTsdFrame - sort_by                    
+
+```python
+v = viz.PlotTsdFrame(tsdframe)
+v.sort_by(metadata_name='channel')
+v.show()
+```
+![sort_by](/_static/screenshots/test_plot_tsdframe_sort_by_metadata_name=_class__str__.png)
+
+                    
+
+---
+## PlotTsdFrame - color_by                    
+
+```python
+v = viz.PlotTsdFrame(tsdframe)
+v.color_by(metadata_name='random')
+v.show()
+```
+![color_by](/_static/screenshots/test_plot_tsdframe_color_by_metadata_name=_class__str__.png)
+
+                    
+
+---
+## PlotTsdFrame - plot_x_vs_y                    
+
+```python
+v = viz.PlotTsdFrame(tsdframe)
+v.plot_x_vs_y(x_col=0, y_col=1)
+v.show()
+```
+![plot_x_vs_y](/_static/screenshots/test_plot_tsdframe_plot_x_vs_y_x_col=_class__int___y_col=_class__int__.png)
+
+                    
+
+---
+## PlotTsdFrame - add_interval_sets                    
+
+```python
+v = viz.PlotTsdFrame(tsdframe)
+v.add_interval_sets(epochs=IntervalSet)
+v.show()
+```
+![add_interval_sets](/_static/screenshots/test_plot_tsdframe_add_interval_sets_epochs=_class__pynapple.core.interval_set.IntervalSet__.png)
+
+                    

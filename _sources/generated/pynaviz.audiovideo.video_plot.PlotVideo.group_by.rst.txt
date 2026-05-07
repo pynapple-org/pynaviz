@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotVideo.group\_by
+==================================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotVideo.group_by

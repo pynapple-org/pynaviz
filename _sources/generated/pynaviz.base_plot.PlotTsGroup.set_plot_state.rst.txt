@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsGroup.set\_plot\_state
+===============================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsGroup.set_plot_state

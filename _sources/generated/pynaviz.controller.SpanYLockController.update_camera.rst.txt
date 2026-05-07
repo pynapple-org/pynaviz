@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.update\_camera
+=====================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.update_camera

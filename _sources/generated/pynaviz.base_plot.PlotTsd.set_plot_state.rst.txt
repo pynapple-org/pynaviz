@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsd.set\_plot\_state
+===========================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsd.set_plot_state

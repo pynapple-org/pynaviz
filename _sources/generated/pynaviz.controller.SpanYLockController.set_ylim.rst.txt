@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.set\_ylim
+================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.set_ylim

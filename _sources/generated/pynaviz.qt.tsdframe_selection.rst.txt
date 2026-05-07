@@ -1,0 +1,14 @@
+﻿pynaviz.qt.tsdframe\_selection
+==============================
+
+.. automodule:: pynaviz.qt.tsdframe_selection
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      DoubleSpinDelegate
+      TsdFramesDialog
+      TsdFramesModel
+   

@@ -1,0 +1,1311 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" data-theme="light">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pynaviz.qt.mainwindow &#8212; pynaviz  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "light";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_contributors.css?v=fe9086e2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f2caec9a" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=c57da192"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pynaviz/qt/mainwindow';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="light">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+    
+    <img src="../../../_static/Pynaviz_logo_color.svg" class="logo__image only-light" alt="pynaviz  documentation - Home"/>
+    <img src="../../../_static/Pynaviz_logo_color.svg" class="logo__image only-dark pst-js-only" alt="pynaviz  documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../gui_reference.html">
+    GUI reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../installing.html">
+    Installing
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../gui_reference.html">
+    GUI reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Example gallery
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/pynapple-org/pynaviz" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pynaviz.qt.mainwindow</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for pynaviz.qt.mainwindow</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">pynapple</span> <span class="k">as</span> <span class="nn">nap</span>
+<span class="kn">from</span> <span class="nn">PySide6.QtCore</span> <span class="kn">import</span> <span class="n">QByteArray</span><span class="p">,</span> <span class="n">QEvent</span><span class="p">,</span> <span class="n">QPoint</span><span class="p">,</span> <span class="n">QSize</span><span class="p">,</span> <span class="n">Qt</span><span class="p">,</span> <span class="n">QTimer</span>
+<span class="kn">from</span> <span class="nn">PySide6.QtGui</span> <span class="kn">import</span> <span class="n">QAction</span><span class="p">,</span> <span class="n">QColor</span><span class="p">,</span> <span class="n">QIcon</span><span class="p">,</span> <span class="n">QKeySequence</span><span class="p">,</span> <span class="n">QPainter</span><span class="p">,</span> <span class="n">QPixmap</span><span class="p">,</span> <span class="n">QShortcut</span>
+<span class="kn">from</span> <span class="nn">PySide6.QtWidgets</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">QApplication</span><span class="p">,</span>
+    <span class="n">QComboBox</span><span class="p">,</span>
+    <span class="n">QDockWidget</span><span class="p">,</span>
+    <span class="n">QDoubleSpinBox</span><span class="p">,</span>
+    <span class="n">QFileDialog</span><span class="p">,</span>
+    <span class="n">QHBoxLayout</span><span class="p">,</span>
+    <span class="n">QLabel</span><span class="p">,</span>
+    <span class="n">QMainWindow</span><span class="p">,</span>
+    <span class="n">QPushButton</span><span class="p">,</span>
+    <span class="n">QSlider</span><span class="p">,</span>
+    <span class="n">QStatusBar</span><span class="p">,</span>
+    <span class="n">QStyle</span><span class="p">,</span>
+    <span class="n">QStyleOptionSlider</span><span class="p">,</span>
+    <span class="n">QWidget</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">..controller_group</span> <span class="kn">import</span> <span class="n">ControllerGroup</span>
+<span class="kn">from</span> <span class="nn">..format_profiles</span> <span class="kn">import</span> <span class="n">FORMAT_PROFILES</span>
+<span class="kn">from</span> <span class="nn">.icons</span> <span class="kn">import</span> <span class="n">icon_base64</span>
+<span class="kn">from</span> <span class="nn">.layout_manager</span> <span class="kn">import</span> <span class="n">LayoutManagerMixin</span>
+<span class="kn">from</span> <span class="nn">.references</span> <span class="kn">import</span> <span class="n">EphysReference</span><span class="p">,</span> <span class="n">NWBReference</span>
+<span class="kn">from</span> <span class="nn">.variable_dock</span> <span class="kn">import</span> <span class="n">VariableDock</span><span class="p">,</span> <span class="n">_get_variable_from_key_path</span>
+<span class="kn">from</span> <span class="nn">.variable_loader</span> <span class="kn">import</span> <span class="n">_infer_ephys_format</span><span class="p">,</span> <span class="n">get_pynapple_variables</span>
+<span class="kn">from</span> <span class="nn">.widget_plot</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">IntervalSetWidget</span><span class="p">,</span>
+    <span class="n">TsdFrameWidget</span><span class="p">,</span>
+    <span class="n">TsdTensorWidget</span><span class="p">,</span>
+    <span class="n">TsdWidget</span><span class="p">,</span>
+    <span class="n">TsGroupWidget</span><span class="p">,</span>
+    <span class="n">TsWidget</span><span class="p">,</span>
+    <span class="n">VideoHandler</span><span class="p">,</span>
+    <span class="n">VideoWidget</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">_TIMEBAR_RESOLUTION</span> <span class="o">=</span> <span class="mi">1_000_000</span>
+
+
+<span class="k">class</span> <span class="nc">_TimeSlider</span><span class="p">(</span><span class="n">QSlider</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Horizontal slider with click-to-seek and a view-window indicator band.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_view_start_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_view_end_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">def</span> <span class="nf">set_view_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_frac</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">end_frac</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the shaded band that shows the currently visible time window.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_view_start_frac</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">start_frac</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_view_end_frac</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">end_frac</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_groove_rect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">QStyleOptionSlider</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initStyleOption</span><span class="p">(</span><span class="n">opt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">subControlRect</span><span class="p">(</span>
+            <span class="n">QStyle</span><span class="o">.</span><span class="n">ComplexControl</span><span class="o">.</span><span class="n">CC_Slider</span><span class="p">,</span>
+            <span class="n">opt</span><span class="p">,</span>
+            <span class="n">QStyle</span><span class="o">.</span><span class="n">SubControl</span><span class="o">.</span><span class="n">SC_SliderGroove</span><span class="p">,</span>
+            <span class="bp">self</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">paintEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">paintEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_view_end_frac</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_view_start_frac</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">groove</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groove_rect</span><span class="p">()</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="n">groove</span><span class="o">.</span><span class="n">x</span><span class="p">()</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_view_start_frac</span> <span class="o">*</span> <span class="n">groove</span><span class="o">.</span><span class="n">width</span><span class="p">())</span>
+        <span class="n">x2</span> <span class="o">=</span> <span class="n">groove</span><span class="o">.</span><span class="n">x</span><span class="p">()</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_view_end_frac</span> <span class="o">*</span> <span class="n">groove</span><span class="o">.</span><span class="n">width</span><span class="p">())</span>
+        <span class="n">painter</span> <span class="o">=</span> <span class="n">QPainter</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">setRenderHint</span><span class="p">(</span><span class="n">QPainter</span><span class="o">.</span><span class="n">RenderHint</span><span class="o">.</span><span class="n">Antialiasing</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">fillRect</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">groove</span><span class="o">.</span><span class="n">y</span><span class="p">(),</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">x1</span><span class="p">,</span> <span class="n">groove</span><span class="o">.</span><span class="n">height</span><span class="p">(),</span> <span class="n">QColor</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">80</span><span class="p">))</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">mousePressEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">button</span><span class="p">()</span> <span class="o">==</span> <span class="n">Qt</span><span class="o">.</span><span class="n">MouseButton</span><span class="o">.</span><span class="n">LeftButton</span><span class="p">:</span>
+            <span class="n">groove</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groove_rect</span><span class="p">()</span>
+            <span class="n">click_x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">position</span><span class="p">()</span><span class="o">.</span><span class="n">x</span><span class="p">())</span> <span class="o">-</span> <span class="n">groove</span><span class="o">.</span><span class="n">x</span><span class="p">()</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">QStyle</span><span class="o">.</span><span class="n">sliderValueFromPosition</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">minimum</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">maximum</span><span class="p">(),</span> <span class="n">click_x</span><span class="p">,</span> <span class="n">groove</span><span class="o">.</span><span class="n">width</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">mousePressEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">wheelEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="n">ticks</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">angleDelta</span><span class="p">()</span><span class="o">.</span><span class="n">y</span><span class="p">()</span> <span class="o">/</span> <span class="mi">120</span>  <span class="c1"># standard wheel tick = 120 units</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ticks</span> <span class="o">*</span> <span class="n">_TIMEBAR_RESOLUTION</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span>  <span class="c1"># 1 % of range per tick</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">()</span> <span class="o">+</span> <span class="n">step</span><span class="p">)</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_session_layout_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the per-process temp file used to persist the layout across scope() calls.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">gettempdir</span><span class="p">())</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;pynaviz_session_</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span><span class="si">}</span><span class="s2">.json&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_apply_format_profile</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">format_profiles</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply sort/group/color defaults for the given widget type, if a profile exists.&quot;&quot;&quot;</span>
+    <span class="n">profile</span> <span class="o">=</span> <span class="n">format_profiles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">profile</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">plot</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="s2">&quot;plot&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">plot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="s2">&quot;button_container&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;metadata&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">profile</span><span class="o">.</span><span class="n">group_by</span> <span class="ow">and</span> <span class="n">profile</span><span class="o">.</span><span class="n">group_by</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+        <span class="n">plot</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">profile</span><span class="o">.</span><span class="n">group_by</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">profile</span><span class="o">.</span><span class="n">sort_by</span> <span class="ow">and</span> <span class="n">profile</span><span class="o">.</span><span class="n">sort_by</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+        <span class="n">plot</span><span class="o">.</span><span class="n">sort_by</span><span class="p">(</span><span class="n">profile</span><span class="o">.</span><span class="n">sort_by</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">profile</span><span class="o">.</span><span class="n">sort_mode</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">profile</span><span class="o">.</span><span class="n">color_by</span> <span class="ow">and</span> <span class="n">profile</span><span class="o">.</span><span class="n">color_by</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+        <span class="n">plot</span><span class="o">.</span><span class="n">color_by</span><span class="p">(</span><span class="n">profile</span><span class="o">.</span><span class="n">color_by</span><span class="p">,</span> <span class="n">cmap_name</span><span class="o">=</span><span class="n">profile</span><span class="o">.</span><span class="n">cmap_name</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MainWindow">
+<a class="viewcode-back" href="../../../generated/pynaviz.qt.mainwindow.html#pynaviz.qt.mainwindow.MainWindow">[docs]</a>
+<span class="k">class</span> <span class="nc">MainWindow</span><span class="p">(</span><span class="n">LayoutManagerMixin</span><span class="p">,</span> <span class="n">QMainWindow</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Main application window for pynaviz.</span>
+
+<span class="sd">    ``MainWindow`` is the top-level Qt widget that hosts all plot docks.</span>
+<span class="sd">    It is normally created indirectly through :func:`pynaviz.scope`, but can</span>
+<span class="sd">    also be instantiated directly when embedding pynaviz inside a larger Qt</span>
+<span class="sd">    application or when writing tests.</span>
+
+<span class="sd">    Layout</span>
+<span class="sd">    ------</span>
+<span class="sd">    The window is divided into three areas:</span>
+
+<span class="sd">    - **Left panel** — ``VariableDock``: a tree widget listing all variables</span>
+<span class="sd">      passed at construction time.  Double-clicking an entry opens a new plot</span>
+<span class="sd">      dock for that variable.</span>
+<span class="sd">    - **Central / right area** — plot docks, one per visualised variable.</span>
+<span class="sd">      Docks can be dragged, tabbed, floated, or closed.</span>
+<span class="sd">    - **Bottom status bar** — a global time display and time-unit selector</span>
+<span class="sd">      that reflects the current playback position shared across all docks.</span>
+
+<span class="sd">    Time synchronisation</span>
+<span class="sd">    --------------------</span>
+<span class="sd">    All open plot docks share a single :class:`ControllerGroup`</span>
+<span class="sd">    (``self.ctrl_group``).  Panning or scrubbing in any dock updates the</span>
+<span class="sd">    shared time and propagates to every other dock automatically.</span>
+
+<span class="sd">    Keyboard shortcuts</span>
+<span class="sd">    ------------------</span>
+<span class="sd">    Global (window-level):</span>
+
+<span class="sd">    - **Space** — play / pause</span>
+<span class="sd">    - **Ctrl+S** — save layout</span>
+<span class="sd">    - **Ctrl+O** — load layout</span>
+
+<span class="sd">    Per-dock (active when the mouse is over or the canvas has focus):</span>
+
+<span class="sd">    - **r** — reset view</span>
+<span class="sd">    - **← / →** — pan left / right by one page</span>
+<span class="sd">    - **y** — toggle y-axis lock (span mode only; no-op in x-vs-y or image mode)</span>
+<span class="sd">    - **x** — toggle x-axis lock (span and image mode; no-op in x-vs-y mode)</span>
+<span class="sd">    - **Ctrl+← / Ctrl+→** — jump to previous / next superposed epoch; requires at</span>
+<span class="sd">      least one ``IntervalSet`` to be overlaid on that dock via *Select IntervalSet*</span>
+<span class="sd">      (works on any plot type, not only ``IntervalSet`` plots)</span>
+<span class="sd">    - **i / d** — increase / decrease contrast (TsdFrame) or marker size (TsGroup)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    variables : dict or None, optional</span>
+<span class="sd">        Mapping of ``{name: object}`` to populate the variable panel.</span>
+<span class="sd">        Accepts the same types as :func:`pynaviz.scope`.  Defaults to an</span>
+<span class="sd">        empty dict (no variables pre-loaded).</span>
+<span class="sd">    layout_path : str, pathlib.Path, or None, optional</span>
+<span class="sd">        Path to a ``.json`` layout file produced by *Save Layout*.  When</span>
+<span class="sd">        given, the window restores the saved dock arrangement, camera views,</span>
+<span class="sd">        and plot actions immediately after construction.  Variables are</span>
+<span class="sd">        matched to saved docks by name; unmatched docks are skipped.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    variables : dict</span>
+<span class="sd">        Live mapping of all variables currently known to the window,</span>
+<span class="sd">        including any loaded via *File → Open* after construction.</span>
+<span class="sd">    ctrl_group : ControllerGroup</span>
+<span class="sd">        Shared time controller that synchronises all open plot docks.</span>
+<span class="sd">    variable_dock : VariableDock</span>
+<span class="sd">        The left-panel tree widget.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_file_extensions</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;Pynapple&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;.npz&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;NWB&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;.nwb&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;Video&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;.avi&quot;</span><span class="p">,</span> <span class="s2">&quot;.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;.mkv&quot;</span><span class="p">],</span>
+            <span class="c1"># uncomment above when PlotAudio is available.</span>
+            <span class="c1"># &quot;Audio&quot;: [&quot;.mp3&quot;, &quot;.wav&quot;, &quot;.flac&quot;]</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">layout_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        RuntimeError</span>
+<span class="sd">            If no ``QApplication`` instance exists.  Create one before</span>
+<span class="sd">            instantiating ``MainWindow`` directly, or use :func:`pynaviz.scope`</span>
+<span class="sd">            which handles this automatically.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">QApplication</span><span class="o">.</span><span class="n">instance</span><span class="p">():</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;A Qt application must be created.&quot;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Pynaviz&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setObjectName</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">QSize</span><span class="p">(</span><span class="mi">1200</span><span class="p">,</span> <span class="mi">800</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setDockNestingEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_open_file_paths</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_dock_open</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="n">variables</span> <span class="k">if</span> <span class="n">variables</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}</span>
+
+        <span class="c1"># --- List of variables ---</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tsdframe_keys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">nap</span><span class="o">.</span><span class="n">TsdFrame</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_tsdframe_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>  <span class="c1"># Storing tsdframe keys for point and skeleton overlay</span>
+
+        <span class="c1"># ---- Top Menu Bar ----</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_top_menu_bar</span><span class="p">()</span>
+
+        <span class="c1"># ---- Variables Widget ----</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variable_dock</span> <span class="o">=</span> <span class="n">VariableDock</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addDockWidget</span><span class="p">(</span><span class="n">Qt</span><span class="o">.</span><span class="n">DockWidgetArea</span><span class="o">.</span><span class="n">LeftDockWidgetArea</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable_dock</span><span class="p">)</span>
+
+        <span class="c1"># ---- Bottom Status Bar ----</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_status_bar</span><span class="p">()</span>
+
+        <span class="c1"># ---- misc ----</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">playing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timer</span> <span class="o">=</span> <span class="n">QTimer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timer</span><span class="o">.</span><span class="n">timeout</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_play</span><span class="p">)</span>
+        <span class="n">shortcut</span> <span class="o">=</span> <span class="n">QShortcut</span><span class="p">(</span><span class="n">QKeySequence</span><span class="p">(</span><span class="s2">&quot;Space&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">shortcut</span><span class="o">.</span><span class="n">activated</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_play</span><span class="p">)</span>
+
+        <span class="c1"># Adding controller group</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span> <span class="o">=</span> <span class="n">ControllerGroup</span><span class="p">(</span><span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_time_label</span><span class="p">)</span>
+
+        <span class="c1"># Loading layout if provided</span>
+        <span class="k">if</span> <span class="n">layout_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">layout_path</span><span class="p">):</span>
+            <span class="n">verbose</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">layout_path</span><span class="p">)</span> <span class="o">!=</span> <span class="n">_session_layout_path</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_restore_layout</span><span class="p">(</span><span class="n">layout_path</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Menu bar &amp; status bar</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">_create_top_menu_bar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">menu_bar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">menuBar</span><span class="p">()</span>
+        <span class="n">file_menu</span> <span class="o">=</span> <span class="n">menu_bar</span><span class="o">.</span><span class="n">addMenu</span><span class="p">(</span><span class="s2">&quot;&amp;File&quot;</span><span class="p">)</span>
+        <span class="n">open_action</span> <span class="o">=</span> <span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;&amp;Open...&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">open_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">open_file</span><span class="p">)</span>
+        <span class="n">file_menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="n">open_action</span><span class="p">)</span>
+        <span class="n">open_folder_action</span> <span class="o">=</span> <span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;Open &amp;Folder...&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">open_folder_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">open_folder</span><span class="p">)</span>
+        <span class="n">file_menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="n">open_folder_action</span><span class="p">)</span>
+        <span class="n">file_menu</span><span class="o">.</span><span class="n">addSeparator</span><span class="p">()</span>
+        <span class="n">file_menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="s2">&quot;&amp;Load layout&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_layout</span><span class="p">)</span>
+        <span class="n">file_menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="s2">&quot;&amp;Save layout&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_layout</span><span class="p">)</span>
+        <span class="n">file_menu</span><span class="o">.</span><span class="n">addSeparator</span><span class="p">()</span>
+        <span class="n">file_menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="s2">&quot;&amp;Exit&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">)</span>
+
+        <span class="n">help_menu</span> <span class="o">=</span> <span class="n">menu_bar</span><span class="o">.</span><span class="n">addMenu</span><span class="p">(</span><span class="s2">&quot;&amp;Help&quot;</span><span class="p">)</span>
+        <span class="n">help_menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="s2">&quot;&amp;Shortcuts&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_toggle_help_box</span><span class="p">)</span>
+        <span class="n">help_menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="s2">&quot;&amp;About&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help_box</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_create_status_bar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">status_bar</span> <span class="o">=</span> <span class="n">QStatusBar</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setStatusBar</span><span class="p">(</span><span class="n">status_bar</span><span class="p">)</span>
+        <span class="n">bottom_container</span> <span class="o">=</span> <span class="n">QWidget</span><span class="p">()</span>
+        <span class="n">bottom_layout</span> <span class="o">=</span> <span class="n">QHBoxLayout</span><span class="p">(</span><span class="n">bottom_container</span><span class="p">)</span>
+
+        <span class="c1"># --- play/pause buttons ---</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skipBackwardBtn</span> <span class="o">=</span> <span class="n">QPushButton</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skipBackwardBtn</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">QStyle</span><span class="o">.</span><span class="n">StandardPixmap</span><span class="o">.</span><span class="n">SP_MediaSkipBackward</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skipBackwardBtn</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_skip_backward</span><span class="p">)</span>
+        <span class="n">bottom_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skipBackwardBtn</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">playPauseBtn</span> <span class="o">=</span> <span class="n">QPushButton</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">playPauseBtn</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">QStyle</span><span class="o">.</span><span class="n">StandardPixmap</span><span class="o">.</span><span class="n">SP_MediaPlay</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">playPauseBtn</span><span class="o">.</span><span class="n">setCheckable</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">playPauseBtn</span><span class="o">.</span><span class="n">toggled</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_play</span><span class="p">)</span>
+        <span class="n">bottom_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">playPauseBtn</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stopBtn</span> <span class="o">=</span> <span class="n">QPushButton</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stopBtn</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">QStyle</span><span class="o">.</span><span class="n">StandardPixmap</span><span class="o">.</span><span class="n">SP_MediaStop</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stopBtn</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stop</span><span class="p">)</span>
+        <span class="n">bottom_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stopBtn</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">skipForwardBtn</span> <span class="o">=</span> <span class="n">QPushButton</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skipForwardBtn</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">QStyle</span><span class="o">.</span><span class="n">StandardPixmap</span><span class="o">.</span><span class="n">SP_MediaSkipForward</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skipForwardBtn</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_skip_forward</span><span class="p">)</span>
+        <span class="n">bottom_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skipForwardBtn</span><span class="p">)</span>
+
+        <span class="c1"># --- Time spinbox &amp; unit selector ---</span>
+        <span class="n">bottom_layout</span><span class="o">.</span><span class="n">setContentsMargins</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span> <span class="o">=</span> <span class="n">QDoubleSpinBox</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;font-size: 10pt;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setMinimum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setMaximum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">valueChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_on_spinbox_changed</span><span class="p">)</span>
+        <span class="n">bottom_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span> <span class="o">=</span> <span class="n">QComboBox</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;font-size: 10pt;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">addItem</span><span class="p">(</span><span class="s1">&#39;us&#39;</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">addItem</span><span class="p">(</span><span class="s1">&#39;ms&#39;</span><span class="p">,</span> <span class="mf">1e3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">addItem</span><span class="p">(</span><span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">setCurrentIndex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># default to seconds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">setFixedWidth</span><span class="p">(</span><span class="mi">55</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">currentIndexChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_on_unit_changed</span><span class="p">)</span>
+        <span class="n">bottom_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="p">)</span>
+
+        <span class="c1"># --- Time bar (scrubber) ---</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span> <span class="o">=</span> <span class="n">_TimeSlider</span><span class="p">(</span><span class="n">Qt</span><span class="o">.</span><span class="n">Orientation</span><span class="o">.</span><span class="n">Horizontal</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span><span class="o">.</span><span class="n">setRange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">_TIMEBAR_RESOLUTION</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span><span class="o">.</span><span class="n">setMinimumHeight</span><span class="p">(</span><span class="mi">28</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            QSlider::groove:horizontal {</span>
+<span class="s2">                height: 10px;</span>
+<span class="s2">                border-radius: 5px;</span>
+<span class="s2">                background: #555;</span>
+<span class="s2">            }</span>
+<span class="s2">            QSlider::handle:horizontal {</span>
+<span class="s2">                width: 18px;</span>
+<span class="s2">                height: 18px;</span>
+<span class="s2">                margin: -4px 0;</span>
+<span class="s2">                border-radius: 9px;</span>
+<span class="s2">                background: #aaa;</span>
+<span class="s2">            }</span>
+<span class="s2">            QSlider::handle:horizontal:hover {</span>
+<span class="s2">                background: #fff;</span>
+<span class="s2">            }</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span><span class="o">.</span><span class="n">valueChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_on_timebar_scrub</span><span class="p">)</span>
+        <span class="n">bottom_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># stretch=1 fills remaining space</span>
+
+        <span class="n">status_bar</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">bottom_container</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_toggle_help_box</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">.variable_dock</span> <span class="kn">import</span> <span class="n">HelpBox</span>
+        <span class="c1"># If the box exists and is visible, close it</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">help_box</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">help_box</span><span class="o">.</span><span class="n">isVisible</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">help_box</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">help_box</span> <span class="o">=</span> <span class="n">HelpBox</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># Position it below the button</span>
+        <span class="n">btn_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapToGlobal</span><span class="p">(</span><span class="n">QPoint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help_box</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">btn_pos</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help_box</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># File loading</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="MainWindow.open_file">
+<a class="viewcode-back" href="../../../generated/pynaviz.qt.mainwindow.html#pynaviz.qt.mainwindow.MainWindow.open_file">[docs]</a>
+    <span class="k">def</span> <span class="nf">open_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">extensions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file_extensions</span>
+        <span class="c1"># create the formatted string for QFileDialog ext</span>
+        <span class="n">ext_string</span> <span class="o">=</span> <span class="s2">&quot;All (&quot;</span>
+        <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">exts</span> <span class="ow">in</span> <span class="n">extensions</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">exts</span><span class="p">):</span>
+            <span class="n">ext_string</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;*</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2"> &quot;</span>
+        <span class="n">ext_string</span> <span class="o">=</span> <span class="n">ext_string</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;);;&quot;</span>
+
+        <span class="k">for</span> <span class="n">ext_name</span><span class="p">,</span> <span class="n">ext_list</span> <span class="ow">in</span> <span class="n">extensions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">ext_string</span> <span class="o">+=</span> <span class="n">ext_name</span> <span class="o">+</span> <span class="s2">&quot; (&quot;</span>
+            <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="n">ext_list</span><span class="p">:</span>
+                <span class="n">ext_string</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;*</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="n">ext_string</span> <span class="o">=</span> <span class="n">ext_string</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;);;&quot;</span>
+        <span class="n">ext_string</span> <span class="o">=</span> <span class="n">ext_string</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="n">filenames</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">QFileDialog</span><span class="o">.</span><span class="n">getOpenFileNames</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="s2">&quot;Open Files&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">ext_string</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_multiple_files</span><span class="p">(</span><span class="n">filenames</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MainWindow.open_folder">
+<a class="viewcode-back" href="../../../generated/pynaviz.qt.mainwindow.html#pynaviz.qt.mainwindow.MainWindow.open_folder">[docs]</a>
+    <span class="k">def</span> <span class="nf">open_folder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Open a directory containing electrophysiology recordings (e.g. NeuroScopeIO).&quot;&quot;&quot;</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">QFileDialog</span><span class="o">.</span><span class="n">getExistingDirectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Open Folder&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">folder</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_load_multiple_files</span><span class="p">([</span><span class="n">folder</span><span class="p">])</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_load_multiple_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filenames</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+        <span class="kn">from</span> <span class="nn">.variable_loader</span> <span class="kn">import</span> <span class="n">EPHYS_EXTENSIONS</span>
+
+        <span class="k">def</span> <span class="nf">get_type</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;Pynapple&quot;</span><span class="p">,</span> <span class="s2">&quot;NWB&quot;</span><span class="p">,</span> <span class="s2">&quot;Video&quot;</span><span class="p">,</span> <span class="s2">&quot;Ephys&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+                <span class="k">return</span> <span class="s2">&quot;Ephys&quot;</span>
+            <span class="n">file_type</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">tp</span><span class="p">,</span> <span class="n">exts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file_extensions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">in</span> <span class="n">exts</span><span class="p">:</span>
+                    <span class="n">file_type</span> <span class="o">=</span> <span class="n">tp</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">file_type</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">name</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">EPHYS_EXTENSIONS</span><span class="p">:</span>
+                <span class="n">file_type</span> <span class="o">=</span> <span class="s2">&quot;Ephys&quot;</span>
+            <span class="k">return</span> <span class="n">file_type</span>
+
+        <span class="n">new_vars</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">file_type</span> <span class="o">=</span> <span class="n">get_type</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> does not exist. Skipping.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">file_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File type </span><span class="si">{</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2"> not supported. Skipping.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">file_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;Pynapple&quot;</span><span class="p">]:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">nap</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;pynapple&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="vm">__module__</span><span class="p">:</span>
+                    <span class="n">new_vars</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">name</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">nap</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="n">name</span><span class="p">)})</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> does not contain a pynapple object. See pynapple documentation for saving pynapple objects with npz&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">file_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;NWB&quot;</span><span class="p">]:</span>
+                <span class="n">data</span><span class="p">:</span> <span class="n">nap</span><span class="o">.</span><span class="n">NWBFile</span> <span class="o">=</span> <span class="n">nap</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">nap_obj_dict</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">nap_obj_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">NWBReference</span><span class="p">(</span><span class="n">nwb_file</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">new_vars</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">name</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">nap_obj_dict</span><span class="p">})</span>
+            <span class="k">elif</span> <span class="n">file_type</span> <span class="o">==</span> <span class="s2">&quot;Video&quot;</span><span class="p">:</span>
+                <span class="n">new_vars</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">name</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
+            <span class="k">elif</span> <span class="n">file_type</span> <span class="o">==</span> <span class="s2">&quot;Ephys&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">nap</span><span class="o">.</span><span class="n">EphysReader</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                    <span class="n">fmt</span> <span class="o">=</span> <span class="n">_infer_ephys_format</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                    <span class="n">nap_obj_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">EphysReference</span><span class="p">(</span><span class="n">ephys_reader</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">fmt</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+                    <span class="n">new_vars</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">name</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">nap_obj_dict</span><span class="p">})</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not load </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> as EphysReader: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Developer forgot to add file type `</span><span class="si">{</span><span class="n">file_type</span><span class="si">}</span><span class="s2">` to the loader.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_open_file_paths</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">as_posix</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_vars</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variable_dock</span><span class="o">.</span><span class="n">_add_items_to_tree_widget</span><span class="p">(</span><span class="n">new_vars</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Playback</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">_toggle_play</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">playing</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">playing</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">playing</span><span class="p">:</span>
+            <span class="c1"># TODO: look through docks and set a flag for all video plots to use async reading</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timer</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span>  <span class="c1"># 40 FPS</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">playPauseBtn</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span><span class="n">QIcon</span><span class="o">.</span><span class="n">fromTheme</span><span class="p">(</span><span class="s2">&quot;media-playback-pause&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># TODO: switch back to normal reading for plotvideos</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">playPauseBtn</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span><span class="n">QIcon</span><span class="o">.</span><span class="n">fromTheme</span><span class="p">(</span><span class="s2">&quot;media-playback-start&quot;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">set_interval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">current_time</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_play</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">0.025</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">advance</span><span class="p">(</span><span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_time_label</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">current_time</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">playing</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_toggle_play</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">set_interval</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_time_label</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">current_time</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_max_min_time</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+        <span class="n">max_time</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+        <span class="n">min_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">dock_widget</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">findChildren</span><span class="p">(</span><span class="n">QDockWidget</span><span class="p">):</span>
+            <span class="n">base_plot</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dock_widget</span><span class="o">.</span><span class="n">widget</span><span class="p">(),</span> <span class="s2">&quot;plot&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">base_plot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">base_plot</span><span class="o">.</span><span class="n">data</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;time_support&quot;</span><span class="p">):</span>
+                    <span class="n">mn</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time_support</span><span class="o">.</span><span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">mx</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time_support</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">nap</span><span class="o">.</span><span class="n">IntervalSet</span><span class="p">):</span>
+                    <span class="n">mn</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">mx</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">mn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">base_plot</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">,</span> <span class="n">base_plot</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">mx</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">base_plot</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">,</span> <span class="n">base_plot</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">min_time</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">min_time</span><span class="p">,</span> <span class="n">mn</span><span class="p">)</span>
+                <span class="n">max_time</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_time</span><span class="p">,</span> <span class="n">mx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">min_time</span><span class="p">,</span> <span class="n">max_time</span>
+
+    <span class="k">def</span> <span class="nf">_skip_backward</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">min_time</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_max_min_time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">min_time</span> <span class="o">!=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">ctrl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">_controller_group</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ctrl</span><span class="p">,</span> <span class="s2">&quot;get_xlim&quot;</span><span class="p">):</span>
+                    <span class="n">xlim</span> <span class="o">=</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
+                    <span class="n">width</span> <span class="o">=</span> <span class="n">xlim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">xlim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">break</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">set_interval</span><span class="p">(</span><span class="n">min_time</span><span class="p">,</span> <span class="n">min_time</span> <span class="o">+</span> <span class="n">width</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_time_label</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">current_time</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_skip_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">max_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_max_min_time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">max_time</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">set_interval</span><span class="p">(</span><span class="n">max_time</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_time_label</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">current_time</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_on_unit_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;When user changes units, update the spinbox display.&quot;&quot;&quot;</span>
+        <span class="n">multiplier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">currentData</span><span class="p">()</span>
+        <span class="n">display_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">current_time</span> <span class="o">*</span> <span class="n">multiplier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># Prevent recursion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="n">display_value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_on_spinbox_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle spinbox changes based on source enum.&quot;&quot;&quot;</span>
+        <span class="n">multiplier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">currentData</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">set_interval</span><span class="p">(</span><span class="n">value</span> <span class="o">/</span> <span class="n">multiplier</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_on_timebar_scrub</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Translate a slider integer position to a time and pan all controllers there.&quot;&quot;&quot;</span>
+        <span class="n">min_time</span><span class="p">,</span> <span class="n">max_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_max_min_time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">max_time</span> <span class="o">&lt;=</span> <span class="n">min_time</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">min_time</span> <span class="o">+</span> <span class="p">(</span><span class="n">value</span> <span class="o">/</span> <span class="n">_TIMEBAR_RESOLUTION</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_time</span> <span class="o">-</span> <span class="n">min_time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">set_interval</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_update_timebar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">max_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">current_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the slider position and view-window band without triggering a scrub event.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">max_time</span> <span class="o">&lt;=</span> <span class="n">min_time</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">max_time</span> <span class="o">-</span> <span class="n">min_time</span>
+        <span class="n">frac</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_time</span> <span class="o">-</span> <span class="n">min_time</span><span class="p">)</span> <span class="o">/</span> <span class="n">total</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">frac</span><span class="p">))</span> <span class="o">*</span> <span class="n">_TIMEBAR_RESOLUTION</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Update the view-window band from the first available controller xlim</span>
+        <span class="k">for</span> <span class="n">ctrl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">_controller_group</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ctrl</span><span class="p">,</span> <span class="s2">&quot;get_xlim&quot;</span><span class="p">):</span>
+                <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">time_slider</span><span class="o">.</span><span class="n">set_view_window</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">xmin</span> <span class="o">-</span> <span class="n">min_time</span><span class="p">)</span> <span class="o">/</span> <span class="n">total</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">xmax</span> <span class="o">-</span> <span class="n">min_time</span><span class="p">)</span> <span class="o">/</span> <span class="n">total</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">break</span>
+
+    <span class="k">def</span> <span class="nf">_update_time_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_time</span><span class="p">):</span>
+        <span class="n">time_multiplier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">currentData</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">min_time</span><span class="p">,</span> <span class="n">max_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_max_min_time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">max_time</span> <span class="o">!=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">min_time</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setMinimum</span><span class="p">(</span><span class="n">min_time</span> <span class="o">*</span> <span class="n">time_multiplier</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setMaximum</span><span class="p">(</span><span class="n">max_time</span> <span class="o">*</span> <span class="n">time_multiplier</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_timebar</span><span class="p">(</span><span class="n">min_time</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="n">current_time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="n">time_multiplier</span> <span class="o">*</span> <span class="n">current_time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Dock management</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">_cleanup_and_close_dock</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dock</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Properly clean up and close a dock widget.&quot;&quot;&quot;</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="n">dock</span><span class="o">.</span><span class="n">widget</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="s1">&#39;plot&#39;</span><span class="p">):</span>
+            <span class="n">ctrl_id</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">_controller_id</span>
+            <span class="n">widget</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">ctrl_id</span><span class="p">)</span>
+        <span class="n">dock</span><span class="o">.</span><span class="n">deleteLater</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_add_dock_to_gui</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dock</span><span class="p">:</span> <span class="n">QDockWidget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add dock to the GUI and balance right docks vertically.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addDockWidget</span><span class="p">(</span><span class="n">Qt</span><span class="o">.</span><span class="n">DockWidgetArea</span><span class="o">.</span><span class="n">RightDockWidgetArea</span><span class="p">,</span> <span class="n">dock</span><span class="p">)</span>
+
+        <span class="c1"># Balance heights of all right docks</span>
+        <span class="n">right_docks</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">findChildren</span><span class="p">(</span><span class="n">QDockWidget</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dockWidgetArea</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">==</span> <span class="n">Qt</span><span class="o">.</span><span class="n">DockWidgetArea</span><span class="o">.</span><span class="n">RightDockWidgetArea</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">right_docks</span><span class="p">:</span>
+            <span class="n">sizes_h</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">right_docks</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resizeDocks</span><span class="p">(</span><span class="n">right_docks</span><span class="p">,</span> <span class="n">sizes_h</span><span class="p">,</span> <span class="n">Qt</span><span class="o">.</span><span class="n">Orientation</span><span class="o">.</span><span class="n">Vertical</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_register_controller</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register the widget&#39;s plot in the controller group.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">widget</span><span class="o">.</span><span class="n">plot</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_dock_open</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_same_level_interval_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nap</span><span class="o">.</span><span class="n">IntervalSet</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return all IntervalSets that are siblings of key_path in the variables tree.&quot;&quot;&quot;</span>
+        <span class="n">parent_path</span> <span class="o">=</span> <span class="n">key_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">parent_dict</span> <span class="o">=</span> <span class="n">_get_variable_from_key_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span> <span class="n">parent_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">parent_path</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parent_dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">sibling_key</span><span class="p">,</span> <span class="n">sibling_val</span> <span class="ow">in</span> <span class="n">parent_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">sibling_key</span> <span class="o">==</span> <span class="n">key_path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="n">resolved</span> <span class="o">=</span> <span class="n">sibling_val</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">EphysReference</span><span class="p">):</span>
+                <span class="n">resolved</span> <span class="o">=</span> <span class="n">resolved</span><span class="o">.</span><span class="n">ephys_reader</span><span class="p">[</span><span class="n">resolved</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">NWBReference</span><span class="p">):</span>
+                <span class="n">resolved</span> <span class="o">=</span> <span class="n">resolved</span><span class="o">.</span><span class="n">nwb_file</span><span class="p">[</span><span class="n">resolved</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">nap</span><span class="o">.</span><span class="n">IntervalSet</span><span class="p">):</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent_path</span> <span class="o">+</span> <span class="p">[</span><span class="n">sibling_key</span><span class="p">])</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">resolved</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_create_widget_for_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">key_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the correct widget based on the variable type.&quot;&quot;&quot;</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_dock_open</span>
+        <span class="k">if</span> <span class="n">key_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">interval_sets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_same_level_interval_sets</span><span class="p">(</span><span class="n">key_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">interval_sets</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">_get_variable_from_key_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable_dock</span><span class="o">.</span><span class="n">_interval_set_key_paths</span><span class="p">}</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">nap</span><span class="o">.</span><span class="n">TsGroup</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">TsGroupWidget</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">set_parent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">interval_sets</span><span class="o">=</span><span class="n">interval_sets</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">nap</span><span class="o">.</span><span class="n">Tsd</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">TsdWidget</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">set_parent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">interval_sets</span><span class="o">=</span><span class="n">interval_sets</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">nap</span><span class="o">.</span><span class="n">TsdFrame</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">TsdFrameWidget</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">set_parent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">interval_sets</span><span class="o">=</span><span class="n">interval_sets</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">nap</span><span class="o">.</span><span class="n">TsdTensor</span><span class="p">):</span>
+            <span class="n">tsdframes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tsdframe_keys</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">}</span>
+            <span class="k">return</span> <span class="n">TsdTensorWidget</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">set_parent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tsdframes</span><span class="o">=</span><span class="n">tsdframes</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">nap</span><span class="o">.</span><span class="n">Ts</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">TsWidget</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">set_parent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">nap</span><span class="o">.</span><span class="n">IntervalSet</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">IntervalSetWidget</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">set_parent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">VideoHandler</span><span class="p">):</span>
+            <span class="n">tsdframes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tsdframe_keys</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">}</span>
+            <span class="k">return</span> <span class="n">VideoWidget</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">set_parent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tsdframes</span><span class="o">=</span><span class="n">tsdframes</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">tsdframes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tsdframe_keys</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">}</span>
+                <span class="k">return</span> <span class="n">VideoWidget</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">set_parent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tsdframes</span><span class="o">=</span><span class="n">tsdframes</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading video from &#39;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">NWBReference</span><span class="p">):</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">nwb_file</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_widget_for_variable</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">key_path</span><span class="o">=</span><span class="n">key_path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">EphysReference</span><span class="p">):</span>
+            <span class="n">format_profiles</span> <span class="o">=</span> <span class="n">FORMAT_PROFILES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">format</span><span class="p">)</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">ephys_reader</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_widget_for_variable</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">key_path</span><span class="o">=</span><span class="n">key_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">format_profiles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">widget</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">_apply_format_profile</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">format_profiles</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">widget</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">VideoWidget</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">var</span>  <span class="c1"># already a widget</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Variable of type &#39;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">var</span><span class="p">)</span><span class="si">}</span><span class="s2">&#39; is not supported for plotting.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_create_dock</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">widget</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">key_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">QDockWidget</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and configure the QDockWidget with title bar and controls.&quot;&quot;&quot;</span>
+        <span class="n">dock</span> <span class="o">=</span> <span class="n">QDockWidget</span><span class="p">()</span>
+        <span class="n">dock</span><span class="o">.</span><span class="n">setWidget</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
+        <span class="n">dock</span><span class="o">.</span><span class="n">setObjectName</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_dock_open</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">dock</span><span class="o">.</span><span class="n">setProperty</span><span class="p">(</span><span class="s2">&quot;key_path&quot;</span><span class="p">,</span> <span class="n">key_path</span><span class="p">)</span>
+
+        <span class="c1"># Add name and close button to the widget&#39;s button container</span>
+        <span class="n">layout</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">button_container</span><span class="o">.</span><span class="n">layout</span><span class="p">()</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">QLabel</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="n">layout</span><span class="o">.</span><span class="n">addStretch</span><span class="p">()</span>
+
+        <span class="c1"># Connect close button with cleanup</span>
+        <span class="n">close_btn</span> <span class="o">=</span> <span class="n">QPushButton</span><span class="p">()</span>
+        <span class="n">close_btn</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">QStyle</span><span class="o">.</span><span class="n">StandardPixmap</span><span class="o">.</span><span class="n">SP_TitleBarCloseButton</span><span class="p">))</span>
+        <span class="n">close_btn</span><span class="o">.</span><span class="n">setFixedSize</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
+        <span class="n">close_btn</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cleanup_and_close_dock</span><span class="p">(</span><span class="n">dock</span><span class="p">))</span>
+
+        <span class="n">layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">close_btn</span><span class="p">)</span>
+        <span class="n">widget</span><span class="o">.</span><span class="n">button_container</span><span class="o">.</span><span class="n">setMinimumHeight</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+        <span class="n">dock</span><span class="o">.</span><span class="n">setTitleBarWidget</span><span class="p">(</span><span class="n">widget</span><span class="o">.</span><span class="n">button_container</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dock</span>
+
+<div class="viewcode-block" id="MainWindow.add_dock_widget">
+<a class="viewcode-back" href="../../../generated/pynaviz.qt.mainwindow.html#pynaviz.qt.mainwindow.MainWindow.add_dock_widget">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_dock_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">key_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QDockWidget</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a new dock widget to the main window based on the variable or its key path.&quot;&quot;&quot;</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_widget_for_variable</span><span class="p">(</span><span class="n">variable</span><span class="p">,</span> <span class="n">key_path</span><span class="o">=</span><span class="n">key_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">widget</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># restore manager if any</span>
+        <span class="k">if</span> <span class="n">state_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">widget</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">from_state</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">available_vars</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
+
+        <span class="n">widget_name</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">key_path</span><span class="p">)</span>
+        <span class="n">dock</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_dock</span><span class="p">(</span><span class="n">widget_name</span><span class="p">,</span> <span class="n">widget</span><span class="p">,</span> <span class="n">key_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_dock_to_gui</span><span class="p">(</span><span class="n">dock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_register_controller</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
+        <span class="c1"># This should be incremented only after registering the controller and the dock to the GUI</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_dock_open</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">min_time</span><span class="p">,</span> <span class="n">max_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_max_min_time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">max_time</span> <span class="o">!=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">min_time</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">):</span>
+            <span class="n">time_multiplier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_unit_combo</span><span class="o">.</span><span class="n">currentData</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setMinimum</span><span class="p">(</span><span class="n">min_time</span> <span class="o">*</span> <span class="n">time_multiplier</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_spin_box</span><span class="o">.</span><span class="n">setMaximum</span><span class="p">(</span><span class="n">max_time</span> <span class="o">*</span> <span class="n">time_multiplier</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_timebar</span><span class="p">(</span><span class="n">min_time</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctrl_group</span><span class="o">.</span><span class="n">current_time</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">dock</span></div>
+
+
+<div class="viewcode-block" id="MainWindow.closeEvent">
+<a class="viewcode-back" href="../../../generated/pynaviz.qt.mainwindow.html#pynaviz.qt.mainwindow.MainWindow.closeEvent">[docs]</a>
+    <span class="k">def</span> <span class="nf">closeEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">QEvent</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle the close event to ensure proper cleanup.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_layout</span><span class="p">(</span><span class="n">file_name</span><span class="o">=</span><span class="n">_session_layout_path</span><span class="p">(),</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">dock</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">findChildren</span><span class="p">(</span><span class="n">QDockWidget</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dock</span><span class="o">.</span><span class="n">objectName</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;VariablesDock&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cleanup_and_close_dock</span><span class="p">(</span><span class="n">dock</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">closeEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="scope">
+<a class="viewcode-back" href="../../../generated/pynaviz.qt.mainwindow.html#pynaviz.qt.mainwindow.scope">[docs]</a>
+<span class="k">def</span> <span class="nf">scope</span><span class="p">(</span><span class="n">variables</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">layout_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ephys_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Launch the pynaviz GUI and block until the window is closed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    variables : dict, list, tuple, or str</span>
+<span class="sd">        The data to visualise.  Several input formats are accepted:</span>
+
+<span class="sd">        **dict** (recommended) — keys become the display names shown in the</span>
+<span class="sd">        variable panel; values are the objects to visualise::</span>
+
+<span class="sd">            viz.scope({</span>
+<span class="sd">                &quot;spikes&quot;: tsgroup,</span>
+<span class="sd">                &quot;lfp&quot;: tsdframe,</span>
+<span class="sd">                &quot;epochs&quot;: interval_set,</span>
+<span class="sd">                &quot;recording&quot;: &quot;/path/to/video.mp4&quot;,</span>
+<span class="sd">            })</span>
+
+<span class="sd">        **list / tuple** — names are inferred automatically from each object&#39;s</span>
+<span class="sd">        class name (``TsGroup``, ``TsdFrame``, …).  Duplicate class names get a</span>
+<span class="sd">        numeric suffix (``TsGroup_0``, ``TsGroup_1``, …)::</span>
+
+<span class="sd">            viz.scope([tsgroup, tsdframe, interval_set])</span>
+
+<span class="sd">        **str** — a single file path, treated the same as a one-element list.</span>
+
+<span class="sd">        **Supported object types:**</span>
+
+<span class="sd">        - ``nap.Ts`` — spike-train / event timestamps</span>
+<span class="sd">        - ``nap.Tsd`` — one-dimensional time series</span>
+<span class="sd">        - ``nap.TsdFrame`` — multi-channel time series (pandas DataFrame with time index)</span>
+<span class="sd">        - ``nap.TsdTensor`` — N-D time series (e.g. pose estimates)</span>
+<span class="sd">        - ``nap.TsGroup`` — collection of spike trains, optionally with metadata</span>
+<span class="sd">        - ``nap.IntervalSet`` — epoch / interval data, optionally with metadata</span>
+<span class="sd">        - ``nap.NWBFile`` — NWB file opened with pynapple; all contained objects</span>
+<span class="sd">          are unpacked and added individually</span>
+<span class="sd">        - ``nap.EphysReader`` — Neo-backed electrophysiology reader; all contained</span>
+<span class="sd">          objects are unpacked and added individually</span>
+<span class="sd">        - ``str`` / ``pathlib.Path`` pointing to:</span>
+<span class="sd">            - ``.nwb`` file — loaded via pynapple, objects unpacked as above</span>
+<span class="sd">            - ``.npz`` file — loaded via pynapple, must contain a single pynapple object</span>
+<span class="sd">            - ``.mp4`` / ``.avi`` / ``.mov`` / ``.mkv`` — video file, displayed</span>
+<span class="sd">              in a video player dock</span>
+<span class="sd">        - ``VideoHandler`` — a pynaviz video handler instance (advanced use;</span>
+<span class="sd">          allows sharing a pre-initialised decoder across docks)</span>
+
+<span class="sd">        Objects that do not match any of the above are silently ignored.</span>
+
+<span class="sd">    layout_path : str or None, optional</span>
+<span class="sd">        Path to a previously saved ``.json`` layout file.  When provided the</span>
+<span class="sd">        GUI restores the dock arrangement, camera views, and applied actions</span>
+<span class="sd">        (group-by, sort-by, color-by, interval overlays, …) from that file.</span>
+<span class="sd">        Variables in *variables* are matched to saved docks by their key name;</span>
+<span class="sd">        docks whose variable is not found are skipped.</span>
+<span class="sd">    ephys_format : str or None, optional</span>
+<span class="sd">        Neo IO class name to use when loading electrophysiology files or</span>
+<span class="sd">        directories via ``nap.EphysReader`` (e.g. ``&quot;PlexonIO&quot;``,</span>
+<span class="sd">        ``&quot;NeuroScopeIO&quot;``).  When ``None`` (default) the format is</span>
+<span class="sd">        auto-detected from the file/directory contents.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This call blocks until the GUI window is closed.  It starts (or reuses) a</span>
+<span class="sd">    ``QApplication`` internally, so it is safe to call from a plain Python</span>
+<span class="sd">    script or a Jupyter notebook.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">variables</span> <span class="o">=</span> <span class="n">get_pynapple_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">ephys_format</span><span class="o">=</span><span class="n">ephys_format</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">layout_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">session_file</span> <span class="o">=</span> <span class="n">_session_layout_path</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">session_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">layout_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">session_file</span><span class="p">)</span>
+
+    <span class="k">global</span> <span class="n">app</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">QApplication</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">app</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">app</span> <span class="o">=</span> <span class="n">QApplication</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span>
+
+    <span class="n">icon_data</span> <span class="o">=</span> <span class="n">QByteArray</span><span class="o">.</span><span class="n">fromBase64</span><span class="p">(</span><span class="n">icon_base64</span><span class="p">)</span>
+    <span class="n">pixmap</span> <span class="o">=</span> <span class="n">QPixmap</span><span class="p">()</span>
+    <span class="n">pixmap</span><span class="o">.</span><span class="n">loadFromData</span><span class="p">(</span><span class="n">icon_data</span><span class="p">)</span>
+    <span class="n">icon</span> <span class="o">=</span> <span class="n">QIcon</span><span class="p">(</span><span class="n">pixmap</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">setWindowIcon</span><span class="p">(</span><span class="n">icon</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">setApplicationName</span><span class="p">(</span><span class="s2">&quot;Pynaviz&quot;</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">setOrganizationName</span><span class="p">(</span><span class="s2">&quot;pynapple-org&quot;</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">setOrganizationDomain</span><span class="p">(</span><span class="s2">&quot;pynaviz.github.io&quot;</span><span class="p">)</span>
+
+    <span class="n">gui</span> <span class="o">=</span> <span class="n">MainWindow</span><span class="p">(</span><span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">,</span> <span class="n">layout_path</span><span class="o">=</span><span class="n">layout_path</span><span class="p">)</span>
+
+    <span class="n">gui</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="n">gui</span><span class="o">.</span><span class="n">raise_</span><span class="p">()</span>
+    <span class="n">gui</span><span class="o">.</span><span class="n">activateWindow</span><span class="p">()</span>
+
+    <span class="n">app</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">exec</span><span class="p">())</span>
+
+    <span class="n">gui</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+<footer class="footer" style="border-top: 1px solid #ccc; padding-top: 10px">
+  <div class="container">
+    <div id="credits" style="width: 50%; float: left">
+      <p>
+      &#169; Copyright 2025-2026, <a href="https://www.simonsfoundation.org/people/guillaume-viejo/">pynapple authors</a>.<br/>
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> and the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/">PyData Theme</a>.<br/>
+      </p>
+    </div>
+    <div id="version" style="color: #999; float: right; margin: 15px">v</div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>

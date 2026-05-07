@@ -1,0 +1,6 @@
+pynaviz.controller.SpanController.add\_default\_event\_handlers
+===============================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanController.add_default_event_handlers

@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsGroup.jump\_to\_previous\_epoch
+========================================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsGroup.jump_to_previous_epoch

@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsd.update\_interval\_set
+================================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsd.update_interval_set

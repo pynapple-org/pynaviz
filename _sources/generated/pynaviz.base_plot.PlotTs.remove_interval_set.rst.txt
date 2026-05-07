@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTs.remove\_interval\_set
+===============================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTs.remove_interval_set

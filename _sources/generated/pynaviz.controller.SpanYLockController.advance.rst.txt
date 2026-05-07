@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.advance
+==============================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.advance

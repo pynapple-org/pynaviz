@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotTsdTensor.jump\_to\_next\_epoch
+==================================================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotTsdTensor.jump_to_next_epoch

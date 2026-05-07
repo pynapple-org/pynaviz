@@ -1,0 +1,6 @@
+pynaviz.controller.SpanController.update\_camera
+================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanController.update_camera

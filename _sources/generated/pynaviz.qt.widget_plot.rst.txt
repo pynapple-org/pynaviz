@@ -1,0 +1,25 @@
+﻿pynaviz.qt.widget\_plot
+=======================
+
+.. automodule:: pynaviz.qt.widget_plot
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      expand_with_time_support
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BaseWidget
+      IntervalSetWidget
+      TsGroupWidget
+      TsWidget
+      TsdFrameWidget
+      TsdTensorWidget
+      TsdWidget
+      VideoWidget
+   

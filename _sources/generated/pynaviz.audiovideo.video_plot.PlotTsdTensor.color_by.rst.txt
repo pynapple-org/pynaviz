@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotTsdTensor.color\_by
+======================================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotTsdTensor.color_by

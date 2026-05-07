@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTs.update\_interval\_set
+===============================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTs.update_interval_set

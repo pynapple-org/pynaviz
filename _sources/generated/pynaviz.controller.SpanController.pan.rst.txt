@@ -1,0 +1,6 @@
+pynaviz.controller.SpanController.pan
+=====================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanController.pan

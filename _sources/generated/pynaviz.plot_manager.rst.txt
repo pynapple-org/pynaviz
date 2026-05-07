@@ -1,0 +1,12 @@
+﻿pynaviz.plot\_manager
+=====================
+
+.. automodule:: pynaviz.plot_manager
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      to_python_type
+   

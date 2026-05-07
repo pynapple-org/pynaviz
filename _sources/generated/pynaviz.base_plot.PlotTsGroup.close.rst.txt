@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsGroup.close
+====================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsGroup.close

@@ -1,0 +1,16 @@
+﻿pynaviz.base\_plot
+==================
+
+.. automodule:: pynaviz.base_plot
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PlotIntervalSet
+      PlotTs
+      PlotTsGroup
+      PlotTsd
+      PlotTsdFrame
+   

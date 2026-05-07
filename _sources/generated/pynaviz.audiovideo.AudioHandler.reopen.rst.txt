@@ -1,0 +1,6 @@
+pynaviz.audiovideo.AudioHandler.reopen
+======================================
+
+.. currentmodule:: pynaviz.audiovideo
+
+.. automethod:: AudioHandler.reopen

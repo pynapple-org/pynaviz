@@ -1,0 +1,18 @@
+﻿pynaviz.qt.mainwindow
+=====================
+
+.. automodule:: pynaviz.qt.mainwindow
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      scope
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      MainWindow
+   

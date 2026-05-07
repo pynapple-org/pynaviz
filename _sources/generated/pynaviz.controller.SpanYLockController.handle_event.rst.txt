@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.handle\_event
+====================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.handle_event

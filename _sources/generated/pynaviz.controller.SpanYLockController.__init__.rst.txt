@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.\_\_init\_\_
+===================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.__init__

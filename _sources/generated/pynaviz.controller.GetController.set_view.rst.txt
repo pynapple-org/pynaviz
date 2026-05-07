@@ -1,0 +1,6 @@
+pynaviz.controller.GetController.set\_view
+==========================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: GetController.set_view

@@ -1,0 +1,6 @@
+pynaviz.audiovideo.video\_plot.PlotTsdTensor.set\_frame
+=======================================================
+
+.. currentmodule:: pynaviz.audiovideo.video_plot
+
+.. automethod:: PlotTsdTensor.set_frame

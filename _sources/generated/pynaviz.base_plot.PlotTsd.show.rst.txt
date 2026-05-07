@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsd.show
+===============================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsd.show

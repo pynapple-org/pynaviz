@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTsd.jump\_to\_next\_epoch
+================================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTsd.jump_to_next_epoch

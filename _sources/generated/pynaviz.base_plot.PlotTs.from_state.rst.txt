@@ -1,0 +1,6 @@
+pynaviz.base\_plot.PlotTs.from\_state
+=====================================
+
+.. currentmodule:: pynaviz.base_plot
+
+.. automethod:: PlotTs.from_state

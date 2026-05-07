@@ -1,0 +1,6 @@
+pynaviz.controller.SpanYLockController.get\_xlim
+================================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanYLockController.get_xlim

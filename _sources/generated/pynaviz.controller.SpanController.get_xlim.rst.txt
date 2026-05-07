@@ -1,0 +1,6 @@
+pynaviz.controller.SpanController.get\_xlim
+===========================================
+
+.. currentmodule:: pynaviz.controller
+
+.. automethod:: SpanController.get_xlim
