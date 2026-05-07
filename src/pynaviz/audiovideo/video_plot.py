@@ -145,6 +145,12 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         if self.time_text:
             self.time_text.set_text(str(np.round(self.data.t[frame_index], 4)))
 
+    def _get_crosshair_label(self, x, y):
+        w, h = self.texture.size[0], self.texture.size[1]
+        px = int(np.clip(x, 0, w - 1))
+        py = int(np.clip(y, 0, h - 1))
+        return f"x = {px} px\ny = {py} px"
+
     def set_frame(self, target_time: float):
         """
         Set the video display to the frame closest to the target time.

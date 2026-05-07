@@ -84,7 +84,7 @@ class HelpBox(QFrame):
             "Jump to next/prev superposed epoch: Ctrl+-> / Ctrl+<-\n"
             "Lock/unlock y-axis: y\n"
             "Lock/unlock x-axis: x\n"
-            "Show/hide crosshair (time & value): Double-click\n"
+            "Show/hide crosshair (time & value / pixel position for video): Double-click\n"
             "Dismiss crosshair: Escape\n\n"
             "Specific to TsdFrame:\n"
             "Increase contrast: i\n"
