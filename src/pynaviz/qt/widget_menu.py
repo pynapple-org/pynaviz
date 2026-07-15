@@ -13,7 +13,7 @@ Main Classes:
 
 from collections import OrderedDict
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import numpy as np
 import pynapple as nap
@@ -428,16 +428,29 @@ class MenuWidget(QWidget):
             action.setObjectName(func_name)
             action.triggered.connect(self._popup_menu)
 
+    def _active_get_mode_name(self) -> Optional[str]:
+        """Return the object name of the currently-active 'get'-family controller.
+
+        These modes (x-vs-y, skeleton) plot in a non-time space, so channel
+        selection / sort / group / color-by actions don't apply while active.
+        """
+        if not hasattr(self.plot, "_controllers"):
+            return None
+        for object_name, controller_key in (("x_vs_y", "get"), ("skeleton", "skeleton_get")):
+            ctrl = self.plot._controllers.get(controller_key)
+            if ctrl is not None and ctrl.enabled:
+                return object_name
+        return None
+
     def show_action_menu(self) -> None:
         """Displays the action menu below the button."""
 
+        active_name = self._active_get_mode_name()
         if hasattr(self.plot, "_controllers"):
-            # If 'get' controller is enabled (i.e., in x vs y mode),
-            # Need to disable all others actions
-            get_ctrl = self.plot._controllers.get("get")
-            if get_ctrl is not None and get_ctrl.enabled:
+            # If an x-vs-y/skeleton controller is enabled, disable all other actions
+            if active_name is not None:
                 for act in self.action_menu.actions():
-                    act.setEnabled(act.objectName() == "x_vs_y")
+                    act.setEnabled(act.objectName() == active_name)
             else:
                 for act in self.action_menu.actions():
                     act.setEnabled(True)
@@ -447,10 +460,8 @@ class MenuWidget(QWidget):
 
     def show_select_menu(self) -> None:
         """Opens the channel list selection dialog."""
-        if hasattr(self.plot, "_controllers"):
-            get_ctrl = self.plot._controllers.get("get")
-            if get_ctrl is not None and get_ctrl.enabled:
-                return
+        if self._active_get_mode_name() is not None:
+            return
 
         manager = getattr(self.plot, "_manager", None)
 

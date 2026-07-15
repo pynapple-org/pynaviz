@@ -11,6 +11,12 @@ import numpy as np
 import pygfx as gfx
 from matplotlib.pyplot import colormaps
 
+from .skeleton_geometry import (
+    SkeletonGeometry,
+    edges_from_parent_metadata,
+    resolve_edges,
+    resolve_keypoint_labels,
+)
 from .threads.data_streaming import TsdFrameStreaming
 from .utils import trim_kwargs
 
@@ -496,6 +502,146 @@ class XvsYMode:
 
     def set_state(self, state):
         """Restore x-vs-y parameters from a previously saved state.
+
+        Parameters
+        ----------
+        state : dict
+            Value produced by :meth:`get_state`.
+        """
+        for k, v in state.items():
+            setattr(self, k, v)
+
+
+class SkeletonMode:
+    """Multi-keypoint skeleton display mode using a GetController.
+
+    Plots every keypoint of the TsdFrame (grouped from ``<name>_x``/``<name>_y``
+    column pairs, see :func:`resolve_keypoint_labels`) at the current time,
+    connected by ``edges``. Built on the same shared
+    :class:`~pynaviz.skeleton_geometry.SkeletonGeometry` core used by the
+    video-overlay skeleton (``PlotPoints``).
+
+    Parameters
+    ----------
+    data : nap.TsdFrame
+        Keypoint time series, columns ordered as x0, y0, x1, y1, ... (or
+        ``<name>_x``, ``<name>_y`` pairs).
+    manager : PlotTsdFrameManager
+        Manages per-channel metadata. Unused by this mode but kept for
+        interface consistency with the other display modes.
+    window_size : float, optional
+        Unused (kept for interface consistency).
+    """
+
+    controller_key = "skeleton_get"
+
+    def __init__(self, data, manager, window_size=None, default_color="white"):
+        self.data = data
+        self.manager = manager
+        self.window_size = window_size
+        self._labels = None
+        self.edges = None
+        self.color = default_color
+        self.thickness = 0.02
+        self.markersize = 8.0
+        self._request_draw = None
+        self._geometry = None
+
+    @property
+    def labels(self):
+        """Per-keypoint labels, resolved lazily on first access.
+
+        ``PlotTsdFrame`` builds every mode up front regardless of whether
+        ``data`` has an even number of columns, so this must not raise until
+        skeleton mode is actually used.
+        """
+        if self._labels is None:
+            self._labels = resolve_keypoint_labels(self.data.columns)
+        return self._labels
+
+    def update_parameters(self, edges=None, color=None, thickness=0.02, markersize=8.0):
+        """Set plotting parameters before calling initialize_graphic."""
+        self.edges = edges
+        if color is not None:
+            self.color = color
+        self.thickness = thickness
+        self.markersize = markersize
+
+    def initialize_graphic(self):
+        """Create the keypoints + connecting-lines graphic.
+
+        Positions are placeholders (zeros); the caller is expected to follow
+        up with a call through :meth:`get_callbacks` (mirroring how
+        ``XvsYMode`` places its time marker) to move the skeleton to the
+        current frame.
+        """
+        edges = self.edges
+        if edges is None:
+            edges = edges_from_parent_metadata(self.data)
+        edges_idx = resolve_edges(self.labels, edges)
+        xy = np.zeros((len(self.labels), 2), dtype="float32")
+        self._geometry = SkeletonGeometry(
+            xy, edges_idx, color=self.color, thickness=self.thickness, markersize=self.markersize
+        )
+
+    @property
+    def graphic(self):
+        """The points graphic (primary), added/removed by the generic mode-switch logic."""
+        return self._geometry.points
+
+    @property
+    def lines(self):
+        """The connecting-lines graphic, or ``None`` for a single keypoint."""
+        return self._geometry.lines if self._geometry is not None else None
+
+    def get_callbacks(self):
+        """Return the frame-update callback for the GetController."""
+        return [self._update_buffer]
+
+    def _update_buffer(self, frame_index, event_type=None):
+        """Move all keypoints to their positions at the given frame index."""
+        xy = np.asarray(self.data.values[frame_index]).reshape(-1, 2).astype("float32")
+        self._geometry.update(xy)
+        if self._request_draw is not None:
+            self._request_draw()
+
+    def rescale(self, key):
+        """No-op: skeleton keypoints have no amplitude to rescale."""
+        return False
+
+    def get_extent(self):
+        """Return (xmin, xmax, ymin, ymax) across the full time series.
+
+        Used to fit the camera to the whole trajectory, the way ``XvsYMode``
+        fits to its full buffer, rather than just the current frame.
+        """
+        values = np.asarray(self.data.values)
+        xs = values[:, 0::2]
+        ys = values[:, 1::2]
+        return (
+            float(np.nanmin(xs)), float(np.nanmax(xs)),
+            float(np.nanmin(ys)), float(np.nanmax(ys)),
+        )
+
+    def get_state(self):
+        """Return all parameters needed to reconstruct this skeleton view.
+
+        Returns
+        -------
+        dict
+            Keys: ``window_size``, ``edges``, ``color``, ``thickness``,
+            ``markersize``.
+        """
+        return {
+            "window_size": self.window_size,
+            "edges": self.edges,
+            "color": self.color,
+            "thickness": self.thickness,
+            "markersize": self.markersize,
+        }
+
+    def set_state(self, state):
+        """Restore skeleton parameters from a previously saved state.
 
         Parameters
         ----------

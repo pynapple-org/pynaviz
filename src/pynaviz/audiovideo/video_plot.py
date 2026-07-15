@@ -204,8 +204,9 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     def superpose_points(self, tsdframe: nap.TsdFrame,
                          color = None,
                          markersize: float = 10,
-                         thickness: float = 2,
-                         label: Optional[str] = None
+                         thickness: float = 0.02,
+                         label: Optional[str] = None,
+                         edges: Optional[list] = None,
                          ):
         """
         Superpose a set of points on top of the video plot. Argument tsdframe should
@@ -224,6 +225,11 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
             Thickness of the lines connecting the points.
         label : str, optional
             Label for the set of points. If None, a default label is assigned.
+        edges : list of (str or int, str or int), optional
+            Bone connectivity as pairs of keypoint labels or indices. When
+            ``None``, falls back to the data's ``"parent"`` column metadata if
+            present, otherwise every keypoint is connected to every other
+            (complete graph).
         """
         if not isinstance(tsdframe, nap.TsdFrame):
             raise ValueError("tsdframe must be a nap.TsdFrame instance.")
@@ -243,7 +249,8 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
                 scene=self.scene,
                 color=color,
                 markersize = markersize,
-                thickness = thickness
+                thickness = thickness,
+                edges = edges,
             )
 
 
