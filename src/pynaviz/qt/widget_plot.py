@@ -178,6 +178,7 @@ class TsdFrameWidget(BaseWidget):
         self.button_container.action_menu.addSeparator()
         for action_name, object_name, func in [
             ("Plot x vs y", "x_vs_y", self.button_container._popup_menu),
+            ("Plot Skeleton", "skeleton", self.button_container._popup_menu),
             ("Toogle display mode (m)", "heatmap", self.button_container._popup_menu),
         ]:
             action = self.button_container.action_menu.addAction(action_name)

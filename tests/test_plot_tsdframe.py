@@ -432,6 +432,99 @@ def test_xvsy_mode_get_callbacks(dummy_tsdframe):
     v.close()
 
 
+# ── SkeletonMode tests ───────────────────────────────────────────────────────
+
+def _make_skeleton_tsdframe(n_keypoints=3, n_time=200):
+    t = np.arange(n_time) / 10
+    d = np.cumsum(np.random.randn(n_time, n_keypoints * 2), axis=0)
+    columns = []
+    for i in range(n_keypoints):
+        columns += [f"kp{i}_x", f"kp{i}_y"]
+    return nap.TsdFrame(t=t, d=d, columns=columns)
+
+
+def test_plot_skeleton_init():
+    data = _make_skeleton_tsdframe()
+    v = viz.PlotTsdFrame(data)
+    v.plot_skeleton()
+    mode = v._modes["skeleton"]
+
+    assert v._display_mode == "skeleton"
+    assert isinstance(mode.graphic, gfx.Points)
+    assert isinstance(mode.lines, gfx.Line)
+    assert isinstance(v.controller, viz.controller.GetController)
+
+    v.close()
+
+
+def test_plot_skeleton_odd_columns_raises():
+    data = nap.TsdFrame(t=np.arange(10), d=np.random.randn(10, 5))
+    v = viz.PlotTsdFrame(data)
+    with pytest.raises(ValueError):
+        v.plot_skeleton()
+
+    v.close()
+
+
+def test_plot_skeleton_moves_points_to_current_frame():
+    data = _make_skeleton_tsdframe()
+    v = viz.PlotTsdFrame(data)
+    v.plot_skeleton()
+    mode = v._modes["skeleton"]
+
+    frame_index = 50
+    mode._update_buffer(frame_index)
+    expected = np.asarray(data.values[frame_index]).reshape(-1, 2)
+    np.testing.assert_almost_equal(
+        mode.graphic.geometry.positions.data[:, :2], expected, decimal=4
+    )
+
+    v.close()
+
+
+def test_plot_skeleton_roundtrip_state():
+    data = _make_skeleton_tsdframe()
+    v = viz.PlotTsdFrame(data)
+    v.plot_skeleton(edges=[("kp0", "kp1")], color="blue", thickness=3.0, markersize=12.0)
+    state = v.get_plot_state()
+
+    v2 = viz.PlotTsdFrame(data)
+    v2.set_plot_state(state)
+
+    assert v2._display_mode == "skeleton"
+    assert v2._modes["skeleton"].get_state() == v._modes["skeleton"].get_state()
+
+    v.close()
+    v2.close()
+
+
+def test_plot_skeleton_back_to_lines():
+    data = _make_skeleton_tsdframe()
+    v = viz.PlotTsdFrame(data)
+    v.plot_skeleton()
+    v._set_mode("lines")
+
+    assert v._display_mode == "lines"
+    assert isinstance(v.controller, viz.controller.SpanController)
+
+    v.close()
+
+
+def test_plot_skeleton_uses_parent_metadata_by_default():
+    # 3 keypoints, kp0/kp1 both children of root kp2 -> 2 bones, not the
+    # complete-graph default of 3.
+    data = _make_skeleton_tsdframe(n_keypoints=3)
+    data.set_info(parent=["kp2", "kp2", "kp2", "kp2", None, None])
+
+    v = viz.PlotTsdFrame(data)
+    v.plot_skeleton()  # edges=None -> should read "parent" metadata, not warn
+
+    mode = v._modes["skeleton"]
+    assert mode.lines.geometry.positions.data.shape == (4, 3)  # 2 edges * 2 endpoints
+
+    v.close()
+
+
 # ── Mode switching ───────────────────────────────────────────────────────────
 
 # ── compact_visible_offsets tests ────────────────────────────────────────────

@@ -233,6 +233,53 @@ def test_points_overlay_params(video_info, tsdframe_shape: tuple[int, int], colo
     video_obj.close()
 
 @pytest.mark.parametrize("video_info", ["mp4"], indirect=True)
+def test_points_overlay_explicit_edges(video_info):
+    _, _, video = video_info
+    video = pathlib.Path(video)
+    video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
+    tsdframe = nap.TsdFrame(
+        t=np.arange(10),
+        d=100 + np.random.randn(10, 6),
+        columns=["Nose_x", "Nose_y", "EarL_x", "EarL_y", "EarR_x", "EarR_y"],
+    )
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        video_obj.superpose_points(
+            tsdframe, color="red", markersize=3, thickness=5, label="label",
+            edges=[("Nose", "EarL")],
+        )
+    pts = video_obj.points["label"]
+    assert pts.get_state()["edges"] == [("Nose", "EarL")]
+    # 1 edge * 2 endpoints
+    assert pts._geometry.lines.geometry.positions.data.shape == (2, 3)
+    video_obj.close()
+
+
+@pytest.mark.parametrize("video_info", ["mp4"], indirect=True)
+def test_points_overlay_uses_parent_metadata(video_info):
+    _, _, video = video_info
+    video = pathlib.Path(video)
+    video_obj = PlotVideo(video, t=np.arange(100), start_worker=False)
+    tsdframe = nap.TsdFrame(
+        t=np.arange(10),
+        d=100 + np.random.randn(10, 6),
+        columns=["Nose_x", "Nose_y", "EarL_x", "EarL_y", "Back1_x", "Back1_y"],
+    )
+    tsdframe.set_info(parent=["Back1", "Back1", "Back1", "Back1", None, None])
+
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        video_obj.superpose_points(tsdframe, color="red", markersize=3, thickness=5, label="label")
+
+    pts = video_obj.points["label"]
+    # 2 edges from metadata (Nose-Back1, EarL-Back1), not the complete-graph 3
+    assert pts._geometry.lines.geometry.positions.data.shape == (4, 3)
+    video_obj.close()
+
+
+@pytest.mark.parametrize("video_info", ["mp4"], indirect=True)
 def test_roundtrip_points(video_info):
     _, _, video = video_info
     tsdframe = nap.TsdFrame(

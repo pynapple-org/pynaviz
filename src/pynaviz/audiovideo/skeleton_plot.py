@@ -1,12 +1,21 @@
-import itertools
-
-import numpy as np
-import pygfx as gfx
+from ..skeleton_geometry import (
+    SkeletonGeometry,
+    edges_from_parent_metadata,
+    resolve_edges,
+    resolve_keypoint_labels,
+)
 
 
 class PlotPoints:
     """
     A streaming skeleton with pygfx Points and Lines.
+
+    Thin wrapper around :class:`pynaviz.skeleton_geometry.SkeletonGeometry` that
+    adapts it to the video-overlay call pattern (driven by ``update(t)`` on a
+    ``nap.TsdFrame``). When ``edges`` is not given, falls back to the data's
+    ``"parent"`` column metadata if present (see
+    :func:`pynaviz.skeleton_geometry.edges_from_parent_metadata`), otherwise
+    every keypoint is connected to every other (complete graph).
 
     Parameters
     ----------
@@ -22,36 +31,27 @@ class PlotPoints:
         Size of the points in pixels.
     thickness : float
         Thickness of connecting lines.
+    edges : list of (str or int, str or int), optional
+        Bone connectivity as pairs of keypoint labels or indices.
     """
-    def __init__(self, tsdframe, initial_time, scene, color = "red", markersize=8.0, thickness=2.0):
+    def __init__(self, tsdframe, initial_time, scene, color = "red", markersize=8.0, thickness=0.02, edges=None):
         self.data = tsdframe
         self.n_points = self.data.shape[1] // 2
+        self.labels = resolve_keypoint_labels(self.data.columns)
+        self.edges = edges
 
-        current_xy = self.data.get(initial_time)
-        xy = np.hstack((current_xy.reshape(self.n_points, 2), np.ones((self.n_points, 1)))).astype("float32")
+        current_xy = self.data.get(initial_time).reshape(self.n_points, 2)
+        edges_ = self.edges
+        if edges_ is None:
+            edges_ = edges_from_parent_metadata(self.data)
+        edges_idx = resolve_edges(self.labels, edges_)
 
-        # ---- Points ----
-        geom_points = gfx.Geometry(positions=xy)
-        mat_points: gfx.PointsMaterial = gfx.PointsMaterial(color=color, size=markersize)
-        self.points = gfx.Points(geom_points, mat_points)
-        scene.add(self.points)
-
-        # # ---- Lines ----
-        if self.n_points > 1:
-            edges = list(itertools.combinations(range(self.n_points), 2))
-            self.n_lines = len(edges)
-            self.edges_idx = np.array(edges).flatten()
-
-            line_positions = xy[self.edges_idx].astype("float32")
-
-
-            geom_lines = gfx.Geometry(positions=line_positions)
-            mat_lines = gfx.LineMaterial(thickness=thickness,
-                                         color="grey")
-            self.lines = gfx.Line(geom_lines, mat_lines)
-
-            scene.add(self.lines)
-
+        self._geometry = SkeletonGeometry(
+            current_xy, edges_idx, scene=scene, color=color, markersize=markersize, thickness=thickness
+        )
+        self.points = self._geometry.points
+        if self._geometry.lines is not None:
+            self.lines = self._geometry.lines
 
     def update(self, t):
         """
@@ -62,11 +62,8 @@ class PlotPoints:
         t : float
             Time to display.
         """
-        current_xy = self.data.get(t)
-        xy = np.hstack((current_xy.reshape(self.n_points, 2), np.ones((self.n_points, 1)))).astype("float32")
-        self.points.geometry.positions.set_data(xy)
-        if self.n_points > 1:
-            self.lines.geometry.positions.set_data(xy[self.edges_idx])
+        current_xy = self.data.get(t).reshape(self.n_points, 2)
+        self._geometry.update(current_xy)
 
     def set_color(self, color):
         """
@@ -77,7 +74,7 @@ class PlotPoints:
         color : tuple of float or str
             Color of the points as RGBA values between 0 and 1 or string.
         """
-        self.points.material.color = color
+        self._geometry.set_color(color)
 
     def set_markersize(self, markersize):
         """
@@ -88,7 +85,7 @@ class PlotPoints:
         markersize : float
             Size of the points in pixels.
         """
-        self.points.material.size = markersize
+        self._geometry.set_markersize(markersize)
 
     def set_thickness(self, thickness):
         """
@@ -99,21 +96,12 @@ class PlotPoints:
         thickness : float
             Thickness of connecting lines.
         """
-        if thickness <= 1e-3:
-            self.lines.material.opacity = 0
-        else:
-            self.lines.material.opacity = 1
-            self.lines.material.thickness = thickness
+        self._geometry.set_thickness(thickness)
 
     def get_state(self) -> dict:
-        pts_material: gfx.PointsMaterial = self.points.material
-        state = {
-                "color": pts_material.color.rgba,
-                "markersize": pts_material.size,
-        }
-        if self.n_points > 1:
-            line_material: gfx.LineMaterial = self.lines.material
-            state.update({"thickness": line_material.thickness})
+        state = self._geometry.get_state()
+        if self.edges is not None:
+            state["edges"] = self.edges
         return state
 
     @classmethod

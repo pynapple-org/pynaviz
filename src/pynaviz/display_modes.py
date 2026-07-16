@@ -11,6 +11,12 @@ import numpy as np
 import pygfx as gfx
 from matplotlib.pyplot import colormaps
 
+from .skeleton_geometry import (
+    SkeletonGeometry,
+    edges_from_parent_metadata,
+    resolve_edges,
+    resolve_keypoint_labels,
+)
 from .threads.data_streaming import TsdFrameStreaming
 from .utils import trim_kwargs
 
@@ -496,6 +502,244 @@ class XvsYMode:
 
     def set_state(self, state):
         """Restore x-vs-y parameters from a previously saved state.
+
+        Parameters
+        ----------
+        state : dict
+            Value produced by :meth:`get_state`.
+        """
+        for k, v in state.items():
+            setattr(self, k, v)
+
+
+def _same_edges(a, b):
+    """Compare two edge lists, tolerating list/tuple/array and None."""
+    if a is None or b is None:
+        return a is None and b is None
+    a, b = list(a), list(b)
+    if len(a) != len(b):
+        return False
+    return all(tuple(ea) == tuple(eb) for ea, eb in zip(a, b))
+
+
+class SkeletonMode:
+    """Multi-keypoint skeleton display mode using a GetController.
+
+    Plots every keypoint of the TsdFrame (grouped from ``<name>_x``/``<name>_y``
+    column pairs, see :func:`resolve_keypoint_labels`) at the current time,
+    connected by ``edges``. Built on the same shared
+    :class:`~pynaviz.skeleton_geometry.SkeletonGeometry` core used by the
+    video-overlay skeleton (``PlotPoints``).
+
+    Parameters
+    ----------
+    data : nap.TsdFrame
+        Keypoint time series, columns ordered as x0, y0, x1, y1, ... (or
+        ``<name>_x``, ``<name>_y`` pairs).
+    manager : PlotTsdFrameManager
+        Manages per-channel metadata. Unused by this mode but kept for
+        interface consistency with the other display modes.
+    window_size : float, optional
+        Unused (kept for interface consistency).
+    """
+
+    controller_key = "skeleton_get"
+
+    def __init__(self, data, manager, window_size=None, default_color="white"):
+        self.data = data
+        self.manager = manager
+        self.window_size = window_size
+        self._labels = None
+        self.edges = None
+        self.color = default_color
+        self.thickness = 0.02
+        self.markersize = 8.0
+        self._request_draw = None
+        self._geometry = None
+        # Contrast color for the on-click keypoint label (white on dark bg, etc.).
+        self._contrast_color = default_color
+        self._label = None
+        # Index of the keypoint whose label is currently shown, or None.
+        self._picked_index = None
+
+    @property
+    def labels(self):
+        """Per-keypoint labels, resolved lazily on first access.
+
+        ``PlotTsdFrame`` builds every mode up front regardless of whether
+        ``data`` has an even number of columns, so this must not raise until
+        skeleton mode is actually used.
+        """
+        if self._labels is None:
+            self._labels = resolve_keypoint_labels(self.data.columns)
+        return self._labels
+
+    def update_parameters(self, edges=None, color=None, thickness=0.02, markersize=8.0):
+        """Set plotting parameters, restyling the graphic if it already exists.
+
+        Returns
+        -------
+        bool
+            Whether ``edges`` differ from the ones the current graphic was
+            built with. Styling is applied here, but new bones need new line
+            buffers, so the caller must rebuild the graphic when this is True.
+        """
+        edges_changed = not _same_edges(edges, self.edges)
+        self.edges = edges
+        if color is not None:
+            self.color = color
+        self.thickness = thickness
+        self.markersize = markersize
+
+        # When called before initialize_graphic (mode switch) there is nothing
+        # to restyle yet; the constructor picks these values up instead.
+        if self._geometry is not None and not edges_changed:
+            self._geometry.set_color(self.color)
+            self._geometry.set_thickness(self.thickness)
+            self._geometry.set_markersize(self.markersize)
+            if self._request_draw is not None:
+                self._request_draw()
+        return edges_changed
+
+    def initialize_graphic(self):
+        """Create the keypoints + connecting-lines graphic.
+
+        Positions are placeholders (zeros); the caller is expected to follow
+        up with a call through :meth:`get_callbacks` (mirroring how
+        ``XvsYMode`` places its time marker) to move the skeleton to the
+        current frame.
+        """
+        edges = self.edges
+        if edges is None:
+            edges = edges_from_parent_metadata(self.data)
+        edges_idx = resolve_edges(self.labels, edges)
+        xy = np.zeros((len(self.labels), 2), dtype="float32")
+        self._geometry = SkeletonGeometry(
+            xy, edges_idx, color=self.color, thickness=self.thickness, markersize=self.markersize
+        )
+
+        # Keypoint-name label shown while hovering a point (hidden otherwise).
+        # screen_space keeps it a constant on-screen size regardless of zoom.
+        outline = "black" if self._contrast_color == "white" else "white"
+        self._label = gfx.Text(
+            text="",
+            font_size=16,
+            screen_space=True,
+            anchor="bottom-left",
+            material=gfx.TextMaterial(
+                color=self._contrast_color,
+                outline_color=outline,
+                outline_thickness=0.2,
+            ),
+        )
+        self._label.visible = False
+        self._picked_index = None
+        # The points object is new on every (re)build, so (re)wire the hover
+        # handlers. pointer_move fires (with pick_info) only while the cursor is
+        # over a point; pointer_leave hides the label when it moves off.
+        self._geometry.points.add_event_handler(self._on_point_hover, "pointer_move")
+        self._geometry.points.add_event_handler(self._on_point_leave, "pointer_leave")
+
+    @property
+    def graphic(self):
+        """The points graphic (primary), added/removed by the generic mode-switch logic."""
+        return self._geometry.points
+
+    @property
+    def label(self):
+        """The keypoint-name label graphic (hidden unless a point is hovered)."""
+        return self._label
+
+    def _on_point_hover(self, event):
+        """Show the hovered keypoint's name label.
+
+        Fired by pygfx while the cursor is over a point; ``event.pick_info``
+        carries the ``vertex_index`` of the keypoint under the cursor.
+        """
+        index = event.pick_info.get("vertex_index")
+        if index is None or index >= len(self.labels):
+            return
+        # pointer_move fires continuously; only redraw when the point changes.
+        if index == self._picked_index and self._label.visible:
+            return
+        self._picked_index = index
+        self._label.set_text(str(self.labels[index]))
+        self._position_label()
+        self._label.visible = True
+        if self._request_draw is not None:
+            self._request_draw()
+
+    def _on_point_leave(self, event):
+        """Hide the label when the cursor moves off the points."""
+        if not self._label.visible and self._picked_index is None:
+            return
+        self._picked_index = None
+        self._label.visible = False
+        if self._request_draw is not None:
+            self._request_draw()
+
+    def _position_label(self):
+        """Move the label to the currently hovered keypoint's position."""
+        if self._picked_index is None:
+            return
+        pos = self._geometry.points.geometry.positions.data[self._picked_index]
+        self._label.local.position = (float(pos[0]), float(pos[1]), 1.0)
+
+    @property
+    def lines(self):
+        """The connecting-lines graphic, or ``None`` for a single keypoint."""
+        return self._geometry.lines if self._geometry is not None else None
+
+    def get_callbacks(self):
+        """Return the frame-update callback for the GetController."""
+        return [self._update_buffer]
+
+    def _update_buffer(self, frame_index, event_type=None):
+        """Move all keypoints to their positions at the given frame index."""
+        xy = np.asarray(self.data.values[frame_index]).reshape(-1, 2).astype("float32")
+        self._geometry.update(xy)
+        # Keep the hovered keypoint's label following it across frames.
+        self._position_label()
+        if self._request_draw is not None:
+            self._request_draw()
+
+    def rescale(self, key):
+        """No-op: skeleton keypoints have no amplitude to rescale."""
+        return False
+
+    def get_extent(self):
+        """Return (xmin, xmax, ymin, ymax) across the full time series.
+
+        Used to fit the camera to the whole trajectory, the way ``XvsYMode``
+        fits to its full buffer, rather than just the current frame.
+        """
+        values = np.asarray(self.data.values)
+        xs = values[:, 0::2]
+        ys = values[:, 1::2]
+        return (
+            float(np.nanmin(xs)), float(np.nanmax(xs)),
+            float(np.nanmin(ys)), float(np.nanmax(ys)),
+        )
+
+    def get_state(self):
+        """Return all parameters needed to reconstruct this skeleton view.
+
+        Returns
+        -------
+        dict
+            Keys: ``window_size``, ``edges``, ``color``, ``thickness``,
+            ``markersize``.
+        """
+        return {
+            "window_size": self.window_size,
+            "edges": self.edges,
+            "color": self.color,
+            "thickness": self.thickness,
+            "markersize": self.markersize,
+        }
+
+    def set_state(self, state):
+        """Restore skeleton parameters from a previously saved state.
 
         Parameters
         ----------

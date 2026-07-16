@@ -18,7 +18,6 @@ COLUMNS_IDS = OrderedDict({
     "name": 0,
     "colors": 1,
     "markersize": 2,
-    "thickness": 3,
 })
 KEYS = set(COLUMNS_IDS.keys())
 KEYS.add("checked")
@@ -26,17 +25,15 @@ KEY_TYPES = {
     "name": str,
     "colors": str,
     "markersize": (int, float),
-    "thickness": (int, float),
     "checked": bool,
 }
 KEY_DEFAULTS = {
     "name": None,
     "colors": None,
     "markersize": 10,
-    "thickness": 2,
     "checked": False,
 }
-EXPECTED_HEADERS = ["TsdFrame", "Color", "Size", "Thickness"]
+EXPECTED_HEADERS = ["TsdFrame", "Color", "Size"]
 EXPECTED_COLUMN_COUNT = len(COLUMNS_IDS)
 EXPECTED_ROW_KEYS_COUNT = len(KEYS)
 
@@ -45,7 +42,6 @@ COLUMN_FLAGS = {
     0: Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable,
     1: Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable,
     2: Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable,
-    3: Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable,
 }
 
 # Role configurations
@@ -300,18 +296,17 @@ class TestTsdFramesModel:
             assert blocker.args[0] == model.rows[row]["name"], (
                 f"Row {row}: Signal arg[0] (name) mismatch"
             )
-            assert blocker.args[4] is expected_bool, (
-                f"Row {row}: Signal arg[4] (checked) expected {expected_bool}, found {blocker.args[4]}"
+            assert blocker.args[3] is expected_bool, (
+                f"Row {row}: Signal arg[3] (checked) expected {expected_bool}, found {blocker.args[3]}"
             )
 
     @pytest.mark.parametrize("col,key,test_values", [
         (1, "colors", ["red", "blue", "#FF5733"]),
         (2, "markersize", [0.0, 15.5, 100.0]),
-        (3, "thickness", [0.5, 3.7, 10.0]),
     ])
     def test_setdata_edit_role(self, model, qtbot, col, key, test_values):
         """Test editing values in editable columns across all rows."""
-        signal_arg_index = col  # Signal args match column index for cols 1-3
+        signal_arg_index = col  # Signal args match column index for cols 1-2
 
         for row in range(model.rowCount()):
             for test_value in test_values:
@@ -394,7 +389,6 @@ class TestTsdFramesModel:
                 "checked": model.rows[row]["checked"],
                 "colors": model.rows[row]["colors"],
                 "markersize": model.rows[row]["markersize"],
-                "thickness": model.rows[row]["thickness"],
             }
             for row in range(1, model.rowCount())
         ]
@@ -403,7 +397,6 @@ class TestTsdFramesModel:
         model.setData(model.index(0, 0), Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
         model.setData(model.index(0, 1), "modified_color", Qt.ItemDataRole.EditRole)
         model.setData(model.index(0, 2), 99.9, Qt.ItemDataRole.EditRole)
-        model.setData(model.index(0, 3), 88.8, Qt.ItemDataRole.EditRole)
 
         # Check other rows are unaffected
         for i, row in enumerate(range(1, model.rowCount())):
@@ -732,15 +725,6 @@ class TestTsdFramesDialog:
         assert delegate.min_ == 0, f"Markersize min should be 0, found {delegate.min_}"
         assert delegate.max_ == 1e12, f"Markersize max should be 1e12, found {delegate.max_}"
 
-    def test_thickness_delegate_column_3(self, dialog):
-        """Test that DoubleSpinDelegate is set for column 3 (thickness)."""
-        delegate = dialog.view.itemDelegateForColumn(3)
-        assert isinstance(delegate, DoubleSpinDelegate), (
-            f"Column 3 should have DoubleSpinDelegate, found {type(delegate)}"
-        )
-        assert delegate.min_ == 0, f"Thickness min should be 0, found {delegate.min_}"
-        assert delegate.max_ == 1e12, f"Thickness max should be 1e12, found {delegate.max_}"
-
     def test_column_0_has_no_custom_delegate(self, dialog):
         """Test that column 0 uses default delegate (for checkbox)."""
         delegate = dialog.view.itemDelegateForColumn(0)
@@ -761,20 +745,6 @@ class TestTsdFramesDialog:
 
         assert isinstance(editor, QDoubleSpinBox), (
             f"Markersize editor should be QDoubleSpinBox, found {type(editor)}"
-        )
-        assert editor.minimum() == 0
-        assert editor.maximum() == 1e12
-
-    def test_thickness_editor_creation(self, dialog, model, qtbot):
-        """Test that thickness delegate creates correct editor."""
-        delegate = dialog.view.itemDelegateForColumn(3)
-        index = model.index(0, 3)
-
-        editor = delegate.createEditor(dialog.view, None, index)
-        qtbot.addWidget(editor)
-
-        assert isinstance(editor, QDoubleSpinBox), (
-            f"Thickness editor should be QDoubleSpinBox, found {type(editor)}"
         )
         assert editor.minimum() == 0
         assert editor.maximum() == 1e12
@@ -805,37 +775,6 @@ class TestTsdFramesDialog:
         assert model.rows[0]["markersize"] == new_value, (
             f"Model should have new markersize {new_value}, "
             f"found {model.rows[0]['markersize']}"
-        )
-
-    def test_thickness_edit_updates_model(self, dialog, model, qtbot):
-        """Test that editing thickness updates the model correctly.
-
-        This test mimicks Qt calls to setValue->setModelData and
-        """
-        delegate = dialog.view.itemDelegateForColumn(3)
-        index = model.index(0, 3)
-        original_value = model.rows[0]["thickness"]
-        new_value = 5.75
-
-        # Create and populate editor
-        editor = delegate.createEditor(dialog.view, None, index)
-        qtbot.addWidget(editor)
-        delegate.setEditorData(editor, index)
-
-        # Verify initial value
-        assert editor.value() == original_value
-
-        # Change value
-        editor.setValue(new_value)
-
-        # Save back to model
-        with qtbot.waitSignal(model.dataChanged):
-            delegate.setModelData(editor, model, index)
-
-        # Verify model was updated
-        assert model.rows[0]["thickness"] == new_value, (
-            f"Model should have new thickness {new_value}, "
-            f"found {model.rows[0]['thickness']}"
         )
 
     # ========== Test Dialog Buttons ==========

@@ -24,7 +24,7 @@ from .controller import (
     SpanXYLockController,
     SpanYLockController,
 )
-from .display_modes import ImageMode, LinesMode, XvsYMode
+from .display_modes import ImageMode, LinesMode, SkeletonMode, XvsYMode
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
 from .synchronization_rules import (
@@ -714,11 +714,13 @@ class PlotTsd(_BasePlot):
 class PlotTsdFrame(_BasePlot):
     """Visualization of a multi-column pynapple time series (``nap.TsdFrame``).
 
-    Supports three display modes toggled at runtime:
+    Supports four display modes toggled at runtime:
 
     - **lines** (default): each column rendered as a line with vertex colors.
     - **image**: all columns as a heatmap texture.
     - **x_vs_y**: one column plotted against another with a time marker.
+    - **skeleton**: all keypoints (x, y column pairs) plotted at the current
+      time, connected by bone edges. See :meth:`plot_skeleton`.
 
     Parameters
     ----------
@@ -758,6 +760,7 @@ class PlotTsdFrame(_BasePlot):
             "lines": LinesMode(data, self._manager, window_size, default_color=default_color),
             "image": ImageMode(data, self._manager),
             "x_vs_y": XvsYMode(data, self._manager, default_color=default_color),
+            "skeleton": SkeletonMode(data, self._manager, default_color=default_color),
         }
         self._mode = self._modes[display_mode]
         self._mode.initialize_graphic()
@@ -813,6 +816,16 @@ class PlotTsdFrame(_BasePlot):
                 data=None,
                 buffer=None,
                 plot_callbacks=self._modes["x_vs_y"].get_callbacks(),
+                enabled=False,
+            ),
+            # skeleton mode — dedicated controller (own callback set, not
+            # shared with "get"/x_vs_y) despite reusing the same class.
+            "skeleton_get": GetController(
+                camera=self.camera,
+                renderer=self.renderer,
+                data=None,
+                buffer=None,
+                plot_callbacks=self._modes["skeleton"].get_callbacks(),
                 enabled=False,
             ),
         }
@@ -875,13 +888,14 @@ class PlotTsdFrame(_BasePlot):
         This is the single entry point for all mode transitions (lines →
         image, lines → x_vs_y, etc.) as well as for applying saved state
         to the current mode without switching.  It is called by
-        ``_reset``, ``_toggle_display_mode``, ``plot_x_vs_y``, and
-        ``set_plot_state``.
+        ``_reset``, ``_toggle_display_mode``, ``plot_x_vs_y``, ``plot_skeleton``,
+        and ``set_plot_state``.
 
         Parameters
         ----------
         mode : str
-            Target display mode: ``"lines"``, ``"image"``, or ``"x_vs_y"``.
+            Target display mode: ``"lines"``, ``"image"``, ``"x_vs_y"``, or
+            ``"skeleton"``.
         state : dict or None
             Mode-specific state returned by the mode's ``get_state()``.
             When ``None`` and the mode is unchanged this is a no-op.
@@ -895,6 +909,12 @@ class PlotTsdFrame(_BasePlot):
             self.scene.remove(self._mode.graphic)
             if self._display_mode == "x_vs_y":
                 self.scene.remove(self._mode.time_point)
+                self.scene.add(self.ruler_ref_time)
+            elif self._display_mode == "skeleton":
+                if self._mode.lines is not None:
+                    self.scene.remove(self._mode.lines)
+                if self._mode.label is not None:
+                    self.scene.remove(self._mode.label)
                 self.scene.add(self.ruler_ref_time)
             self._y_locked = False
             self._x_locked = False
@@ -928,6 +948,51 @@ class PlotTsdFrame(_BasePlot):
                 np.nanmin(self._mode.buffer[:, 0]), np.nanmax(self._mode.buffer[:, 0]),
                 np.nanmin(self._mode.buffer[:, 1]), np.nanmax(self._mode.buffer[:, 1]),
             )
+            self.canvas.request_draw(self.animate)
+            return
+
+        if mode == "skeleton":
+            if switching:
+                self._mode._request_draw = lambda: self.canvas.request_draw(self.animate)
+            rebuild = switching
+            if state is not None:
+                edges_changed = self._mode.update_parameters(
+                    state.get("edges"),
+                    state.get("color", self._default_line_color()),
+                    state.get("thickness", 0.02),
+                    state.get("markersize", 8.0),
+                )
+                # New bones mean new line buffers, so the graphic has to be
+                # rebuilt rather than just restyled in place.
+                if edges_changed and not switching:
+                    self.scene.remove(self._mode.graphic)
+                    if self._mode.lines is not None:
+                        self.scene.remove(self._mode.lines)
+                    if self._mode.label is not None:
+                        self.scene.remove(self._mode.label)
+                    rebuild = True
+            if rebuild:
+                self._mode.initialize_graphic()
+                if switching:
+                    self.scene.remove(self.ruler_ref_time)
+                self.scene.add(self._mode.graphic)
+                if self._mode.lines is not None:
+                    self.scene.add(self._mode.lines)
+                self.scene.add(self._mode.label)
+            if switching:
+                # Only when entering skeleton mode does ruler_ref_time still mark
+                # the current time and the camera need fitting. On re-entry the
+                # controller already holds the right time and view; ruler_ref_time
+                # now tracks the spatial view center (set by animate()), so reading
+                # it here would reset the frame to a bogus time and jump/desync the
+                # canvas.
+                current_time = self.ruler_ref_time.geometry.positions.data[0][0]
+                self.controller.frame_index = self.data.get_slice(current_time).start
+                self.controller._current_time = current_time
+                self.controller.data = self.data
+                self.controller.set_view(*self._mode.get_extent())
+            self.controller.buffer = self._mode.graphic.geometry.positions
+            self._mode._update_buffer(self.controller.frame_index)
             self.canvas.request_draw(self.animate)
             return
 
@@ -1105,6 +1170,45 @@ class PlotTsdFrame(_BasePlot):
         self._set_mode("x_vs_y", state={
             "x_col": x_col, "y_col": y_col,
             "color": color, "thickness": thickness, "markersize": markersize,
+        })
+
+    def plot_skeleton(
+        self,
+        edges: Optional[list] = None,
+        color: Union[str, tuple] = None,
+        thickness: float = 0.02,
+        markersize: float = 8.0,
+    ) -> None:
+        """Plot all keypoints as a skeleton, connected by ``edges``.
+
+        Columns are grouped into keypoints from ``<name>_x``/``<name>_y`` pairs
+        (as produced by ``nap.from_movement``), falling back to positional
+        pairing for plain-indexed columns.
+
+        Parameters
+        ----------
+        edges : list of (str or int, str or int), optional
+            Bone connectivity as pairs of keypoint labels or indices. When
+            ``None``, falls back to the data's ``"parent"`` column metadata if
+            present (one value per column, the keypoint each is connected to —
+            see :func:`pynaviz.skeleton_geometry.edges_from_parent_metadata`),
+            otherwise every keypoint is connected to every other (complete
+            graph) — not anatomically correct, but a reasonable default.
+        color : str or tuple, optional
+            Point color. Defaults to a color that contrasts with the background.
+        thickness : float, default 0.02
+            Connecting-line thickness.
+        markersize : float, default 8.0
+            Size of the keypoint markers.
+        """
+        if self.data.shape[1] % 2 != 0:
+            raise ValueError(
+                "Skeleton plotting requires an even number of columns (x, y pairs)."
+            )
+        if color is None:
+            color = self._default_line_color()
+        self._set_mode("skeleton", state={
+            "edges": edges, "color": color, "thickness": thickness, "markersize": markersize,
         })
 
     def _get_crosshair_label(self, x, y):

@@ -13,7 +13,7 @@ Main Classes:
 
 from collections import OrderedDict
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import numpy as np
 import pynapple as nap
@@ -37,7 +37,12 @@ from PySide6.QtWidgets import (
 
 from ..qt.drop_down_dict_builder import get_popup_kwargs
 from ..qt.interval_sets_selection import IntervalSetsDialog, IntervalSetsModel
-from ..qt.tsdframe_selection import TsdFramesDialog, TsdFramesModel
+from ..qt.tsdframe_selection import (
+    SkeletonDialog,
+    TsdFramesDialog,
+    TsdFramesModel,
+    _remove_video_overlay,
+)
 from ..qt.widget_list_selection import (
     ChannelList,
     ChannelListModel,
@@ -53,7 +58,13 @@ WIDGET_PARAMS = {
         "current_index": "setCurrentIndex",
     },
     QDoubleSpinBox: {
-        "name": "setObjectNAme",  # Note: typo here in key name
+        # Ordered so that range/precision are applied before the value, which
+        # would otherwise be clamped/rounded by the defaults.
+        "name": "setObjectName",
+        "decimals": "setDecimals",
+        "minimum": "setMinimum",
+        "maximum": "setMaximum",
+        "single_step": "setSingleStep",
         "value": "setValue",
     },
 }
@@ -383,6 +394,7 @@ class MenuWidget(QWidget):
         if not all(isinstance(v, nap.TsdFrame) for v in tsdframes.values()):
             raise ValueError("All values in tsdframes must be nap.TsdFrame instances.")
         self.action_funcs["overlay_time_series"] = "Overlay points"
+        self.action_funcs["overlay_skeleton"] = "Overlay Skeleton"
         self._tsdframes_model = TsdFramesModel(tsdframes)
         self._tsdframes_model.checkStateChanged.connect(self._overlay_time_series)
         self._tsdframes = tsdframes
@@ -428,16 +440,29 @@ class MenuWidget(QWidget):
             action.setObjectName(func_name)
             action.triggered.connect(self._popup_menu)
 
+    def _active_get_mode_name(self) -> Optional[str]:
+        """Return the object name of the currently-active 'get'-family controller.
+
+        These modes (x-vs-y, skeleton) plot in a non-time space, so channel
+        selection / sort / group / color-by actions don't apply while active.
+        """
+        if not hasattr(self.plot, "_controllers"):
+            return None
+        for object_name, controller_key in (("x_vs_y", "get"), ("skeleton", "skeleton_get")):
+            ctrl = self.plot._controllers.get(controller_key)
+            if ctrl is not None and ctrl.enabled:
+                return object_name
+        return None
+
     def show_action_menu(self) -> None:
         """Displays the action menu below the button."""
 
+        active_name = self._active_get_mode_name()
         if hasattr(self.plot, "_controllers"):
-            # If 'get' controller is enabled (i.e., in x vs y mode),
-            # Need to disable all others actions
-            get_ctrl = self.plot._controllers.get("get")
-            if get_ctrl is not None and get_ctrl.enabled:
+            # If an x-vs-y/skeleton controller is enabled, disable all other actions
+            if active_name is not None:
                 for act in self.action_menu.actions():
-                    act.setEnabled(act.objectName() == "x_vs_y")
+                    act.setEnabled(act.objectName() == active_name)
             else:
                 for act in self.action_menu.actions():
                     act.setEnabled(True)
@@ -447,10 +472,8 @@ class MenuWidget(QWidget):
 
     def show_select_menu(self) -> None:
         """Opens the channel list selection dialog."""
-        if hasattr(self.plot, "_controllers"):
-            get_ctrl = self.plot._controllers.get("get")
-            if get_ctrl is not None and get_ctrl.enabled:
-                return
+        if self._active_get_mode_name() is not None:
+            return
 
         manager = getattr(self.plot, "_manager", None)
 
@@ -494,6 +517,24 @@ class MenuWidget(QWidget):
         dialog = TsdFramesDialog(self._tsdframes_model, parent=self)
         dialog.show()
 
+    def show_skeleton_menu(self) -> None:
+        """Opens the skeleton editor dialog (bones + point/line styling)."""
+        if self.plot.data.shape[1] % 2 != 0:
+            # Skeleton needs (x, y) column pairs; nothing sensible to edit here.
+            return
+        dialog = SkeletonDialog.for_plot(self.plot, parent=self)
+        dialog.show()
+
+    def show_video_skeleton_menu(self) -> None:
+        """Opens the skeleton overlay editor for the video's TsdFrames."""
+        frames = {
+            k: v for k, v in (self._tsdframes or {}).items() if v.shape[1] % 2 == 0
+        }
+        if not frames:
+            return
+        dialog = SkeletonDialog.for_video(self.plot, frames, parent=self)
+        dialog.show()
+
     def show_select_iset_menu(self) -> None:
         """Opens the interval set selection dialog."""
         for row in self._interval_sets_model.rows:
@@ -510,8 +551,14 @@ class MenuWidget(QWidget):
         if popup_name == "select_interval_set":
             self.show_select_iset_menu()
             return
-        if popup_name in ["overlay_time_series", "overlay_skeleton"]:
+        if popup_name == "overlay_time_series":
             self.show_overlay_menu(popup_name)
+            return
+        if popup_name == "overlay_skeleton":
+            self.show_video_skeleton_menu()
+            return
+        if popup_name == "skeleton":
+            self.show_skeleton_menu()
             return
         if popup_name == "heatmap":
             self.plot._toggle_display_mode(SimpleNamespace(type="key_down", key="m"))
@@ -552,23 +599,25 @@ class MenuWidget(QWidget):
             self.plot.remove_interval_set(name)
             self.plot.canvas.request_draw(self.plot.animate)
 
-    def _overlay_time_series(self, name, color, markersize, thickness, checked) -> None:
-        """Add or remove TsdFrame overlay from the plot based on selection."""
+    def _overlay_time_series(self, name, color, markersize, checked) -> None:
+        """Add or remove a points-only TsdFrame overlay based on selection.
+
+        Points only (``edges=[]``): no connecting bones — those are configured
+        via the "Overlay Skeleton" dialog.
+        """
         if checked:
             # If already present, update the parameters
             if name in self.plot.points:
                 self.plot.points[name].set_color(color)
                 self.plot.points[name].set_markersize(markersize)
-                self.plot.points[name].set_thickness(thickness)
                 self.plot.canvas.request_draw(self.plot.animate)
             else:
-                self.plot.superpose_points(self._tsdframes[name], color, markersize, thickness, label=name)
+                self.plot.superpose_points(
+                    self._tsdframes[name], color=color, markersize=markersize,
+                    thickness=0.0, edges=[], label=name,
+                )
         else:
-            if name in self.plot.points:
-                if hasattr(self.plot.points[name], "lines"):
-                    self.plot.scene.remove(self.plot.points[name].lines)
-                self.plot.scene.remove(self.plot.points[name].points)
-                del self.plot.points[name]
+            _remove_video_overlay(self.plot, name)
             self.plot.canvas.request_draw(self.plot.animate)
 
 
