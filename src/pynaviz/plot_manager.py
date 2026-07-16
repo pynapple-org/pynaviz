@@ -85,7 +85,7 @@ class _PlotManager:
     @visible.setter
     def visible(self, values: np.ndarray) -> None:
         "There is no callback when setting visibility."
-        self.data["visible"] = np.asarray(values, dtype=np.bool)
+        self.data["visible"] = np.asarray(values, dtype=bool)
 
     @property
     def offset(self) -> np.ndarray:

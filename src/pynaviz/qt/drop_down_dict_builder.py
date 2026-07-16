@@ -140,26 +140,6 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
             parent=widget,
         )
 
-    elif popup_name == "skeleton":
-        color = {
-            "type": QComboBox,
-            "name": "colors",
-            "items": GRADED_COLOR_LIST,
-            "current_index": 0,
-            "icon_factory": _color_icon,
-            "icon_size": QSize(32, 16),
-            "clear_text": True,
-        }
-        kwargs = dict(
-            widgets=OrderedDict(Color=color),
-            title="Plot Skeleton",
-            # `edges` has no widget yet (falls back to the complete-graph
-            # default); only `color` is exposed here.
-            func=lambda color: plot.plot_skeleton(color=color),
-            ok_cancel_button=True,
-            parent=widget,
-        )
-
     elif popup_name == "sort_by":
         metadata = getattr(widget, "metadata", None)
         if metadata is None:

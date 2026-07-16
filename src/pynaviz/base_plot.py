@@ -913,6 +913,8 @@ class PlotTsdFrame(_BasePlot):
             elif self._display_mode == "skeleton":
                 if self._mode.lines is not None:
                     self.scene.remove(self._mode.lines)
+                if self._mode.label is not None:
+                    self.scene.remove(self._mode.label)
                 self.scene.add(self.ruler_ref_time)
             self._y_locked = False
             self._x_locked = False
@@ -952,26 +954,45 @@ class PlotTsdFrame(_BasePlot):
         if mode == "skeleton":
             if switching:
                 self._mode._request_draw = lambda: self.canvas.request_draw(self.animate)
+            rebuild = switching
             if state is not None:
-                self._mode.update_parameters(
+                edges_changed = self._mode.update_parameters(
                     state.get("edges"),
                     state.get("color", self._default_line_color()),
                     state.get("thickness", 0.02),
                     state.get("markersize", 8.0),
                 )
-            if switching:
+                # New bones mean new line buffers, so the graphic has to be
+                # rebuilt rather than just restyled in place.
+                if edges_changed and not switching:
+                    self.scene.remove(self._mode.graphic)
+                    if self._mode.lines is not None:
+                        self.scene.remove(self._mode.lines)
+                    if self._mode.label is not None:
+                        self.scene.remove(self._mode.label)
+                    rebuild = True
+            if rebuild:
                 self._mode.initialize_graphic()
-                self.scene.remove(self.ruler_ref_time)
+                if switching:
+                    self.scene.remove(self.ruler_ref_time)
                 self.scene.add(self._mode.graphic)
                 if self._mode.lines is not None:
                     self.scene.add(self._mode.lines)
-            current_time = self.ruler_ref_time.geometry.positions.data[0][0]
-            self.controller.frame_index = self.data.get_slice(current_time).start
-            self.controller._current_time = current_time
-            self.controller.data = self.data
+                self.scene.add(self._mode.label)
+            if switching:
+                # Only when entering skeleton mode does ruler_ref_time still mark
+                # the current time and the camera need fitting. On re-entry the
+                # controller already holds the right time and view; ruler_ref_time
+                # now tracks the spatial view center (set by animate()), so reading
+                # it here would reset the frame to a bogus time and jump/desync the
+                # canvas.
+                current_time = self.ruler_ref_time.geometry.positions.data[0][0]
+                self.controller.frame_index = self.data.get_slice(current_time).start
+                self.controller._current_time = current_time
+                self.controller.data = self.data
+                self.controller.set_view(*self._mode.get_extent())
             self.controller.buffer = self._mode.graphic.geometry.positions
             self._mode._update_buffer(self.controller.frame_index)
-            self.controller.set_view(*self._mode.get_extent())
             self.canvas.request_draw(self.animate)
             return
 

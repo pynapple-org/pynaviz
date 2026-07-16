@@ -169,7 +169,9 @@ class SkeletonGeometry:
         ).astype("float32")
 
         geom_points = gfx.Geometry(positions=positions)
-        mat_points = gfx.PointsMaterial(color=color, size=markersize)
+        # pick_write enables per-point picking: a pointer event on the points
+        # carries pick_info["vertex_index"] identifying the clicked keypoint.
+        mat_points = gfx.PointsMaterial(color=color, size=markersize, pick_write=True)
         self.points = gfx.Points(geom_points, mat_points)
 
         self.lines = None
@@ -181,8 +183,11 @@ class SkeletonGeometry:
             # continuous polyline through all bones back-to-back, spuriously
             # connecting the end of one bone to the start of the next and
             # producing visible loops across unrelated edges.
-            mat_lines = gfx.LineSegmentMaterial(thickness=thickness, color="grey")
+            mat_lines = gfx.LineSegmentMaterial(color="grey")
             self.lines = gfx.Line(geom_lines, mat_lines)
+            # Route through set_thickness so a near-zero thickness hides the
+            # bones here exactly as it does when set later.
+            self.set_thickness(thickness)
 
         self.scene = scene
         if scene is not None:
