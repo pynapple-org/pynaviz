@@ -556,7 +556,10 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
             return
         total = max_time - min_time
         frac = (current_time - min_time) / total
-        value = int(max(0.0, min(1.0, frac)) * _TIMEBAR_RESOLUTION)
+        # Round rather than truncate: a scrub round-trips slider -> time ->
+        # slider, and truncating drifts the handle back by a tick whenever
+        # float noise lands the value just under the integer.
+        value = int(round(max(0.0, min(1.0, frac)) * _TIMEBAR_RESOLUTION))
         self.time_slider.blockSignals(True)
         self.time_slider.setValue(value)
         self.time_slider.blockSignals(False)
