@@ -296,3 +296,146 @@ def test_close_without_worker_does_not_submit_to_reaper(test_video_path):
     plot.close()
     assert time.perf_counter() - start < MAX_CLOSE_SECONDS
     assert plot._closed
+
+
+# ----------------------------------------------------------------------
+# Degraded paths: the teardown must stay best-effort and never raise
+# ----------------------------------------------------------------------
+
+class _StuckThread:
+    """A buffer thread that refuses to stop."""
+
+    name = "stuck-buffer-thread"
+
+    def is_alive(self):
+        return True
+
+    def join(self, timeout=None):
+        return None
+
+
+class _RaisingEvent:
+    """An event whose ``set`` fails, e.g. on a closed semaphore."""
+
+    def set(self):
+        raise OSError("semaphore is gone")
+
+
+class _RaisingShm:
+    """Shared memory that cannot be released."""
+
+    name = "unreleasable"
+
+    def close(self):
+        raise BufferError("cannot close exported pointer")
+
+    def unlink(self):
+        raise AssertionError("must not be reached")
+
+
+def test_release_leaks_memory_rather_than_freeing_it_under_a_live_thread(capsys):
+    """Freeing memory a live thread still reads would crash the process."""
+    shm = shared_memory.SharedMemory(create=True, size=64)
+    name = shm.name
+    try:
+        video_plot._release_handles(
+            _WorkerHandles(buffer_thread=_StuckThread(), shm=[shm])
+        )
+        assert "did not stop" in capsys.readouterr().out
+        assert _shm_exists(name), "freed memory out from under a live thread"
+    finally:
+        shm.close()
+        shm.unlink()
+
+
+def test_release_frees_memory_when_the_worker_overruns_its_join(capsys, monkeypatch):
+    """A worker that will not exit must not strand the memory forever."""
+    monkeypatch.setattr(video_plot, "_WORKER_JOIN_TIMEOUT", 0.2)
+    shm = shared_memory.SharedMemory(create=True, size=64)
+    name = shm.name
+    worker = mp.Process(target=_stubborn_worker, args=(SLOW_WORKER_SECONDS,))
+    worker.start()
+    try:
+        video_plot._release_handles(_WorkerHandles(worker=worker, shm=[shm]))
+        out = capsys.readouterr().out
+        assert "did not exit within" in out
+        assert not _shm_exists(name), "memory not released after giving up"
+    finally:
+        worker.join(timeout=60)
+
+
+def test_release_reports_a_failing_block_and_still_frees_the_others(capsys):
+    """One unreleasable block must not strand the rest."""
+    good = shared_memory.SharedMemory(create=True, size=64)
+    name = good.name
+
+    video_plot._release_handles(_WorkerHandles(shm=[_RaisingShm(), good]))
+
+    assert "Unable to release shared memory unreleasable" in capsys.readouterr().out
+    assert not _shm_exists(name), "a failing block blocked the others"
+
+
+def test_close_survives_a_handler_that_fails_to_close(test_video_path, capsys):
+    """``close`` must finish even if the video handler raises."""
+    plot = PlotVideo(video=test_video_path, t=np.arange(100), start_worker=False)
+
+    def boom():
+        raise RuntimeError("container already gone")
+
+    plot._data.close = boom
+    plot.close()
+
+    assert "Unable to close VideoHandler" in capsys.readouterr().out
+    assert plot._closed
+
+
+def test_close_survives_a_stop_event_that_cannot_be_set(test_video_path, capsys):
+    """``close`` must finish even if signalling the worker raises."""
+    plot = PlotVideo(video=test_video_path, t=np.arange(100), start_worker=False)
+    plot.worker_stop_event = _RaisingEvent()
+
+    plot.close()
+
+    assert "Unable to signal worker" in capsys.readouterr().out
+    assert plot._closed
+    assert plot._stop_threads.is_set(), "threads must still be told to stop"
+
+
+def test_cleanup_hook_reports_a_failing_close_and_continues(test_video_path, capsys):
+    """One broken plot must not stop the atexit hook closing the rest."""
+
+    class _BrokenPlot:
+        def close(self):
+            raise RuntimeError("close failed")
+
+    broken = _BrokenPlot()
+    plot = PlotVideo(video=test_video_path, t=np.arange(100), start_worker=False)
+    video_plot._active_plot_videos.add(broken)
+
+    video_plot._cleanup_all_plot_videos()
+
+    assert "Error during close" in capsys.readouterr().out
+    assert plot._closed, "a failing plot blocked the others"
+    assert not list(video_plot._active_plot_videos)
+
+
+def test_cleanup_hook_warns_when_workers_outlast_the_drain(capsys):
+    """Interpreter shutdown must be bounded, and say so when it gives up."""
+    original = video_plot._drain_reaper
+    video_plot._drain_reaper = lambda *a, **k: False
+    try:
+        video_plot._cleanup_all_plot_videos()
+    finally:
+        video_plot._drain_reaper = original
+
+    assert "Timed out waiting for video workers" in capsys.readouterr().out
+
+
+def test_drain_is_a_noop_before_any_worker_is_reaped():
+    """Draining must not block when the reaper was never started."""
+    original = video_plot._reaper_thread
+    video_plot._reaper_thread = None
+    try:
+        assert video_plot._drain_reaper(timeout=0) is True
+    finally:
+        video_plot._reaper_thread = original
