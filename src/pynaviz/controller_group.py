@@ -2,7 +2,8 @@
 ControllerGroup is used to synchronize in time each canvas.
 """
 
-from typing import Callable, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Callable, Optional, Union
 
 from pygfx import Renderer, Viewport
 
@@ -62,7 +63,7 @@ class ControllerGroup:
         viewport.renderer.add_event_handler(self.sync_controllers, "sync")
         viewport.renderer.add_event_handler(self.switch_controller, "switch")
 
-    def set_interval(self, start: Union[int, float], end: Union[int, float, None]):
+    def set_interval(self, start: float, end: Union[float, None]):
         """
         Sets a new time interval for all controllers in the group.
 

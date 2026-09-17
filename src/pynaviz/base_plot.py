@@ -227,7 +227,6 @@ class _BasePlot(IntervalSetInterface):
         -------
         dict or None
         """
-        pass
 
     def set_plot_state(self, state, available_vars: Optional[dict]):
         """Restore plot-type-specific display state produced by :meth:`get_plot_state`.
@@ -239,7 +238,6 @@ class _BasePlot(IntervalSetInterface):
         available_vars: dict
             The available nap variables.
         """
-        pass
 
     def get_state(self) -> dict:
         """Return the full serializable state of this plot.
@@ -1077,8 +1075,8 @@ class PlotTsdFrame(_BasePlot):
 
     def plot_x_vs_y(
         self,
-        x_col: Union[str, int, float],
-        y_col: Union[str, int, float],
+        x_col: Union[str, float],
+        y_col: Union[str, float],
         color: Union[str, tuple] = None,
         thickness: float = 1.0,
         markersize: float = 10.0,

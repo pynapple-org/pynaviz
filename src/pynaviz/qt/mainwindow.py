@@ -833,4 +833,3 @@ def scope(variables: Union[dict, list, tuple, str], layout_path: str = None, eph
 
     gui.close()
 
-    return

@@ -55,7 +55,10 @@ dev = [
     "pytest-cov",                   # Test coverage plugin for pytest
     'matplotlib>=3.7',              # Plotting library
     "nox",
-    "ruff",
+    # Pinned: ruff changes its default rule set between minor releases, so an
+    # unpinned linter turns every new release into a red CI run on untouched
+    # code. Bump deliberately, together with the resulting fixes.
+    "ruff~=0.13.2",
     "isort",
     "click",
     "imageio",
@@ -99,6 +102,10 @@ sigterm = true
 source = ["src/"]
 
 [tool.ruff]
+# Keep local runs in step with the pinned version in [dev]. Without this, a
+# newer ruff on PATH reports hundreds of findings from rule families this
+# project never selected, which looks like a regression but is not one.
+required-version = "~=0.13.2"
 line-length = 99
 
 # Exclude a variety of commonly ignored directories.

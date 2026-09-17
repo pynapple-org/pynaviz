@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from multiprocessing import Event, Process, Queue, current_process, set_start_method, shared_memory
 from multiprocessing import Lock as MultiProcessLock
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import av
 import numpy as np
@@ -63,17 +63,17 @@ _REAPER_DRAIN_TIMEOUT = 10.0
 class _WorkerHandles:
     """Resources belonging to a closed ``PlotVideo``, owned by the reaper."""
 
-    worker: Optional[Process] = None
-    buffer_thread: Optional[threading.Thread] = None
-    shm: List[shared_memory.SharedMemory] = field(default_factory=list)
+    worker: Process | None = None
+    buffer_thread: threading.Thread | None = None
+    shm: list[shared_memory.SharedMemory] = field(default_factory=list)
     # Numpy views onto ``shm``. They must be dropped before the blocks are
     # closed: ``SharedMemory.close`` raises ``BufferError`` while a memoryview
     # is still exported.
-    views: List[np.ndarray] = field(default_factory=list)
+    views: list[np.ndarray] = field(default_factory=list)
 
 
 _reaper_queue: "queue.Queue[_WorkerHandles]" = queue.Queue()
-_reaper_thread: Optional[threading.Thread] = None
+_reaper_thread: threading.Thread | None = None
 _reaper_lock = threading.Lock()
 _reaper_pending = 0
 _reaper_idle = threading.Event()
@@ -192,7 +192,6 @@ def _update_buffer(plot_object: Any, frame_index: int):
         plot_object.texture.data[:] = img_array.astype("float32")
     plot_object.texture.update_full()
     plot_object._set_time_text(frame_index)
-    return
 
 
 class PlotBaseVideoTensor(_BasePlot, ABC):
@@ -257,7 +256,6 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     @abstractmethod
     def _get_initial_texture_data(self) -> np.ndarray:
         """Return the initial 2D image tensor for the texture."""
-        pass
 
     def _set_time_text(self, frame_index: int):
         """Update the on-screen time text based on the current frame index."""
@@ -283,11 +281,9 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         """Placeholder for future metadata sorting method."""
-        pass
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
         """Placeholder for future metadata grouping method."""
-        pass
 
     @abc.abstractmethod
     def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
@@ -301,7 +297,6 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         event_type : RenderTriggerSource, optional
             Source of the event triggering the update.
         """
-        pass
 
     def _update_extra_objects(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
         """
