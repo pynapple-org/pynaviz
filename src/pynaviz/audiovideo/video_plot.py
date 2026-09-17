@@ -12,6 +12,7 @@ import sys
 import threading
 import weakref
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from multiprocessing import Event, Process, Queue, current_process, set_start_method, shared_memory
 from multiprocessing import Lock as MultiProcessLock
 from typing import Any, Optional
@@ -33,6 +34,120 @@ from .video_worker import RenderTriggerSource, video_worker_process
 _active_plot_videos = weakref.WeakSet()
 
 
+# ----------------------------------------------------------------------
+# Background reaping of worker processes
+# ----------------------------------------------------------------------
+# ``PlotVideo.close`` must not block the GUI thread waiting for a worker to
+# exit. Under the "spawn" start method (Windows) a freshly created worker is
+# still importing its dependencies and cannot observe ``worker_stop_event``
+# for a second or more, so a blocking join just burns its whole timeout.
+#
+# Instead, ``close`` signals the worker and hands the handles to a single
+# daemon thread. Deferring the teardown is also what makes it *correct*: the
+# shared memory may only be released once the worker is gone. On Windows the
+# named mapping is destroyed as soon as the last handle is closed, so a parent
+# that releases it early pulls the mapping out from under a worker that has
+# not attached yet (``FileNotFoundError`` from ``OpenFileMapping``).
+
+# Upper bound on how long the reaper waits for a single worker to exit before
+# giving up and releasing the shared memory anyway.
+_WORKER_JOIN_TIMEOUT = 30.0
+# Same, for the parent-side thread that copies frames out of shared memory.
+# It polls ``frame_ready`` with a 0.1 s timeout, so it stops promptly.
+_BUFFER_THREAD_JOIN_TIMEOUT = 5.0
+# Upper bound on how long interpreter shutdown waits for pending reaps.
+_REAPER_DRAIN_TIMEOUT = 10.0
+
+
+@dataclass
+class _WorkerHandles:
+    """Resources belonging to a closed ``PlotVideo``, owned by the reaper."""
+
+    worker: Process | None = None
+    buffer_thread: threading.Thread | None = None
+    shm: list[shared_memory.SharedMemory] = field(default_factory=list)
+    # Numpy views onto ``shm``. They must be dropped before the blocks are
+    # closed: ``SharedMemory.close`` raises ``BufferError`` while a memoryview
+    # is still exported.
+    views: list[np.ndarray] = field(default_factory=list)
+
+
+_reaper_queue: "queue.Queue[_WorkerHandles]" = queue.Queue()
+_reaper_thread: threading.Thread | None = None
+_reaper_lock = threading.Lock()
+_reaper_pending = 0
+_reaper_idle = threading.Event()
+_reaper_idle.set()
+
+
+def _release_handles(handles: _WorkerHandles):
+    """Join a worker and its buffer thread, then release the shared memory."""
+    thread = handles.buffer_thread
+    if thread is not None and thread.is_alive():
+        thread.join(timeout=_BUFFER_THREAD_JOIN_TIMEOUT)
+        if thread.is_alive():
+            print(f"[WARN] Buffer thread {thread.name} did not stop; leaking shared memory")
+            return
+
+    worker = handles.worker
+    if worker is not None and worker.is_alive():
+        worker.join(timeout=_WORKER_JOIN_TIMEOUT)
+        if worker.is_alive():
+            print(
+                f"[WARN] Worker {worker.name} did not exit within "
+                f"{_WORKER_JOIN_TIMEOUT:g}s; releasing shared memory anyway"
+            )
+
+    # Drop the views first, otherwise ``close`` below fails on the still
+    # exported buffer.
+    handles.views.clear()
+    for shm in handles.shm:
+        name = shm.name
+        try:
+            shm.close()
+            shm.unlink()  # no-op on Windows
+        except Exception as e:
+            print(f"[ERROR] Unable to release shared memory {name}: {e}")
+    handles.shm.clear()
+
+
+def _reaper_loop():
+    """Serially release the handles of every closed ``PlotVideo``."""
+    global _reaper_pending
+    while True:
+        handles = _reaper_queue.get()
+        try:
+            _release_handles(handles)
+        except Exception as e:
+            print(f"[ERROR] Failed to reap video worker: {e}")
+        finally:
+            with _reaper_lock:
+                _reaper_pending -= 1
+                if _reaper_pending == 0:
+                    _reaper_idle.set()
+
+
+def _submit_for_reaping(handles: _WorkerHandles):
+    """Hand ``handles`` to the reaper thread, starting it on first use."""
+    global _reaper_thread, _reaper_pending
+    with _reaper_lock:
+        if _reaper_thread is None or not _reaper_thread.is_alive():
+            _reaper_thread = threading.Thread(
+                target=_reaper_loop, name="pynaviz-worker-reaper", daemon=True
+            )
+            _reaper_thread.start()
+        _reaper_pending += 1
+        _reaper_idle.clear()
+    _reaper_queue.put(handles)
+
+
+def _drain_reaper(timeout: float = _REAPER_DRAIN_TIMEOUT) -> bool:
+    """Wait for pending reaps to finish. Returns False if the wait timed out."""
+    if _reaper_thread is None:
+        return True
+    return _reaper_idle.wait(timeout=timeout)
+
+
 def _cleanup_all_plot_videos():
     """Cleans up all active video plot instances on exit."""
     for video in list(_active_plot_videos):
@@ -41,6 +156,10 @@ def _cleanup_all_plot_videos():
         except Exception as e:
             print(f"[WARN] Error during close: {e}")
     _active_plot_videos.clear()
+    # ``close`` is now asynchronous, so block here -- and only here -- to give
+    # the workers a chance to exit before the interpreter tears down.
+    if not _drain_reaper():
+        print("[WARN] Timed out waiting for video workers to exit")
 
 
 # Register cleanup at process exit
@@ -73,7 +192,6 @@ def _update_buffer(plot_object: Any, frame_index: int):
         plot_object.texture.data[:] = img_array.astype("float32")
     plot_object.texture.update_full()
     plot_object._set_time_text(frame_index)
-    return
 
 
 class PlotBaseVideoTensor(_BasePlot, ABC):
@@ -138,7 +256,6 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     @abstractmethod
     def _get_initial_texture_data(self) -> np.ndarray:
         """Return the initial 2D image tensor for the texture."""
-        pass
 
     def _set_time_text(self, frame_index: int):
         """Update the on-screen time text based on the current frame index."""
@@ -164,11 +281,9 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
 
     def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
         """Placeholder for future metadata sorting method."""
-        pass
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
         """Placeholder for future metadata grouping method."""
-        pass
 
     @abc.abstractmethod
     def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
@@ -182,7 +297,6 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         event_type : RenderTriggerSource, optional
             Source of the event triggering the update.
         """
-        pass
 
     def _update_extra_objects(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
         """
@@ -417,7 +531,17 @@ class PlotVideo(PlotBaseVideoTensor):
         raise ValueError("Cannot set data for ``PlotVideo``. Data must be a fixed video stream.")
 
     def close(self):
-        """Cleanly close shared memory, worker, and background thread."""
+        """
+        Stop the worker and release its resources without blocking.
+
+        The worker is signalled to stop, then the process, the background
+        thread and the shared memory are handed to a reaper thread which
+        joins them and releases the memory once the worker is really gone
+        (see ``_submit_for_reaping``). This returns immediately, so closing a
+        video never stalls the GUI thread -- notably under the "spawn" start
+        method, where a just-created worker cannot observe the stop event
+        until its imports complete.
+        """
         if not self._closed:
             try:
                 try:
@@ -426,41 +550,37 @@ class PlotVideo(PlotBaseVideoTensor):
                     print(f"Unable to close VideoHandler with exception: {e}")
 
                 try:
-                    self._stop_threads.set()
-                    if hasattr(self, "_buffer_thread") and self._buffer_thread.is_alive():
-                        self._buffer_thread.join(timeout=1)
+                    stop_threads = getattr(self, "_stop_threads", None)
+                    if stop_threads is not None:
+                        stop_threads.set()
+                    stop_event = getattr(self, "worker_stop_event", None)
+                    if stop_event is not None:
+                        stop_event.set()
                 except Exception as e:
-                    print(f"Unable to stop background thread with exception: {e}")
+                    print(f"Unable to signal worker with exception: {e}")
 
-                if hasattr(self, "worker_stop_event") and self._worker.is_alive():
-                    try:
-                        self.worker_stop_event.set()
-                        self._worker.join(timeout=2)
-                    except Exception as e:
-                        print(f"Unable to stop worker process with exception: {e}")
-
-                    # After closing and unlinking shared memory
-                    if hasattr(self, "shm_frame") and self.shm_frame is not None:
-                        try:
-                            self.shm_frame.close()
-                            self.shm_frame.unlink()
-                            # drop all references to shm
-                            # otherwise a resource manager process will hang
-                            self.shared_frame = None
-                            self.shm_frame = None
-                        except Exception as e:
-                            print(f"[ERROR] Unable to close shm_frame: {e}")
-
-                    if hasattr(self, "shm_index") and self.shm_index is not None:
-                        try:
-                            self.shm_index.close()
-                            self.shm_index.unlink()
-                            # drop all references to shm
-                            # otherwise a resource manager process will hang
-                            self.shm_index = None
-                            self.shared_index = None
-                        except Exception as e:
-                            print(f"[ERROR] Unable to close shm_index: {e}")
+                if getattr(self, "shm_frame", None) is not None:
+                    handles = _WorkerHandles(
+                        worker=getattr(self, "_worker", None),
+                        buffer_thread=getattr(self, "_buffer_thread", None),
+                        shm=[
+                            shm
+                            for shm in (self.shm_frame, self.shm_index)
+                            if shm is not None
+                        ],
+                        views=[
+                            view
+                            for view in (self.shared_frame, self.shared_index)
+                            if view is not None
+                        ],
+                    )
+                    # Drop our references so the reaper holds the only ones;
+                    # ``_update_buffer_thread`` checks for this and stops.
+                    self.shared_frame = None
+                    self.shared_index = None
+                    self.shm_frame = None
+                    self.shm_index = None
+                    _submit_for_reaping(handles)
             finally:
                 _active_plot_videos.discard(self)
                 self._closed = True
@@ -529,6 +649,9 @@ class PlotVideo(PlotBaseVideoTensor):
             if not self.frame_ready.wait(timeout=0.1):
                 continue
             with self.buffer_lock, self.worker_lock:
+                if self.shared_frame is None or self.shared_index is None:
+                    # close() handed the shared memory over to the reaper
+                    break
                 self.texture.data[:] = self.shared_frame
                 frame_index = int(self.shared_index[0])
                 self._update_extra_objects(frame_index)

@@ -78,9 +78,7 @@ class IntervalSetsModel(QAbstractTableModel):
         base = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
         if index.column() == 0:
             return base | Qt.ItemFlag.ItemIsUserCheckable
-        elif index.column() == 1:
-            return base | Qt.ItemFlag.ItemIsEditable
-        elif index.column() == 2:
+        elif index.column() == 1 or index.column() == 2:
             return base | Qt.ItemFlag.ItemIsEditable
         return base
 
