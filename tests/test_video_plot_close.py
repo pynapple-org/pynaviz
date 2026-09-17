@@ -61,7 +61,10 @@ def start_method(request):
     previous = mp.get_start_method(allow_none=True)
     mp.set_start_method(request.param, force=True)
     yield request.param
-    mp.set_start_method(previous, force=True)
+    # On Windows nothing has set a method at import time, so ``previous`` can
+    # be None, which ``set_start_method`` rejects.
+    if previous is not None:
+        mp.set_start_method(previous, force=True)
 
 
 def _shm_exists(name):
