@@ -84,7 +84,9 @@ def widget_factory(parameters: dict) -> QWidget:
         if groups is not None:
             if icon_factory is not None:
                 widget.setIconSize(icon_size)
-                widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+                widget.setSizeAdjustPolicy(
+                    QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+                )
                 widget.setMinimumContentsLength(0)
                 widget.setMinimumWidth(icon_size.width() + 36)  # icon + padding + arrow button
             current_index = 0
@@ -289,7 +291,13 @@ class MenuWidget(QWidget):
         TsdFrame object for overlaying on TsdTensor plot or VideoWidget plot.
     """
 
-    def __init__(self, metadata: Any, plot: Any, interval_sets: dict | None = None, tsdframes: dict | None = None):
+    def __init__(
+        self,
+        metadata: Any,
+        plot: Any,
+        interval_sets: dict | None = None,
+        tsdframes: dict | None = None,
+    ):
         super().__init__()
         self._interval_sets = None
         self._interval_sets_model = None
@@ -314,7 +322,7 @@ class MenuWidget(QWidget):
                 attr_name="select_button",
                 callback=self.show_select_menu,
                 icon_name="SP_DialogApplyButton",
-                icon_size=self.icon_size
+                icon_size=self.icon_size,
             )
 
         # Action menu for plot operations
@@ -341,7 +349,7 @@ class MenuWidget(QWidget):
                 attr_name="action_button",
                 callback=self.show_action_menu,
                 icon_name="SP_FileDialogDetailedView",
-                icon_size=self.icon_size
+                icon_size=self.icon_size,
             )
 
         # Navigation buttons for time-based data
@@ -351,22 +359,19 @@ class MenuWidget(QWidget):
                 attr_name="left_jump_button",
                 callback=self.jump_previous,
                 icon_name="SP_ArrowLeft",
-                icon_size=self.icon_size
+                icon_size=self.icon_size,
             )
             self._add_button_to_layout(
                 layout=layout,
                 attr_name="right_jump_button",
                 callback=self.jump_next,
                 icon_name="SP_ArrowRight",
-                icon_size=self.icon_size
+                icon_size=self.icon_size,
             )
 
         layout.addStretch()
         self.setLayout(layout)
-        self.setSizePolicy(
-            QSizePolicy.Policy.Preferred,
-            QSizePolicy.Policy.Fixed
-        )
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self._action_menu()
 
     def _set_interval_sets(self, interval_sets: dict) -> None:
@@ -390,7 +395,7 @@ class MenuWidget(QWidget):
     def _change_visibility(self) -> None:
         """Request a redraw of the plot when channel states change."""
         widget = self.sender()
-        visibility= np.array([val for val in getattr(widget, "checks", []).values()])
+        visibility = np.array([val for val in getattr(widget, "checks", []).values()])
         if hasattr(self.plot, "_manager"):
             self.plot._manager.visible = visibility
         if hasattr(self.plot, "_update"):
@@ -409,38 +414,53 @@ class MenuWidget(QWidget):
         icon = self.style().standardIcon(getattr(QStyle.StandardPixmap, icon_name))
         button.setIcon(icon)
         button.setIconSize(QSize(icon_size, icon_size))
-        button.setSizePolicy(
-            QSizePolicy.Policy.Fixed,
-            QSizePolicy.Policy.Minimum
-        )
+        button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         button.setFixedSize(icon_size + 4, icon_size + 4)
         button.setFlat(True)
         button.clicked.connect(menu_to_show)
         return button
 
     def _action_menu(self) -> None:
-        """Creates the action menu with plot operation entries."""
+        """Create the action menu."""
         self.action_menu = QMenu()
+
         for func_name, name in self.action_funcs.items():
-            if func_name in ["select_interval_set", "overlay_time_series"]:
+            if func_name in ("select_interval_set", "overlay_time_series"):
                 self.action_menu.addSeparator()
+
             action = self.action_menu.addAction(name)
             action.setObjectName(func_name)
+            action.setEnabled(self._supports_action(func_name))
             action.triggered.connect(self._popup_menu)
 
+    def _supports_action(self, action_name: str) -> bool:
+        """Return whether the plot supports an action."""
+        capability = {
+            "sort_by": "supports_sorting",
+            "group_by": "supports_grouping",
+        }.get(action_name)
+
+        if capability is None:
+            return True
+
+        return bool(getattr(self.plot, capability, True))
+
     def show_action_menu(self) -> None:
-        """Displays the action menu below the button."""
+        """Display the action menu below the button."""
+        get_controller_enabled = False
 
         if hasattr(self.plot, "_controllers"):
-            # If 'get' controller is enabled (i.e., in x vs y mode),
-            # Need to disable all others actions
-            get_ctrl = self.plot._controllers.get("get")
-            if get_ctrl is not None and get_ctrl.enabled:
-                for act in self.action_menu.actions():
-                    act.setEnabled(act.objectName() == "x_vs_y")
-            else:
-                for act in self.action_menu.actions():
-                    act.setEnabled(True)
+            get_controller = self.plot._controllers.get("get")
+            get_controller_enabled = get_controller is not None and get_controller.enabled
+
+        for action in self.action_menu.actions():
+            action_name = action.objectName()
+            supported = self._supports_action(action_name)
+
+            if get_controller_enabled:
+                supported &= action_name == "x_vs_y"
+
+            action.setEnabled(supported)
 
         pos = self.action_button.mapToGlobal(QPoint(0, self.action_button.height()))
         self.action_menu.exec(pos)
@@ -458,12 +478,10 @@ class MenuWidget(QWidget):
             metadata_name = manager._actions["group_by"]["metadata_name"]
             channel_names = list(manager.index)
             groups_mapping = {
-                ch: str(self.plot.data.metadata.loc[ch][metadata_name])
-                for ch in channel_names
+                ch: str(self.plot.data.metadata.loc[ch][metadata_name]) for ch in channel_names
             }
             visibility_mapping = {
-                ch: bool(manager.data.loc[ch]["visible"])
-                for ch in channel_names
+                ch: bool(manager.data.loc[ch]["visible"]) for ch in channel_names
             }
             order_mapping = (
                 {ch: int(manager.data.loc[ch]["order"]) for ch in channel_names}
@@ -528,7 +546,7 @@ class MenuWidget(QWidget):
         self.plot.jump_next()
 
     def jump_previous(self) -> None:
-        """ Jump to the previous timestamp or start"""
+        """Jump to the previous timestamp or start"""
         self.plot.jump_previous()
 
     def _request_draw(self) -> None:
@@ -547,7 +565,9 @@ class MenuWidget(QWidget):
                 self.plot.update_interval_set(name, colors=colors, alpha=alpha)
                 self.plot.canvas.request_draw(self.plot.animate)
             else:
-                self.plot.add_interval_sets(self._interval_sets[name], colors=colors, alpha=alpha, labels=name)
+                self.plot.add_interval_sets(
+                    self._interval_sets[name], colors=colors, alpha=alpha, labels=name
+                )
         else:
             self.plot.remove_interval_set(name)
             self.plot.canvas.request_draw(self.plot.animate)
@@ -562,7 +582,9 @@ class MenuWidget(QWidget):
                 self.plot.points[name].set_thickness(thickness)
                 self.plot.canvas.request_draw(self.plot.animate)
             else:
-                self.plot.superpose_points(self._tsdframes[name], color, markersize, thickness, label=name)
+                self.plot.superpose_points(
+                    self._tsdframes[name], color, markersize, thickness, label=name
+                )
         else:
             if name in self.plot.points:
                 if hasattr(self.plot.points[name], "lines"):
@@ -570,6 +592,3 @@ class MenuWidget(QWidget):
                 self.plot.scene.remove(self.plot.points[name].points)
                 del self.plot.points[name]
             self.plot.canvas.request_draw(self.plot.animate)
-
-
-
