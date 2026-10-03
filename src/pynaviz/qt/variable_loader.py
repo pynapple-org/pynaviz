@@ -40,7 +40,7 @@ def _filter_paths(path: str, ephys_format: str | None = None) -> tuple | None:
         try:
             data = nap.EphysReader(path, format=ephys_format)
             fmt = ephys_format or _infer_ephys_format(data)
-            nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()}
+            nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data}
             return p.name, nap_obj_dict
         except Exception as e:
             print(f"Could not load directory {path} as EphysReader: \n{e}")
@@ -54,7 +54,7 @@ def _filter_paths(path: str, ephys_format: str | None = None) -> tuple | None:
         elif ext == ".nwb":
             data = nap.load_file(path)
             nap_obj_dict = {}
-            for key in data.keys():
+            for key in data:
                 nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
             return base_name, nap_obj_dict
         elif ext == ".npz":
@@ -67,7 +67,7 @@ def _filter_paths(path: str, ephys_format: str | None = None) -> tuple | None:
             try:
                 data = nap.EphysReader(path, format=ephys_format)
                 fmt = ephys_format or _infer_ephys_format(data)
-                nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()}
+                nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data}
                 return base_name, nap_obj_dict
             except Exception as e:
                 print(f"Could not load {path} as EphysReader: {e}")
@@ -84,16 +84,14 @@ def _extract_name_value(v: Any, ephys_format: str | None = None):
     if hasattr(v, "__module__"):
         if isinstance(v, nap.NWBFile):
             nap_obj_dict = {}
-            for key in v.keys():
+            for key in v:
                 nap_obj_dict[key] = NWBReference(nwb_file=v, key=key)
             return v.__class__.__name__, nap_obj_dict
         elif isinstance(v, nap.EphysReader):
             fmt = ephys_format or _infer_ephys_format(v)
-            nap_obj_dict = {key: EphysReference(ephys_reader=v, key=key, format=fmt) for key in v.keys()}
+            nap_obj_dict = {key: EphysReference(ephys_reader=v, key=key, format=fmt) for key in v}
             return v.name, nap_obj_dict
-        elif "pynapple" in v.__module__:
-            return v.__class__.__name__, v
-        elif isinstance(v, VideoHandler):
+        elif "pynapple" in v.__module__ or isinstance(v, VideoHandler):
             return v.__class__.__name__, v
 
     return None, None
@@ -110,12 +108,12 @@ def get_pynapple_variables(
         variables = [variables]
 
     if isinstance(variables, nap.NWBFile):
-        nap_obj_dict = {key: NWBReference(nwb_file=variables, key=key) for key in variables.keys()}
+        nap_obj_dict = {key: NWBReference(nwb_file=variables, key=key) for key in variables}
         return {variables.__class__.__name__: nap_obj_dict}
 
     if isinstance(variables, nap.EphysReader):
         fmt = ephys_format or _infer_ephys_format(variables)
-        nap_obj_dict = {key: EphysReference(ephys_reader=variables, key=key, format=fmt) for key in variables.keys()}
+        nap_obj_dict = {key: EphysReference(ephys_reader=variables, key=key, format=fmt) for key in variables}
         return {variables.name: nap_obj_dict}
 
     new_vars = {}

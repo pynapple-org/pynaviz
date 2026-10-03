@@ -2,7 +2,7 @@
 
 import re
 import warnings
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 import numpy as np
 import pygfx
@@ -29,15 +29,15 @@ def get_max_interval_index(labels):
 class IntervalSetInterface:
     def __init__(
         self,
-        epochs: Optional[Iterable[nap.IntervalSet] | nap.IntervalSet] = None,
-        labels: Optional[Iterable[str] | str] = None,
+        epochs: Iterable[nap.IntervalSet] | nap.IntervalSet | None = None,
+        labels: Iterable[str] | str | None = None,
     ):
-        self._epochs = dict()
+        self._epochs = {}
         if epochs is not None:
             self.add_interval_sets(epochs, labels)
 
         # map label -> single batched gfx.Mesh for all intervals
-        self._interval_rects = dict()
+        self._interval_rects = {}
 
         # store colors, alphas for each inteval set
         self._interval_state = {}
@@ -45,9 +45,9 @@ class IntervalSetInterface:
     def add_interval_sets(
         self,
         epochs: Iterable[nap.IntervalSet] | nap.IntervalSet,
-        colors: Optional[Iterable | str | pygfx.Color] = None,
-        alpha: Optional[Iterable[float] | float] = None,
-        labels: Optional[Iterable[str] | str] = None,
+        colors: Iterable | str | pygfx.Color | None = None,
+        alpha: Iterable[float] | float | None = None,
+        labels: Iterable[str] | str | None = None,
     ):
         if isinstance(epochs, nap.IntervalSet):
             epochs = [epochs]
@@ -64,7 +64,7 @@ class IntervalSetInterface:
             raise ValueError(
                 "The number of labels provided does not match the number of epochs."
             )
-        new_intervals = dict(zip(labels, epochs))
+        new_intervals = dict(zip(labels, epochs, strict=False))
         self._epochs.update(new_intervals)
         self._plot_intervals(labels, colors, alpha)
         # append the control action if available
@@ -135,8 +135,8 @@ class IntervalSetInterface:
     def _plot_intervals(
         self,
         labels: Iterable[str] | str,
-        colors: Optional[Iterable] = None,
-        alpha: Optional[Iterable[float] | float] = 1.0,
+        colors: Iterable | None = None,
+        alpha: Iterable[float] | float | None = 1.0,
     ) -> None:
         """
         Plot rectangle over label areas.
@@ -176,7 +176,7 @@ class IntervalSetInterface:
             colors = [pygfx.Color(*colors)]
 
         color_idx = len(self._interval_rects) + 1
-        for label, color, transparency in zip(labels, colors, alpha):
+        for label, color, transparency in zip(labels, colors, alpha, strict=False):
             if label not in self._epochs:
                 warnings.warn(
                     message=f"Epochs {label} is not available. Available epochs: {list(self._epochs.keys())}.",

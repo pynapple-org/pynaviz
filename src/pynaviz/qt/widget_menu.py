@@ -12,8 +12,9 @@ Main Classes:
 """
 
 from collections import OrderedDict
+from collections.abc import Callable
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pynapple as nap

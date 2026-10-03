@@ -2,7 +2,7 @@ import os
 import pathlib
 import sys
 import tempfile
-from typing import Any, Literal, Union
+from typing import Any, ClassVar, Literal
 
 import pynapple as nap
 from PySide6.QtCore import QByteArray, QEvent, QPoint, QSize, Qt, QTimer
@@ -191,15 +191,17 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         The left-panel tree widget.
     """
 
-    _file_extensions = {
-            "Pynapple": [".npz"],
-            "NWB": [".nwb"],
-            "Video": [".avi", ".mp4", ".mkv"],
-            # uncomment above when PlotAudio is available.
-            # "Audio": [".mp3", ".wav", ".flac"]
-        }
+    _file_extensions: ClassVar[dict[str, tuple[str, ...]]] = {
+        "Pynapple": [".npz"],
+        "NWB": [".nwb"],
+        "Video": [".avi", ".mp4", ".mkv"],
+        # uncomment above when PlotAudio is available.
+        # "Audio": [".mp3", ".wav", ".flac"]
+    }
 
-    def __init__(self, variables: dict | None = None, layout_path: str | pathlib.Path | None = None):
+    def __init__(
+        self, variables: dict | None = None, layout_path: str | pathlib.Path | None = None
+    ):
         """
         Raises
         ------
@@ -223,10 +225,12 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
 
         # --- List of variables ---
         self._tsdframe_keys = []
-        for k in self.variables.keys():
+        for k in self.variables:
             if k != "data":
                 if isinstance(self.variables[k], nap.TsdFrame):
-                    self._tsdframe_keys.append(k)  # Storing tsdframe keys for point and skeleton overlay
+                    self._tsdframe_keys.append(
+                        k
+                    )  # Storing tsdframe keys for point and skeleton overlay
 
         # ---- Top Menu Bar ----
         self._create_top_menu_bar()
@@ -292,17 +296,13 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         bottom_layout.addWidget(self.skipBackwardBtn)
 
         self.playPauseBtn = QPushButton()
-        self.playPauseBtn.setIcon(
-            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
-        )
+        self.playPauseBtn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
         self.playPauseBtn.setCheckable(True)
         self.playPauseBtn.toggled.connect(self._toggle_play)
         bottom_layout.addWidget(self.playPauseBtn)
 
         self.stopBtn = QPushButton()
-        self.stopBtn.setIcon(
-            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop)
-        )
+        self.stopBtn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop))
         self.stopBtn.clicked.connect(self._stop)
         bottom_layout.addWidget(self.stopBtn)
 
@@ -325,9 +325,9 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
 
         self.time_unit_combo = QComboBox()
         self.time_unit_combo.setStyleSheet("font-size: 10pt;")
-        self.time_unit_combo.addItem('us', 1e6)
-        self.time_unit_combo.addItem('ms', 1e3)
-        self.time_unit_combo.addItem('s', 1.0)
+        self.time_unit_combo.addItem("us", 1e6)
+        self.time_unit_combo.addItem("ms", 1e3)
+        self.time_unit_combo.addItem("s", 1.0)
         self.time_unit_combo.setCurrentIndex(2)  # default to seconds
         self.time_unit_combo.setFixedWidth(55)
         self.time_unit_combo.currentIndexChanged.connect(self._on_unit_changed)
@@ -361,6 +361,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
 
     def _toggle_help_box(self):
         from .variable_dock import HelpBox
+
         # If the box exists and is visible, close it
         if self.help_box and self.help_box.isVisible():
             self.help_box.close()
@@ -392,12 +393,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
             ext_string = ext_string[:-1] + ");;"
         ext_string = ext_string[:-2]
 
-        filenames, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Open Files",
-            "",
-            ext_string
-        )
+        filenames, _ = QFileDialog.getOpenFileNames(self, "Open Files", "", ext_string)
         self._load_multiple_files(filenames)
 
     def open_folder(self):
@@ -440,12 +436,14 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
                 if "pynapple" in data.__module__:
                     new_vars.update({name.name: nap.load_file(name)})
                 else:
-                    print(f"File {name} does not contain a pynapple object. See pynapple documentation for saving pynapple objects with npz")
+                    print(
+                        f"File {name} does not contain a pynapple object. See pynapple documentation for saving pynapple objects with npz"
+                    )
                     continue
             elif file_type in ["NWB"]:
                 data: nap.NWBFile = nap.load_file(name)
                 nap_obj_dict = {}
-                for key in data.keys():
+                for key in data:
                     nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
                 new_vars.update({name.name: nap_obj_dict})
             elif file_type == "Video":
@@ -454,7 +452,9 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
                 try:
                     data = nap.EphysReader(str(name))
                     fmt = _infer_ephys_format(data)
-                    nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()}
+                    nap_obj_dict = {
+                        key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data
+                    }
                     new_vars.update({name.name: nap_obj_dict})
                 except Exception as e:
                     print(f"Could not load {name} as EphysReader: {e}")
@@ -589,7 +589,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
     def _cleanup_and_close_dock(self, dock):
         """Properly clean up and close a dock widget."""
         widget = dock.widget()
-        if hasattr(widget, 'plot'):
+        if hasattr(widget, "plot"):
             ctrl_id = widget.plot.controller._controller_id
             widget.close()
             self.ctrl_group.remove(ctrl_id)
@@ -601,7 +601,8 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
 
         # Balance heights of all right docks
         right_docks = [
-            d for d in self.findChildren(QDockWidget)
+            d
+            for d in self.findChildren(QDockWidget)
             if self.dockWidgetArea(d) == Qt.DockWidgetArea.RightDockWidgetArea
         ]
         if right_docks:
@@ -615,7 +616,11 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
     def _get_same_level_interval_sets(self, key_path: list[str]) -> dict[str, nap.IntervalSet]:
         """Return all IntervalSets that are siblings of key_path in the variables tree."""
         parent_path = key_path[:-1]
-        parent_dict = _get_variable_from_key_path(self.variables, parent_path) if parent_path else self.variables
+        parent_dict = (
+            _get_variable_from_key_path(self.variables, parent_path)
+            if parent_path
+            else self.variables
+        )
         if not isinstance(parent_dict, dict):
             return {}
         result = {}
@@ -628,7 +633,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
             elif isinstance(resolved, NWBReference):
                 resolved = resolved.nwb_file[resolved.key]
             if isinstance(resolved, nap.IntervalSet):
-                label = '/'.join(parent_path + [sibling_key])
+                label = "/".join(parent_path + [sibling_key])
                 result[label] = resolved
         return result
 
@@ -638,7 +643,10 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         if key_path is not None:
             interval_sets = self._get_same_level_interval_sets(key_path)
         else:
-            interval_sets = {'/'.join(k): _get_variable_from_key_path(self.variables, k) for k in self.variable_dock._interval_set_key_paths}
+            interval_sets = {
+                "/".join(k): _get_variable_from_key_path(self.variables, k)
+                for k in self.variable_dock._interval_set_key_paths
+            }
         if isinstance(var, nap.TsGroup):
             return TsGroupWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.Tsd):
@@ -646,18 +654,30 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         elif isinstance(var, nap.TsdFrame):
             return TsdFrameWidget(var, index=index, set_parent=True, interval_sets=interval_sets)
         elif isinstance(var, nap.TsdTensor):
-            tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+            tsdframes = {
+                k: self.variables[k]
+                for k in self._tsdframe_keys
+                if self.variables[k].shape[1] % 2 == 0
+            }
             return TsdTensorWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
         elif isinstance(var, nap.Ts):
             return TsWidget(var, index=index, set_parent=True)
         elif isinstance(var, nap.IntervalSet):
             return IntervalSetWidget(var, index=index, set_parent=True)
         elif isinstance(var, VideoHandler):
-            tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+            tsdframes = {
+                k: self.variables[k]
+                for k in self._tsdframe_keys
+                if self.variables[k].shape[1] % 2 == 0
+            }
             return VideoWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
         elif isinstance(var, (str, pathlib.Path)):
             try:
-                tsdframes = {k: self.variables[k] for k in self._tsdframe_keys if self.variables[k].shape[1] % 2 == 0}
+                tsdframes = {
+                    k: self.variables[k]
+                    for k in self._tsdframe_keys
+                    if self.variables[k].shape[1] % 2 == 0
+                }
                 return VideoWidget(var, index=index, set_parent=True, tsdframes=tsdframes)
             except Exception as e:
                 print(f"Error loading video from '{var}': {e}")
@@ -702,7 +722,9 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         dock.setTitleBarWidget(widget.button_container)
         return dock
 
-    def add_dock_widget(self, variable: Any, key_path: list[str], state_dict: dict | None = None) -> QDockWidget | None:
+    def add_dock_widget(
+        self, variable: Any, key_path: list[str], state_dict: dict | None = None
+    ) -> QDockWidget | None:
         """Add a new dock widget to the main window based on the variable or its key path."""
         widget = self._create_widget_for_variable(variable, key_path=key_path)
         if widget is None:
@@ -736,7 +758,11 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
         super().closeEvent(event)
 
 
-def scope(variables: Union[dict, list, tuple, str], layout_path: str = None, ephys_format: str | None = None):
+def scope(
+    variables: dict | list | tuple | str,
+    layout_path: str | None = None,
+    ephys_format: str | None = None,
+):
     """Launch the pynaviz GUI and block until the window is closed.
 
     Parameters
@@ -832,5 +858,3 @@ def scope(variables: Union[dict, list, tuple, str], layout_path: str = None, eph
     app.exit(app.exec())
 
     gui.close()
-
-    return

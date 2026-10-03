@@ -7,7 +7,7 @@ import os
 import sys
 import threading
 import warnings
-from typing import Any, Optional, Union
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -54,10 +54,7 @@ def _is_headless():
         return not os.environ.get("DISPLAY")
 
     # macOS and Windows: assume we have a display unless explicitly set to offscreen
-    if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-        return True
-
-    return False
+    return os.environ.get("QT_QPA_PLATFORM") == "offscreen"
 
 
 if _is_headless():
@@ -228,9 +225,8 @@ class _BasePlot(IntervalSetInterface):
         -------
         dict or None
         """
-        pass
 
-    def set_plot_state(self, state, available_vars: Optional[dict]):
+    def set_plot_state(self, state, available_vars: dict | None):
         """Restore plot-type-specific display state produced by :meth:`get_plot_state`.
 
         Parameters
@@ -240,7 +236,6 @@ class _BasePlot(IntervalSetInterface):
         available_vars: dict
             The available nap variables.
         """
-        pass
 
     def get_state(self) -> dict:
         """Return the full serializable state of this plot.
@@ -489,7 +484,7 @@ class _BasePlot(IntervalSetInterface):
         else:
             # Prepare keyword arguments for the color mapping function
             map_kwargs = trim_kwargs(
-                map_to_colors, dict(cmap=colormaps[self.cmap], vmin=vmin, vmax=vmax)
+                map_to_colors, {"cmap": colormaps[self.cmap], "vmin": vmin, "vmax": vmax}
             )
 
             # Get the material objects that will have their colors updated
@@ -511,7 +506,7 @@ class _BasePlot(IntervalSetInterface):
                 values, metadata_name=metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
             )
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
+    def sort_by(self, metadata_name: str, mode: str | None = "ascending"):
         pass
 
     def group_by(self, metadata_name: str):
@@ -665,19 +660,19 @@ class PlotTsd(_BasePlot):
     def __init__(
         self,
         data: nap.Tsd,
-        index: Optional[int] = None,
-        parent: Optional[Any] = None,
-        background: Optional[str] = "black",
+        index: int | None = None,
+        parent: Any | None = None,
+        background: str | None = "black",
     ) -> None:
         super().__init__(data=data, parent=parent, background=background)
 
         # Create controllers for span-based interaction (with optional axis locks)
-        _ctrl_kwargs = dict(
-            camera=self.camera,
-            renderer=self.renderer,
-            dict_sync_funcs=dict_sync_funcs,
-            plot_callbacks=[],
-        )
+        _ctrl_kwargs = {
+            "camera": self.camera,
+            "renderer": self.renderer,
+            "dict_sync_funcs": dict_sync_funcs,
+            "plot_callbacks": [],
+        }
         self._controllers = {
             "span": SpanController(controller_id=index, **_ctrl_kwargs),
             "span_ylock": SpanYLockController(enabled=False, **_ctrl_kwargs),
@@ -747,11 +742,11 @@ class PlotTsdFrame(_BasePlot):
     def __init__(
         self,
         data: nap.TsdFrame,
-        index: Optional[int] = None,
-        parent: Optional[Any] = None,
-        window_size: Optional[float] = None,
+        index: int | None = None,
+        parent: Any | None = None,
+        window_size: float | None = None,
         display_mode: str = "lines",
-        background: Optional[str] = "black",
+        background: str | None = "black",
     ):
         super().__init__(data=data, parent=parent, background=background)
         self._data = data
@@ -778,9 +773,9 @@ class PlotTsdFrame(_BasePlot):
         self.renderer.add_event_handler(self._toggle_x_lock, "key_down")
         self.renderer.add_event_handler(self._page_pan, "key_down")
 
-        _span_kwargs = dict(
-            camera=self.camera, renderer=self.renderer, dict_sync_funcs=dict_sync_funcs
-        )
+        _span_kwargs = {
+            "camera": self.camera, "renderer": self.renderer, "dict_sync_funcs": dict_sync_funcs
+        }
         _lines_cbs = self._modes["lines"].get_callbacks()
         self._controllers = {
             "span": SpanController(
@@ -1011,7 +1006,7 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
+    def sort_by(self, metadata_name: str, mode: str | None = "ascending") -> None:
         """Sort channels vertically by a metadata field.
 
         Parameters
@@ -1082,9 +1077,9 @@ class PlotTsdFrame(_BasePlot):
 
     def plot_x_vs_y(
         self,
-        x_col: Union[str, int, float],
-        y_col: Union[str, int, float],
-        color: Union[str, tuple] = None,
+        x_col: str | float,
+        y_col: str | float,
+        color: str | tuple | None = None,
         thickness: float = 1.0,
         markersize: float = 10.0,
     ) -> None:
@@ -1162,9 +1157,9 @@ class PlotTsGroup(_BasePlot):
     def __init__(
         self,
         data: nap.TsGroup,
-        index: Optional[int] = None,
-        parent: Optional[Any] = None,
-        background: Optional[str] = "black",
+        index: int | None = None,
+        parent: Any | None = None,
+        background: str | None = "black",
     ) -> None:
         super().__init__(
             data=data,
@@ -1326,7 +1321,7 @@ class PlotTsGroup(_BasePlot):
 
     @staticmethod
     def _create_trace_graphics(
-        entry: Union[nap.Tsd, nap.TsdFrame],
+        entry: nap.Tsd | nap.TsdFrame,
         color: Any,
     ) -> list:
         """Create one line per continuous trace."""
@@ -1371,7 +1366,7 @@ class PlotTsGroup(_BasePlot):
         ymin = np.inf
         ymax = -np.inf
 
-        for key in self.data.keys():
+        for key in self.data:
             values = np.asarray(self.data[key].d)
             finite = values[np.isfinite(values)]
 
@@ -1389,7 +1384,7 @@ class PlotTsGroup(_BasePlot):
 
         return ymin - padding, ymax + padding
 
-    def _flush(self, slice_: Optional[slice] = None) -> None:
+    def _flush(self, slice_: slice | None = None) -> None:
         """Apply manager offsets to spike entries."""
         if self._continuous:
             return
@@ -1439,7 +1434,7 @@ class PlotTsGroup(_BasePlot):
 
     def _update(
         self,
-        action_name: Optional[str] = None,
+        action_name: str | None = None,
     ) -> None:
         """Update entry ordering or visibility."""
         if action_name in ("sort_by", "group_by"):
@@ -1463,7 +1458,7 @@ class PlotTsGroup(_BasePlot):
     def sort_by(
         self,
         metadata_name: str,
-        mode: Optional[str] = "ascending",
+        mode: str | None = "ascending",
     ) -> None:
         """Sort spike entries vertically by metadata."""
         if not self.supports_sorting:
@@ -1571,8 +1566,8 @@ class PlotTsGroup(_BasePlot):
 
     def set_plot_state(
         self,
-        state: Optional[dict],
-        available_vars: Optional[dict] = None,
+        state: dict | None,
+        available_vars: dict | None = None,
     ) -> None:
         """Restore graphic sizes and entry visibility."""
         if state is None:
@@ -1587,7 +1582,7 @@ class PlotTsGroup(_BasePlot):
             if not isinstance(sizes, (list, tuple)):
                 sizes = [sizes] * len(graphics)
 
-            for graphic, size in zip(graphics, sizes):
+            for graphic, size in zip(graphics, sizes, strict=False):
                 setattr(graphic.material, size_attribute, size)
 
         if "visible" in state:
@@ -1635,7 +1630,7 @@ class PlotTs(_BasePlot):
 
     """
 
-    def __init__(self, data: nap.Ts, index=None, parent=None, background: Optional[str] = "black"):
+    def __init__(self, data: nap.Ts, index=None, parent=None, background: str | None = "black"):
         # Initialize the base plot with provided data
         super().__init__(data=data, parent=parent, background=background)
 
@@ -1754,7 +1749,7 @@ class PlotIntervalSet(_BasePlot):
     """
 
     def __init__(
-        self, data: nap.IntervalSet, index=None, parent=None, background: Optional[str] = "black"
+        self, data: nap.IntervalSet, index=None, parent=None, background: str | None = "black"
     ):
         super().__init__(data=data, parent=parent, background=background)
         self.camera.maintain_aspect = False
@@ -1787,7 +1782,7 @@ class PlotIntervalSet(_BasePlot):
         _, _, ymin, ymax = get_plot_min_max(self)
         color = gfx.Color(*gfx.Color(color).rgb, transparency)
         height = ymax - ymin
-        mesh_dict = dict()
+        mesh_dict = {}
         ruler = getattr(self, "ruler_x", None)
         depth = (ruler.start_pos[-1] - 1) if ruler is not None else -1001.0
 
@@ -1809,12 +1804,11 @@ class PlotIntervalSet(_BasePlot):
         """
         "r" key reset the plot manager to initial view
         """
-        if event.type == "key_down":
-            if event.key == "r":
-                self._manager.reset(self)
-                self._update()
+        if event.type == "key_down" and event.key == "r":
+            self._manager.reset(self)
+            self._update()
 
-    def _update(self, action_name: str = None):
+    def _update(self, action_name: str | None = None):
         """
         Update function for sort_by and group_by
         """
@@ -1878,7 +1872,7 @@ class PlotIntervalSet(_BasePlot):
             self._manager.visible = state["visible"]
             self._update("toggle_visibility")
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
+    def sort_by(self, metadata_name: str, mode: str | None = "ascending") -> None:
         """
         Vertically sort the plotted intervals by a metadata field.
 

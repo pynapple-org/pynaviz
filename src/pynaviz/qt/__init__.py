@@ -11,11 +11,11 @@ from .widget_plot import (
 
 __all__ = [
     "IntervalSetWidget",
+    "TsGroupWidget",
+    "TsWidget",
     "TsdFrameWidget",
     "TsdTensorWidget",
     "TsdWidget",
-    "TsGroupWidget",
-    "TsWidget",
-    "scope",
-    "VideoWidget"
+    "VideoWidget",
+    "scope"
 ]

@@ -53,7 +53,7 @@ def map_numeric_arrays(
 
     # Create the mapping dictionary
     colors = cmap(normalized)
-    map_dict = {val: pygfx.Color(color) for val, color in zip(unq_vals, colors)}
+    map_dict = {val: pygfx.Color(color) for val, color in zip(unq_vals, colors, strict=False)}
 
     return map_dict
 
@@ -79,7 +79,7 @@ def map_non_color_string_array(values, cmap=colormaps["rainbow"]):
     # keep the ordering of the metadata array
     unq_vals = unq_vals[np.argsort(index)]
     col_val = np.linspace(0, 1, unq_vals.shape[0])
-    return {v: pygfx.Color(cmap(c)) for v, c in zip(unq_vals, col_val)}
+    return {v: pygfx.Color(cmap(c)) for v, c in zip(unq_vals, col_val, strict=False)}
 
 
 def map_color_array(values):

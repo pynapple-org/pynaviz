@@ -17,14 +17,14 @@ from .base_plot import (
 )
 
 __all__ = [
+    "AudioHandler",
     "PlotIntervalSet",
+    "PlotTs",
+    "PlotTsGroup",
     "PlotTsd",
     "PlotTsdFrame",
     "PlotTsdTensor",
-    "PlotTsGroup",
-    "PlotTs",
     "PlotVideo",
-    "AudioHandler",
     "VideoHandler",
 ]
 
@@ -73,11 +73,11 @@ def __getattr__(name):
 # Add Qt names to __all__ for discoverability
 __all__ += [
     "IntervalSetWidget",
+    "TsGroupWidget",
+    "TsWidget",
     "TsdFrameWidget",
     "TsdTensorWidget",
     "TsdWidget",
-    "TsGroupWidget",
-    "TsWidget",
     "VideoWidget",
     "scope",
 ]

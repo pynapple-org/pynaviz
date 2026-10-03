@@ -73,7 +73,6 @@ def _update_buffer(plot_object: Any, frame_index: int):
         plot_object.texture.data[:] = img_array.astype("float32")
     plot_object.texture.update_full()
     plot_object._set_time_text(frame_index)
-    return
 
 
 class PlotBaseVideoTensor(_BasePlot, ABC):
@@ -83,7 +82,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     Subclasses must implement the methods to provide video frames as 2D tensors.
     """
 
-    def __init__(self, data: Any, index: Optional[int] = None, parent: Optional[Any] = None) -> None:
+    def __init__(self, data: Any, index: int | None = None, parent: Any | None = None) -> None:
         """
         Initialize the base video tensor plot.
 
@@ -138,7 +137,6 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
     @abstractmethod
     def _get_initial_texture_data(self) -> np.ndarray:
         """Return the initial 2D image tensor for the texture."""
-        pass
 
     def _set_time_text(self, frame_index: int):
         """Update the on-screen time text based on the current frame index."""
@@ -162,16 +160,14 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         """
         self.controller.set_frame(target_time)
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
+    def sort_by(self, metadata_name: str, mode: str | None = "ascending"):
         """Placeholder for future metadata sorting method."""
-        pass
 
     def group_by(self, metadata_name: str, spacing: Optional = None):
         """Placeholder for future metadata grouping method."""
-        pass
 
     @abc.abstractmethod
-    def _update_buffer(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
+    def _update_buffer(self, frame_index: int, event_type: RenderTriggerSource | None = None):
         """
         Abstract method to update the buffer based on the frame index and event.
 
@@ -182,9 +178,8 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
         event_type : RenderTriggerSource, optional
             Source of the event triggering the update.
         """
-        pass
 
-    def _update_extra_objects(self, frame_index: int, event_type: Optional[RenderTriggerSource] = None):
+    def _update_extra_objects(self, frame_index: int, event_type: RenderTriggerSource | None = None):
         """
         Update the positions of any superposed time series points based on the current frame.
 
@@ -205,7 +200,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
                          color = None,
                          markersize: float = 10,
                          thickness: float = 2,
-                         label: Optional[str] = None
+                         label: str | None = None
                          ):
         """
         Superpose a set of points on top of the video plot. Argument tsdframe should
@@ -226,7 +221,7 @@ class PlotBaseVideoTensor(_BasePlot, ABC):
             Label for the set of points. If None, a default label is assigned.
         """
         if not isinstance(tsdframe, nap.TsdFrame):
-            raise ValueError("tsdframe must be a nap.TsdFrame instance.")
+            raise TypeError("tsdframe must be a nap.TsdFrame instance.")
 
         if tsdframe.shape[1] % 2 != 0:
             raise ValueError("tsdframe must have multiple of 2 columns for x and y coordinates.")
@@ -285,7 +280,7 @@ class PlotTsdTensor(PlotBaseVideoTensor):
         """Return the first frame as the initial texture."""
         return self._data.values[0]
 
-    def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
+    def _update_buffer(self, frame_index, event_type: RenderTriggerSource | None = None):
         """Synchronously update buffer for the given frame index."""
         _update_buffer(self, frame_index)
         self.controller.renderer_request_draw()
@@ -304,7 +299,7 @@ class PlotVideo(PlotBaseVideoTensor):
     def __init__(
         self,
         video: str | pathlib.Path | VideoHandler,
-        t: Optional[NDArray] = None,
+        t: NDArray | None = None,
         buffer_size_sec: float = 1.,
         stream_index: int = 0,
         index=None,
@@ -343,7 +338,7 @@ class PlotVideo(PlotBaseVideoTensor):
             data = VideoHandler(video, time=t, stream_index=stream_index, buffer_size=buffer_size)
         else:
             if not isinstance(video, VideoHandler):
-                raise ValueError("video must be a file path or a VideoHandler instance.")
+                raise TypeError("video must be a file path or a VideoHandler instance.")
             data = video
             data.reopen()
         self._data = data
@@ -488,7 +483,7 @@ class PlotVideo(PlotBaseVideoTensor):
             self.request_queue.put((False, event.key == "ArrowLeft", RenderTriggerSource.LOCAL_KEY))
             self._last_jump_index = self.controller.frame_index
 
-    def _update_buffer(self, frame_index, event_type: Optional[RenderTriggerSource] = None):
+    def _update_buffer(self, frame_index, event_type: RenderTriggerSource | None = None):
         """
         Update the video buffer based on the event type.
 
