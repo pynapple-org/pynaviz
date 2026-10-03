@@ -31,7 +31,7 @@ def test_plot_tsd_action(dummy_tsd, func, kwargs):
     v = viz.PlotTsd(dummy_tsd)
     if func is not None:
         if isinstance(func, (list, tuple)):
-            for n, k in zip(func, kwargs):
+            for n, k in zip(func, kwargs, strict=False):
                 getattr(v, n)(**k)
         else:
             getattr(v, func)(**kwargs)

@@ -1,18 +1,15 @@
 """Tests for DropdownDialog layout, widget_factory icon/group support, and icon factories."""
 
 from collections import OrderedDict
+from types import SimpleNamespace
 
 import pytest
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QComboBox, QDoubleSpinBox
-from types import SimpleNamespace
-
-from pynaviz.qt.widget_menu import MenuWidget
-
 
 from pynaviz.qt.drop_down_dict_builder import _CMAP_GROUPS, _cmap_icon, _color_icon
-from pynaviz.qt.widget_menu import DropdownDialog, widget_factory
+from pynaviz.qt.widget_menu import DropdownDialog, MenuWidget, widget_factory
 
 # ---------------------------------------------------------------------------
 # widget_factory — flat combobox

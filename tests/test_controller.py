@@ -63,10 +63,10 @@ class TestPynaVizController:
         "dict_sync, expectation",
         [
             (None, does_not_raise()),
-            (dict(), does_not_raise()),
-            (dict(abc=lambda x:x), does_not_raise()),
+            ({}, does_not_raise()),
+            ({'abc': lambda x:x}, does_not_raise()),
             ("not a dict", pytest.raises(TypeError, match="When provided, `dic")),
-            (dict(abc="not a callable"), pytest.raises(TypeError, match="`dict_sync_funcs` items must be of")),
+            ({'abc': "not a callable"}, pytest.raises(TypeError, match="`dict_sync_funcs` items must be of")),
         ]
     )
     def test_init_sync_func_dict(self, dict_sync, expectation):
@@ -106,9 +106,9 @@ class TestPynaVizController:
     @pytest.mark.parametrize(
         "update_type, kwargs",
         [
-            ("pan", dict(delta=(0.001, 0.001), vecx=np.zeros((3, )), vecy=np.zeros((3, )))),
-            ("zoom", dict(delta=0.0001)),
-            ("zoom_to_point", dict(screen_position=(100, 100), rect=(0, 0, 200, 300)))
+            ("pan", {'delta': (0.001, 0.001), 'vecx': np.zeros((3, )), 'vecy': np.zeros((3, ))}),
+            ("zoom", {'delta': 0.0001}),
+            ("zoom_to_point", {'screen_position': (100, 100), 'rect': (0, 0, 200, 300)})
         ]
     )
     def test_update_event(self, update_type, kwargs):
@@ -155,10 +155,10 @@ class TestPynaVizController:
     @pytest.mark.parametrize(
         "update_dict, expectation",
         [
-            (dict(pan=_match_pan_on_x_axis), does_not_raise()),
-            (dict(zoom=_match_pan_on_x_axis), pytest.raises(NotImplementedError, match="Update pan not implemented")),
+            ({'pan': _match_pan_on_x_axis}, does_not_raise()),
+            ({'zoom': _match_pan_on_x_axis}, pytest.raises(NotImplementedError, match="Update pan not implemented")),
             (None, pytest.raises(NotImplementedError, match="Update pan not implemented")),
-            (dict(pan=_match_zoom_on_x_axis),pytest.raises(ValueError, match="Update rule/event mismatch."))
+            ({'pan': _match_zoom_on_x_axis},pytest.raises(ValueError, match="Update rule/event mismatch."))
         ]
     )
     def test_sync_pan(self, update_dict, expectation, event_pan_update):
@@ -175,10 +175,10 @@ class TestPynaVizController:
     @pytest.mark.parametrize(
         "update_dict, expectation",
         [
-            (dict(zoom=_match_zoom_on_x_axis), does_not_raise()),
-            (dict(pan=_match_zoom_on_x_axis), pytest.raises(NotImplementedError, match="Update zoom not implemented")),
+            ({'zoom': _match_zoom_on_x_axis}, does_not_raise()),
+            ({'pan': _match_zoom_on_x_axis}, pytest.raises(NotImplementedError, match="Update zoom not implemented")),
             (None, pytest.raises(NotImplementedError, match="Update zoom not implemented")),
-            (dict(zoom=_match_pan_on_x_axis), pytest.raises(ValueError, match="Update rule/event mismatch."))
+            ({'zoom': _match_pan_on_x_axis}, pytest.raises(ValueError, match="Update rule/event mismatch."))
         ]
     )
     def test_sync_zoom(self, update_dict, expectation, event_zoom_update):
@@ -195,10 +195,10 @@ class TestPynaVizController:
     @pytest.mark.parametrize(
         "update_dict, expectation",
         [
-            (dict(zoom_to_point=_match_zoom_on_x_axis), does_not_raise()),
-            (dict(pan=_match_zoom_on_x_axis), pytest.raises(NotImplementedError, match="Update zoom_to_point not implemented")),
+            ({'zoom_to_point': _match_zoom_on_x_axis}, does_not_raise()),
+            ({'pan': _match_zoom_on_x_axis}, pytest.raises(NotImplementedError, match="Update zoom_to_point not implemented")),
             (None, pytest.raises(NotImplementedError, match="Update zoom_to_point not implemented")),
-            (dict(zoom_to_point=_match_pan_on_x_axis), pytest.raises(ValueError, match="Update rule/event mismatch."))
+            ({'zoom_to_point': _match_pan_on_x_axis}, pytest.raises(ValueError, match="Update rule/event mismatch."))
         ]
     )
     def test_sync_zoom_to_point(self, update_dict, expectation, event_zoom_to_point_update):

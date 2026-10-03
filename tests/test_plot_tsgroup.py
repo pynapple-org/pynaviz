@@ -33,7 +33,7 @@ def test_plot_tsgroup_action(dummy_tsgroup, func, kwargs):
     v = viz.viz.PlotTsGroup(dummy_tsgroup)
     if func is not None:
         if isinstance(func, (list, tuple)):
-            for n, k in zip(func, kwargs):
+            for n, k in zip(func, kwargs, strict=False):
                 getattr(v, n)(**k)
         else:
             getattr(v, func)(**kwargs)
