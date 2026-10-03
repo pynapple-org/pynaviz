@@ -4,10 +4,11 @@ from collections import OrderedDict
 import pytest
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QComboBox, QDoubleSpinBox
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QGroupBox
 
 from pynaviz.qt.drop_down_dict_builder import _CMAP_GROUPS, _cmap_icon, _color_icon
 from pynaviz.qt.widget_menu import DropdownDialog, widget_factory
+
 
 # ---------------------------------------------------------------------------
 # widget_factory — flat combobox
@@ -323,3 +324,83 @@ def test_dropdown_dialog_multiple_widgets(qtbot):
     assert dialog.get_selections() == ["y", 3.0]
     dialog.accept()
     assert out == {"a": "y", "b": 3.0}
+
+def test_dropdown_dialog_dependency(qtbot):
+    dialog = DropdownDialog(
+        "Test",
+        OrderedDict(
+            Mode={
+                "type": QComboBox,
+                "name": "mode",
+                "items": ["Full", "Custom"],
+                "values": ["full", "custom"],
+                "current_index": 0,
+            },
+            Window={
+                "type": QDoubleSpinBox,
+                "name": "window",
+                "value": 1.0,
+                "enabled_when": ("mode", "custom"),
+            },
+        ),
+        func=lambda *_: None,
+        ok_cancel_button=True,
+    )
+    qtbot.addWidget(dialog)
+
+    mode = dialog.named_widgets["mode"]
+    window = dialog.named_widgets["window"]
+
+    assert not window.isEnabled()
+
+    mode.setCurrentIndex(1)
+
+    assert window.isEnabled()
+
+
+def test_dropdown_dialog_sections(qtbot):
+    dialog = DropdownDialog(
+        "Test",
+        OrderedDict(
+            X={
+                "type": QComboBox,
+                "name": "x",
+                "items": ["a"],
+            },
+            Y={
+                "type": QComboBox,
+                "name": "y",
+                "items": ["b"],
+            },
+        ),
+        sections=OrderedDict(
+            Axes=["X", "Y"],
+        ),
+        func=lambda *_: None,
+    )
+    qtbot.addWidget(dialog)
+
+    groups = dialog.findChildren(QGroupBox)
+
+    assert len(groups) == 1
+    assert groups[0].title() == "Axes"
+
+
+def test_dropdown_dialog_minimum_size(qtbot):
+    dialog = DropdownDialog(
+        "Test",
+        OrderedDict(
+            Value={
+                "type": QDoubleSpinBox,
+                "name": "value",
+                "value": 1.0,
+            }
+        ),
+        minimum_size=QSize(700, 300),
+        func=lambda *_: None,
+    )
+    qtbot.addWidget(dialog)
+
+    assert dialog.minimumWidth() == 700
+    assert dialog.minimumHeight() == 300
+

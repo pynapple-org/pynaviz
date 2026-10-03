@@ -4,38 +4,123 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QAction, QColor, QImage, QPixmap
-from PySide6.QtWidgets import QComboBox, QWidget
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QWidget
 
 from pynaviz.utils import GRADED_COLOR_LIST
 
-_CMAP_GROUPS = OrderedDict([
-    ("Perceptually Uniform", [
-        "viridis", "plasma", "inferno", "magma", "cividis",
-    ]),
-    ("Sequential", [
-        "Greys", "Purples", "Blues", "Greens", "Oranges", "Reds",
-        "YlOrBr", "YlOrRd", "OrRd", "PuRd", "RdPu", "BuPu",
-        "GnBu", "PuBu", "YlGnBu", "PuBuGn", "BuGn", "YlGn",
-        "binary", "gist_yarg", "gist_gray", "gray", "bone", "pink",
-        "spring", "summer", "autumn", "winter", "cool", "Wistia",
-        "hot", "afmhot", "gist_heat", "copper",
-    ]),
-    ("Diverging", [
-        "PiYG", "PRGn", "BrBG", "PuOr", "RdGy", "RdBu",
-        "RdYlBu", "RdYlGn", "Spectral", "coolwarm", "bwr", "seismic",
-        "berlin", "managua", "vanimo",
-    ]),
-    ("Cyclic", ["twilight", "twilight_shifted", "hsv"]),
-    ("Qualitative", [
-        "Pastel1", "Pastel2", "Paired", "Accent", "Dark2",
-        "Set1", "Set2", "Set3", "tab10", "tab20", "tab20b", "tab20c",
-    ]),
-    ("Miscellaneous", [
-        "flag", "prism", "ocean", "gist_earth", "terrain", "gist_stern",
-        "gnuplot", "gnuplot2", "CMRmap", "cubehelix", "brg", "gist_rainbow",
-        "rainbow", "jet", "turbo", "nipy_spectral", "gist_ncar",
-    ]),
-])
+_CMAP_GROUPS = OrderedDict(
+    [
+        (
+            "Perceptually Uniform",
+            [
+                "viridis",
+                "plasma",
+                "inferno",
+                "magma",
+                "cividis",
+            ],
+        ),
+        (
+            "Sequential",
+            [
+                "Greys",
+                "Purples",
+                "Blues",
+                "Greens",
+                "Oranges",
+                "Reds",
+                "YlOrBr",
+                "YlOrRd",
+                "OrRd",
+                "PuRd",
+                "RdPu",
+                "BuPu",
+                "GnBu",
+                "PuBu",
+                "YlGnBu",
+                "PuBuGn",
+                "BuGn",
+                "YlGn",
+                "binary",
+                "gist_yarg",
+                "gist_gray",
+                "gray",
+                "bone",
+                "pink",
+                "spring",
+                "summer",
+                "autumn",
+                "winter",
+                "cool",
+                "Wistia",
+                "hot",
+                "afmhot",
+                "gist_heat",
+                "copper",
+            ],
+        ),
+        (
+            "Diverging",
+            [
+                "PiYG",
+                "PRGn",
+                "BrBG",
+                "PuOr",
+                "RdGy",
+                "RdBu",
+                "RdYlBu",
+                "RdYlGn",
+                "Spectral",
+                "coolwarm",
+                "bwr",
+                "seismic",
+                "berlin",
+                "managua",
+                "vanimo",
+            ],
+        ),
+        ("Cyclic", ["twilight", "twilight_shifted", "hsv"]),
+        (
+            "Qualitative",
+            [
+                "Pastel1",
+                "Pastel2",
+                "Paired",
+                "Accent",
+                "Dark2",
+                "Set1",
+                "Set2",
+                "Set3",
+                "tab10",
+                "tab20",
+                "tab20b",
+                "tab20c",
+            ],
+        ),
+        (
+            "Miscellaneous",
+            [
+                "flag",
+                "prism",
+                "ocean",
+                "gist_earth",
+                "terrain",
+                "gist_stern",
+                "gnuplot",
+                "gnuplot2",
+                "CMRmap",
+                "cubehelix",
+                "brg",
+                "gist_rainbow",
+                "rainbow",
+                "jet",
+                "turbo",
+                "nipy_spectral",
+                "gist_ncar",
+            ],
+        ),
+    ]
+)
 
 
 def _color_icon(name: str) -> QPixmap:
@@ -91,8 +176,7 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
         registered = set(plt.colormaps())
         known = {name for names in _CMAP_GROUPS.values() for name in names}
         groups = OrderedDict(
-            (cat, [n for n in names if n in registered])
-            for cat, names in _CMAP_GROUPS.items()
+            (cat, [n for n in names if n in registered]) for cat, names in _CMAP_GROUPS.items()
         )
         groups["Miscellaneous"] += sorted(registered - known - {n + "_r" for n in known})
         parameters = {
@@ -113,32 +197,105 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
         )
 
     elif popup_name == "x_vs_y":
-        cols = {}
-        for i, x in enumerate(["x", "y"]):
-            cols[x] = {
-                "type": QComboBox,
-                "name": f"{x} data",
-                "items": plot.data.columns.astype("str"),
-                "current_index": 0 if plot.data.shape[1] == 1 else i,
-                "values":plot.data.columns
+        columns = list(plot.data.columns)
 
+        controls = OrderedDict(
+            {
+                "X data": {
+                    "type": QComboBox,
+                    "name": "x_col",
+                    "items": [str(column) for column in columns],
+                    "values": columns,
+                    "current_index": 0,
+                },
+                "Y data": {
+                    "type": QComboBox,
+                    "name": "y_col",
+                    "items": [str(column) for column in columns],
+                    "values": columns,
+                    "current_index": min(1, len(columns) - 1),
+                },
+                "Color": {
+                    "type": QComboBox,
+                    "name": "color",
+                    "items": GRADED_COLOR_LIST,
+                    "current_index": 0,
+                    "icon_factory": _color_icon,
+                    "icon_size": QSize(32, 16),
+                    "clear_text": True,
+                },
+                "Style": {
+                    "type": QComboBox,
+                    "name": "style",
+                    "items": ["Lines", "Scatter"],
+                    "values": ["lines", "scatter"],
+                    "current_index": 0,
+                },
+                "Trajectory range": {
+                    "type": QComboBox,
+                    "name": "range_mode",
+                    "items": [
+                        "Full trajectory",
+                        "Start to current time",
+                        "Current time to end",
+                        "Custom window",
+                    ],
+                    "values": [
+                        "full",
+                        "history",
+                        "future",
+                        "custom",
+                    ],
+                    "current_index": 0,
+                },
+                "Window before (s)": {
+                    "type": QDoubleSpinBox,
+                    "name": "window_before",
+                    "value": 1.0,
+                    "minimum": 0.0,
+                    "maximum": 1e9,
+                    "step": 0.1,
+                    "decimals": 4,
+                    "enabled_when": ("range_mode", "custom"),
+                },
+                "Window after (s)": {
+                    "type": QDoubleSpinBox,
+                    "name": "window_after",
+                    "value": 1.0,
+                    "minimum": 0.0,
+                    "maximum": 1e9,
+                    "step": 0.1,
+                    "decimals": 4,
+                    "enabled_when": ("range_mode", "custom"),
+                },
             }
-        cols["Color"] = {
-            "type": QComboBox,
-            "name": "colors",
-            "items": GRADED_COLOR_LIST,
-            "current_index": 0,
-            "icon_factory": _color_icon,
-            "icon_size": QSize(32, 16),
-            "clear_text": True,
-        }
-        kwargs = dict(
-            widgets=cols,
-            title="Plot x vs y",
-            func=plot.plot_x_vs_y,
-            ok_cancel_button=True,
-            parent=widget,
         )
+
+        kwargs = {
+            "widgets": controls,
+            "sections": OrderedDict(
+                {
+                    "Axes": [
+                        "X data",
+                        "Y data",
+                    ],
+                    "Appearance": [
+                        "Color",
+                        "Style",
+                    ],
+                    "Trajectory": [
+                        "Trajectory range",
+                        "Window before (s)",
+                        "Window after (s)",
+                    ],
+                }
+            ),
+            "minimum_size": QSize(760, 320),
+            "title": "Plot x vs y",
+            "func": plot.plot_x_vs_y,
+            "ok_cancel_button": True,
+            "parent": widget,
+        }
 
     elif popup_name == "sort_by":
         metadata = getattr(widget, "metadata", None)
@@ -177,7 +334,8 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
             "name": "add_interval_set",
             "items": keys,
             "values": [action.property(k) for k in keys],
-            "current_index": 0}
+            "current_index": 0,
+        }
         kwargs = dict(
             widgets=OrderedDict(IntervalSet=cols),
             title="Add interval_set",
