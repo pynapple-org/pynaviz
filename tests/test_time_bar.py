@@ -1,7 +1,7 @@
 """Tests for the time bar: _TimeSlider widget and MainWindow scrubber methods."""
 
 import pytest
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QPoint, Qt, QSignalBlocker
 from PySide6.QtGui import QWheelEvent
 
 import pynaviz as viz
@@ -151,7 +151,8 @@ def test_update_timebar_clamps_out_of_range(main_window):
 
 def test_update_timebar_noop_when_range_invalid(main_window):
     """_update_timebar with max <= min should not change the slider value."""
-    main_window.time_slider.setValue(12345)
+    with QSignalBlocker(main_window.time_slider):
+        main_window.time_slider.setValue(12345)
     main_window._update_timebar(5.0, 5.0, 5.0)
     assert main_window.time_slider.value() == 12345
 
