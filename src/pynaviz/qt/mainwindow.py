@@ -225,7 +225,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
 
         # --- List of variables ---
         self._tsdframe_keys = []
-        for k in self.variables:
+        for k in self.variables.keys():
             if k != "data":
                 if isinstance(self.variables[k], nap.TsdFrame):
                     self._tsdframe_keys.append(
@@ -443,7 +443,7 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
             elif file_type in ["NWB"]:
                 data: nap.NWBFile = nap.load_file(name)
                 nap_obj_dict = {}
-                for key in data:
+                for key in data.keys():
                     nap_obj_dict[key] = NWBReference(nwb_file=data, key=key)
                 new_vars.update({name.name: nap_obj_dict})
             elif file_type == "Video":
