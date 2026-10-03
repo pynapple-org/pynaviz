@@ -19,7 +19,7 @@ from config import TsGroupConfig
 
 
 def test_plot_tsgroup_init(dummy_tsgroup):
-    v = viz.viz.PlotTsGroup(dummy_tsgroup)
+    v = viz.PlotTsGroup(dummy_tsgroup)
 
     assert isinstance(v.controller, viz.controller.SpanController)
     v.close()
@@ -30,7 +30,7 @@ def test_plot_tsgroup_init(dummy_tsgroup):
     TsGroupConfig.parameters,
 )
 def test_plot_tsgroup_action(dummy_tsgroup, func, kwargs):
-    v = viz.viz.PlotTsGroup(dummy_tsgroup)
+    v = viz.PlotTsGroup(dummy_tsgroup)
     if func is not None:
         if isinstance(func, (list, tuple)):
             for n, k in zip(func, kwargs, strict=False):
