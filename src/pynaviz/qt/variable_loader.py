@@ -115,13 +115,14 @@ def get_pynapple_variables(
         variables = [variables]
 
     if isinstance(variables, nap.NWBFile):
-        nap_obj_dict = {key: NWBReference(nwb_file=variables, key=key) for key in variables}
+        nap_obj_dict = {key: NWBReference(nwb_file=variables, key=key) for key in variables.keys()}
         return {variables.__class__.__name__: nap_obj_dict}
 
     if isinstance(variables, nap.EphysReader):
         fmt = ephys_format or _infer_ephys_format(variables)
         nap_obj_dict = {
-            key: EphysReference(ephys_reader=variables, key=key, format=fmt) for key in variables
+            key: EphysReference(ephys_reader=variables, key=key, format=fmt)
+            for key in variables.keys()
         }
         return {variables.name: nap_obj_dict}
 
