@@ -453,7 +453,8 @@ class MainWindow(LayoutManagerMixin, QMainWindow):
                     data = nap.EphysReader(str(name))
                     fmt = _infer_ephys_format(data)
                     nap_obj_dict = {
-                        key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data
+                        key: EphysReference(ephys_reader=data, key=key, format=fmt)
+                        for key in data.keys()
                     }
                     new_vars.update({name.name: nap_obj_dict})
                 except Exception as e:
