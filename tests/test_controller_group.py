@@ -110,13 +110,13 @@ def test_controller_group_init_empty():
 
 def test_controller_group_init_invalid_interval():
     """Test that invalid intervals raise ValueError."""
-    with pytest.raises(ValueError, match="must be a tuple or list"):
+    with pytest.raises(TypeError, match="must be a tuple or list"):
         ControllerGroup(plots=None, interval=5)
 
-    with pytest.raises(ValueError, match="must be a 2-tuple"):
+    with pytest.raises(TypeError, match="must be a 2-tuple"):
         ControllerGroup(plots=None, interval=(1, 2, 3))
 
-    with pytest.raises(ValueError, match="must be a 2-tuple"):
+    with pytest.raises(TypeError, match="must be a 2-tuple"):
         ControllerGroup(plots=None, interval=(1, "two"))
 
 
