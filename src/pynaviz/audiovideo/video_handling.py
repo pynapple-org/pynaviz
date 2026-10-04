@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import pathlib
 import threading
 import time
@@ -11,7 +10,6 @@ from typing import List, Optional, Tuple
 
 import av
 import numpy as np
-from av.video.reformatter import VideoReformatter
 
 # from line_profiler import profile
 from numpy.typing import NDArray
@@ -21,10 +19,6 @@ from .base_audiovideo import BaseAudioVideo
 # Number of packets to buffer before flushing to the index for codecs without
 # B-frames (where packet PTS are already in display order).
 _INDEX_FLUSH_EVERY = 64
-
-# swscale contexts a forked child inherited from its parent, see
-# ``VideoHandler._frame_to_rgb_array``. Never used and never freed.
-_INHERITED_REFORMATTERS: list[VideoReformatter] = []
 
 
 def _needs_flush(count_keyframes: int, temp: list, has_b_frames: bool, n_b_frames: int = 1) -> bool:
@@ -124,9 +118,6 @@ class VideoHandler(BaseAudioVideo):
         self.stream = self.container.streams.video[stream_index]
         self.stream_index = stream_index
         self.return_frame_array = return_frame_array
-        # swscale context, created per process by ``_frame_to_rgb_array``.
-        self._reformatter: VideoReformatter | None = None
-        self._reformatter_pid: int | None = None
         self._buffer = FrameBuffer(maxsize=buffer_size)
         # pts of the last frame *actually decoded* from the stream — used for
         # seek decisions.  current_frame can be updated by buffer / cache hits
@@ -504,7 +495,7 @@ class VideoHandler(BaseAudioVideo):
 
         # Return both
         return (
-            self._frame_to_rgb_array(self.current_frame)
+            self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
             if self.return_frame_array
             else self.current_frame,
             self.last_loaded_idx,
@@ -540,7 +531,7 @@ class VideoHandler(BaseAudioVideo):
 
         if idx == self.last_loaded_idx:
             return (
-                self._frame_to_rgb_array(self.current_frame)
+                self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
                 if self.return_frame_array
                 else self.current_frame
             )
@@ -550,7 +541,7 @@ class VideoHandler(BaseAudioVideo):
             self.current_frame = cached
             self.last_loaded_idx = idx
             return (
-                self._frame_to_rgb_array(cached)
+                cached.to_ndarray(format="rgb24")[::-1] / 255.0
                 if self.return_frame_array
                 else cached
             )
@@ -572,7 +563,7 @@ class VideoHandler(BaseAudioVideo):
             self._buffer.put(idx, preceding_frame)
 
         return (
-            self._frame_to_rgb_array(self.current_frame)
+            self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
             if self.return_frame_array
             else self.current_frame
         )
@@ -685,30 +676,9 @@ class VideoHandler(BaseAudioVideo):
         else:
             return slice(start, start + 1)
 
-    def _frame_to_rgb_array(self, frame: av.VideoFrame) -> NDArray:
-        """Convert a frame to the float RGB array pygfx expects, flipped vertically.
-
-        The swscale context is owned by this handler and by the current process.
-        PyAV's module-level context, shared by ``frame.reformat`` and
-        ``frame.to_ndarray(format=...)``, cannot be used: ``PlotVideo`` forks its
-        worker after the parent has converted frames, and a context inherited
-        across a fork keeps its slice-thread pool but not the threads, so the
-        child's first conversion waits forever on threads that do not exist. For
-        the same reason a handler that crosses a fork gets a fresh context.
-        """
-        pid = os.getpid()
-        if self._reformatter_pid != pid:
-            if self._reformatter is not None:
-                # Inherited from the parent: freeing it would tear down a thread
-                # pool whose threads are gone in this process, so keep it alive.
-                _INHERITED_REFORMATTERS.append(self._reformatter)
-            self._reformatter = VideoReformatter()
-            self._reformatter_pid = pid
-        return self._reformatter.reformat(frame, format="rgb24").to_ndarray()[::-1] / 255.0
-
     def _append_frame(self, frames, idx, frame):
         if self.return_frame_array:
-            frames[idx] = self._frame_to_rgb_array(frame)
+            frames[idx] = frame.to_ndarray(format="rgb24")[::-1] / 255.0
         else:
             frames.append(frame)
 
