@@ -6,7 +6,7 @@ import pytest
 from pygfx import cameras, controllers, renderers
 from rendercanvas.offscreen import RenderCanvas
 
-from pynaviz.controller import SpanController
+from pynaviz.controller import GetController, SpanController
 from pynaviz.synchronization_rules import _match_pan_on_x_axis, _match_zoom_on_x_axis
 
 
@@ -211,3 +211,53 @@ class TestPynaVizController:
                 ctrl.sync(event_zoom_to_point_update)
         finally:
             canvas.close()
+
+def test_get_controller_defaults_to_frame_time(
+    controller_tsdframe,
+):
+    controller = GetController(data=controller_tsdframe)
+    events = []
+
+    controller._send_sync_event = lambda **kwargs: events.append(
+        kwargs
+    )
+    controller.set_frame(0.25)
+
+    assert controller._current_time == pytest.approx(0.25)
+    assert controller.frame_index == 0
+    assert events[-1]["current_time"] == pytest.approx(0.0)
+
+def test_get_controller_continuous_time(
+    controller_tsdframe,
+):
+    controller = GetController(
+        data=controller_tsdframe,
+        continuous_time=True,
+    )
+    events = []
+
+    controller._send_sync_event = lambda **kwargs: events.append(
+        kwargs
+    )
+    controller.set_frame(0.25)
+
+    assert controller._current_time == pytest.approx(0.25)
+    assert controller.frame_index == 0
+    assert events[-1]["current_time"] == pytest.approx(0.25)
+
+def test_get_controller_continuous_advance_does_not_snap(
+    controller_tsdframe,
+):
+    controller = GetController(
+        data=controller_tsdframe,
+        continuous_time=True,
+    )
+    controller._send_sync_event = lambda **kwargs: None
+
+    controller.set_frame(0.0)
+    controller.advance(0.025)
+    controller.advance(0.025)
+
+    assert controller._current_time == pytest.approx(0.05)
+    assert controller.frame_index == 0
+

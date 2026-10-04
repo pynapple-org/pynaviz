@@ -58,7 +58,8 @@ class LinesMode:
                 0,
                 len(self.buffer) - self.stream._max_n + 1,
                 self.stream._max_n + 1,
-            ), strict=False,
+            ),
+            strict=False,
         ):
             self._buffer_slices[c] = slice(s, s + self.stream._max_n)
 
@@ -674,3 +675,275 @@ class XvsYMode:
             thickness=state.get("thickness", 1.0),
             markersize=state.get("markersize", 10.0),
         )
+
+
+class MultiXvsYMode:
+    """Display one X-vs-Y trajectory per TsdFrame entry."""
+
+    controller_key = "get"
+    VALID_STYLES = XvsYMode.VALID_STYLES
+    VALID_RANGES = XvsYMode.VALID_RANGES
+    MIN_ALPHA = XvsYMode.MIN_ALPHA
+
+    def __init__(self, data, manager):
+        self.data = data
+        self.manager = manager
+        self.x_col = None
+        self.y_col = None
+        self.color = "white"
+        self.color_mode = "single"
+        self.style = "lines"
+        self.range_mode = "full"
+        self.window_before = 1.0
+        self.window_after = 1.0
+        self.thickness = 1.0
+        self.markersize = 10.0
+
+        self.graphics = {}
+        self.entry_graphics = {}
+        self.buffers = {}
+        self.timestamps = {}
+        self._draw_ranges = {}
+
+    def update_parameters(
+        self,
+        x_col,
+        y_col,
+        color="white",
+        color_mode="single",
+        style="lines",
+        range_mode="full",
+        window_before=1.0,
+        window_after=1.0,
+        thickness=1.0,
+        markersize=10.0,
+    ) -> None:
+        """Set the multi-entry X-vs-Y parameters."""
+        if style not in self.VALID_STYLES:
+            raise ValueError(f"style must be one of {self.VALID_STYLES}, got {style!r}.")
+        if range_mode not in self.VALID_RANGES:
+            raise ValueError(f"range_mode must be one of {self.VALID_RANGES}, got {range_mode!r}.")
+        if color_mode not in ("single", "assigned"):
+            raise ValueError(f"color_mode must be 'single' or 'assigned', got {color_mode!r}.")
+        if window_before < 0 or window_after < 0:
+            raise ValueError("Window durations must be non-negative.")
+
+        self.x_col = x_col
+        self.y_col = y_col
+        self.color = color
+        self.color_mode = color_mode
+        self.style = style
+        self.range_mode = range_mode
+        self.window_before = float(window_before)
+        self.window_after = float(window_after)
+        self.thickness = float(thickness)
+        self.markersize = float(markersize)
+
+    def initialize_graphics(
+        self,
+        assigned_colors: dict | None = None,
+    ) -> None:
+        """Create one trajectory per TsGroup entry."""
+        self.graphics = {}
+        self.entry_graphics = {}
+        self.buffers = {}
+        self.timestamps = {}
+
+        assigned_colors = assigned_colors or {}
+
+        for key in self.data.keys():
+            entry = self.data[key]
+            columns = list(entry.columns)
+            x_index = columns.index(self.x_col)
+            y_index = columns.index(self.y_col)
+
+            positions = np.zeros((len(entry), 3), dtype="float32")
+            positions[:, 0] = entry.values[:, x_index]
+            positions[:, 1] = entry.values[:, y_index]
+
+            color = self.color
+            if self.color_mode == "assigned":
+                color = assigned_colors.get(key, color)
+
+            rgba = gfx.Color(color)
+            colors = np.tile(
+                np.array(
+                    [rgba.r, rgba.g, rgba.b, rgba.a],
+                    dtype="float32",
+                ),
+                (len(entry), 1),
+            )
+
+            geometry = gfx.Geometry(
+                positions=positions.copy(),
+                colors=colors,
+            )
+
+            if self.style == "lines":
+                trajectory = gfx.Line(
+                    geometry,
+                    gfx.LineMaterial(
+                        thickness=self.thickness,
+                        color_mode="vertex",
+                    ),
+                )
+            else:
+                trajectory = gfx.Points(
+                    geometry,
+                    gfx.PointsMaterial(
+                        size=self.markersize,
+                        color_mode="vertex",
+                    ),
+                )
+
+            trajectory.visible = bool(self.manager.data.loc[key]["visible"])
+
+            self.graphics[key] = trajectory
+            self.entry_graphics[key] = [trajectory]
+            self.buffers[key] = positions
+            self.timestamps[key] = np.asarray(entry.t)
+            self._draw_ranges[key] = (0, len(entry))
+
+    def update_time(self, current_time: float) -> None:
+        """Update trajectories for the selected time."""
+        for key, graphic in self.graphics.items():
+            timestamps = self.timestamps[key]
+            visible = bool(self.manager.data.loc[key]["visible"])
+
+            if not len(timestamps) or not visible:
+                graphic.visible = False
+                continue
+
+            graphic.visible = True
+            start, end = self._get_visible_range(
+                timestamps,
+                current_time,
+            )
+            count = max(0, end - start)
+            draw_range = (start, count)
+
+            if self._draw_ranges.get(key) != draw_range:
+                graphic.geometry.positions.draw_range = draw_range
+                self._draw_ranges[key] = draw_range
+
+            if self.range_mode != "custom" or count == 0:
+                continue
+
+            colors = graphic.geometry.colors.data
+            colors[start:end, 3] = self._get_custom_alpha(
+                timestamps[start:end],
+                current_time,
+            )
+            graphic.geometry.colors.update_range(start, count)
+
+    def _get_visible_range(
+        self,
+        timestamps: np.ndarray,
+        current_time: float,
+    ) -> tuple[int, int]:
+        """Return the visible half-open sample range."""
+        if self.range_mode == "full":
+            return 0, len(timestamps)
+
+        if self.range_mode == "history":
+            end = int(
+                np.searchsorted(
+                    timestamps,
+                    current_time,
+                    side="right",
+                )
+            )
+            return 0, end
+
+        if self.range_mode == "future":
+            start = int(
+                np.searchsorted(
+                    timestamps,
+                    current_time,
+                    side="left",
+                )
+            )
+            return start, len(timestamps)
+
+        if self.range_mode == "custom":
+            start = int(
+                np.searchsorted(
+                    timestamps,
+                    current_time - self.window_before,
+                    side="left",
+                )
+            )
+            end = int(
+                np.searchsorted(
+                    timestamps,
+                    current_time + self.window_after,
+                    side="right",
+                )
+            )
+            return start, end
+
+        raise ValueError(f"Unknown range mode {self.range_mode!r}.")
+
+    def _get_custom_alpha(
+        self,
+        timestamps: np.ndarray,
+        current_time: float,
+    ) -> np.ndarray:
+        """Return alpha fading from the current time to both edges."""
+        distance = np.zeros(len(timestamps), dtype="float32")
+        before = timestamps < current_time
+        after = timestamps > current_time
+
+        if self.window_before > 0:
+            distance[before] = (current_time - timestamps[before]) / self.window_before
+        else:
+            distance[before] = 1.0
+
+        if self.window_after > 0:
+            distance[after] = (timestamps[after] - current_time) / self.window_after
+        else:
+            distance[after] = 1.0
+
+        distance = np.clip(distance, 0.0, 1.0)
+        decay = -np.log(self.MIN_ALPHA)
+        return np.exp(-decay * distance).astype("float32")
+
+    def get_bounds(self) -> tuple[float, float, float, float]:
+        """Return bounds across all complete trajectories."""
+        positions = []
+
+        for buffer in self.buffers.values():
+            finite = np.isfinite(buffer[:, 0]) & np.isfinite(buffer[:, 1])
+            if finite.any():
+                positions.append(buffer[finite, :2])
+
+        if not positions:
+            return 0.0, 1.0, 0.0, 1.0
+
+        xy = np.concatenate(positions, axis=0)
+        return (
+            float(np.min(xy[:, 0])),
+            float(np.max(xy[:, 0])),
+            float(np.min(xy[:, 1])),
+            float(np.max(xy[:, 1])),
+        )
+
+    def update_visibility(self) -> None:
+        """Apply manager visibility to all trajectories."""
+        for key, graphic in self.graphics.items():
+            graphic.visible = bool(self.manager.data.loc[key]["visible"])
+
+    def get_state(self) -> dict:
+        """Return serializable multi-entry X-vs-Y state."""
+        return {
+            "x_col": self.x_col,
+            "y_col": self.y_col,
+            "color": self.color,
+            "color_mode": self.color_mode,
+            "style": self.style,
+            "range_mode": self.range_mode,
+            "window_before": self.window_before,
+            "window_after": self.window_after,
+            "thickness": self.thickness,
+            "markersize": self.markersize,
+        }

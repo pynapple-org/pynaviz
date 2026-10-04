@@ -25,7 +25,7 @@ from .controller import (
     SpanXYLockController,
     SpanYLockController,
 )
-from .display_modes import ImageMode, LinesMode, XvsYMode
+from .display_modes import ImageMode, LinesMode, MultiXvsYMode, XvsYMode
 from .interval_set import IntervalSetInterface
 from .plot_manager import _PlotManager
 from .synchronization_rules import (
@@ -496,7 +496,7 @@ class _BasePlot(IntervalSetInterface):
             # If metadata is found and mapping works, update the material colors
             if len(values):
                 map_color = map_to_colors(values, **map_kwargs)
-                if map_color:
+                if map_color is not None:
                     for c in materials:
                         materials[c].color = map_color[values[c]]
 
@@ -850,6 +850,21 @@ class PlotTsdFrame(_BasePlot):
         """The active pygfx graphic, delegated to the current display mode."""
         return self._mode.graphic
 
+    @property
+    def x_vs_y_columns(self) -> list:
+        """Return columns available for X-vs-Y."""
+        return list(self.data.columns)
+
+    @property
+    def supports_x_vs_y(self) -> bool:
+        """Whether X-vs-Y is available."""
+        return len(self.x_vs_y_columns) >= 2
+
+    @property
+    def supports_assigned_x_vs_y_colors(self) -> bool:
+        """Whether X-vs-Y can retain per-entry colors."""
+        return False
+
     def _flush(self, start, end):
         """Compute a data slice from (start, end) and flush the active mode."""
         slice_ = self._mode.stream.get_slice(start, end)
@@ -1181,9 +1196,11 @@ class PlotTsGroup(_BasePlot):
             parent=parent,
             background=background,
         )
-
         self._entry_kind = self._validate_entries()
         self._continuous = self._entry_kind in ("tsd", "tsd_frame")
+        self._display_mode = "time"
+        self._time_view = None
+        self._xy_mode = MultiXvsYMode(data, self._manager)
 
         controller_kwargs = {
             "camera": self.camera,
@@ -1211,23 +1228,31 @@ class PlotTsGroup(_BasePlot):
         self._active_controller_key = "span"
         self.controller = self._controllers["span"]
 
+        if self.supports_x_vs_y:
+            reference_key = next(iter(self.data.keys()))
+            self._controllers["get"] = GetController(
+                camera=self.camera,
+                renderer=self.renderer,
+                data=self.data[reference_key],
+                buffer=None,
+                plot_callbacks=[self._update_x_vs_y],
+                continuous_time=True,
+                enabled=False,
+            )
+
         self.graphic = {}
         self._entry_graphics = {}
-
         for entry_index, key in enumerate(data.keys()):
-            graphics = self._create_entry_graphics(
-                key,
-                entry_index,
-            )
+            graphics = self._create_entry_graphics(key, entry_index)
             self._entry_graphics[key] = graphics
-
             if len(graphics) == 1:
                 self.graphic[key] = graphics[0]
             else:
                 group = gfx.Group()
                 group.add(*graphics)
                 self.graphic[key] = group
-
+        self._time_graphic = self.graphic
+        self._time_entry_graphics = self._entry_graphics
         if not self._continuous:
             self._flush()
 
@@ -1261,6 +1286,31 @@ class PlotTsGroup(_BasePlot):
     def supports_grouping(self) -> bool:
         """Whether entries can be vertically grouped."""
         return not self._continuous
+
+    @property
+    def x_vs_y_columns(self) -> list:
+        """Return columns shared by every TsdFrame entry."""
+        if self._entry_kind != "tsd_frame" or not len(self.data):
+            return []
+
+        keys = list(self.data.keys())
+        first_columns = list(self.data[keys[0]].columns)
+        shared = set(first_columns)
+
+        for key in keys[1:]:
+            shared.intersection_update(self.data[key].columns)
+
+        return [column for column in first_columns if column in shared]
+
+    @property
+    def supports_x_vs_y(self) -> bool:
+        """Whether multi-entry X-vs-Y is available."""
+        return self._entry_kind == "tsd_frame" and len(self.x_vs_y_columns) >= 2
+
+    @property
+    def supports_assigned_x_vs_y_colors(self) -> bool:
+        """Whether X-vs-Y can retain normal-view entry colors."""
+        return self.supports_x_vs_y
 
     @staticmethod
     def _get_entry_kind(entry: Any) -> str:
@@ -1436,6 +1486,10 @@ class PlotTsGroup(_BasePlot):
         if event.type != "key_down" or event.key != "r":
             return
 
+        if self._display_mode == "x_vs_y":
+            self._set_time_mode()
+            return
+
         self._manager.reset(self)
 
         if self._continuous:
@@ -1461,12 +1515,14 @@ class PlotTsGroup(_BasePlot):
             self.controller.set_ylim(ymin, ymax)
 
         if action_name == "toggle_visibility":
-            for key, graphic in self.graphic.items():
+            for key, graphic in self._time_graphic.items():
                 visible = bool(self._manager.data.loc[key]["visible"])
                 graphic.visible = visible
 
                 if self._entry_kind == "ts":
                     graphic.material.opacity = float(visible)
+
+            self._xy_mode.update_visibility()
 
         self.canvas.request_draw(self.animate)
 
@@ -1550,10 +1606,22 @@ class PlotTsGroup(_BasePlot):
         mapped_colors = map_to_colors(values, **map_kwargs)
 
         if mapped_colors is not None:
-            for key, graphics in self._entry_graphics.items():
+            for key, graphics in self._time_entry_graphics.items():
                 color = mapped_colors[values[key]]
                 for graphic in graphics:
                     graphic.material.color = color
+
+            if self._display_mode == "x_vs_y" and self._xy_mode.color_mode == "assigned":
+                for key, graphic in self._xy_mode.graphics.items():
+                    color = mapped_colors[values[key]]
+                    rgba = gfx.Color(color)
+                    graphic.geometry.colors.data[:, :] = (
+                        rgba.r,
+                        rgba.g,
+                        rgba.b,
+                        rgba.a,
+                    )
+                    graphic.geometry.colors.update_full()
 
             self.canvas.request_draw(self.animate)
 
@@ -1566,15 +1634,17 @@ class PlotTsGroup(_BasePlot):
         )
 
     def get_plot_state(self) -> dict:
-        """Return graphic sizes and entry visibility."""
+        """Return display state, sizes, and visibility."""
         size_attribute = "thickness" if self._continuous else "size"
         scale = {}
 
-        for key, graphics in self._entry_graphics.items():
+        for key, graphics in self._time_entry_graphics.items():
             sizes = [getattr(graphic.material, size_attribute) for graphic in graphics]
             scale[key] = sizes[0] if len(sizes) == 1 else sizes
 
         return {
+            "mode": self._display_mode,
+            "x_vs_y": (self._xy_mode.get_state() if self._display_mode == "x_vs_y" else None),
             "scale": scale,
             "visible": self._manager.visible.tolist(),
         }
@@ -1592,7 +1662,7 @@ class PlotTsGroup(_BasePlot):
 
         for saved_key, sizes in state.get("scale", {}).items():
             key = self._restore_graphic_key(saved_key)
-            graphics = self._entry_graphics.get(key, [])
+            graphics = self._time_entry_graphics.get(key, [])
 
             if not isinstance(sizes, (list, tuple)):
                 sizes = [sizes] * len(graphics)
@@ -1604,14 +1674,18 @@ class PlotTsGroup(_BasePlot):
             self._manager.visible = state["visible"]
             self._update("toggle_visibility")
 
+        x_vs_y_state = state.get("x_vs_y")
+        if state.get("mode") == "x_vs_y" and x_vs_y_state is not None:
+            self.plot_x_vs_y(**x_vs_y_state)
+
         self.canvas.request_draw(self.animate)
 
     def _restore_graphic_key(self, saved_key: Any) -> Any:
         """Recover a key converted during JSON serialization."""
-        if saved_key in self.graphic:
+        if saved_key in self._time_graphic:
             return saved_key
 
-        for key in self.graphic:
+        for key in self._time_graphic:
             if str(key) == str(saved_key):
                 return key
 
@@ -1628,6 +1702,157 @@ class PlotTsGroup(_BasePlot):
             return np.arange(len(index), dtype="float32")
 
         return np.zeros(len(index), dtype="float32")
+
+    def plot_x_vs_y(
+        self,
+        x_col: str | float,
+        y_col: str | float,
+        color: str | tuple | None = None,
+        style: str = "lines",
+        range_mode: str = "full",
+        window_before: float = 1.0,
+        window_after: float = 1.0,
+        color_mode: str = "single",
+        thickness: float = 1.0,
+        markersize: float = 10.0,
+    ) -> None:
+        """Plot shared TsdFrame columns for every entry."""
+        if not self.supports_x_vs_y:
+            raise TypeError("X-vs-Y requires TsdFrame entries with at least two shared columns.")
+
+        columns = self.x_vs_y_columns
+        if x_col not in columns or y_col not in columns:
+            raise ValueError(f"Columns {x_col!r} and {y_col!r} must exist in every entry.")
+        if x_col == y_col:
+            raise ValueError("X and Y columns must be different.")
+        if style not in MultiXvsYMode.VALID_STYLES:
+            raise ValueError(f"style must be one of {MultiXvsYMode.VALID_STYLES}, got {style!r}.")
+        if range_mode not in MultiXvsYMode.VALID_RANGES:
+            raise ValueError(
+                f"range_mode must be one of {MultiXvsYMode.VALID_RANGES}, got {range_mode!r}."
+            )
+        if color_mode not in ("single", "assigned"):
+            raise ValueError(f"color_mode must be 'single' or 'assigned', got {color_mode!r}.")
+        if window_before < 0 or window_after < 0:
+            raise ValueError("Window durations must be non-negative.")
+
+        if color is None:
+            color = self._default_line_color()
+
+        state = {
+            "x_col": x_col,
+            "y_col": y_col,
+            "color": color,
+            "style": style,
+            "range_mode": range_mode,
+            "window_before": float(window_before),
+            "window_after": float(window_after),
+            "color_mode": color_mode,
+            "thickness": float(thickness),
+            "markersize": float(markersize),
+        }
+
+        assigned_colors = {
+            key: graphics[0].material.color
+            for key, graphics in self._time_entry_graphics.items()
+            if graphics
+        }
+
+        self._xy_mode.update_parameters(**state)
+        self._xy_mode.initialize_graphics(
+            assigned_colors=assigned_colors,
+        )
+        self._set_x_vs_y_mode()
+
+    def _set_x_vs_y_mode(self) -> None:
+        """Activate multi-entry X-vs-Y mode."""
+        if self._display_mode == "x_vs_y":
+            current_time = self.controller._current_time
+            self.scene.remove(*self.graphic.values())
+        else:
+            self._time_view = self.controller.get_view()
+            current_time = float(self.ruler_ref_time.geometry.positions.data[0, 0])
+
+            self.scene.remove(*self._time_graphic.values())
+            self.scene.remove(self.ruler_ref_time)
+            self._switch_controller(
+                self._active_controller_key,
+                "get",
+            )
+
+        self.graphic = self._xy_mode.graphics
+        self._entry_graphics = self._xy_mode.entry_graphics
+        self.scene.add(*self.graphic.values())
+        self._display_mode = "x_vs_y"
+
+        if current_time is None:
+            current_time = float(self.controller.data.t[0])
+
+        self.controller.set_frame(float(current_time))
+        self._set_x_vs_y_view()
+        self.canvas.request_draw(self.animate)
+
+    def _set_time_mode(self) -> None:
+        """Return to the normal time-series view."""
+        if self._display_mode != "x_vs_y":
+            return
+
+        current_time = self.controller._current_time
+        self.scene.remove(*self.graphic.values())
+
+        self.graphic = self._time_graphic
+        self._entry_graphics = self._time_entry_graphics
+        self.scene.add(*self.graphic.values())
+        self.scene.add(self.ruler_ref_time)
+
+        self._switch_controller("get", "span")
+        self._display_mode = "time"
+
+        if self._time_view is not None:
+            self.controller.set_view(*self._time_view)
+
+        if current_time is not None:
+            self.controller.go_to(float(current_time))
+
+        self.canvas.request_draw(self.animate)
+
+    def _update_x_vs_y(
+        self,
+        frame_index: int,
+        event_type=None,
+    ) -> None:
+        """Update all X-vs-Y trajectories from the playhead time."""
+        current_time = self.controller._current_time
+
+        if current_time is None:
+            reference = self.controller.data
+            if reference is None or not len(reference):
+                return
+
+            frame_index = int(np.clip(frame_index, 0, len(reference) - 1))
+            current_time = float(reference.t[frame_index])
+
+        self._xy_mode.update_time(float(current_time))
+
+    def _set_x_vs_y_view(self) -> None:
+        """Fit the view to the full multi-entry X-vs-Y range."""
+        xmin, xmax, ymin, ymax = self._xy_mode.get_bounds()
+        xmin, xmax = self._pad_range(xmin, xmax)
+        ymin, ymax = self._pad_range(ymin, ymax)
+        self.controller.set_view(xmin, xmax, ymin, ymax)
+
+    @staticmethod
+    def _pad_range(
+        minimum: float,
+        maximum: float,
+    ) -> tuple[float, float]:
+        """Add padding to a numeric range."""
+        if minimum == maximum:
+            padding = max(abs(minimum) * 0.05, 0.5)
+        else:
+            padding = (maximum - minimum) * 0.05
+
+        return minimum - padding, maximum + padding
 
 
 class PlotTs(_BasePlot):

@@ -4,7 +4,8 @@ import pygfx as gfx
 import pynapple as nap
 import pytest
 
-from pynaviz.display_modes import XvsYMode
+from pynaviz.base_plot import PlotTsGroup
+from pynaviz.display_modes import MultiXvsYMode, XvsYMode
 
 
 @pytest.fixture
@@ -135,4 +136,133 @@ def test_x_vs_y_state_contains_customization(xy_data):
     assert state["range_mode"] == "custom"
     assert state["window_before"] == 2.0
     assert state["window_after"] == 3.0
+
+def test_multi_x_vs_y_custom_ranges_use_entry_timestamps(
+    tsgroup_tsdframes,
+):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        mode = MultiXvsYMode(tsgroup_tsdframes, plot._manager)
+        mode.update_parameters(
+            x_col="x",
+            y_col="y",
+            range_mode="custom",
+            window_before=0.4,
+            window_after=0.6,
+        )
+        mode.initialize_graphics()
+        mode.update_time(1.0)
+
+        for key, graphic in mode.graphics.items():
+            timestamps = np.asarray(tsgroup_tsdframes[key].t)
+            start = int(
+                np.searchsorted(
+                    timestamps,
+                    0.6,
+                    side="left",
+                )
+            )
+            end = int(
+                np.searchsorted(
+                    timestamps,
+                    1.6,
+                    side="right",
+                )
+            )
+
+            assert graphic.geometry.positions.draw_range == (
+                start,
+                end - start,
+            )
+    finally:
+        plot.close()
+def test_multi_x_vs_y_history_range(tsgroup_tsdframes):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        mode = MultiXvsYMode(tsgroup_tsdframes, plot._manager)
+        mode.update_parameters(
+            x_col="x",
+            y_col="y",
+            range_mode="history",
+        )
+        mode.initialize_graphics()
+        mode.update_time(1.0)
+
+        for key, graphic in mode.graphics.items():
+            timestamps = np.asarray(tsgroup_tsdframes[key].t)
+            end = int(
+                np.searchsorted(
+                    timestamps,
+                    1.0,
+                    side="right",
+                )
+            )
+
+            assert graphic.geometry.positions.draw_range == (0, end)
+    finally:
+        plot.close()
+
+def test_multi_x_vs_y_future_range(tsgroup_tsdframes):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        mode = MultiXvsYMode(tsgroup_tsdframes, plot._manager)
+        mode.update_parameters(
+            x_col="x",
+            y_col="y",
+            range_mode="future",
+        )
+        mode.initialize_graphics()
+        mode.update_time(1.0)
+
+        for key, graphic in mode.graphics.items():
+            timestamps = np.asarray(tsgroup_tsdframes[key].t)
+            start = int(
+                np.searchsorted(
+                    timestamps,
+                    1.0,
+                    side="left",
+                )
+            )
+
+            assert graphic.geometry.positions.draw_range == (
+                start,
+                len(timestamps) - start,
+            )
+    finally:
+        plot.close()
+
+def test_multi_x_vs_y_bounds_include_all_entries(
+    tsgroup_tsdframes,
+):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        mode = MultiXvsYMode(tsgroup_tsdframes, plot._manager)
+        mode.update_parameters("x", "y")
+        mode.initialize_graphics()
+
+        xmin, xmax, ymin, ymax = mode.get_bounds()
+
+        all_x = np.concatenate(
+            [
+                entry.values[:, list(entry.columns).index("x")]
+                for entry in tsgroup_tsdframes.values()
+            ]
+        )
+        all_y = np.concatenate(
+            [
+                entry.values[:, list(entry.columns).index("y")]
+                for entry in tsgroup_tsdframes.values()
+            ]
+        )
+
+        assert xmin == pytest.approx(np.min(all_x))
+        assert xmax == pytest.approx(np.max(all_x))
+        assert ymin == pytest.approx(np.min(all_y))
+        assert ymax == pytest.approx(np.max(all_y))
+    finally:
+        plot.close()
 

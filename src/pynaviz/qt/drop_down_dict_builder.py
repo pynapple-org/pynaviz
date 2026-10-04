@@ -197,7 +197,9 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
         }
 
     elif popup_name == "x_vs_y":
-        columns = list(plot.data.columns)
+        columns = list(getattr(plot, "x_vs_y_columns", []))
+        if len(columns) < 2:
+            return
 
         controls = OrderedDict(
             {
@@ -270,6 +272,27 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
                 },
             }
         )
+        if getattr(
+            plot,
+            "supports_assigned_x_vs_y_colors",
+            False,
+        ):
+            controls["Color mode"] = {
+                "type": QComboBox,
+                "name": "color_mode",
+                "items": [
+                    "Single color",
+                    "Keep assigned colors",
+                ],
+                "values": [
+                    "single",
+                    "assigned",
+                ],
+                "current_index": 0,
+            }
+        appearance_controls = ["Color", "Style"]
+        if "Color mode" in controls:
+            appearance_controls.append("Color mode")
         kwargs = {
             "widgets": controls,
             "sections": OrderedDict(
@@ -278,10 +301,7 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
                         "X data",
                         "Y data",
                     ],
-                    "Appearance": [
-                        "Color",
-                        "Style",
-                    ],
+                    "Appearance": appearance_controls,
                     "Trajectory": [
                         "Trajectory range",
                         "Window before (s)",

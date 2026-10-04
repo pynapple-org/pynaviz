@@ -310,24 +310,6 @@ class DropdownDialog(QDialog):
             source.currentIndexChanged.connect(update_enabled)
             update_enabled()
 
-        for target, (source_name, expected_value) in self._dependencies:
-            source = self.named_widgets[source_name]
-
-            def update_enabled(
-                _=None,
-                *,
-                source=source,
-                target=target,
-                expected_value=expected_value,
-            ) -> None:
-                value = source.currentData()
-                if value is None:
-                    value = source.currentText()
-                target.setEnabled(value == expected_value)
-
-            source.currentIndexChanged.connect(update_enabled)
-            update_enabled()
-
         if ok_cancel_button:
             self._update_on_selection = False
 
@@ -433,12 +415,18 @@ class MenuWidget(QWidget):
 
         # Action menu for plot operations
         self.action_funcs = {}
+
         if metadata is not None and hasattr(metadata, "shape") and np.prod(metadata.shape):
-            self.action_funcs = {
-                "color_by": "Color by",
-                "group_by": "Group by",
-                "sort_by": "Sort by",
-            }
+            self.action_funcs["color_by"] = "Color by"
+
+            if getattr(plot, "supports_grouping", True):
+                self.action_funcs["group_by"] = "Group by"
+
+            if getattr(plot, "supports_sorting", True):
+                self.action_funcs["sort_by"] = "Sort by"
+
+        if getattr(plot, "supports_x_vs_y", False):
+            self.action_funcs["x_vs_y"] = "X vs Y"
 
         # IntervalSet selection available
         if interval_sets is not None and isinstance(interval_sets, dict) and len(interval_sets):
@@ -544,6 +532,7 @@ class MenuWidget(QWidget):
         capability = {
             "sort_by": "supports_sorting",
             "group_by": "supports_grouping",
+            "x_vs_y": "supports_x_vs_y",
         }.get(action_name)
 
         if capability is None:
