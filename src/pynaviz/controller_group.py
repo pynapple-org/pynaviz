@@ -2,7 +2,7 @@
 ControllerGroup is used to synchronize in time each canvas.
 """
 
-from typing import Callable, Optional, Sequence, Union
+from collections.abc import Callable, Sequence
 
 from pygfx import Renderer, Viewport
 
@@ -28,18 +28,18 @@ class ControllerGroup:
 
     def __init__(
         self,
-        plots: Optional[Sequence] = None,
-        interval: tuple[Union[int, float], Union[int, float]] = (0, 1),
-        callback: Optional[Callable] = None,
+        plots: Sequence | None = None,
+        interval: tuple[int | float, int | float] = (0, 1),
+        callback: Callable | None = None,
     ):
-        self._controller_group = dict()
+        self._controller_group = {}
         self.callback = callback
         self.current_time = None
         self.interval = interval
 
         # Validate interval format
         if not isinstance(interval, (tuple, list)):
-            raise ValueError("`interval` must be a tuple or list.")
+            raise TypeError("`interval` must be a tuple or list.")
 
         if len(interval) != 2 or not all(isinstance(x, (int, float)) for x in interval):
             raise ValueError("`interval` must be a 2-tuple of int or float values.")
@@ -54,7 +54,7 @@ class ControllerGroup:
         self.set_interval(interval[0], interval[1])
 
 
-    def _add_update_handler(self, viewport_or_renderer: Union[Viewport, Renderer]):
+    def _add_update_handler(self, viewport_or_renderer: Viewport | Renderer):
         """
         Registers a sync event handler on the renderer of the given viewport or renderer.
         """
@@ -62,7 +62,7 @@ class ControllerGroup:
         viewport.renderer.add_event_handler(self.sync_controllers, "sync")
         viewport.renderer.add_event_handler(self.switch_controller, "switch")
 
-    def set_interval(self, start: Union[int, float], end: Union[int, float, None]):
+    def set_interval(self, start: float, end: float | None):
         """
         Sets a new time interval for all controllers in the group.
 

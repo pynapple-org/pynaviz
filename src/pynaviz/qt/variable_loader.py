@@ -40,7 +40,9 @@ def _filter_paths(path: str, ephys_format: str | None = None) -> tuple | None:
         try:
             data = nap.EphysReader(path, format=ephys_format)
             fmt = ephys_format or _infer_ephys_format(data)
-            nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()}
+            nap_obj_dict = {
+                key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()
+            }
             return p.name, nap_obj_dict
         except Exception as e:
             print(f"Could not load directory {path} as EphysReader: \n{e}")
@@ -67,7 +69,10 @@ def _filter_paths(path: str, ephys_format: str | None = None) -> tuple | None:
             try:
                 data = nap.EphysReader(path, format=ephys_format)
                 fmt = ephys_format or _infer_ephys_format(data)
-                nap_obj_dict = {key: EphysReference(ephys_reader=data, key=key, format=fmt) for key in data.keys()}
+                nap_obj_dict = {
+                    key: EphysReference(ephys_reader=data, key=key, format=fmt)
+                    for key in data.keys()
+                }
                 return base_name, nap_obj_dict
             except Exception as e:
                 print(f"Could not load {path} as EphysReader: {e}")
@@ -89,11 +94,11 @@ def _extract_name_value(v: Any, ephys_format: str | None = None):
             return v.__class__.__name__, nap_obj_dict
         elif isinstance(v, nap.EphysReader):
             fmt = ephys_format or _infer_ephys_format(v)
-            nap_obj_dict = {key: EphysReference(ephys_reader=v, key=key, format=fmt) for key in v.keys()}
+            nap_obj_dict = {
+                key: EphysReference(ephys_reader=v, key=key, format=fmt) for key in v.keys()
+            }
             return v.name, nap_obj_dict
-        elif "pynapple" in v.__module__:
-            return v.__class__.__name__, v
-        elif isinstance(v, VideoHandler):
+        elif "pynapple" in v.__module__ or isinstance(v, VideoHandler):
             return v.__class__.__name__, v
 
     return None, None
@@ -115,7 +120,10 @@ def get_pynapple_variables(
 
     if isinstance(variables, nap.EphysReader):
         fmt = ephys_format or _infer_ephys_format(variables)
-        nap_obj_dict = {key: EphysReference(ephys_reader=variables, key=key, format=fmt) for key in variables.keys()}
+        nap_obj_dict = {
+            key: EphysReference(ephys_reader=variables, key=key, format=fmt)
+            for key in variables.keys()
+        }
         return {variables.name: nap_obj_dict}
 
     new_vars = {}
@@ -124,7 +132,6 @@ def get_pynapple_variables(
         name_counters = defaultdict(int)  # keep track of how many times a name was used
 
         for v in variables:
-
             base_name, value = _extract_name_value(v, ephys_format=ephys_format)
 
             if base_name is None:

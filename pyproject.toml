@@ -141,7 +141,7 @@ exclude = [
 # overlap with the use of a formatter, like Black, but we can override this behavior by
 # explicitly adding the rule.
 extend-select = ["F", "W", "B", "I"]
-ignore = ["E731"]
+ignore = ["E731", "BLE001", "SIM102", "SIM118"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

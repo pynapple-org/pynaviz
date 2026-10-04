@@ -58,7 +58,7 @@ class LinesMode:
                 0,
                 len(self.buffer) - self.stream._max_n + 1,
                 self.stream._max_n + 1,
-            ),
+            ), strict=False,
         ):
             self._buffer_slices[c] = slice(s, s + self.stream._max_n)
 
@@ -168,7 +168,7 @@ class LinesMode:
     def color_by(self, cmap_name, metadata_name, vmin, vmax, map_to_colors, values):
         """Apply per-channel vertex colors from a metadata field."""
         map_kwargs = trim_kwargs(
-            map_to_colors, dict(cmap=colormaps[cmap_name], vmin=vmin, vmax=vmax)
+            map_to_colors, {"cmap": colormaps[cmap_name], "vmin": vmin, "vmax": vmax}
         )
         if len(values):
             map_color = map_to_colors(values, **map_kwargs)

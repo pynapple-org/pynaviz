@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pathlib
-from typing import Optional, Tuple
 
 import av
 import numpy as np
@@ -50,7 +49,7 @@ class AudioHandler(BaseAudioVideo):
         self,
         audio_path: str | pathlib.Path,
         stream_index: int = 0,
-        time: Optional[NDArray] = None,
+        time: NDArray | None = None,
     ) -> None:
 
         super().__init__(audio_path)
@@ -352,7 +351,7 @@ class AudioHandler(BaseAudioVideo):
         self._time = self._check_and_cast_time(time)
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         """
         Shape of the audio data.
 

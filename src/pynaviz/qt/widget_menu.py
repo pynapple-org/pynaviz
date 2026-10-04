@@ -12,8 +12,9 @@ Main Classes:
 """
 
 from collections import OrderedDict
+from collections.abc import Callable
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pynapple as nap
@@ -526,28 +527,46 @@ class MenuWidget(QWidget):
         return button
 
     def _action_menu(self) -> None:
-        """Creates the action menu with plot operation entries."""
+        """Create the action menu."""
         self.action_menu = QMenu()
+
         for func_name, name in self.action_funcs.items():
-            if func_name in ["select_interval_set", "overlay_time_series"]:
+            if func_name in ("select_interval_set", "overlay_time_series"):
                 self.action_menu.addSeparator()
+
             action = self.action_menu.addAction(name)
             action.setObjectName(func_name)
+            action.setEnabled(self._supports_action(func_name))
             action.triggered.connect(self._popup_menu)
 
+    def _supports_action(self, action_name: str) -> bool:
+        """Return whether the plot supports an action."""
+        capability = {
+            "sort_by": "supports_sorting",
+            "group_by": "supports_grouping",
+        }.get(action_name)
+
+        if capability is None:
+            return True
+
+        return bool(getattr(self.plot, capability, True))
+
     def show_action_menu(self) -> None:
-        """Displays the action menu below the button."""
+        """Display the action menu below the button."""
+        get_controller_enabled = False
 
         if hasattr(self.plot, "_controllers"):
-            # If 'get' controller is enabled (i.e., in x vs y mode),
-            # Need to disable all others actions
-            get_ctrl = self.plot._controllers.get("get")
-            if get_ctrl is not None and get_ctrl.enabled:
-                for act in self.action_menu.actions():
-                    act.setEnabled(act.objectName() == "x_vs_y")
-            else:
-                for act in self.action_menu.actions():
-                    act.setEnabled(True)
+            get_controller = self.plot._controllers.get("get")
+            get_controller_enabled = get_controller is not None and get_controller.enabled
+
+        for action in self.action_menu.actions():
+            action_name = action.objectName()
+            supported = self._supports_action(action_name)
+
+            if get_controller_enabled:
+                supported &= action_name == "x_vs_y"
+
+            action.setEnabled(supported)
 
         pos = self.action_button.mapToGlobal(QPoint(0, self.action_button.height()))
         self.action_menu.exec(pos)

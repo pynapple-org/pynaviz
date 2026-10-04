@@ -32,8 +32,7 @@ def download_from_osf(file_id: str, nwb_path: str | pathlib.Path):
     r = requests.get(f"https://osf.io/download/{file_id}", stream=True)
     block_size = 1024 * 1024
     with open(nwb_path, 'wb') as f:
-        for data in r.iter_content(block_size):
-            f.write(data)
+        f.writelines(r.iter_content(block_size))
     return
 
 if __name__ == "__main__":

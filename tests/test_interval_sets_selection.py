@@ -130,7 +130,7 @@ class TestIntervalSetsModel:
         - Name matches interval set key
         - Color is assigned from GRADED_COLOR_LIST
         """
-        for i, (key_interval, row) in enumerate(zip(sample_interval_sets.keys(), model.rows)):
+        for i, (key_interval, row) in enumerate(zip(sample_interval_sets.keys(), model.rows, strict=False)):
             # Check all expected keys are present
             assert set(row.keys()) == KEYS, (
                 f"Row {i}: Unexpected key(s) found. "

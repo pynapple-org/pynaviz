@@ -3,7 +3,8 @@ The controller class.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import pygfx
@@ -14,18 +15,16 @@ from .utils import RenderTriggerSource, _get_event_handle
 
 
 class CustomController(ABC, PanZoomController):
-    """"""
-
     def __init__(
         self,
-        camera: Optional[Camera] = None,
+        camera: Camera | None = None,
         *,
         enabled=True,
         damping: int = 0,
         auto_update: bool = True,
-        renderer: Optional[Union[Viewport, Renderer]] = None,
-        controller_id: Optional[int] = None,
-        dict_sync_funcs: Optional[dict[Callable]] = None,
+        renderer: Viewport | Renderer | None = None,
+        controller_id: int | None = None,
+        dict_sync_funcs: dict[Callable] | None = None,
     ):
         super().__init__(
             camera=camera,
@@ -52,7 +51,7 @@ class CustomController(ABC, PanZoomController):
             )  # renderer.request_draw
 
         if dict_sync_funcs is None:
-            self._dict_sync_funcs = dict()
+            self._dict_sync_funcs = {}
         elif isinstance(dict_sync_funcs, dict):
             for key, sync_func in dict_sync_funcs.items():
                 if not isinstance(sync_func, Callable):
@@ -91,7 +90,7 @@ class CustomController(ABC, PanZoomController):
                     type="sync",
                     controller_id=self._controller_id,
                     update_type=update_type,
-                    sync_extra_args=dict(args=args, kwargs=kwargs),
+                    sync_extra_args={"args": args, "kwargs": kwargs},
                 )
             )
 
@@ -102,7 +101,7 @@ class CustomController(ABC, PanZoomController):
                     type="switch",
                     controller_id=self._controller_id,
                     new_controller=self,
-                    sync_extra_args=dict(args=(), kwargs={}),
+                    sync_extra_args={"args": (), "kwargs": {}},
                 )
             )
 
@@ -143,15 +142,15 @@ class SpanController(CustomController):
 
     def __init__(
         self,
-        camera: Optional[Camera] = None,
+        camera: Camera | None = None,
         *,
         enabled: bool = True,
         damping: int = 0,
         auto_update: bool = True,
-        renderer: Optional[Union[Viewport, Renderer]] = None,
-        controller_id: Optional[int] = None,
-        dict_sync_funcs: Optional[dict[Callable]] = None,
-        plot_callbacks: Optional[list[Callable]] = None,
+        renderer: Viewport | Renderer | None = None,
+        controller_id: int | None = None,
+        dict_sync_funcs: dict[Callable] | None = None,
+        plot_callbacks: list[Callable] | None = None,
     ) -> None:
         super().__init__(
             camera=camera,
@@ -267,7 +266,7 @@ class SpanController(CustomController):
         # note: self._update_cameras is based on self._last_cam_state.
         # The width of self._last_cam_state can differ from that of camera_state["width"].
         # Provide both position and width for the desired update.
-        self._set_camera_state(dict(position=new_position, width=camera_state["width"]))
+        self._set_camera_state({"position": new_position, "width": camera_state["width"]})
         self._update_cameras()
         self._update_plots()
         self.renderer_request_draw()
@@ -286,7 +285,7 @@ class SpanController(CustomController):
         camera_state = self._get_camera_state()
         new_position = np.array(camera_state["position"]).copy()
         new_position[0] = target_time
-        self._set_camera_state(dict(position=new_position))
+        self._set_camera_state({"position": new_position})
         self._update_cameras()
         self._update_plots()
         self.renderer_request_draw()
@@ -379,15 +378,15 @@ class GetController(CustomController):
 
     def __init__(
         self,
-        camera: Optional[Camera] = None,
+        camera: Camera | None = None,
         *,
         enabled=True,
         auto_update: bool = True,
-        renderer: Optional[Union[Viewport, Renderer]] = None,
-        controller_id: Optional[int] = None,
-        data: Optional[Any] = None,
+        renderer: Viewport | Renderer | None = None,
+        controller_id: int | None = None,
+        data: Any | None = None,
         buffer: pygfx.Buffer = None,
-        plot_callbacks: Optional[list[Callable]] = None,
+        plot_callbacks: list[Callable] | None = None,
     ):
         super().__init__(
             camera=camera,
@@ -431,7 +430,7 @@ class GetController(CustomController):
         if isinstance(func, Callable):
             self._plot_callbacks.append(func)
 
-    def _update_buffer(self, event_type: Optional[RenderTriggerSource] = None):
+    def _update_buffer(self, event_type: RenderTriggerSource | None = None):
         for update_func in  self._plot_callbacks:
             update_func(self.frame_index, event_type)
 

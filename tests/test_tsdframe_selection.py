@@ -100,7 +100,7 @@ class TestTsdFramesModel:
 
     def test_initialization_row_structure(self, model, sample_tsdframes):
         """Test that each row has the correct structure and data types."""
-        for i, (key_tsdframe, row) in enumerate(zip(sample_tsdframes.keys(), model.rows)):
+        for i, (key_tsdframe, row) in enumerate(zip(sample_tsdframes.keys(), model.rows, strict=False)):
             # Check all expected keys are present
             assert set(row.keys()) == KEYS, (
                 f"Row {i}: Unexpected key(s) found. "
