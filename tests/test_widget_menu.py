@@ -11,7 +11,6 @@ from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QGroupBox
 from pynaviz.qt.drop_down_dict_builder import _CMAP_GROUPS, _cmap_icon, _color_icon
 from pynaviz.qt.widget_menu import DropdownDialog, MenuWidget, widget_factory
 
-
 # ---------------------------------------------------------------------------
 # widget_factory — flat combobox
 # ---------------------------------------------------------------------------

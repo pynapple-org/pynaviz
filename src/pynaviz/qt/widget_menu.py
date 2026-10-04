@@ -21,11 +21,11 @@ import pynapple as nap
 from PySide6.QtCore import QPoint, QSize, Qt
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
-    QGroupBox,
     QComboBox,
     QDialog,
     QDoubleSpinBox,
     QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMenu,
