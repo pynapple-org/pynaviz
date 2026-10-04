@@ -1185,12 +1185,6 @@ class PlotTsGroup(_BasePlot):
         self._entry_kind = self._validate_entries()
         self._continuous = self._entry_kind in ("tsd", "tsd_frame")
 
-    def __init__(
-        self, data: nap.TsGroup, index=None, parent=None, background: Optional[str] = "black"
-    ):
-        # Initialize the base plot with provided data
-        super().__init__(data=data, parent=parent, background=background)
-
         controller_kwargs = {
             "camera": self.camera,
             "renderer": self.renderer,
