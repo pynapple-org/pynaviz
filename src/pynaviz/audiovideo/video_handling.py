@@ -21,6 +21,18 @@ from .base_audiovideo import BaseAudioVideo
 _INDEX_FLUSH_EVERY = 64
 
 
+def _frame_to_rgb_array(frame: av.VideoFrame) -> NDArray:
+    """Convert a frame to the float RGB array pygfx expects, flipped vertically.
+
+    The conversion must stay single-threaded. A threaded swscale context leaves
+    a slice-thread pool behind, and ``PlotVideo`` forks its worker process after
+    the parent has converted frames. The child inherits that pool's state but not
+    its threads, so its own first conversion waits forever on threads that do not
+    exist: the worker never delivers a frame, and never exits.
+    """
+    return frame.to_ndarray(format="rgb24")[::-1] / 255.0
+
+
 def _needs_flush(count_keyframes: int, temp: list, has_b_frames: bool, n_b_frames: int = 1) -> bool:
     """True when the buffered GOP / batch is ready to commit to the index."""
     if has_b_frames:
@@ -495,7 +507,7 @@ class VideoHandler(BaseAudioVideo):
 
         # Return both
         return (
-            self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
+            _frame_to_rgb_array(self.current_frame)
             if self.return_frame_array
             else self.current_frame,
             self.last_loaded_idx,
@@ -531,7 +543,7 @@ class VideoHandler(BaseAudioVideo):
 
         if idx == self.last_loaded_idx:
             return (
-                self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
+                _frame_to_rgb_array(self.current_frame)
                 if self.return_frame_array
                 else self.current_frame
             )
@@ -541,7 +553,7 @@ class VideoHandler(BaseAudioVideo):
             self.current_frame = cached
             self.last_loaded_idx = idx
             return (
-                cached.to_ndarray(format="rgb24")[::-1] / 255.0
+                _frame_to_rgb_array(cached)
                 if self.return_frame_array
                 else cached
             )
@@ -563,7 +575,7 @@ class VideoHandler(BaseAudioVideo):
             self._buffer.put(idx, preceding_frame)
 
         return (
-            self.current_frame.to_ndarray(format="rgb24")[::-1] / 255.0
+            _frame_to_rgb_array(self.current_frame)
             if self.return_frame_array
             else self.current_frame
         )
@@ -678,7 +690,7 @@ class VideoHandler(BaseAudioVideo):
 
     def _append_frame(self, frames, idx, frame):
         if self.return_frame_array:
-            frames[idx] = frame.to_ndarray(format="rgb24")[::-1] / 255.0
+            frames[idx] = _frame_to_rgb_array(frame)
         else:
             frames.append(frame)
 
