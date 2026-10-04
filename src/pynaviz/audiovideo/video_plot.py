@@ -193,11 +193,15 @@ def _drop_pyav_conversion_context():
     for them: the worker never delivers a frame, and never exits. With the cache
     dropped, the child builds a context of its own, with real threads.
 
-    The cache is a PyAV implementation detail, so fail loudly if it moves rather
+    The cache, and with it the hang, appeared in PyAV 19.0; earlier versions build
+    a fresh context for every conversion, so there is nothing to drop. It is an
+    implementation detail, so on 19.0 and later fail loudly if it moves rather
     than silently bring the hang back.
     """
     thread_local = getattr(av.video.frame, "_thread_local", None)
     if thread_local is None:
+        if int(av.__version__.split(".")[0]) < 19:
+            return
         raise RuntimeError(
             f"PyAV {av.__version__} no longer exposes av.video.frame._thread_local. "
             "PlotVideo drops PyAV's cached swscale context before forking its "
