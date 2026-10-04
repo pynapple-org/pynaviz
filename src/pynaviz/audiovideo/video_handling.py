@@ -10,6 +10,7 @@ from typing import List, Optional, Tuple
 
 import av
 import numpy as np
+from av.video.reformatter import VideoReformatter
 
 # from line_profiler import profile
 from numpy.typing import NDArray
@@ -19,18 +20,6 @@ from .base_audiovideo import BaseAudioVideo
 # Number of packets to buffer before flushing to the index for codecs without
 # B-frames (where packet PTS are already in display order).
 _INDEX_FLUSH_EVERY = 64
-
-
-def _frame_to_rgb_array(frame: av.VideoFrame) -> NDArray:
-    """Convert a frame to the float RGB array pygfx expects, flipped vertically.
-
-    The conversion must stay single-threaded. A threaded swscale context leaves
-    a slice-thread pool behind, and ``PlotVideo`` forks its worker process after
-    the parent has converted frames. The child inherits that pool's state but not
-    its threads, so its own first conversion waits forever on threads that do not
-    exist: the worker never delivers a frame, and never exits.
-    """
-    return frame.reformat(format="rgb24", threads=1).to_ndarray()[::-1] / 255.0
 
 
 def _needs_flush(count_keyframes: int, temp: list, has_b_frames: bool, n_b_frames: int = 1) -> bool:
@@ -130,6 +119,14 @@ class VideoHandler(BaseAudioVideo):
         self.stream = self.container.streams.video[stream_index]
         self.stream_index = stream_index
         self.return_frame_array = return_frame_array
+        # Own swscale context rather than PyAV's module-level one, which
+        # ``frame.reformat`` / ``frame.to_ndarray(format=...)`` share. That one
+        # is created threaded in the parent, and ``PlotVideo`` forks its worker
+        # afterwards: the child inherits the context but not its slice threads,
+        # so its first conversion waits forever on threads that do not exist.
+        # The worker builds its own handler after the fork, and with it a context
+        # whose threads are really there.
+        self._reformatter = VideoReformatter()
         self._buffer = FrameBuffer(maxsize=buffer_size)
         # pts of the last frame *actually decoded* from the stream — used for
         # seek decisions.  current_frame can be updated by buffer / cache hits
@@ -507,7 +504,7 @@ class VideoHandler(BaseAudioVideo):
 
         # Return both
         return (
-            _frame_to_rgb_array(self.current_frame)
+            self._frame_to_rgb_array(self.current_frame)
             if self.return_frame_array
             else self.current_frame,
             self.last_loaded_idx,
@@ -543,7 +540,7 @@ class VideoHandler(BaseAudioVideo):
 
         if idx == self.last_loaded_idx:
             return (
-                _frame_to_rgb_array(self.current_frame)
+                self._frame_to_rgb_array(self.current_frame)
                 if self.return_frame_array
                 else self.current_frame
             )
@@ -553,7 +550,7 @@ class VideoHandler(BaseAudioVideo):
             self.current_frame = cached
             self.last_loaded_idx = idx
             return (
-                _frame_to_rgb_array(cached)
+                self._frame_to_rgb_array(cached)
                 if self.return_frame_array
                 else cached
             )
@@ -575,7 +572,7 @@ class VideoHandler(BaseAudioVideo):
             self._buffer.put(idx, preceding_frame)
 
         return (
-            _frame_to_rgb_array(self.current_frame)
+            self._frame_to_rgb_array(self.current_frame)
             if self.return_frame_array
             else self.current_frame
         )
@@ -688,9 +685,13 @@ class VideoHandler(BaseAudioVideo):
         else:
             return slice(start, start + 1)
 
+    def _frame_to_rgb_array(self, frame: av.VideoFrame) -> NDArray:
+        """Convert a frame to the float RGB array pygfx expects, flipped vertically."""
+        return self._reformatter.reformat(frame, format="rgb24").to_ndarray()[::-1] / 255.0
+
     def _append_frame(self, frames, idx, frame):
         if self.return_frame_array:
-            frames[idx] = _frame_to_rgb_array(frame)
+            frames[idx] = self._frame_to_rgb_array(frame)
         else:
             frames.append(frame)
 

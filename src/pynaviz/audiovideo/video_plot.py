@@ -27,7 +27,7 @@ from ..base_plot import _BasePlot
 from ..controller import GetController
 from ..utils import GRADED_COLOR_LIST
 from .skeleton_plot import PlotPoints
-from .video_handling import VideoHandler, _frame_to_rgb_array
+from .video_handling import VideoHandler
 from .video_worker import RenderTriggerSource, video_worker_process
 
 # WeakSet to avoid keeping dead references
@@ -636,7 +636,7 @@ class PlotVideo(PlotBaseVideoTensor):
         else:
             frame = self.data[frame_index]
             if isinstance(frame, av.VideoFrame):
-                frame = _frame_to_rgb_array(frame)
+                frame = self._data._frame_to_rgb_array(frame)
             with self.buffer_lock:
                 self.texture.data[:] = frame
                 self._set_time_text(frame_index)
