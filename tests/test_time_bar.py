@@ -1,7 +1,7 @@
 """Tests for the time bar: _TimeSlider widget and MainWindow scrubber methods."""
 
 import pytest
-from PySide6.QtCore import QPoint, QSignalBlocker, Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QWheelEvent
 
 import pynaviz as viz
