@@ -151,7 +151,14 @@ def test_update_timebar_clamps_out_of_range(main_window):
 
 def test_update_timebar_noop_when_range_invalid(main_window):
     """_update_timebar with max <= min should not change the slider value."""
+    # Seed with signals blocked: a plain setValue emits valueChanged, which
+    # scrubs the controllers and feeds a recomputed value straight back into
+    # the slider. That round-trip is float-sensitive and would make this test
+    # about arithmetic noise rather than about the max <= min guard.
+    main_window.time_slider.blockSignals(True)
     main_window.time_slider.setValue(12345)
+    main_window.time_slider.blockSignals(False)
+
     main_window._update_timebar(5.0, 5.0, 5.0)
     assert main_window.time_slider.value() == 12345
 

@@ -91,9 +91,7 @@ def _extract_name_value(v: Any, ephys_format: str | None = None):
             fmt = ephys_format or _infer_ephys_format(v)
             nap_obj_dict = {key: EphysReference(ephys_reader=v, key=key, format=fmt) for key in v.keys()}
             return v.name, nap_obj_dict
-        elif "pynapple" in v.__module__:
-            return v.__class__.__name__, v
-        elif isinstance(v, VideoHandler):
+        elif "pynapple" in v.__module__ or isinstance(v, VideoHandler):
             return v.__class__.__name__, v
 
     return None, None
