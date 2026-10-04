@@ -53,7 +53,6 @@ class ControllerGroup:
 
         self.set_interval(interval[0], interval[1])
 
-
     def _add_update_handler(self, viewport_or_renderer: Viewport | Renderer):
         """
         Registers a sync event handler on the renderer of the given viewport or renderer.
@@ -102,12 +101,7 @@ class ControllerGroup:
                     type="sync",
                     controller_id=ctrl.controller_id,
                     update_type="pan",
-                    sync_extra_args={
-                        "args": (),
-                        "kwargs": {
-                            "current_time": time
-                        }
-                    }
+                    sync_extra_args={"args": (), "kwargs": {"current_time": time}},
                 )
             )
 
@@ -121,8 +115,6 @@ class ControllerGroup:
             else:
                 self._set_to_time(start + (end - start) / 2)
                 break
-
-
 
     def sync_controllers(self, event):
         """
@@ -233,12 +225,7 @@ class ControllerGroup:
                 type="sync",
                 controller_id=controller.controller_id,
                 update_type="pan",
-                sync_extra_args={
-                    "args": (),
-                    "kwargs": {
-                        "current_time": self.current_time
-                    }
-                }
+                sync_extra_args={"args": (), "kwargs": {"current_time": self.current_time}},
             )
         )
 
@@ -276,4 +263,3 @@ class ControllerGroup:
         except Exception as e:
             # Fallback: skip if removal fails (e.g., missing references)
             print(f"Failed to remove event handle with exception:\n{e}")
-

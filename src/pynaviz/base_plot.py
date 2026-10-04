@@ -774,7 +774,9 @@ class PlotTsdFrame(_BasePlot):
         self.renderer.add_event_handler(self._page_pan, "key_down")
 
         _span_kwargs = {
-            "camera": self.camera, "renderer": self.renderer, "dict_sync_funcs": dict_sync_funcs
+            "camera": self.camera,
+            "renderer": self.renderer,
+            "dict_sync_funcs": dict_sync_funcs,
         }
         _lines_cbs = self._modes["lines"].get_callbacks()
         self._controllers = {
