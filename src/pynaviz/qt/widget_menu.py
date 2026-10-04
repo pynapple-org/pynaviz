@@ -55,7 +55,7 @@ WIDGET_PARAMS = {
         "current_index": "setCurrentIndex",
     },
     QDoubleSpinBox: {
-        "name": "setObjectNAme",
+        "name": "setObjectName",
         "value": "setValue",
         "minimum": "setMinimum",
         "maximum": "setMaximum",
