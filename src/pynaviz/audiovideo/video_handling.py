@@ -30,7 +30,7 @@ def _frame_to_rgb_array(frame: av.VideoFrame) -> NDArray:
     its threads, so its own first conversion waits forever on threads that do not
     exist: the worker never delivers a frame, and never exits.
     """
-    return frame.to_ndarray(format="rgb24")[::-1] / 255.0
+    return frame.reformat(format="rgb24", threads=1).to_ndarray()[::-1] / 255.0
 
 
 def _needs_flush(count_keyframes: int, temp: list, has_b_frames: bool, n_b_frames: int = 1) -> bool:
