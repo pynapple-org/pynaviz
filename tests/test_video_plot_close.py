@@ -22,6 +22,7 @@ import pytest
 
 import pynaviz.audiovideo.video_plot as video_plot
 from pynaviz.audiovideo.video_plot import PlotVideo, _submit_for_reaping, _WorkerHandles
+from pynaviz.utils import RenderTriggerSource
 
 # ``close`` still tears the canvas down synchronously (~100 ms), so allow a
 # margin. The point is that it no longer waits on the worker, which cost a flat
@@ -174,6 +175,25 @@ def test_worker_and_shared_memory_are_created(test_video_path, start_method):
         assert plot.shared_frame.shape == tuple(plot.shape)
         assert plot.shared_index.shape == (1,)
         assert plot._buffer_thread.is_alive()
+    finally:
+        plot.close()
+        assert video_plot._drain_reaper(timeout=60)
+
+
+def test_worker_delivers_frames_after_parent_converted(test_video_path, start_method):
+    """The worker must serve requests even though the parent converted frames first.
+
+    Constructing the plot converts frame 0 to RGB in the parent, before the worker
+    is started. A threaded swscale context there left an inherited thread pool
+    that deadlocked the forked worker on its own first conversion: no frame was
+    ever delivered, and the worker never exited.
+    """
+    plot = PlotVideo(video=test_video_path, t=np.arange(100))
+    try:
+        plot._update_buffer(50, RenderTriggerSource.SYNC_EVENT_RECEIVED)
+        frame_index, trigger = plot._pending_ui_update_queue.get(timeout=30)
+        assert frame_index == 50
+        assert trigger == RenderTriggerSource.SYNC_EVENT_RECEIVED
     finally:
         plot.close()
         assert video_plot._drain_reaper(timeout=60)

@@ -18,9 +18,11 @@ from multiprocessing import Lock as MultiProcessLock
 from typing import Any, Optional
 
 import av
+import av.video.frame
 import numpy as np
 import pygfx as gfx
 import pynapple as nap
+from av.video.reformatter import VideoReformatter
 from numpy.typing import NDArray
 
 from ..base_plot import _BasePlot
@@ -179,6 +181,36 @@ if sys.platform != "win32":
         set_start_method("fork", force=True)
     except RuntimeError:
         pass
+
+
+def _drop_pyav_conversion_context():
+    """Drop this thread's cached swscale context before forking a worker.
+
+    ``frame.to_ndarray(format=...)`` converts through a swscale context that PyAV
+    caches per thread in ``av.video.frame._thread_local``, and that context owns a
+    pool of slice threads. A forked child keeps a copy of the forking thread's
+    cache but none of the pool's threads, so its first conversion waits forever
+    for them: the worker never delivers a frame, and never exits. With the cache
+    dropped, the child builds a context of its own, with real threads.
+
+    The cache, and with it the hang, appeared in PyAV 19.0; earlier versions build
+    a fresh context for every conversion, so there is nothing to drop. It is an
+    implementation detail, so on 19.0 and later fail loudly if it moves rather
+    than silently bring the hang back.
+    """
+    thread_local = getattr(av.video.frame, "_thread_local", None)
+    if thread_local is None:
+        if int(av.__version__.split(".")[0]) < 19:
+            return
+        raise RuntimeError(
+            f"PyAV {av.__version__} no longer exposes av.video.frame._thread_local. "
+            "PlotVideo drops PyAV's cached swscale context before forking its "
+            "worker, which would otherwise deadlock; this needs updating for the "
+            "installed PyAV."
+        )
+    cache = vars(thread_local)
+    for key in [k for k, v in cache.items() if isinstance(v, VideoReformatter)]:
+        del cache[key]
 
 
 def _update_buffer(plot_object: Any, frame_index: int):
@@ -507,6 +539,7 @@ class PlotVideo(PlotBaseVideoTensor):
                 daemon=False,
             )
 
+            _drop_pyav_conversion_context()
             self._worker.start()
             self._buffer_thread.start()
 
