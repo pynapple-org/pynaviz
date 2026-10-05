@@ -8,6 +8,7 @@ import os
 import sys
 
 import numpy as np
+import pynapple as nap
 import pytest
 
 from pynaviz.events import SyncEvent
@@ -37,6 +38,37 @@ def dummy_intervalset():
 @pytest.fixture
 def dummy_tsgroup():
     return config.TsGroupConfig.get_data()
+
+@pytest.fixture
+def tsgroup_tsdframes():
+    first = nap.TsdFrame(
+        t=np.array([0.0, 0.5, 1.0, 1.5, 2.0]),
+        d=np.array(
+            [
+                [0.0, 10.0, 100.0],
+                [1.0, 11.0, 101.0],
+                [2.0, 12.0, 102.0],
+                [3.0, 13.0, 103.0],
+                [4.0, 14.0, 104.0],
+            ]
+        ),
+        columns=["x", "y", "first_only"],
+    )
+    second = nap.TsdFrame(
+        t=np.array([0.1, 0.6, 1.1, 1.6]),
+        d=np.array(
+            [
+                [20.0, 5.0, 200.0],
+                [21.0, 6.0, 201.0],
+                [22.0, 7.0, 202.0],
+                [23.0, 8.0, 203.0],
+            ]
+        ),
+        columns=["y", "x", "second_only"],
+    )
+
+    return nap.TsGroup({0: first, 1: second})
+
 
 @pytest.fixture
 def dummy_tsdtensor():
@@ -76,7 +108,7 @@ def event_pan_update(camera_state):
         "sync",
         controller_id=0,
         update_type="pan",
-        sync_extra_args=dict(args=None,  kwargs=dict(cam_state=camera_state))
+        sync_extra_args={'args': None,  'kwargs': {'cam_state': camera_state}}
     )
     return event
 
@@ -87,7 +119,7 @@ def event_zoom_update(camera_state):
         "sync",
         controller_id=0,
         update_type="zoom",
-        sync_extra_args=dict(args=None,  kwargs=dict(cam_state=camera_state))
+        sync_extra_args={'args': None,  'kwargs': {'cam_state': camera_state}}
     )
     return event
 
@@ -98,7 +130,22 @@ def event_zoom_to_point_update(camera_state):
         "sync",
         controller_id=0,
         update_type="zoom_to_point",
-        sync_extra_args=dict(args=None,  kwargs=dict(cam_state=camera_state))
+        sync_extra_args={'args': None,  'kwargs': {'cam_state': camera_state}}
     )
     return event
+
+
+@pytest.fixture
+def controller_tsdframe():
+    return nap.TsdFrame(
+        t=np.array([0.0, 1.0, 2.0]),
+        d=np.array(
+            [
+                [0.0, 1.0],
+                [2.0, 3.0],
+                [4.0, 5.0],
+            ]
+        ),
+        columns=["x", "y"],
+    )
 

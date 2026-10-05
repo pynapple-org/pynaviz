@@ -3,7 +3,8 @@ The controller class.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import pygfx
@@ -14,18 +15,16 @@ from .utils import RenderTriggerSource, _get_event_handle
 
 
 class CustomController(ABC, PanZoomController):
-    """"""
-
     def __init__(
         self,
-        camera: Optional[Camera] = None,
+        camera: Camera | None = None,
         *,
         enabled=True,
         damping: int = 0,
         auto_update: bool = True,
-        renderer: Optional[Union[Viewport, Renderer]] = None,
-        controller_id: Optional[int] = None,
-        dict_sync_funcs: Optional[dict[Callable]] = None,
+        renderer: Viewport | Renderer | None = None,
+        controller_id: int | None = None,
+        dict_sync_funcs: dict[Callable] | None = None,
     ):
         super().__init__(
             camera=camera,
@@ -52,7 +51,7 @@ class CustomController(ABC, PanZoomController):
             )  # renderer.request_draw
 
         if dict_sync_funcs is None:
-            self._dict_sync_funcs = dict()
+            self._dict_sync_funcs = {}
         elif isinstance(dict_sync_funcs, dict):
             for key, sync_func in dict_sync_funcs.items():
                 if not isinstance(sync_func, Callable):
@@ -91,7 +90,7 @@ class CustomController(ABC, PanZoomController):
                     type="sync",
                     controller_id=self._controller_id,
                     update_type=update_type,
-                    sync_extra_args=dict(args=args, kwargs=kwargs),
+                    sync_extra_args={"args": args, "kwargs": kwargs},
                 )
             )
 
@@ -102,7 +101,7 @@ class CustomController(ABC, PanZoomController):
                     type="switch",
                     controller_id=self._controller_id,
                     new_controller=self,
-                    sync_extra_args=dict(args=(), kwargs={}),
+                    sync_extra_args={"args": (), "kwargs": {}},
                 )
             )
 
@@ -143,15 +142,15 @@ class SpanController(CustomController):
 
     def __init__(
         self,
-        camera: Optional[Camera] = None,
+        camera: Camera | None = None,
         *,
         enabled: bool = True,
         damping: int = 0,
         auto_update: bool = True,
-        renderer: Optional[Union[Viewport, Renderer]] = None,
-        controller_id: Optional[int] = None,
-        dict_sync_funcs: Optional[dict[Callable]] = None,
-        plot_callbacks: Optional[list[Callable]] = None,
+        renderer: Viewport | Renderer | None = None,
+        controller_id: int | None = None,
+        dict_sync_funcs: dict[Callable] | None = None,
+        plot_callbacks: list[Callable] | None = None,
     ) -> None:
         super().__init__(
             camera=camera,
@@ -165,8 +164,7 @@ class SpanController(CustomController):
         self._plot_callbacks = plot_callbacks if plot_callbacks is not None else []
 
     def set_xlim(self, xmin: float, xmax: float):
-        """Set the visible X range for an OrthographicCamera.
-        """
+        """Set the visible X range for an OrthographicCamera."""
         width = xmax - xmin
         x_center = (xmax + xmin) / 2
         self.camera.width = width
@@ -214,9 +212,7 @@ class SpanController(CustomController):
     def _update_zoom(self, delta):
         super()._update_zoom(delta)
         self._update_plots()
-        self._send_sync_event(
-            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
-        )
+        self._send_sync_event(update_type="zoom", cam_state=self._get_camera_state(), delta=delta)
 
     def _update_zoom_to_point(self, delta, *, screen_pos, rect):
         super()._update_zoom_to_point(delta, screen_pos=screen_pos, rect=rect)
@@ -267,7 +263,7 @@ class SpanController(CustomController):
         # note: self._update_cameras is based on self._last_cam_state.
         # The width of self._last_cam_state can differ from that of camera_state["width"].
         # Provide both position and width for the desired update.
-        self._set_camera_state(dict(position=new_position, width=camera_state["width"]))
+        self._set_camera_state({"position": new_position, "width": camera_state["width"]})
         self._update_cameras()
         self._update_plots()
         self.renderer_request_draw()
@@ -286,7 +282,7 @@ class SpanController(CustomController):
         camera_state = self._get_camera_state()
         new_position = np.array(camera_state["position"]).copy()
         new_position[0] = target_time
-        self._set_camera_state(dict(position=new_position))
+        self._set_camera_state({"position": new_position})
         self._update_cameras()
         self._update_plots()
         self.renderer_request_draw()
@@ -322,9 +318,7 @@ class SpanYLockController(SpanController):
         fx = 2 ** delta[0]
         new_cam_state = self._zoom(fx, 1, self._get_camera_state())
         self._set_camera_state(new_cam_state)
-        self._send_sync_event(
-            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
-        )
+        self._send_sync_event(update_type="zoom", cam_state=self._get_camera_state(), delta=delta)
 
     def _zoom(self, fx, fy, cam_state):
         """
@@ -351,9 +345,7 @@ class SpanXLockController(SpanController):
         fy = 2 ** delta[1]
         new_cam_state = self._zoom(1, fy, self._get_camera_state())
         self._set_camera_state(new_cam_state)
-        self._send_sync_event(
-            update_type="zoom", cam_state=self._get_camera_state(), delta=delta
-        )
+        self._send_sync_event(update_type="zoom", cam_state=self._get_camera_state(), delta=delta)
 
     def _zoom(self, fx, fy, cam_state):
         """Zoom in y axis only, enforcing fx to be 1."""
@@ -373,22 +365,21 @@ class SpanXYLockController(SpanController):
 
 
 class GetController(CustomController):
-    """
-    The class for grabbing a single time point
-    """
+    """Controller for selecting a single time point."""
 
     def __init__(
         self,
-        camera: Optional[Camera] = None,
+        camera: Camera | None = None,
         *,
-        enabled=True,
+        enabled: bool = True,
         auto_update: bool = True,
-        renderer: Optional[Union[Viewport, Renderer]] = None,
-        controller_id: Optional[int] = None,
-        data: Optional[Any] = None,
-        buffer: pygfx.Buffer = None,
-        plot_callbacks: Optional[list[Callable]] = None,
-    ):
+        renderer: Viewport | Renderer | None = None,
+        controller_id: int | None = None,
+        data: Any | None = None,
+        buffer: pygfx.Buffer | None = None,
+        plot_callbacks: list[Callable] | None = None,
+        continuous_time: bool = False,
+    ) -> None:
         super().__init__(
             camera=camera,
             enabled=enabled,
@@ -397,123 +388,167 @@ class GetController(CustomController):
             controller_id=controller_id,
         )
         self.data = data
-        if self.data:
-            self.frame_index = 0
-            self._current_time = self._get_frame_time()  # Initializing the current time
-        else:
-            self._current_time = None
-
         self.buffer = buffer
+        self.continuous_time = continuous_time
         self._plot_callbacks = list(plot_callbacks) if plot_callbacks is not None else []
+        self._frame_index = 0
+        self._current_time = None
 
-    def set_view(self, xmin: float, xmax: float, ymin: float, ymax: float):
-        """Set the visible X and Y ranges for an OrthographicCamera."""
+        if self.data is not None and len(self.data):
+            self._current_time = self._get_frame_time()
+
+    def set_view(
+        self,
+        xmin: float,
+        xmax: float,
+        ymin: float,
+        ymax: float,
+    ) -> None:
+        """Set the visible X and Y ranges."""
         if self.camera is not None:
             self.camera.show_rect(xmin, xmax, ymin, ymax)
 
     @property
-    def frame_index(self):
+    def frame_index(self) -> int:
         return self._frame_index
 
     @frame_index.setter
-    def frame_index(self, value):
-        if self.data:
-            n_frames = self.data.shape[0]
-            self._frame_index = max(min(value, n_frames), 0)
-        else:
+    def frame_index(self, value: int) -> None:
+        if self.data is None or not len(self.data):
             self._frame_index = 0
+            return
 
-    def _get_frame_time(self):
-        time_array = getattr(self.data.index, "values", self.data.index)
-        return time_array[self.frame_index]
+        self._frame_index = int(np.clip(value, 0, len(self.data) - 1))
 
-    def _add_callback(self, func):
+    def _get_time_array(self) -> np.ndarray:
+        """Return data timestamps as an array."""
+        if self.data is None:
+            return np.array([], dtype=float)
+
+        if hasattr(self.data, "t"):
+            return np.asarray(self.data.t)
+
+        index = self.data.index
+        return np.asarray(getattr(index, "values", index))
+
+    def _get_frame_time(self) -> float:
+        """Return the timestamp of the selected frame."""
+        timestamps = self._get_time_array()
+        return float(timestamps[self.frame_index])
+
+    @staticmethod
+    def _nearest_frame_index(
+        timestamps: np.ndarray,
+        target_time: float,
+    ) -> int:
+        """Return the frame nearest to a target time."""
+        right = int(np.searchsorted(timestamps, target_time))
+
+        if right <= 0:
+            return 0
+        if right >= len(timestamps):
+            return len(timestamps) - 1
+
+        left = right - 1
+        if timestamps[right] - target_time > target_time - timestamps[left]:
+            return left
+
+        return right
+
+    def _add_callback(self, func: Callable) -> None:
         if isinstance(func, Callable):
             self._plot_callbacks.append(func)
 
-    def _update_buffer(self, event_type: Optional[RenderTriggerSource] = None):
-        for update_func in  self._plot_callbacks:
+    def _update_buffer(
+        self,
+        event_type: RenderTriggerSource | None = None,
+    ) -> None:
+        for update_func in self._plot_callbacks:
             update_func(self.frame_index, event_type)
 
-    def _update_zoom_to_point(self, delta, *, screen_pos, rect):
-        """Should convert the jump of time to camera position
-        before emitting the sync event.
-        Does not propagate to the original PanZoomController
-        """
-        if delta > 0:
-            self.frame_index += 1
-        else:
-            self.frame_index -= 1
+    def _update_zoom_to_point(
+        self,
+        delta,
+        *,
+        screen_pos,
+        rect,
+    ) -> None:
+        """Move forward or backward by one frame."""
+        if self.data is None or not len(self.data):
+            return
 
-        self.frame_index = min(max(self.frame_index, 0), self.data.shape[0] - 1)
+        self.frame_index += 1 if delta > 0 else -1
+        self._current_time = self._get_frame_time()
 
         self._update_buffer(event_type=RenderTriggerSource.ZOOM_TO_POINT)
-
-        # hack for finding out if data is pynapple
-        # TODO fix later
-        if hasattr(self.data.index, "values"):
-            # Sending the sync event (no concurrent logic)
-            self._current_time = self._get_frame_time()
-            self._send_sync_event(update_type="pan", current_time=self._current_time)
-
-    def set_frame(self, target_time: float):
-        """
-        Set the frame from target time.
-
-        Parameters
-        ----------
-        target_time:
-            A time point.
-        """
-        time_array = getattr(self.data.index, "values", self.data.index)
-        idx_before = np.searchsorted(time_array, target_time, side="right") - 1
-        idx_before = np.clip(idx_before, 0, len(time_array) - 1)
-        idx_after = min(idx_before + 1, len(time_array) - 1)
-        frame_index = (
-            idx_before
-            if (time_array[idx_after] - target_time) > (target_time - time_array[idx_before])
-            else idx_after
+        self.renderer_request_draw()
+        self._send_sync_event(
+            update_type="pan",
+            current_time=self._current_time,
         )
-        current_t = time_array[frame_index]
 
-        # update frame index
-        self.frame_index = frame_index
+    def set_frame(self, target_time: float) -> None:
+        """Select the frame nearest to a target time."""
+        timestamps = self._get_time_array()
+        if not len(timestamps):
+            return
 
-        # update buffer and sync
-        self._current_time = target_time  # Target time is not necessarily frame time
+        target_time = float(np.clip(target_time, timestamps[0], timestamps[-1]))
+        self.frame_index = self._nearest_frame_index(
+            timestamps,
+            target_time,
+        )
+
+        # Store continuous time before callbacks are invoked.
+        self._current_time = target_time
         self._update_buffer(event_type=RenderTriggerSource.SET_FRAME)
-        self._send_sync_event(update_type="pan", current_time=current_t)
+        self.renderer_request_draw()
 
+        # Existing users synchronize to real frame timestamps. Continuous
+        # views synchronize to the unquantized playhead time.
+        sync_time = target_time if self.continuous_time else float(timestamps[self.frame_index])
+        self._send_sync_event(
+            update_type="pan",
+            current_time=sync_time,
+        )
 
-    def sync(self, event):
-        """Get a new data point and update the texture"""
-        new_t = None
+    def sync(self, event) -> None:
+        """Select a frame from a synchronization event."""
+        if self.data is None or not len(self.data):
+            return
+
         if "cam_state" in event.kwargs:
-            new_t = event.kwargs["cam_state"]["position"][0]
-            self._current_time = new_t
+            target_time = float(event.kwargs["cam_state"]["position"][0])
         elif "current_time" in event.kwargs:
-            self._current_time = event.kwargs["current_time"]
-            index = np.searchsorted(self.data.index, self._current_time, side="right") - 1
-            index = np.clip(index, 0, len(self.data.index) - 1)
-            new_t = self.data.t[index]
+            target_time = float(event.kwargs["current_time"])
+        else:
+            return
 
-        if new_t is not None:
-            self.frame_index = self.data.get_slice(new_t).start
-            self._update_buffer(
-                RenderTriggerSource.SYNC_EVENT_RECEIVED
-            )  # self.buffer.data[:] = self.data.values[self.frame_index].astype("float32")
+        timestamps = self._get_time_array()
+        target_time = float(np.clip(target_time, timestamps[0], timestamps[-1]))
 
-    def advance(self, delta=0.025):
-        """
-        Advance the current time by a specified delta value.
+        # Preserve the previous sync behavior: select the frame at or
+        # immediately before the synchronized time.
+        frame_index = (
+            np.searchsorted(
+                timestamps,
+                target_time,
+                side="right",
+            )
+            - 1
+        )
+        self.frame_index = int(np.clip(frame_index, 0, len(timestamps) - 1))
+        self._current_time = target_time
 
-        This can be used to play movies with a timer thread.
+        self._update_buffer(RenderTriggerSource.SYNC_EVENT_RECEIVED)
+        self.renderer_request_draw()
 
-        Parameters
-        ----------
-        delta (float): The incremental value. Defaults to 0.025.
+    def advance(self, delta: float = 0.025) -> None:
+        """Advance the playhead by a time delta."""
+        if self.data is None or not len(self.data):
+            return
 
-        """
-        self._current_time += delta
-        # set frame sends a sync
-        self.set_frame(self._current_time)
+        if self._current_time is None:
+            self._current_time = self._get_frame_time()
+
+        self.set_frame(self._current_time + delta)
