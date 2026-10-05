@@ -284,7 +284,7 @@ class TestMenuWidgetShowSelectMenu:
         assert not any(isinstance(w, GroupedChannelList) for w in menu.findChildren(GroupedChannelList))
 
     def test_tree_dialog_when_group_by_active(self, window_tsdframe, qtbot):
-        _, widget, tsdframe = window_tsdframe
+        _, widget, _tsdframe = window_tsdframe
         menu = widget.button_container
         widget.plot.group_by(metadata_name="group")
 
@@ -294,7 +294,7 @@ class TestMenuWidgetShowSelectMenu:
         assert len(grouped_dialogs) == 1
 
     def test_tree_has_correct_groups_after_group_by(self, window_tsdframe, qtbot):
-        _, widget, tsdframe = window_tsdframe
+        _, widget, _tsdframe = window_tsdframe
         menu = widget.button_container
         widget.plot.group_by(metadata_name="group")
         menu.show_select_menu()

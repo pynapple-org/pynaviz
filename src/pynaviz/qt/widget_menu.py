@@ -12,8 +12,9 @@ Main Classes:
 """
 
 from collections import OrderedDict
+from collections.abc import Callable
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pynapple as nap
@@ -24,6 +25,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDoubleSpinBox,
     QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMenu,
@@ -53,8 +55,12 @@ WIDGET_PARAMS = {
         "current_index": "setCurrentIndex",
     },
     QDoubleSpinBox: {
-        "name": "setObjectNAme",  # Note: typo here in key name
+        "name": "setObjectName",
         "value": "setValue",
+        "minimum": "setMinimum",
+        "maximum": "setMaximum",
+        "step": "setSingleStep",
+        "decimals": "setDecimals",
     },
 }
 
@@ -84,7 +90,9 @@ def widget_factory(parameters: dict) -> QWidget:
         if groups is not None:
             if icon_factory is not None:
                 widget.setIconSize(icon_size)
-                widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+                widget.setSizeAdjustPolicy(
+                    QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+                )
                 widget.setMinimumContentsLength(0)
                 widget.setMinimumWidth(icon_size.width() + 36)  # icon + padding + arrow button
             current_index = 0
@@ -169,38 +177,50 @@ class DropdownDialog(QDialog):
         func: Callable,
         ok_cancel_button: bool = False,
         parent: QWidget | None = None,
+        sections: OrderedDict[str, list[str]] | None = None,
+        minimum_size: QSize | None = None,
     ):
         super().__init__(parent=parent)
         self.setWindowTitle(title)
         self.setWindowModality(Qt.WindowModality.NonModal)
 
-        num_cols = min(len(widgets), 3)
+        if minimum_size is not None:
+            self.setMinimumSize(minimum_size)
 
         self._func = func
         self.widgets: dict[int, QWidget] = {}
+        self.named_widgets: dict[str, QWidget] = {}
+        self._dependencies = []
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(12, 12, 12, 12)
         main_layout.setSpacing(8)
 
-        # Scrollable area (useful when there are many widgets)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(scroll.Shape.NoFrame)
         scroll_content = QWidget()
-
-        grid_layout = QGridLayout(scroll_content)
-        grid_layout.setContentsMargins(4, 4, 4, 4)
-        grid_layout.setSpacing(8)
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(4, 4, 4, 4)
+        scroll_layout.setSpacing(10)
 
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
-        # Add widgets with labels
-        def make_labeled_widget(label_text: str, widget: QWidget) -> QWidget:
+        def make_labeled_widget(
+            label_text: str,
+            widget: QWidget,
+        ) -> QWidget:
             label = QLabel(label_text)
-            label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-            widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            label.setSizePolicy(
+                QSizePolicy.Policy.Minimum,
+                QSizePolicy.Policy.Fixed,
+            )
+            widget.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Fixed,
+            )
+
             wrapper = QWidget()
             layout = QHBoxLayout(wrapper)
             layout.setContentsMargins(0, 0, 0, 0)
@@ -209,20 +229,108 @@ class DropdownDialog(QDialog):
             layout.addWidget(widget)
             return wrapper
 
-        for i, (label, params) in enumerate(widgets.items()):
+        wrappers = {}
+
+        for index, (label, original_params) in enumerate(widgets.items()):
+            params = original_params.copy()
+            dependency = params.pop("enabled_when", None)
             widget = widget_factory(params)
+
             if hasattr(widget, "activated"):
                 widget.activated.connect(self.item_changed)
             if hasattr(widget, "valueChanged"):
                 widget.valueChanged.connect(self.item_changed)
 
-            row, col = divmod(i, num_cols)
-            grid_layout.addWidget(make_labeled_widget(label, widget), row, col)
-            self.widgets[i] = widget
+            self.widgets[index] = widget
+            self.named_widgets[widget.objectName()] = widget
+            wrappers[label] = make_labeled_widget(label, widget)
 
-        # Optional buttons
+            if dependency is not None:
+                self._dependencies.append((widget, dependency))
+
+        if sections is None:
+            grid = QGridLayout()
+            grid.setSpacing(8)
+
+            for index, wrapper in enumerate(wrappers.values()):
+                row, column = divmod(index, min(len(wrappers), 3))
+                grid.addWidget(wrapper, row, column)
+
+            scroll_layout.addLayout(grid)
+        else:
+            used_labels = set()
+
+            for section_name, labels in sections.items():
+                group = QGroupBox(section_name)
+                group_layout = QGridLayout(group)
+                group_layout.setSpacing(8)
+
+                for index, label in enumerate(labels):
+                    if label not in wrappers:
+                        continue
+
+                    row, column = divmod(index, 2)
+                    group_layout.addWidget(
+                        wrappers[label],
+                        row,
+                        column,
+                    )
+                    used_labels.add(label)
+
+                scroll_layout.addWidget(group)
+
+            remaining = [
+                wrapper for label, wrapper in wrappers.items() if label not in used_labels
+            ]
+
+            if remaining:
+                grid = QGridLayout()
+                for index, wrapper in enumerate(remaining):
+                    row, column = divmod(index, 2)
+                    grid.addWidget(wrapper, row, column)
+                scroll_layout.addLayout(grid)
+
+        scroll_layout.addStretch()
+
+        for target, (source_name, expected_value) in self._dependencies:
+            source = self.named_widgets[source_name]
+
+            def update_enabled(
+                _=None,
+                *,
+                source=source,
+                target=target,
+                expected_value=expected_value,
+            ) -> None:
+                value = source.currentData()
+                if value is None:
+                    value = source.currentText()
+                target.setEnabled(value == expected_value)
+
+            source.currentIndexChanged.connect(update_enabled)
+            update_enabled()
+
+        for target, (source_name, expected_value) in self._dependencies:
+            source = self.named_widgets[source_name]
+
+            def update_enabled(
+                _=None,
+                *,
+                source=source,
+                target=target,
+                expected_value=expected_value,
+            ) -> None:
+                value = source.currentData()
+                if value is None:
+                    value = source.currentText()
+                target.setEnabled(value == expected_value)
+
+            source.currentIndexChanged.connect(update_enabled)
+            update_enabled()
+
         if ok_cancel_button:
             self._update_on_selection = False
+
             button_layout = QHBoxLayout()
             self.ok_button = QPushButton("OK")
             self.ok_button.setDefault(True)
@@ -289,7 +397,13 @@ class MenuWidget(QWidget):
         TsdFrame object for overlaying on TsdTensor plot or VideoWidget plot.
     """
 
-    def __init__(self, metadata: Any, plot: Any, interval_sets: dict | None = None, tsdframes: dict | None = None):
+    def __init__(
+        self,
+        metadata: Any,
+        plot: Any,
+        interval_sets: dict | None = None,
+        tsdframes: dict | None = None,
+    ):
         super().__init__()
         self._interval_sets = None
         self._interval_sets_model = None
@@ -314,7 +428,7 @@ class MenuWidget(QWidget):
                 attr_name="select_button",
                 callback=self.show_select_menu,
                 icon_name="SP_DialogApplyButton",
-                icon_size=self.icon_size
+                icon_size=self.icon_size,
             )
 
         # Action menu for plot operations
@@ -341,7 +455,7 @@ class MenuWidget(QWidget):
                 attr_name="action_button",
                 callback=self.show_action_menu,
                 icon_name="SP_FileDialogDetailedView",
-                icon_size=self.icon_size
+                icon_size=self.icon_size,
             )
 
         # Navigation buttons for time-based data
@@ -351,22 +465,19 @@ class MenuWidget(QWidget):
                 attr_name="left_jump_button",
                 callback=self.jump_previous,
                 icon_name="SP_ArrowLeft",
-                icon_size=self.icon_size
+                icon_size=self.icon_size,
             )
             self._add_button_to_layout(
                 layout=layout,
                 attr_name="right_jump_button",
                 callback=self.jump_next,
                 icon_name="SP_ArrowRight",
-                icon_size=self.icon_size
+                icon_size=self.icon_size,
             )
 
         layout.addStretch()
         self.setLayout(layout)
-        self.setSizePolicy(
-            QSizePolicy.Policy.Preferred,
-            QSizePolicy.Policy.Fixed
-        )
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self._action_menu()
 
     def _set_interval_sets(self, interval_sets: dict) -> None:
@@ -390,7 +501,7 @@ class MenuWidget(QWidget):
     def _change_visibility(self) -> None:
         """Request a redraw of the plot when channel states change."""
         widget = self.sender()
-        visibility= np.array([val for val in getattr(widget, "checks", []).values()])
+        visibility = np.array([val for val in getattr(widget, "checks", []).values()])
         if hasattr(self.plot, "_manager"):
             self.plot._manager.visible = visibility
         if hasattr(self.plot, "_update"):
@@ -409,38 +520,53 @@ class MenuWidget(QWidget):
         icon = self.style().standardIcon(getattr(QStyle.StandardPixmap, icon_name))
         button.setIcon(icon)
         button.setIconSize(QSize(icon_size, icon_size))
-        button.setSizePolicy(
-            QSizePolicy.Policy.Fixed,
-            QSizePolicy.Policy.Minimum
-        )
+        button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         button.setFixedSize(icon_size + 4, icon_size + 4)
         button.setFlat(True)
         button.clicked.connect(menu_to_show)
         return button
 
     def _action_menu(self) -> None:
-        """Creates the action menu with plot operation entries."""
+        """Create the action menu."""
         self.action_menu = QMenu()
+
         for func_name, name in self.action_funcs.items():
-            if func_name in ["select_interval_set", "overlay_time_series"]:
+            if func_name in ("select_interval_set", "overlay_time_series"):
                 self.action_menu.addSeparator()
+
             action = self.action_menu.addAction(name)
             action.setObjectName(func_name)
+            action.setEnabled(self._supports_action(func_name))
             action.triggered.connect(self._popup_menu)
 
+    def _supports_action(self, action_name: str) -> bool:
+        """Return whether the plot supports an action."""
+        capability = {
+            "sort_by": "supports_sorting",
+            "group_by": "supports_grouping",
+        }.get(action_name)
+
+        if capability is None:
+            return True
+
+        return bool(getattr(self.plot, capability, True))
+
     def show_action_menu(self) -> None:
-        """Displays the action menu below the button."""
+        """Display the action menu below the button."""
+        get_controller_enabled = False
 
         if hasattr(self.plot, "_controllers"):
-            # If 'get' controller is enabled (i.e., in x vs y mode),
-            # Need to disable all others actions
-            get_ctrl = self.plot._controllers.get("get")
-            if get_ctrl is not None and get_ctrl.enabled:
-                for act in self.action_menu.actions():
-                    act.setEnabled(act.objectName() == "x_vs_y")
-            else:
-                for act in self.action_menu.actions():
-                    act.setEnabled(True)
+            get_controller = self.plot._controllers.get("get")
+            get_controller_enabled = get_controller is not None and get_controller.enabled
+
+        for action in self.action_menu.actions():
+            action_name = action.objectName()
+            supported = self._supports_action(action_name)
+
+            if get_controller_enabled:
+                supported &= action_name == "x_vs_y"
+
+            action.setEnabled(supported)
 
         pos = self.action_button.mapToGlobal(QPoint(0, self.action_button.height()))
         self.action_menu.exec(pos)
@@ -458,12 +584,10 @@ class MenuWidget(QWidget):
             metadata_name = manager._actions["group_by"]["metadata_name"]
             channel_names = list(manager.index)
             groups_mapping = {
-                ch: str(self.plot.data.metadata.loc[ch][metadata_name])
-                for ch in channel_names
+                ch: str(self.plot.data.metadata.loc[ch][metadata_name]) for ch in channel_names
             }
             visibility_mapping = {
-                ch: bool(manager.data.loc[ch]["visible"])
-                for ch in channel_names
+                ch: bool(manager.data.loc[ch]["visible"]) for ch in channel_names
             }
             order_mapping = (
                 {ch: int(manager.data.loc[ch]["order"]) for ch in channel_names}
@@ -528,7 +652,7 @@ class MenuWidget(QWidget):
         self.plot.jump_next()
 
     def jump_previous(self) -> None:
-        """ Jump to the previous timestamp or start"""
+        """Jump to the previous timestamp or start"""
         self.plot.jump_previous()
 
     def _request_draw(self) -> None:
@@ -547,7 +671,9 @@ class MenuWidget(QWidget):
                 self.plot.update_interval_set(name, colors=colors, alpha=alpha)
                 self.plot.canvas.request_draw(self.plot.animate)
             else:
-                self.plot.add_interval_sets(self._interval_sets[name], colors=colors, alpha=alpha, labels=name)
+                self.plot.add_interval_sets(
+                    self._interval_sets[name], colors=colors, alpha=alpha, labels=name
+                )
         else:
             self.plot.remove_interval_set(name)
             self.plot.canvas.request_draw(self.plot.animate)
@@ -562,7 +688,9 @@ class MenuWidget(QWidget):
                 self.plot.points[name].set_thickness(thickness)
                 self.plot.canvas.request_draw(self.plot.animate)
             else:
-                self.plot.superpose_points(self._tsdframes[name], color, markersize, thickness, label=name)
+                self.plot.superpose_points(
+                    self._tsdframes[name], color, markersize, thickness, label=name
+                )
         else:
             if name in self.plot.points:
                 if hasattr(self.plot.points[name], "lines"):
@@ -570,6 +698,3 @@ class MenuWidget(QWidget):
                 self.plot.scene.remove(self.plot.points[name].points)
                 del self.plot.points[name]
             self.plot.canvas.request_draw(self.plot.animate)
-
-
-

@@ -2,11 +2,12 @@
 Simple plotting class for each pynapple object.
 Create a unique canvas/renderer for each class
 """
+
 import os
 import sys
 import threading
 import warnings
-from typing import Any, Optional, Union
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,18 +46,16 @@ from .utils import (
 def _is_headless():
     """Check if running in a headless environment across all platforms."""
     # Always headless in CI
-    if os.environ.get('CI'):
+    if os.environ.get("CI"):
         return True
 
     # Linux: check DISPLAY
-    if sys.platform.startswith('linux'):
-        return not os.environ.get('DISPLAY')
+    if sys.platform.startswith("linux"):
+        return not os.environ.get("DISPLAY")
 
     # macOS and Windows: assume we have a display unless explicitly set to offscreen
-    if os.environ.get('QT_QPA_PLATFORM') == 'offscreen':
-        return True
+    return os.environ.get("QT_QPA_PLATFORM") == "offscreen"
 
-    return False
 
 if _is_headless():
     from rendercanvas.offscreen import loop
@@ -131,6 +130,7 @@ class _BasePlot(IntervalSetInterface):
         # Create a GPU-accelerated canvas for rendering, optionally with a parent widget
         if parent:  # Assuming it's a Qt background
             from rendercanvas.qt import RenderCanvas
+
             self.canvas = RenderCanvas(parent=parent)
         else:
             if _is_headless():
@@ -152,9 +152,7 @@ class _BasePlot(IntervalSetInterface):
         self.scene.add(gfx.Background.from_color(background))
 
         # Add a horizontal ruler (x-axis) with ticks above
-        self.ruler_x = gfx.Ruler(
-            tick_side="left"
-        )
+        self.ruler_x = gfx.Ruler(tick_side="left")
 
         # Add a vertical ruler (y-axis) with ticks on the left and minimum spacing
         self.ruler_y = gfx.Ruler(tick_side="right")
@@ -183,7 +181,7 @@ class _BasePlot(IntervalSetInterface):
         for _ch in (self._crosshair_v, self._crosshair_h):
             _ch.visible = False
             _ch.render_order = 2
-        self._crosshair_pos = None       # (world_x, world_y) anchor, or None
+        self._crosshair_pos = None  # (world_x, world_y) anchor, or None
         self._crosshair_label_callback = None  # set by Qt widget layer
         self.scene.add(self._crosshair_v, self._crosshair_h)
 
@@ -228,7 +226,7 @@ class _BasePlot(IntervalSetInterface):
         dict or None
         """
 
-    def set_plot_state(self, state, available_vars: Optional[dict]):
+    def set_plot_state(self, state, available_vars: dict | None):
         """Restore plot-type-specific display state produced by :meth:`get_plot_state`.
 
         Parameters
@@ -279,7 +277,9 @@ class _BasePlot(IntervalSetInterface):
             index = self._manager.index
             self._manager = self._manager.from_state(self, state=state["manager"], index=index)
         if "interval_sets" in state:
-            available_isets = {k: v for k, v in available_vars.items() if isinstance(v, nap.IntervalSet)}
+            available_isets = {
+                k: v for k, v in available_vars.items() if isinstance(v, nap.IntervalSet)
+            }
             self._interval_set_from_state(state["interval_sets"], available_isets=available_isets)
         if "plot" in state:
             self.set_plot_state(state["plot"], available_vars=available_vars)
@@ -387,9 +387,7 @@ class _BasePlot(IntervalSetInterface):
             if self._crosshair_label_callback:
                 self._crosshair_label_callback(None, None, None)
             return
-        world = map_screen_to_world(
-            self.camera, (event.x, event.y), self.renderer.logical_size
-        )
+        world = map_screen_to_world(self.camera, (event.x, event.y), self.renderer.logical_size)
         self._crosshair_pos = (float(world[0]), float(world[1]))
         self._update_crosshair()
 
@@ -407,14 +405,10 @@ class _BasePlot(IntervalSetInterface):
     def _update_crosshair(self):
         x, y = self._crosshair_pos
         xmin, xmax, ymin, ymax = get_plot_min_max(self)
-        self._crosshair_v.geometry.positions.data[:] = [
-            [x, ymin - 10, 0], [x, ymax + 10, 0]
-        ]
+        self._crosshair_v.geometry.positions.data[:] = [[x, ymin - 10, 0], [x, ymax + 10, 0]]
         self._crosshair_v.geometry.positions.update_full()
         self._crosshair_v.visible = True
-        self._crosshair_h.geometry.positions.data[:] = [
-            [xmin - 10, y, 0], [xmax + 10, y, 0]
-        ]
+        self._crosshair_h.geometry.positions.data[:] = [[xmin - 10, y, 0], [xmax + 10, y, 0]]
         self._crosshair_h.geometry.positions.update_full()
         self._crosshair_h.visible = True
         if self._crosshair_label_callback:
@@ -470,9 +464,7 @@ class _BasePlot(IntervalSetInterface):
         """
         # If the color mapping thread is still processing, retry in 25 milliseconds
         if self.color_mapping_thread.is_running():
-            slot = lambda: self.color_by(
-                metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
-            )
+            slot = lambda: self.color_by(metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
             threading.Timer(0.025, slot).start()
             return
 
@@ -492,16 +484,14 @@ class _BasePlot(IntervalSetInterface):
         else:
             # Prepare keyword arguments for the color mapping function
             map_kwargs = trim_kwargs(
-                map_to_colors, dict(cmap=colormaps[self.cmap], vmin=vmin, vmax=vmax)
+                map_to_colors, {"cmap": colormaps[self.cmap], "vmin": vmin, "vmax": vmax}
             )
 
             # Get the material objects that will have their colors updated
             materials = get_plot_attribute(self, "material")
 
             # Get the metadata values for each plotted element
-            values = (
-                self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
-            )
+            values = self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
 
             # If metadata is found and mapping works, update the material colors
             if len(values):
@@ -512,9 +502,11 @@ class _BasePlot(IntervalSetInterface):
 
                     # Request a redraw of the canvas to reflect the new colors
                     self.canvas.request_draw(self.animate)
-            self._manager.color_by(values, metadata_name=metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
+            self._manager.color_by(
+                values, metadata_name=metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
+            )
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending"):
+    def sort_by(self, metadata_name: str, mode: str | None = "ascending"):
         pass
 
     def group_by(self, metadata_name: str):
@@ -561,8 +553,12 @@ class _BasePlot(IntervalSetInterface):
         if event.type != "key_down" or event.key != "x":
             return
         if self._active_controller_key not in (
-            "span", "span_ylock", "span_xlock", "span_xylock",
-            "span_image", "span_image_xlock",
+            "span",
+            "span_ylock",
+            "span_xlock",
+            "span_xylock",
+            "span_image",
+            "span_image_xlock",
         ):
             return
         self._x_locked = not self._x_locked
@@ -662,13 +658,21 @@ class PlotTsd(_BasePlot):
     """
 
     def __init__(
-        self, data: nap.Tsd, index: Optional[int] = None, parent: Optional[Any] = None,
-        background: Optional[str] = "black",
+        self,
+        data: nap.Tsd,
+        index: int | None = None,
+        parent: Any | None = None,
+        background: str | None = "black",
     ) -> None:
         super().__init__(data=data, parent=parent, background=background)
 
         # Create controllers for span-based interaction (with optional axis locks)
-        _ctrl_kwargs = dict(camera=self.camera, renderer=self.renderer, dict_sync_funcs=dict_sync_funcs, plot_callbacks=[])
+        _ctrl_kwargs = {
+            "camera": self.camera,
+            "renderer": self.renderer,
+            "dict_sync_funcs": dict_sync_funcs,
+            "plot_callbacks": [],
+        }
         self._controllers = {
             "span": SpanController(controller_id=index, **_ctrl_kwargs),
             "span_ylock": SpanYLockController(enabled=False, **_ctrl_kwargs),
@@ -738,11 +742,11 @@ class PlotTsdFrame(_BasePlot):
     def __init__(
         self,
         data: nap.TsdFrame,
-        index: Optional[int] = None,
-        parent: Optional[Any] = None,
-        window_size: Optional[float] = None,
+        index: int | None = None,
+        parent: Any | None = None,
+        window_size: float | None = None,
         display_mode: str = "lines",
-        background: Optional[str] = "black",
+        background: str | None = "black",
     ):
         super().__init__(data=data, parent=parent, background=background)
         self._data = data
@@ -769,7 +773,11 @@ class PlotTsdFrame(_BasePlot):
         self.renderer.add_event_handler(self._toggle_x_lock, "key_down")
         self.renderer.add_event_handler(self._page_pan, "key_down")
 
-        _span_kwargs = dict(camera=self.camera, renderer=self.renderer, dict_sync_funcs=dict_sync_funcs)
+        _span_kwargs = {
+            "camera": self.camera,
+            "renderer": self.renderer,
+            "dict_sync_funcs": dict_sync_funcs,
+        }
         _lines_cbs = self._modes["lines"].get_callbacks()
         self._controllers = {
             "span": SpanController(
@@ -830,7 +838,10 @@ class PlotTsdFrame(_BasePlot):
 
         minmax = self._get_min_max()
         self.controller.set_view(
-            xmin=0, xmax=1, ymin=float(np.nanmin(minmax[:, 0])), ymax=float(np.nanmax(minmax[:, 1]))
+            xmin=0,
+            xmax=1,
+            ymin=float(np.nanmin(minmax[:, 0])),
+            ymax=float(np.nanmax(minmax[:, 1])),
         )
         self.canvas.request_draw(self.animate)
 
@@ -850,7 +861,9 @@ class PlotTsdFrame(_BasePlot):
         Uses the raw data when available in memory, otherwise falls back
         to the current mode's buffer.
         """
-        if isinstance(self.data.values, np.ndarray) and not isinstance(self.data.values, np.memmap):
+        if isinstance(self.data.values, np.ndarray) and not isinstance(
+            self.data.values, np.memmap
+        ):
             return np.stack([np.nanmin(self.data, 0), np.nanmax(self.data, 0)]).T
 
         minmax = self._mode.get_buffer_min_max()
@@ -906,11 +919,20 @@ class PlotTsdFrame(_BasePlot):
                 self._mode._request_draw = lambda: self.canvas.request_draw(self.animate)
             if state is not None:
                 self._mode.update_parameters(
-                    state["x_col"], state["y_col"],
-                    state.get("color", self._default_line_color()),
-                    state.get("thickness", 1.0),
-                    state.get("markersize", 10.0),
+                    x_col=state["x_col"],
+                    y_col=state["y_col"],
+                    color=state.get(
+                        "color",
+                        self._default_line_color(),
+                    ),
+                    style=state.get("style", "lines"),
+                    range_mode=state.get("range_mode", "full"),
+                    window_before=state.get("window_before", 1.0),
+                    window_after=state.get("window_after", 1.0),
+                    thickness=state.get("thickness", 1.0),
+                    markersize=state.get("markersize", 10.0),
                 )
+
             if switching:
                 self._mode.initialize_graphic()
                 self.scene.remove(self.ruler_ref_time)
@@ -923,8 +945,10 @@ class PlotTsdFrame(_BasePlot):
             self.controller.buffer = self._mode.time_point.geometry.positions
             self._mode._update_buffer(self.controller.frame_index)
             self.controller.set_view(
-                np.nanmin(self._mode.buffer[:, 0]), np.nanmax(self._mode.buffer[:, 0]),
-                np.nanmin(self._mode.buffer[:, 1]), np.nanmax(self._mode.buffer[:, 1]),
+                np.nanmin(self._mode.buffer[:, 0]),
+                np.nanmax(self._mode.buffer[:, 0]),
+                np.nanmin(self._mode.buffer[:, 1]),
+                np.nanmax(self._mode.buffer[:, 1]),
             )
             self.canvas.request_draw(self.animate)
             return
@@ -992,7 +1016,7 @@ class PlotTsdFrame(_BasePlot):
 
         self.canvas.request_draw(self.animate)
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
+    def sort_by(self, metadata_name: str, mode: str | None = "ascending") -> None:
         """Sort channels vertically by a metadata field.
 
         Parameters
@@ -1002,11 +1026,7 @@ class PlotTsdFrame(_BasePlot):
         mode : str, optional
             "ascending" (default) or "descending".
         """
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
         if len(values):
             self._manager.sort_by(values, metadata_name=metadata_name, mode=mode)
             self._update("sort_by")
@@ -1019,11 +1039,7 @@ class PlotTsdFrame(_BasePlot):
         metadata_name : str
             Metadata key to group by.
         """
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
         if len(values):
             self._manager.group_by(values, metadata_name=metadata_name, **kwargs)
             self._update("group_by")
@@ -1049,9 +1065,7 @@ class PlotTsdFrame(_BasePlot):
             Maximum value for colormap normalization.
         """
         if not self.color_mapping_thread.colormap_ready.is_set():
-            slot = lambda: self.color_by(
-                metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax
-            )
+            slot = lambda: self.color_by(metadata_name, cmap_name=cmap_name, vmin=vmin, vmax=vmax)
             threading.Timer(0.025, slot).start()
             return
 
@@ -1066,44 +1080,53 @@ class PlotTsdFrame(_BasePlot):
             )
             return
 
-        values = (
-            self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
-        )
+        values = self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
 
         self._mode.color_by(cmap_name, metadata_name, vmin, vmax, map_to_colors, values)
         self.canvas.request_draw(self.animate)
 
     def plot_x_vs_y(
         self,
-        x_col: Union[str, float],
-        y_col: Union[str, float],
-        color: Union[str, tuple] = None,
+        x_col: str | float,
+        y_col: str | float,
+        color: str | tuple | None = None,
+        style: str = "lines",
+        range_mode: str = "full",
+        window_before: float = 1.0,
+        window_after: float = 1.0,
         thickness: float = 1.0,
         markersize: float = 10.0,
     ) -> None:
-        """Plot one column versus another with a time-point marker.
+        """Plot one column against another."""
+        if x_col not in self.data.columns:
+            raise ValueError(f"Column {x_col!r} is not in data columns.")
+        if y_col not in self.data.columns:
+            raise ValueError(f"Column {y_col!r} is not in data columns.")
+        if style not in XvsYMode.VALID_STYLES:
+            raise ValueError(f"style must be one of {XvsYMode.VALID_STYLES}, got {style!r}.")
+        if range_mode not in XvsYMode.VALID_RANGES:
+            raise ValueError(
+                f"range_mode must be one of {XvsYMode.VALID_RANGES}, got {range_mode!r}."
+            )
+        if window_before < 0 or window_after < 0:
+            raise ValueError("Window durations must be non-negative.")
 
-        Parameters
-        ----------
-        x_col : str or int or float
-            Column name for the x-axis.
-        y_col : str or int or float
-            Column name for the y-axis.
-        color : str or tuple, optional
-            Line color. Defaults to a color that contrasts with the background.
-        thickness : float, default 1.0
-            Line thickness.
-        markersize : float, default 10.0
-            Size of the time marker.
-        """
-        if x_col not in self.data.columns or y_col not in self.data.columns:
-            raise ValueError(f"Columns {x_col} and {y_col} must be in data columns.")
         if color is None:
             color = self._default_line_color()
-        self._set_mode("x_vs_y", state={
-            "x_col": x_col, "y_col": y_col,
-            "color": color, "thickness": thickness, "markersize": markersize,
-        })
+        self._set_mode(
+            "x_vs_y",
+            state={
+                "x_col": x_col,
+                "y_col": y_col,
+                "color": color,
+                "style": style,
+                "range_mode": range_mode,
+                "window_before": float(window_before),
+                "window_after": float(window_after),
+                "thickness": float(thickness),
+                "markersize": float(markersize),
+            },
+        )
 
     def _get_crosshair_label(self, x, y):
         if self._display_mode == "image":
@@ -1124,8 +1147,8 @@ class PlotTsdFrame(_BasePlot):
             whatever the active mode's ``get_state()`` returns.
         """
         return {
-           "mode": self._display_mode,
-           "mode_state": self._mode.get_state(),
+            "mode": self._display_mode,
+            "mode_state": self._mode.get_state(),
         }
 
     def set_plot_state(self, state, available_vars=None) -> None:
@@ -1144,241 +1167,467 @@ class PlotTsdFrame(_BasePlot):
 
 
 class PlotTsGroup(_BasePlot):
-    """
-    Visualization for plotting multiple spike trains (``nap.TsGroup``) as a raster plot.
+    """Visualize a homogeneous group of Ts, Tsd, or TsdFrame entries."""
 
-    Each unit in the group is displayed as a row, where spike times are rendered as
-    point markers (vertical ticks). Units can be sorted or grouped based on metadata.
-    A `SpanController` is used to synchronize view ranges across plots.
+    def __init__(
+        self,
+        data: nap.TsGroup,
+        index: int | None = None,
+        parent: Any | None = None,
+        background: str | None = "black",
+    ) -> None:
+        super().__init__(
+            data=data,
+            parent=parent,
+            background=background,
+        )
 
-    Parameters
-    ----------
-    data : nap.TsGroup
-        A Pynapple `TsGroup` object containing multiple spike trains.
-    index : int, optional
-        Identifier for the controller instance, useful when synchronizing multiple plots.
-    parent : QWidget, optional
-        Parent widget in a Qt application, if applicable.
-    """
+        self._entry_kind = self._validate_entries()
+        self._continuous = self._entry_kind in ("tsd", "tsd_frame")
 
-    def __init__(self, data: nap.TsGroup, index=None, parent=None, background: Optional[str] = "black"):
-        # Initialize the base plot with provided data
-        super().__init__(data=data, parent=parent, background=background)
-
-        # Create controllers for span-based interaction (with optional axis locks)
-        _ctrl_kwargs = dict(camera=self.camera, renderer=self.renderer, dict_sync_funcs=dict_sync_funcs)
+        controller_kwargs = {
+            "camera": self.camera,
+            "renderer": self.renderer,
+            "dict_sync_funcs": dict_sync_funcs,
+        }
         self._controllers = {
-            "span": SpanController(controller_id=index, **_ctrl_kwargs),
-            "span_ylock": SpanYLockController(enabled=False, **_ctrl_kwargs),
-            "span_xlock": SpanXLockController(enabled=False, **_ctrl_kwargs),
-            "span_xylock": SpanXYLockController(enabled=False, **_ctrl_kwargs),
+            "span": SpanController(
+                controller_id=index,
+                **controller_kwargs,
+            ),
+            "span_ylock": SpanYLockController(
+                enabled=False,
+                **controller_kwargs,
+            ),
+            "span_xlock": SpanXLockController(
+                enabled=False,
+                **controller_kwargs,
+            ),
+            "span_xylock": SpanXYLockController(
+                enabled=False,
+                **controller_kwargs,
+            ),
         }
         self._active_controller_key = "span"
         self.controller = self._controllers["span"]
 
-        # Store PyGFX graphics objects (one per unit in TsGroup)
         self.graphic = {}
+        self._entry_graphics = {}
 
-        # Iterate over each unit in the TsGroup and build its spike raster
-        for i, n in enumerate(data.keys()):
-            # Each spike is represented by its (time, row index, depth=1)
-            positions = np.stack(
-                (data[n].t, np.ones(len(data[n])) * i, np.ones(len(data[n])))
-            ).T
-            positions = positions.astype("float32")
-
-            # Create a point cloud for the spikes of unit n
-            self.graphic[n] = gfx.Points(
-                gfx.Geometry(positions=positions),
-                gfx.PointsMarkerMaterial(
-                    size=10,
-                    color=GRADED_COLOR_LIST[i % len(GRADED_COLOR_LIST)],  # assign color cyclically
-                    opacity=1,
-                    marker="custom",  # custom marker defined by spike_sdf
-                    custom_sdf=spike_sdf,
-                ),
+        for entry_index, key in enumerate(data.keys()):
+            graphics = self._create_entry_graphics(
+                key,
+                entry_index,
             )
+            self._entry_graphics[key] = graphics
 
-        # TODO: Implement streaming logic properly.
-        # For now, initialize buffers with the first batch of data.
-        self._buffers = {c: self.graphic[c].geometry.positions for c in self.graphic}
-        self._flush()
+            if len(graphics) == 1:
+                self.graphic[key] = graphics[0]
+            else:
+                group = gfx.Group()
+                group.add(*graphics)
+                self.graphic[key] = group
 
-        # Add rulers (axes and reference line) and all graphics to the scene
+        if not self._continuous:
+            self._flush()
+
         self.scene.add(
             self.ruler_x,
             self.ruler_y,
             self.ruler_ref_time,
-            *list(self.graphic.values()),
+            *self.graphic.values(),
         )
 
-        # Connect key event handlers
         self.renderer.add_event_handler(self._rescale, "key_down")
         self.renderer.add_event_handler(self._reset, "key_down")
         self.renderer.add_event_handler(self._toggle_y_lock, "key_down")
         self.renderer.add_event_handler(self._toggle_x_lock, "key_down")
         self.renderer.add_event_handler(self._page_pan, "key_down")
 
-        # By default, show the first second and full raster vertically
-        self.controller.set_view(0, 1, 0, np.max(self._manager.offset) + 1)
+        if self._continuous:
+            ymin, ymax = self._get_continuous_ylim()
+        else:
+            ymin, ymax = self._get_raster_ylim()
 
-        # Request continuous redrawing
+        self.controller.set_view(0, 1, ymin, ymax)
         self.canvas.request_draw(self.animate)
 
-    def _flush(self, slice_: slice = None):
-        """
-        Update the GPU buffers with the latest offsets and data slice.
+    @property
+    def supports_sorting(self) -> bool:
+        """Whether entries can be vertically sorted."""
+        return not self._continuous
 
-        Parameters
-        ----------
-        slice_ : slice, optional
-            Data slice to update. Not yet implemented.
-        """
-        # TODO: Implement slice-based updates (only redraw relevant portion)
+    @property
+    def supports_grouping(self) -> bool:
+        """Whether entries can be vertically grouped."""
+        return not self._continuous
 
-        # Currently only updates y-offsets of spikes for each unit
-        for c in self._buffers:
-            self._buffers[c].data[:, 1] = self._manager.data.loc[c]["offset"].astype(
-                "float32"
+    @staticmethod
+    def _get_entry_kind(entry: Any) -> str:
+        """Return the supported entry type."""
+        if isinstance(entry, nap.TsdFrame):
+            return "tsd_frame"
+        if isinstance(entry, nap.Tsd):
+            return "tsd"
+        if isinstance(entry, nap.Ts):
+            return "ts"
+
+        raise TypeError("TsGroup entries must be Ts, Tsd, or TsdFrame objects.")
+
+    def _validate_entries(self) -> str:
+        """Ensure all entries have the same supported type."""
+        keys = list(self.data.keys())
+        if not keys:
+            return "ts"
+
+        kind = self._get_entry_kind(self.data[keys[0]])
+
+        for key in keys[1:]:
+            if self._get_entry_kind(self.data[key]) != kind:
+                raise TypeError("All TsGroup entries must have the same type.")
+
+        return kind
+
+    def _create_entry_graphics(
+        self,
+        key: Any,
+        entry_index: int,
+    ) -> list:
+        """Create all graphics belonging to one entry."""
+        entry = self.data[key]
+        color = GRADED_COLOR_LIST[entry_index % len(GRADED_COLOR_LIST)]
+
+        if self._entry_kind == "ts":
+            return [
+                self._create_spike_graphic(
+                    entry,
+                    entry_index,
+                    color,
+                )
+            ]
+
+        return self._create_trace_graphics(entry, color)
+
+    @staticmethod
+    def _create_spike_graphic(
+        entry: nap.Ts,
+        entry_index: int,
+        color: Any,
+    ) -> gfx.Points:
+        """Create a spike-raster graphic."""
+        positions = np.column_stack(
+            (
+                entry.t,
+                np.full(len(entry), entry_index),
+                np.ones(len(entry)),
             )
-            self._buffers[c].update_full()
+        ).astype("float32")
 
-    def _rescale(self, event):
-        """Increase ('i') or decrease ('d') spike marker size."""
+        return gfx.Points(
+            gfx.Geometry(positions=positions),
+            gfx.PointsMarkerMaterial(
+                size=10,
+                color=color,
+                opacity=1,
+                marker="custom",
+                custom_sdf=spike_sdf,
+            ),
+        )
+
+    @staticmethod
+    def _create_trace_graphics(
+        entry: nap.Tsd | nap.TsdFrame,
+        color: Any,
+    ) -> list:
+        """Create one line per continuous trace."""
+        values = np.asarray(entry.d)
+        if values.ndim == 1:
+            values = values[:, np.newaxis]
+
+        time = np.asarray(entry.t, dtype="float32")
+        depth = np.zeros(len(entry), dtype="float32")
+        graphics = []
+
+        for column_index in range(values.shape[1]):
+            positions = np.column_stack(
+                (
+                    time,
+                    values[:, column_index],
+                    depth,
+                )
+            ).astype("float32")
+
+            graphics.append(
+                gfx.Line(
+                    gfx.Geometry(positions=positions),
+                    gfx.LineMaterial(
+                        thickness=1.0,
+                        color=color,
+                    ),
+                )
+            )
+
+        return graphics
+
+    def _get_raster_ylim(self) -> tuple[float, float]:
+        """Return the y-axis range for spike entries."""
+        if not len(self._manager.offset):
+            return 0.0, 1.0
+
+        return 0.0, float(np.max(self._manager.offset) + 1)
+
+    def _get_continuous_ylim(self) -> tuple[float, float]:
+        """Return the finite range across all continuous entries."""
+        ymin = np.inf
+        ymax = -np.inf
+
+        for key in self.data:
+            values = np.asarray(self.data[key].d)
+            finite = values[np.isfinite(values)]
+
+            if finite.size:
+                ymin = min(ymin, float(np.min(finite)))
+                ymax = max(ymax, float(np.max(finite)))
+
+        if not np.isfinite(ymin) or not np.isfinite(ymax):
+            return 0.0, 1.0
+
+        if ymin == ymax:
+            padding = max(abs(ymin) * 0.05, 0.5)
+        else:
+            padding = (ymax - ymin) * 0.05
+
+        return ymin - padding, ymax + padding
+
+    def _flush(self, slice_: slice | None = None) -> None:
+        """Apply manager offsets to spike entries."""
+        if self._continuous:
+            return
+
+        for key, graphics in self._entry_graphics.items():
+            positions = graphics[0].geometry.positions
+            positions.data[:, 1] = float(self._manager.data.loc[key]["offset"])
+            positions.update_full()
+
+    def _rescale(self, event: Any) -> None:
+        """Resize spike markers or continuous lines."""
         if event.type != "key_down" or event.key not in ("i", "d"):
             return
+
         factor = 1.2 if event.key == "i" else 1 / 1.2
-        for pts in self.graphic.values():
-            pts.material.size = max(1.0, pts.material.size * factor)
+
+        for graphics in self._entry_graphics.values():
+            for graphic in graphics:
+                if isinstance(graphic, gfx.Line):
+                    graphic.material.thickness = max(
+                        0.1,
+                        graphic.material.thickness * factor,
+                    )
+                else:
+                    graphic.material.size = max(
+                        1.0,
+                        graphic.material.size * factor,
+                    )
+
         self.canvas.request_draw(self.animate)
 
-    def get_plot_state(self) -> dict:
-        """Return spike marker sizes and visibility keyed by neuron ID.
+    def _reset(self, event: Any) -> None:
+        """Reset ordering and the y-axis."""
+        if event.type != "key_down" or event.key != "r":
+            return
 
-        Returns
-        -------
-        dict
-            ``{"scale": {neuron_id: size, …}, "visible": [bool, …]}``.
-        """
+        self._manager.reset(self)
+
+        if self._continuous:
+            ymin, ymax = self._get_continuous_ylim()
+        else:
+            self._flush()
+            ymin, ymax = self._get_raster_ylim()
+
+        self.controller.set_ylim(ymin, ymax)
+        self.canvas.request_draw(self.animate)
+
+    def _update(
+        self,
+        action_name: str | None = None,
+    ) -> None:
+        """Update entry ordering or visibility."""
+        if action_name in ("sort_by", "group_by"):
+            if self._continuous:
+                return
+
+            self._flush()
+            ymin, ymax = self._get_raster_ylim()
+            self.controller.set_ylim(ymin, ymax)
+
+        if action_name == "toggle_visibility":
+            for key, graphic in self.graphic.items():
+                visible = bool(self._manager.data.loc[key]["visible"])
+                graphic.visible = visible
+
+                if self._entry_kind == "ts":
+                    graphic.material.opacity = float(visible)
+
+        self.canvas.request_draw(self.animate)
+
+    def sort_by(
+        self,
+        metadata_name: str,
+        mode: str | None = "ascending",
+    ) -> None:
+        """Sort spike entries vertically by metadata."""
+        if not self.supports_sorting:
+            return
+
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
+        if values:
+            self._manager.sort_by(
+                values,
+                metadata_name=metadata_name,
+                mode=mode,
+            )
+            self._update("sort_by")
+
+    def group_by(
+        self,
+        metadata_name: str,
+        **kwargs: Any,
+    ) -> None:
+        """Group spike entries vertically by metadata."""
+        if not self.supports_grouping:
+            return
+
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
+        if values:
+            self._manager.group_by(
+                values,
+                metadata_name=metadata_name,
+                **kwargs,
+            )
+            self._update("group_by")
+
+    def color_by(
+        self,
+        metadata_name: str,
+        cmap_name: str = "viridis",
+        vmin: float = 0.0,
+        vmax: float = 100.0,
+    ) -> None:
+        """Color all graphics belonging to an entry by metadata."""
+        if self.color_mapping_thread.is_running():
+            slot = lambda: self.color_by(
+                metadata_name,
+                cmap_name=cmap_name,
+                vmin=vmin,
+                vmax=vmax,
+            )
+            threading.Timer(0.025, slot).start()
+            return
+
+        self.cmap = cmap_name
+        map_to_colors = self.color_mapping_thread.color_maps.get(metadata_name)
+
+        if map_to_colors is None:
+            warnings.warn(
+                f"Cannot find appropriate color mapping for {metadata_name} metadata.",
+                UserWarning,
+                stacklevel=2,
+            )
+            return
+
+        values = self.data.get_info(metadata_name) if hasattr(self.data, "get_info") else {}
+        if not len(values):
+            return
+
+        map_kwargs = trim_kwargs(
+            map_to_colors,
+            {
+                "cmap": colormaps[self.cmap],
+                "vmin": vmin,
+                "vmax": vmax,
+            },
+        )
+        mapped_colors = map_to_colors(values, **map_kwargs)
+
+        if mapped_colors is not None:
+            for key, graphics in self._entry_graphics.items():
+                color = mapped_colors[values[key]]
+                for graphic in graphics:
+                    graphic.material.color = color
+
+            self.canvas.request_draw(self.animate)
+
+        self._manager.color_by(
+            values,
+            metadata_name=metadata_name,
+            cmap_name=cmap_name,
+            vmin=vmin,
+            vmax=vmax,
+        )
+
+    def get_plot_state(self) -> dict:
+        """Return graphic sizes and entry visibility."""
+        size_attribute = "thickness" if self._continuous else "size"
+        scale = {}
+
+        for key, graphics in self._entry_graphics.items():
+            sizes = [getattr(graphic.material, size_attribute) for graphic in graphics]
+            scale[key] = sizes[0] if len(sizes) == 1 else sizes
+
         return {
-            "scale": {k: pts.material.size for k, pts in self.graphic.items()},
+            "scale": scale,
             "visible": self._manager.visible.tolist(),
         }
 
-    def set_plot_state(self, state, available_vars: Optional[dict]=None):
-        """Restore spike marker sizes and visibility.
+    def set_plot_state(
+        self,
+        state: dict | None,
+        available_vars: dict | None = None,
+    ) -> None:
+        """Restore graphic sizes and entry visibility."""
+        if state is None:
+            return
 
-        Parameters
-        ----------
-        state : dict
-            Value produced by :meth:`get_plot_state`.  Integer neuron-ID
-            keys are recovered from their JSON string representation.
-        available_vars : dict, optional
-            Unused, dict of available variables.
-        """
-        scale_state = state["scale"]
-        for k, size in scale_state.items():
-            if isinstance(k, str):
-                k = int(k)
-            graphic = self.graphic.get(k, None)
-            if graphic is not None:
-                graphic.material.size = size
+        size_attribute = "thickness" if self._continuous else "size"
+
+        for saved_key, sizes in state.get("scale", {}).items():
+            key = self._restore_graphic_key(saved_key)
+            graphics = self._entry_graphics.get(key, [])
+
+            if not isinstance(sizes, (list, tuple)):
+                sizes = [sizes] * len(graphics)
+
+            for graphic, size in zip(graphics, sizes, strict=False):
+                setattr(graphic.material, size_attribute, size)
+
         if "visible" in state:
             self._manager.visible = state["visible"]
             self._update("toggle_visibility")
-        self.canvas.request_draw(self.animate)
-
-    def _reset(self, event):
-        """
-        Reset the view to the initial state when pressing the "r" key.
-
-        Parameters
-        ----------
-        event : gfx.Event
-            Key event containing type and pressed key.
-        """
-        if event.type == "key_down" and event.key == "r":
-            if isinstance(self.controller, SpanController):
-                # Reset the internal plot manager (sorting, grouping, etc.)
-                self._manager.reset(self)
-                self._manager.data["offset"] = self.data.index
-                self._flush()
-
-            # Reset the vertical axis to show all units
-            self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
-            self.canvas.request_draw(self.animate)
-
-    def _update(self, action_name=None):
-        """
-        Update the raster after sorting or grouping operations.
-
-        Parameters
-        ----------
-        action_name : str
-            The action performed ("sort_by" or "group_by").
-        """
-        if action_name in ["sort_by", "group_by"]:
-            self._flush()
-            # Ensure camera spans the full y range
-            self.controller.set_ylim(0, np.max(self._manager.offset) + 1)
-
-        if action_name in ["toggle_visibility"]:
-            # No need to flush. Just change the colors buffer
-            for c in self.graphic:
-                if not self._manager.data.loc[c]["visible"]:
-                    self.graphic[c].material.opacity = 0.0
-                else:
-                    self.graphic[c].material.opacity = 1.0
 
         self.canvas.request_draw(self.animate)
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
-        """
-        Sort the raster vertically by a metadata field.
+    def _restore_graphic_key(self, saved_key: Any) -> Any:
+        """Recover a key converted during JSON serialization."""
+        if saved_key in self.graphic:
+            return saved_key
 
-        Parameters
-        ----------
-        metadata_name : str
-            Metadata key to sort by.
-        mode : str, optional
-            "ascending" (default) or "descending".
-        """
-        # Grab metadata from TsGroup if available
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        for key in self.graphic:
+            if str(key) == str(saved_key):
+                return key
 
-        if len(values):
-            # Sort units in the plot manager by metadata values
-            self._manager.sort_by(values, mode=mode, metadata_name=metadata_name)
-            self._update("sort_by")
+        return saved_key
 
-    def group_by(self, metadata_name: str, **kwargs):
-        """
-        Group the raster vertically by a metadata field.
+    def _initialize_offset(self, index: list) -> np.ndarray:
+        """Return raster offsets or zero continuous offsets."""
+        keys = list(self.data.keys())
+        if not keys:
+            return np.zeros(0, dtype="float32")
 
-        Parameters
-        ----------
-        metadata_name : str
-            Metadata key to group by.
-        """
-        # Grab metadata from TsGroup if available
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        kind = self._get_entry_kind(self.data[keys[0]])
+        if kind == "ts":
+            return np.arange(len(index), dtype="float32")
 
-        if len(values):
-            # Group units in the plot manager by metadata values
-            self._manager.group_by(values, metadata_name=metadata_name, **kwargs)
-            self._update("group_by")
-
-    @staticmethod
-    def _initialize_offset(index: list) -> np.ndarray:
-        return np.arange(len(index))
+        return np.zeros(len(index), dtype="float32")
 
 
 class PlotTs(_BasePlot):
@@ -1396,7 +1645,7 @@ class PlotTs(_BasePlot):
 
     """
 
-    def __init__(self, data: nap.Ts, index=None, parent=None, background: Optional[str] = "black"):
+    def __init__(self, data: nap.Ts, index=None, parent=None, background: str | None = "black"):
         # Initialize the base plot with provided data
         super().__init__(data=data, parent=parent, background=background)
 
@@ -1420,9 +1669,9 @@ class PlotTs(_BasePlot):
         # (NaN ensures gaps between line segments in pygfx)
         positions = np.stack(
             (
-                np.repeat(data.t, 3),                  # x: same timestamp repeated
+                np.repeat(data.t, 3),  # x: same timestamp repeated
                 np.tile(np.array([0, 1, np.nan]), n),  # y: line from 0 to 1, then gap
-                np.tile(np.array([1, 1, np.nan]), n)   # z: keep constant depth (1)
+                np.tile(np.array([1, 1, np.nan]), n),  # z: keep constant depth (1)
             )
         ).T
         positions = positions.astype("float32")
@@ -1514,7 +1763,9 @@ class PlotIntervalSet(_BasePlot):
         Dictionary of rectangle meshes for each interval.
     """
 
-    def __init__(self, data: nap.IntervalSet, index=None, parent=None, background: Optional[str] = "black"):
+    def __init__(
+        self, data: nap.IntervalSet, index=None, parent=None, background: str | None = "black"
+    ):
         super().__init__(data=data, parent=parent, background=background)
         self.camera.maintain_aspect = False
 
@@ -1526,9 +1777,7 @@ class PlotIntervalSet(_BasePlot):
             dict_sync_funcs=dict_sync_funcs,
         )
 
-        self.graphic = self._create_and_plot_rectangle(
-            data, color="cyan", transparency=1
-        )
+        self.graphic = self._create_and_plot_rectangle(data, color="cyan", transparency=1)
         # set to default position
         self._update()
         self.scene.add(self.ruler_x, self.ruler_y, self.ruler_ref_time)
@@ -1548,7 +1797,7 @@ class PlotIntervalSet(_BasePlot):
         _, _, ymin, ymax = get_plot_min_max(self)
         color = gfx.Color(*gfx.Color(color).rgb, transparency)
         height = ymax - ymin
-        mesh_dict = dict()
+        mesh_dict = {}
         ruler = getattr(self, "ruler_x", None)
         depth = (ruler.start_pos[-1] - 1) if ruler is not None else -1001.0
 
@@ -1570,12 +1819,11 @@ class PlotIntervalSet(_BasePlot):
         """
         "r" key reset the plot manager to initial view
         """
-        if event.type == "key_down":
-            if event.key == "r":
-                self._manager.reset(self)
-                self._update()
+        if event.type == "key_down" and event.key == "r":
+            self._manager.reset(self)
+            self._update()
 
-    def _update(self, action_name: str = None):
+    def _update(self, action_name: str | None = None):
         """
         Update function for sort_by and group_by
         """
@@ -1585,9 +1833,9 @@ class PlotIntervalSet(_BasePlot):
             geometries = get_plot_attribute(self, "geometry")  # Dict index -> geometry
 
             for c in geometries:
-                geometries[c].positions.data[:2, 1] = self._manager.data.loc[c][
-                    "offset"
-                ].astype("float32")
+                geometries[c].positions.data[:2, 1] = self._manager.data.loc[c]["offset"].astype(
+                    "float32"
+                )
                 geometries[c].positions.data[2:, 1] = (
                     self._manager.data.loc[c]["offset"].astype("float32") + 1
                 )
@@ -1639,7 +1887,7 @@ class PlotIntervalSet(_BasePlot):
             self._manager.visible = state["visible"]
             self._update("toggle_visibility")
 
-    def sort_by(self, metadata_name: str, mode: Optional[str] = "ascending") -> None:
+    def sort_by(self, metadata_name: str, mode: str | None = "ascending") -> None:
         """
         Vertically sort the plotted intervals by a metadata field.
 
@@ -1649,14 +1897,9 @@ class PlotIntervalSet(_BasePlot):
             Metadata key to sort by.
         """
 
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
         # If metadata found
         if len(values):
-
             # Sorting should happen depending on `groups` and `visible` attributes of _PlotManager
             self._manager.sort_by(values, mode=mode, metadata_name=metadata_name)
             self._update("sort_by")
@@ -1671,15 +1914,10 @@ class PlotIntervalSet(_BasePlot):
             Metadata key to group by.
         """
         # Grabbing the metadata
-        values = (
-            dict(self.data.get_info(metadata_name))
-            if hasattr(self.data, "get_info")
-            else {}
-        )
+        values = dict(self.data.get_info(metadata_name)) if hasattr(self.data, "get_info") else {}
 
         # If metadata found
         if len(values):
-
             # Grouping positions are computed depending on `order` and `visible` attributes of _PlotManager
             self._manager.group_by(values, metadata_name=metadata_name, **kwargs)
             self._update("group_by")

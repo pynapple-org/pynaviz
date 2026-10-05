@@ -1,34 +1,41 @@
 """Tests for DropdownDialog layout, widget_factory icon/group support, and icon factories."""
+
 from collections import OrderedDict
+from types import SimpleNamespace
 
 import pytest
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QComboBox, QDoubleSpinBox
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QGroupBox
 
 from pynaviz.qt.drop_down_dict_builder import _CMAP_GROUPS, _cmap_icon, _color_icon
-from pynaviz.qt.widget_menu import DropdownDialog, widget_factory
+from pynaviz.qt.widget_menu import DropdownDialog, MenuWidget, widget_factory
 
 # ---------------------------------------------------------------------------
 # widget_factory — flat combobox
 # ---------------------------------------------------------------------------
 
+
 def test_widget_factory_combobox_basic(qtbot):
-    widget = widget_factory({
-        "type": QComboBox,
-        "items": ["A", "B", "C"],
-        "current_index": 1,
-    })
+    widget = widget_factory(
+        {
+            "type": QComboBox,
+            "items": ["A", "B", "C"],
+            "current_index": 1,
+        }
+    )
     assert isinstance(widget, QComboBox)
     assert widget.count() == 3
     assert widget.currentIndex() == 1
 
 
 def test_widget_factory_spinbox(qtbot):
-    widget = widget_factory({
-        "type": QDoubleSpinBox,
-        "value": 3.14,
-    })
+    widget = widget_factory(
+        {
+            "type": QDoubleSpinBox,
+            "value": 3.14,
+        }
+    )
     assert isinstance(widget, QDoubleSpinBox)
     assert abs(widget.value() - 3.14) < 1e-6
 
@@ -42,6 +49,7 @@ def test_widget_factory_unknown_type_raises(qtbot):
 # widget_factory — icon_factory (flat, color swatches)
 # ---------------------------------------------------------------------------
 
+
 def test_widget_factory_icon_factory_sets_icons(qtbot):
     """icon_factory is called for each item and icons are set."""
     icons_generated = []
@@ -51,13 +59,15 @@ def test_widget_factory_icon_factory_sets_icons(qtbot):
         px = QPixmap(8, 8)
         return px
 
-    widget = widget_factory({
-        "type": QComboBox,
-        "items": ["red", "blue"],
-        "icon_factory": fake_icon,
-        "icon_size": QSize(8, 8),
-        "clear_text": False,
-    })
+    widget = widget_factory(
+        {
+            "type": QComboBox,
+            "items": ["red", "blue"],
+            "icon_factory": fake_icon,
+            "icon_size": QSize(8, 8),
+            "clear_text": False,
+        }
+    )
     assert icons_generated == ["red", "blue"]
     # Icons are set, text still visible
     assert widget.itemText(0) == "red"
@@ -66,28 +76,32 @@ def test_widget_factory_icon_factory_sets_icons(qtbot):
 
 def test_widget_factory_clear_text_removes_label_and_sets_tooltip(qtbot):
     """clear_text=True clears item text and stores name as tooltip and UserRole data."""
-    widget = widget_factory({
-        "type": QComboBox,
-        "items": ["navy", "crimson"],
-        "icon_factory": _color_icon,
-        "icon_size": QSize(32, 16),
-        "clear_text": True,
-    })
+    widget = widget_factory(
+        {
+            "type": QComboBox,
+            "items": ["navy", "crimson"],
+            "icon_factory": _color_icon,
+            "icon_size": QSize(32, 16),
+            "clear_text": True,
+        }
+    )
     for i in range(widget.count()):
         assert widget.itemText(i) == ""
-        assert widget.itemData(i) is not None           # UserRole — color name
+        assert widget.itemData(i) is not None  # UserRole — color name
         assert widget.itemData(i, Qt.ItemDataRole.ToolTipRole) == widget.itemData(i)
 
 
 def test_widget_factory_clear_text_data_survives(qtbot):
     """After clearing text, currentData() still returns the original color name."""
-    widget = widget_factory({
-        "type": QComboBox,
-        "items": ["navy", "crimson"],
-        "icon_factory": _color_icon,
-        "icon_size": QSize(32, 16),
-        "clear_text": True,
-    })
+    widget = widget_factory(
+        {
+            "type": QComboBox,
+            "items": ["navy", "crimson"],
+            "icon_factory": _color_icon,
+            "icon_size": QSize(32, 16),
+            "clear_text": True,
+        }
+    )
     widget.setCurrentIndex(0)
     assert widget.currentData() == "navy"
     widget.setCurrentIndex(1)
@@ -98,17 +112,22 @@ def test_widget_factory_clear_text_data_survives(qtbot):
 # widget_factory — grouped combobox
 # ---------------------------------------------------------------------------
 
+
 def test_widget_factory_groups_builds_headers(qtbot):
     """Group headers are non-selectable; separators exist between groups."""
-    groups = OrderedDict([
-        ("GroupA", ["a1", "a2"]),
-        ("GroupB", ["b1"]),
-    ])
-    widget = widget_factory({
-        "type": QComboBox,
-        "groups": groups,
-        "current_value": "b1",
-    })
+    groups = OrderedDict(
+        [
+            ("GroupA", ["a1", "a2"]),
+            ("GroupB", ["b1"]),
+        ]
+    )
+    widget = widget_factory(
+        {
+            "type": QComboBox,
+            "groups": groups,
+            "current_value": "b1",
+        }
+    )
     # Total items: header + 2 items + separator + header + 1 item = 6
     assert widget.count() == 6
 
@@ -124,11 +143,13 @@ def test_widget_factory_groups_builds_headers(qtbot):
 def test_widget_factory_groups_current_value_default(qtbot):
     """When current_value is not found, index defaults to 0 (first header)."""
     groups = OrderedDict([("G", ["x", "y"])])
-    widget = widget_factory({
-        "type": QComboBox,
-        "groups": groups,
-        "current_value": "nonexistent",
-    })
+    widget = widget_factory(
+        {
+            "type": QComboBox,
+            "groups": groups,
+            "current_value": "nonexistent",
+        }
+    )
     assert widget.currentIndex() == 0
 
 
@@ -141,14 +162,16 @@ def test_widget_factory_groups_with_icon_factory(qtbot):
         return QPixmap(4, 4)
 
     groups = OrderedDict([("G", ["red", "blue"])])
-    widget = widget_factory({
-        "type": QComboBox,
-        "groups": groups,
-        "icon_factory": fake_icon,
-        "icon_size": QSize(4, 4),
-        "clear_text": True,
-        "current_value": "red",
-    })
+    widget = widget_factory(
+        {
+            "type": QComboBox,
+            "groups": groups,
+            "icon_factory": fake_icon,
+            "icon_size": QSize(4, 4),
+            "clear_text": True,
+            "current_value": "red",
+        }
+    )
     assert set(called) == {"red", "blue"}
     # Items have data (UserRole) and tooltip set
     # Index 0 = header "G", index 1 = "red", index 2 = "blue"
@@ -160,6 +183,7 @@ def test_widget_factory_groups_with_icon_factory(qtbot):
 # ---------------------------------------------------------------------------
 # _color_icon
 # ---------------------------------------------------------------------------
+
 
 def test_color_icon_returns_pixmap(qtbot):
     px = _color_icon("navy")
@@ -181,6 +205,7 @@ def test_color_icon_fill(qtbot):
 # _cmap_icon
 # ---------------------------------------------------------------------------
 
+
 def test_cmap_icon_returns_pixmap(qtbot):
     px = _cmap_icon("viridis")
     assert isinstance(px, QPixmap)
@@ -191,6 +216,7 @@ def test_cmap_icon_returns_pixmap(qtbot):
 def test_cmap_icon_unknown_cmap_returns_gray(qtbot):
     """Unknown cmap name returns a gray fallback pixmap."""
     from PySide6.QtGui import QColor
+
     px = _cmap_icon("__not_a_real_cmap__")
     assert not px.isNull()
     img = px.toImage()
@@ -211,18 +237,22 @@ def test_cmap_icon_gradient_varies(qtbot):
 # _CMAP_GROUPS
 # ---------------------------------------------------------------------------
 
+
 def test_cmap_groups_no_duplicates():
     all_names = [n for names in _CMAP_GROUPS.values() for n in names]
     assert len(all_names) == len(set(all_names)), "Duplicate cmap names in _CMAP_GROUPS"
+
 
 # ---------------------------------------------------------------------------
 # DropdownDialog — layout and behaviour
 # ---------------------------------------------------------------------------
 
+
 def test_dropdown_dialog_no_fixed_size(qtbot):
     """Dialog must not have a fixed size — both dimensions should be flexible."""
     dialog = DropdownDialog(
-        "Test", OrderedDict(Val={"type": QDoubleSpinBox, "value": 1.0}),
+        "Test",
+        OrderedDict(Val={"type": QDoubleSpinBox, "value": 1.0}),
         func=lambda v: None,
     )
     qtbot.addWidget(dialog)
@@ -235,13 +265,15 @@ def test_dropdown_dialog_get_selections_combobox(qtbot):
     called = {}
     dialog = DropdownDialog(
         "T",
-        OrderedDict(Color={
-            "type": QComboBox,
-            "items": ["navy", "crimson"],
-            "icon_factory": _color_icon,
-            "icon_size": QSize(32, 16),
-            "clear_text": True,
-        }),
+        OrderedDict(
+            Color={
+                "type": QComboBox,
+                "items": ["navy", "crimson"],
+                "icon_factory": _color_icon,
+                "icon_size": QSize(32, 16),
+                "clear_text": True,
+            }
+        ),
         func=lambda v: called.update(value=v),
     )
     qtbot.addWidget(dialog)
@@ -294,10 +326,12 @@ def test_dropdown_dialog_immediate_update_on_change(qtbot):
     results = []
     dialog = DropdownDialog(
         "T",
-        OrderedDict(Color={
-            "type": QComboBox,
-            "items": ["a", "b"],
-        }),
+        OrderedDict(
+            Color={
+                "type": QComboBox,
+                "items": ["a", "b"],
+            }
+        ),
         func=lambda v: results.append(v),
         ok_cancel_button=False,
     )
@@ -323,3 +357,127 @@ def test_dropdown_dialog_multiple_widgets(qtbot):
     assert dialog.get_selections() == ["y", 3.0]
     dialog.accept()
     assert out == {"a": "y", "b": 3.0}
+
+def test_dropdown_dialog_dependency(qtbot):
+    dialog = DropdownDialog(
+        "Test",
+        OrderedDict(
+            Mode={
+                "type": QComboBox,
+                "name": "mode",
+                "items": ["Full", "Custom"],
+                "values": ["full", "custom"],
+                "current_index": 0,
+            },
+            Window={
+                "type": QDoubleSpinBox,
+                "name": "window",
+                "value": 1.0,
+                "enabled_when": ("mode", "custom"),
+            },
+        ),
+        func=lambda *_: None,
+        ok_cancel_button=True,
+    )
+    qtbot.addWidget(dialog)
+
+    mode = dialog.named_widgets["mode"]
+    window = dialog.named_widgets["window"]
+
+    assert not window.isEnabled()
+
+    mode.setCurrentIndex(1)
+
+    assert window.isEnabled()
+
+
+def test_dropdown_dialog_sections(qtbot):
+    dialog = DropdownDialog(
+        "Test",
+        OrderedDict(
+            X={
+                "type": QComboBox,
+                "name": "x",
+                "items": ["a"],
+            },
+            Y={
+                "type": QComboBox,
+                "name": "y",
+                "items": ["b"],
+            },
+        ),
+        sections=OrderedDict(
+            Axes=["X", "Y"],
+        ),
+        func=lambda *_: None,
+    )
+    qtbot.addWidget(dialog)
+
+    groups = dialog.findChildren(QGroupBox)
+
+    assert len(groups) == 1
+    assert groups[0].title() == "Axes"
+
+
+def test_dropdown_dialog_minimum_size(qtbot):
+    dialog = DropdownDialog(
+        "Test",
+        OrderedDict(
+            Value={
+                "type": QDoubleSpinBox,
+                "name": "value",
+                "value": 1.0,
+            }
+        ),
+        minimum_size=QSize(700, 300),
+        func=lambda *_: None,
+    )
+    qtbot.addWidget(dialog)
+
+    assert dialog.minimumWidth() == 700
+    assert dialog.minimumHeight() == 300
+
+@pytest.mark.parametrize(
+    ("action_name", "expected"),
+    [
+        ("sort_by", False),
+        ("group_by", False),
+        ("color_by", True),
+        ("select_interval_set", True),
+    ],
+)
+def test_continuous_plot_action_support(action_name, expected):
+    menu = SimpleNamespace(
+        plot=SimpleNamespace(
+            supports_sorting=False,
+            supports_grouping=False,
+        )
+    )
+
+    assert MenuWidget._supports_action(menu, action_name) is expected
+
+
+@pytest.mark.parametrize(
+    ("action_name", "expected"),
+    [
+        ("sort_by", True),
+        ("group_by", True),
+        ("color_by", True),
+    ],
+)
+def test_raster_plot_action_support(action_name, expected):
+    menu = SimpleNamespace(
+        plot=SimpleNamespace(
+            supports_sorting=True,
+            supports_grouping=True,
+        )
+    )
+
+    assert MenuWidget._supports_action(menu, action_name) is expected
+
+
+def test_action_support_defaults_to_true():
+    menu = SimpleNamespace(plot=SimpleNamespace())
+
+    assert MenuWidget._supports_action(menu, "sort_by")
+    assert MenuWidget._supports_action(menu, "group_by")
