@@ -1,6 +1,3 @@
-"""
-
-"""
 import pathlib
 import sys
 
@@ -70,7 +67,7 @@ def test_tsdframe_stream(dummy_tsdframe, stream, width):
         position += step
 
     assert len(calls) > 0
-    for call, expected in zip(calls, slices):
+    for call, expected in zip(calls, slices, strict=False):
         assert call == expected
 
 def test_tsdframe_stream_twice(dummy_tsdframe, stream):

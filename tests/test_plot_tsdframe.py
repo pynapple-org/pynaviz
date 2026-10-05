@@ -128,7 +128,7 @@ def test_plot_tsdframe_action(dummy_tsdframe, func, kwargs):
     v = viz.PlotTsdFrame(dummy_tsdframe)
     if func is not None:
         if isinstance(func, (list, tuple)):
-            for n, k in zip(func, kwargs):
+            for n, k in zip(func, kwargs, strict=False):
                 getattr(v, n)(**k)
         else:
             getattr(v, func)(**kwargs)

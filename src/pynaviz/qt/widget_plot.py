@@ -4,7 +4,6 @@ Create a unique Qt widget for each class.
 """
 import pathlib
 import sys
-from typing import Optional, Tuple
 
 import pynapple as nap
 from numpy._typing import NDArray
@@ -32,12 +31,12 @@ def expand_with_time_support(time_support, interval_sets):
 
 
 class BaseWidget(QWidget):
-    def __init__(self, size: Tuple[int, int] = (800, 600)) -> None:
+    def __init__(self, size: tuple[int, int] = (800, 600)) -> None:
         # Ensure a QApplication instance exists.
-        app: Optional[QApplication] = QApplication.instance()
+        app: QApplication | None = QApplication.instance()
         if app is None:
             # Create and store a QApplication if it doesn't already exist
-            self._own_app: Optional[QApplication] = QApplication(sys.argv)
+            self._own_app: QApplication | None = QApplication(sys.argv)
         else:
             # If one already exists, we don't need to manage it
             self._own_app = None
@@ -113,7 +112,7 @@ class BaseWidget(QWidget):
             sx, sy = map_world_to_screen(plot, world_x, world_y)
             label.setText(text.replace("\n", "<br>"))
             label.adjustSize()
-            cw, ch = plot.canvas.get_logical_size()
+            cw, _ch = plot.canvas.get_logical_size()
             lx = min(int(sx) + 12, cw - label.width() - 4)
             ly = max(int(sy) - label.height() - 4, 4)
             label.move(lx, ly)
@@ -230,10 +229,10 @@ class IntervalSetWidget(BaseWidget):
 class TsdTensorWidget(BaseWidget):
 
     def __init__(self, data: nap.TsdTensor,
-                 index: int =None,
+                 index: int | None =None,
                  size: tuple =(640, 480),
                  set_parent: bool=True,
-                 tsdframes: dict = None):
+                 tsdframes: dict | None = None):
         """
         Widget for visualizing TsdTensor data with optional overlay of TsdFrame data.
 
@@ -269,12 +268,12 @@ class TsdTensorWidget(BaseWidget):
 class VideoWidget(BaseWidget):
 
     def __init__(self, video: str | pathlib.Path | VideoHandler,
-                 t: Optional[NDArray] = None,
+                 t: NDArray | None = None,
                  stream_index: int=0,
                  index=None,
                  size=(640, 480),
                  set_parent=True,
-                 tsdframes: dict = None):
+                 tsdframes: dict | None = None):
         """
         Widget for visualizing video data with optional overlay of TsdFrame data.
         Parameters

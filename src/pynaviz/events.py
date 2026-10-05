@@ -1,6 +1,5 @@
 """Custom pygfx events."""
 
-from typing import Optional
 
 from pygfx import Event
 
@@ -20,8 +19,8 @@ class SyncEvent(Event):
     def __init__(
         self,
         *args,
-        controller_id: Optional[int] = None,
-        update_type: Optional[str] = "",
+        controller_id: int | None = None,
+        update_type: str | None = "",
         sync_extra_args=None,
         **kwargs,
     ):
@@ -49,9 +48,9 @@ class SwitchEvent(Event):
     def __init__(
         self,
         *args,
-        controller_id: Optional[int] = None,
-        update_type: Optional[str] = "",
-        new_controller: Optional[object] = None,
+        controller_id: int | None = None,
+        update_type: str | None = "",
+        new_controller: object | None = None,
         sync_extra_args=None,
         **kwargs,
     ):
