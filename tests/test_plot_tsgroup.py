@@ -147,21 +147,50 @@ def test_tsgroup_tsdframe_creates_one_line_per_column():
     plot.close()
 
 
-def test_tsgroup_rejects_mixed_entry_types():
-    data = nap.TsGroup(
-        {
-            0: nap.Ts(t=[0.1, 0.2]),
-            1: nap.Tsd(
-                t=[0.1, 0.2],
-                d=[1.0, 2.0],
-            ),
-        }
-    )
-    with pytest.raises(
-        TypeError,
-        match="All TsGroup entries must have the same type",
+@pytest.mark.parametrize(
+    "data",
+    [
+        nap.TsGroup(
+            {
+                0: nap.Ts(t=[0.1, 0.2]),
+                1: nap.Tsd(
+                    t=[0.3, 0.4],
+                    d=[1.0, 2.0],
+                ),
+            }
+        ),
+        nap.TsGroup(
+            {
+                0: nap.TsdTensor(
+                    t=[0.1, 0.2],
+                    d=np.zeros((2, 2, 2)),
+                ),
+                1: nap.TsdTensor(
+                    t=[0.3, 0.4],
+                    d=np.zeros((2, 2, 2)),
+                ),
+            }
+        ),
+    ],
+)
+def test_tsgroup_mixed_or_unsupported_entries_fall_back_to_raster(data):
+    with pytest.warns(
+        UserWarning,
+        match="Plotting the timestamps as a spike raster",
     ):
-        viz.PlotTsGroup(data)
+        plot = viz.PlotTsGroup(data)
+    assert plot._entry_kind == "ts"
+    assert not plot._continuous
+    assert all(isinstance(graphic, gfx.Points) for graphic in plot.graphic.values())
+    np.testing.assert_allclose(
+        plot.graphic[1].geometry.positions.data[:, 0],
+        data[1].t,
+    )
+    np.testing.assert_allclose(
+        plot.graphic[1].geometry.positions.data[:, 1],
+        1.0,
+    )
+    plot.close()
 
 
 def test_continuous_tsgroup_rescales_line_thickness():
