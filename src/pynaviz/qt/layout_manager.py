@@ -32,7 +32,9 @@ class LayoutManagerMixin:
     """
 
     def _load_layout(self):
-        file_name, _ = QFileDialog.getOpenFileName(self, "Load Layout", "", "Layout Files (*.json)")
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, "Load Layout", "", "Layout Files (*.json)"
+        )
         if file_name:
             self._restore_layout(file_name)
 
@@ -65,9 +67,13 @@ class LayoutManagerMixin:
         for ctrl_id in list(self.ctrl_group._controller_group.keys()):
             self.ctrl_group.remove(ctrl_id)
         self._n_dock_open = 0
-        assert len(self.ctrl_group._controller_group) == 0, "Controller group not empty after removing all docks."
+        assert len(self.ctrl_group._controller_group) == 0, (
+            "Controller group not empty after removing all docks."
+        )
 
-    def _restore_docks(self, docks_payload: list[dict], verbose: bool = True) -> dict[str, QDockWidget]:
+    def _restore_docks(
+        self, docks_payload: list[dict], verbose: bool = True
+    ) -> dict[str, QDockWidget]:
         """Recreate each dock from the payload, skipping missing variables.
 
         Returns a mapping from the saved dock name to the live QDockWidget after
@@ -85,19 +91,19 @@ class LayoutManagerMixin:
         """
         saved_to_dock: dict[str, QDockWidget] = {}
         for widget in docks_payload:
-            var = _get_variable_from_key_path(self.variables, widget['key_path'])
+            var = _get_variable_from_key_path(self.variables, widget["key_path"])
             if var is None:
                 if verbose:
                     print(f"Variable '{widget['name']}' not found. Skipping dock.")
                 continue
             if verbose:
                 print(f"Adding var from path {widget['key_path']}.")
-            self.add_dock_widget(var, widget['key_path'], state_dict=widget["state_dict"])
-            dock_name = self._get_current_dock_name(widget['name'])
+            self.add_dock_widget(var, widget["key_path"], state_dict=widget["state_dict"])
+            dock_name = self._get_current_dock_name(widget["name"])
             dock = self.findChild(QDockWidget, dock_name)
             if dock is None:
                 raise RuntimeError(f"Dock {widget['name']} was not created.")
-            saved_to_dock[widget['name']] = dock
+            saved_to_dock[widget["name"]] = dock
         return saved_to_dock
 
     def _restore_views(self, docks_payload: list[dict], saved_to_dock: dict[str, QDockWidget]):
@@ -113,7 +119,7 @@ class LayoutManagerMixin:
         get_ctrl_views = []
         # Loop over docks and set view only for SpanControllers
         for widget_info in docks_payload:
-            dock = saved_to_dock.get(widget_info['name'])
+            dock = saved_to_dock.get(widget_info["name"])
             if dock is None:
                 continue
             state_dict = widget_info.get("state_dict", {})
@@ -200,20 +206,21 @@ class LayoutManagerMixin:
         for d in all_docks:
             name = d.objectName()
             if name != "VariablesDock":
-                info = {"visible": d.isVisible(),
-                        "floating": d.isFloating(),
-                        "area": self.dockWidgetArea(d).name,
-                        "pos": (d.x(), d.y()),
-                        "size": (d.width(), d.height()),
-                        "dtype": d.widget().plot.data.__class__.__name__,
-                        "key_path": d.property("key_path"),
-                        "index": int(name.split("_")[-1]),
-                        "name": name,
-                        "state_dict": self._get_plot_state(d.widget().plot),
-                        }
+                info = {
+                    "visible": d.isVisible(),
+                    "floating": d.isFloating(),
+                    "area": self.dockWidgetArea(d).name,
+                    "pos": (d.x(), d.y()),
+                    "size": (d.width(), d.height()),
+                    "dtype": d.widget().plot.data.__class__.__name__,
+                    "key_path": d.property("key_path"),
+                    "index": int(name.split("_")[-1]),
+                    "name": name,
+                    "state_dict": self._get_plot_state(d.widget().plot),
+                }
                 docks.append(info)
                 order.append(int(name.split("_")[-1]))
-        docks = [x for _, x in sorted(zip(order, docks))]
+        docks = [x for _, x in sorted(zip(order, docks, strict=False))]
 
         payload = {
             "version": 0,
@@ -228,13 +235,13 @@ class LayoutManagerMixin:
         if verbose:
             print("Saving layout...")
         if file_name is None:
-            dt = datetime.now().strftime("%Y-%m-%d_%H-%M")
+            dt = datetime.now().astimezone().strftime("%Y-%m-%d_%H-%M")
             default_file = os.path.join(os.getcwd(), f"layout_{dt}.json")
             file_name, _ = QFileDialog.getSaveFileName(
                 self,
                 "Save Layout",
                 default_file,  # suggested file name
-                "Layout Files (*.json)"
+                "Layout Files (*.json)",
             )
 
         if file_name:

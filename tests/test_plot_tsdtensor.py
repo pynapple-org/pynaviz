@@ -31,7 +31,7 @@ def test_plot_tsdtensor_action(dummy_tsdtensor, func, kwargs):
     v = viz.PlotTsdTensor(dummy_tsdtensor)
     if func is not None:
         if isinstance(func, (list, tuple)):
-            for n, k in zip(func, kwargs):
+            for n, k in zip(func, kwargs, strict=False):
                 getattr(v, n)(**k)
         else:
             getattr(v, func)(**kwargs)

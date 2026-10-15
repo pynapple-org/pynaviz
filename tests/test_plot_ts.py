@@ -31,7 +31,7 @@ def test_plot_ts_action(dummy_ts, func, kwargs):
     v = viz.PlotTs(dummy_ts)
     if func is not None:
         if isinstance(func, (list, tuple)):
-            for n, k in zip(func, kwargs):
+            for n, k in zip(func, kwargs, strict=False):
                 getattr(v, n)(**k)
         else:
             getattr(v, func)(**kwargs)

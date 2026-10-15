@@ -3,7 +3,6 @@
 import re
 import warnings
 from collections.abc import Iterable
-from typing import Optional
 
 import numpy as np
 import pygfx
@@ -18,11 +17,7 @@ def get_max_interval_index(labels):
     return max(
         (
             -1,
-            *(
-                int(lab.split("_")[1])
-                for lab in labels
-                if re.match(INTERVAL_PATTERN, lab)
-            ),
+            *(int(lab.split("_")[1]) for lab in labels if re.match(INTERVAL_PATTERN, lab)),
         )
     )
 
@@ -30,15 +25,15 @@ def get_max_interval_index(labels):
 class IntervalSetInterface:
     def __init__(
         self,
-        epochs: Optional[Iterable[nap.IntervalSet] | nap.IntervalSet] = None,
-        labels: Optional[Iterable[str] | str] = None,
+        epochs: Iterable[nap.IntervalSet] | nap.IntervalSet | None = None,
+        labels: Iterable[str] | str | None = None,
     ):
-        self._epochs = dict()
+        self._epochs = {}
         if epochs is not None:
             self.add_interval_sets(epochs, labels)
 
         # map label -> single batched gfx.Mesh for all intervals
-        self._interval_rects = dict()
+        self._interval_rects = {}
 
         # store colors, alphas for each inteval set
         self._interval_state = {}
@@ -46,9 +41,9 @@ class IntervalSetInterface:
     def add_interval_sets(
         self,
         epochs: Iterable[nap.IntervalSet] | nap.IntervalSet,
-        colors: Optional[Iterable | str | pygfx.Color] = None,
-        alpha: Optional[Iterable[float] | float] = None,
-        labels: Optional[Iterable[str] | str] = None,
+        colors: Iterable | str | pygfx.Color | None = None,
+        alpha: Iterable[float] | float | None = None,
+        labels: Iterable[str] | str | None = None,
     ):
         if isinstance(epochs, nap.IntervalSet):
             epochs = [epochs]
@@ -62,10 +57,8 @@ class IntervalSetInterface:
         )
         labels = [labels] if isinstance(labels, str) else list(labels)
         if len(labels) != len(epochs):
-            raise ValueError(
-                "The number of labels provided does not match the number of epochs."
-            )
-        new_intervals = dict(zip(labels, epochs))
+            raise ValueError("The number of labels provided does not match the number of epochs.")
+        new_intervals = dict(zip(labels, epochs, strict=False))
         self._epochs.update(new_intervals)
         self._plot_intervals(labels, colors, alpha)
         # append the control action if available
@@ -136,8 +129,8 @@ class IntervalSetInterface:
     def _plot_intervals(
         self,
         labels: Iterable[str] | str,
-        colors: Optional[Iterable] = None,
-        alpha: Optional[Iterable[float] | float] = 1.0,
+        colors: Iterable | None = None,
+        alpha: Iterable[float] | float | None = 1.0,
     ) -> None:
         """
         Plot rectangle over label areas.
@@ -171,13 +164,15 @@ class IntervalSetInterface:
             # unpack the color
             if len(labels) != 1:
                 # this is a internal design issue, should raise
-                raise ValueError("When colors are provided as RGBs (only during layout loading), "
-                                 "each IntervalSet is processed one at the time. "
-                                 "This call is generating multiple interval sets rectangles with a single color.")
+                raise ValueError(
+                    "When colors are provided as RGBs (only during layout loading), "
+                    "each IntervalSet is processed one at the time. "
+                    "This call is generating multiple interval sets rectangles with a single color."
+                )
             colors = [pygfx.Color(*colors)]
 
         color_idx = len(self._interval_rects) + 1
-        for label, color, transparency in zip(labels, colors, alpha):
+        for label, color, transparency in zip(labels, colors, alpha, strict=False):
             if label not in self._epochs:
                 warnings.warn(
                     message=f"Epochs {label} is not available. Available epochs: {list(self._epochs.keys())}.",
@@ -192,9 +187,7 @@ class IntervalSetInterface:
                     if color is None
                     else color
                 )
-                mesh = self._create_and_plot_rectangle(
-                    label, col, transparency
-                )
+                mesh = self._create_and_plot_rectangle(label, col, transparency)
                 self._interval_rects[label] = mesh
                 color_idx += 1
             else:
@@ -230,12 +223,12 @@ class IntervalSetInterface:
 
         base = np.arange(n, dtype="uint32") * 4
         indices = np.empty((n * 2, 3), dtype="uint32")
-        indices[0::2, 0] = base       # triangle 0: BL
-        indices[0::2, 1] = base + 1   # triangle 0: BR
-        indices[0::2, 2] = base + 2   # triangle 0: TR
-        indices[1::2, 0] = base       # triangle 1: BL
-        indices[1::2, 1] = base + 2   # triangle 1: TR
-        indices[1::2, 2] = base + 3   # triangle 1: TL
+        indices[0::2, 0] = base  # triangle 0: BL
+        indices[0::2, 1] = base + 1  # triangle 0: BR
+        indices[0::2, 2] = base + 2  # triangle 0: TR
+        indices[1::2, 0] = base  # triangle 1: BL
+        indices[1::2, 1] = base + 2  # triangle 1: TR
+        indices[1::2, 2] = base + 3  # triangle 1: TL
 
         return positions, indices
 
@@ -244,10 +237,7 @@ class IntervalSetInterface:
         epoch = self._epochs[label]
         _, _, ymin, ymax = get_plot_min_max(self)
         color = pygfx.Color(*pygfx.Color(color).rgb, transparency)
-        self._interval_state[label] = {
-            "colors": list(color.rgb),
-            "alpha": float(color.a)
-        }
+        self._interval_state[label] = {"colors": list(color.rgb), "alpha": float(color.a)}
 
         ruler = getattr(self, "ruler_x", None)
         depth = (ruler.start_pos[-1] - 1) if ruler is not None else -1001.0
@@ -277,7 +267,10 @@ class IntervalSetInterface:
         if color is None:
             color = current_color
         transparency = transparency if transparency is not None else float(current_color.a)
-        self._interval_state[label] = {"colors": list(pygfx.Color(color).rgb), "alpha": float(np.float32(transparency))}
+        self._interval_state[label] = {
+            "colors": list(pygfx.Color(color).rgb),
+            "alpha": float(np.float32(transparency)),
+        }
 
         new_color = pygfx.Color(
             *self._interval_state[label]["colors"],

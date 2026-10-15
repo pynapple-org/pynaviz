@@ -1,5 +1,6 @@
 import pathlib
-from typing import List, Tuple
+from collections.abc import Iterable
+from typing import cast
 
 import av
 import numpy as np
@@ -10,20 +11,19 @@ from pynaviz.audiovideo import audio_handling
 
 
 @pytest.fixture(scope="module")
-def fully_decoded_audio(request) -> Tuple[pathlib.Path, List[NDArray], List[int], List[av.AudioFrame], List[int]]:
+def fully_decoded_audio(request) -> tuple[pathlib.Path, list[NDArray], list[int], list[av.AudioFrame], list[int]]:
     extension = request.param
     audio = pathlib.Path(__file__).parent / f"test_audio/noise_audio.{extension}"
-    frame_arrays: List[NDArray] = []
-    frame_pts: List[int] = []
-    frame_av: List[av.AudioFrame] = []
-    frame_size: List[int] = []
+    frame_arrays: list[NDArray] = []
+    frame_pts: list[int] = []
+    frame_av: list[av.AudioFrame] = []
+    frame_size: list[int] = []
     with av.open(audio) as container:
         stream = container.streams.audio[0]
         for packet in container.demux(stream):
-            for frame in packet.decode():
+            for frame in cast(Iterable[av.AudioFrame], packet.decode()):
                 # this is to convince the mypy/pyright that
                 # frame is of AudioFrame type
-                frame: av.AudioFrame = frame
                 if frame.pts is not None:
                     frame_av.append(frame)
                     fr = frame.to_ndarray()
@@ -35,7 +35,7 @@ def fully_decoded_audio(request) -> Tuple[pathlib.Path, List[NDArray], List[int]
 
 @pytest.mark.parametrize("fully_decoded_audio", ["wav", "mp3", "flac"], indirect=True)
 def test_av_handler_full_decoding(fully_decoded_audio):
-    audio_path, frame_arrays, frame_pts, frame_av, frame_size = fully_decoded_audio
+    audio_path, frame_arrays, _frame_pts, _frame_av, _frame_size = fully_decoded_audio
     with audio_handling.AudioHandler(audio_path) as handler:
         array = handler.get(0, handler.tot_length)
         concat_array = np.concatenate(frame_arrays, axis=1).T
@@ -51,7 +51,7 @@ def test_av_handler_full_decoding(fully_decoded_audio):
 
 @pytest.mark.parametrize("fully_decoded_audio", ["wav", "mp3", "flac"], indirect=True)
 def test_av_handler_partial_decoding(fully_decoded_audio):
-    audio_path, frame_arrays, frame_pts, frame_av, frame_size = fully_decoded_audio
+    audio_path, frame_arrays, _frame_pts, _frame_av, _frame_size = fully_decoded_audio
     with audio_handling.AudioHandler(audio_path) as handler:
         array = handler.get(0, handler.tot_length)
         concat_array = np.concatenate(frame_arrays, axis=1).T
@@ -67,7 +67,7 @@ def test_av_handler_partial_decoding(fully_decoded_audio):
 
 @pytest.mark.parametrize("fully_decoded_audio", ["wav", "mp3", "flac"], indirect=True)
 def test_decode_first_boundaries(fully_decoded_audio):
-    audio_path, frame_arrays, frame_pts, frame_av, frame_size = fully_decoded_audio
+    audio_path, _frame_arrays, _frame_pts, _frame_av, _frame_size = fully_decoded_audio
 
     with audio_handling.AudioHandler(audio_path) as handler:
         # Preload so current_frame is set
@@ -96,9 +96,11 @@ def test_decode_first_boundaries(fully_decoded_audio):
 @pytest.mark.parametrize("fully_decoded_audio", ["wav", "mp3", "flac"], indirect=True)
 def test_start_end_order(fully_decoded_audio):
     audio_path = fully_decoded_audio[0]
-    with audio_handling.AudioHandler(audio_path) as handler:
-        with pytest.raises(ValueError, match="`end` time must be greater"):
-            handler.get(1.8, 1)
+    with (
+        audio_handling.AudioHandler(audio_path) as handler,
+        pytest.raises(ValueError, match="`end` time must be greater"),
+    ):
+        handler.get(1.8, 1)
 
 
 @pytest.mark.parametrize("fully_decoded_audio", ["wav", "mp3", "flac"], indirect=True)

@@ -163,7 +163,7 @@ def test_getitem_slice_matches_expected(video_info, start, stop, step):
     video_obj.data.return_frame_array = True
     # make sure the video meta-info about time are fully computed
     video_obj.data._wait_for_index(timeout=15)
-    for i, frame in zip(range(start, stop, step), frames):
+    for i, frame in zip(range(start, stop, step), frames, strict=False):
         with video_obj.data._set_get_from_index(True):
             video_obj.set_frame(video_obj.data.time[i])
             test_frame = video_obj.data.current_frame
@@ -373,6 +373,6 @@ def test_getitem_decoupled_current_frame_and_pts_decoding_via_decode_multiple(vi
         # decoding the next slice must still be correct
         frames = video_obj[12:14]
         with video_obj._set_get_from_index(True):
-            for i, frame in zip(range(12, 14), frames):
+            for i, frame in zip(range(12, 14), frames, strict=False):
                 video_obj.get(i)
                 assert video_obj.current_frame.pts == frame.pts

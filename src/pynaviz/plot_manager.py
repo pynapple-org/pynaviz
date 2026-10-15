@@ -162,17 +162,17 @@ class _PlotManager:
             y_ticks, idx = np.unique(self.data["offset"], return_index=True)
             y_labels = tmp[idx]
             self.y_ticks = {
-                y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels)
+                y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels, strict=False)
             }
         else:
             self.offset = order
             y_ticks = np.unique(order)
             self.y_ticks = {
-                y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels)
+                y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels, strict=False)
             }
 
         # action dictionary must store the action inputs
-        self._actions["sort_by"] = dict(metadata_name=metadata_name, mode=mode)
+        self._actions["sort_by"] = {'metadata_name': metadata_name, 'mode': mode}
 
     def group_by(self, values: dict, metadata_name:str, **kwargs) -> None:
         """
@@ -206,13 +206,13 @@ class _PlotManager:
             y_ticks_groups = np.split(y_ticks, np.flatnonzero(np.diff(y_ticks) > 1) + 1)
             self.y_ticks = {
                 np.mean(y_tick_group): y_label
-                for y_tick_group, y_label in zip(y_ticks_groups, y_labels)
+                for y_tick_group, y_label in zip(y_ticks_groups, y_labels, strict=False)
             }
         else:
             self.offset = 2 * groups
             y_ticks = np.unique(self.offset)
             self.y_ticks = {
-                y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels)
+                y_tick: y_label for y_tick, y_label in zip(y_ticks, y_labels, strict=False)
             }
         self._actions["group_by"] = dict(metadata_name=metadata_name, **kwargs)
 
@@ -339,7 +339,7 @@ class _PlotManager:
             } if kwargs is not None else None
             for action, kwargs in self._actions.items()
         }
-        return dict(_actions=serializable_actions)
+        return {'_actions': serializable_actions}
 
     def from_state(self, base_plot: "_BasePlot", state: dict, index: list) -> '_PlotManager':
         """Restore the manager by replaying saved actions.

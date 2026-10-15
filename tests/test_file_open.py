@@ -31,13 +31,12 @@ def download_osf_file_chunked(url, output_path, chunk_size=8192):
     if output_path.exists():
         return
     output_path.parent.mkdir(exist_ok=True)
-    with fsspec.open(url, 'rb') as f_in:
-        with open(output_path, 'wb') as f_out:
-            while True:
-                chunk = f_in.read(chunk_size)
-                if not chunk:
-                    break
-                f_out.write(chunk)
+    with fsspec.open(url, 'rb') as f_in, open(output_path, 'wb') as f_out:
+        while True:
+            chunk = f_in.read(chunk_size)
+            if not chunk:
+                break
+            f_out.write(chunk)
     print(f"Downloaded to {output_path}")
 
 
@@ -152,7 +151,7 @@ def test_load_files(shared_test_files, qtbot):
 @patch('pynaviz.qt.mainwindow.QFileDialog.getOpenFileNames')
 def test_open_file_dialog(mock_dialog, shared_test_files, qtbot):
     """Test the open_file method with mocked dialog."""
-    path_dir, video_file, nwb_file, expected = shared_test_files
+    path_dir, video_file, nwb_file, _expected = shared_test_files
 
     # print(path_dir)
 

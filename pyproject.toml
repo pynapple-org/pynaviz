@@ -9,7 +9,7 @@ dynamic = ["version"]
 authors = [{name = "pynaviz authors"}]
 description = "Life made easier."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["neuroscience", "visualization", "pynapple"]
 license = { file = "LICENSE" }
 classifiers = [
@@ -148,7 +148,7 @@ exclude = [
 # overlap with the use of a formatter, like Black, but we can override this behavior by
 # explicitly adding the rule.
 extend-select = ["F", "W", "B", "I"]
-ignore = ["E731"]
+ignore = ["E731", "BLE001", "SIM102", "SIM118"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

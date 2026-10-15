@@ -1,6 +1,7 @@
 import inspect
 import os
-from typing import TYPE_CHECKING, Callable, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from pygfx import Renderer, Viewport
 
@@ -49,7 +50,7 @@ class RenderTriggerSource(Enum):
         return f"{self.__class__.__name__}.{self.name}"
 
 
-def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
+def _get_event_handle(renderer: Viewport | Renderer) -> Callable:
     """
     Set up the callback to update.
 
@@ -67,7 +68,7 @@ def _get_event_handle(renderer: Union[Viewport, Renderer]) -> Callable:
 
 
 def get_plot_attribute(
-    plot: "_BasePlot", attr_name, filter_graphic: dict[bool] = None
+    plot: "_BasePlot", attr_name, filter_graphic: dict[bool] | None = None
 ) -> dict | None:
     """Auxiliary safe function for debugging."""
     graphic = getattr(plot, "graphic", None)

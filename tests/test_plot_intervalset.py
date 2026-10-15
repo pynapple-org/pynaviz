@@ -32,7 +32,7 @@ def test_plot_intervalset_action(dummy_intervalset, func, kwargs):
     v = viz.PlotIntervalSet(dummy_intervalset)
     if func is not None:
         if isinstance(func, (list, tuple)):
-            for n, k in zip(func, kwargs):
+            for n, k in zip(func, kwargs, strict=False):
                 getattr(v, n)(**k)
         else:
             getattr(v, func)(**kwargs)

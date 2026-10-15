@@ -104,13 +104,13 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
             "icon_size": QSize(64, 12),
             "clear_text": True,
         }
-        kwargs = dict(
-            widgets=OrderedDict(Metadata=meta, Colormap=parameters),
-            title="Color by",
-            func=plot.color_by,
-            ok_cancel_button=False,
-            parent=widget,
-        )
+        kwargs = {
+            "widgets": OrderedDict(Metadata=meta, Colormap=parameters),
+            "title": "Color by",
+            "func": plot.color_by,
+            "ok_cancel_button": False,
+            "parent": widget,
+        }
 
     elif popup_name == "x_vs_y":
         cols = {}
@@ -132,13 +132,13 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
             "icon_size": QSize(32, 16),
             "clear_text": True,
         }
-        kwargs = dict(
-            widgets=cols,
-            title="Plot x vs y",
-            func=plot.plot_x_vs_y,
-            ok_cancel_button=True,
-            parent=widget,
-        )
+        kwargs = {
+            "widgets": cols,
+            "title": "Plot x vs y",
+            "func": plot.plot_x_vs_y,
+            "ok_cancel_button": True,
+            "parent": widget,
+        }
 
     elif popup_name == "sort_by":
         metadata = getattr(widget, "metadata", None)
@@ -151,25 +151,25 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
             "items": ["ascending", "descending"],
             "current_index": 0,
         }
-        kwargs = dict(
-            widgets=OrderedDict(Metadata=meta, Order=order),
-            title="Sort by",
-            func=plot.sort_by,
-            ok_cancel_button=True,
-            parent=widget,
-        )
+        kwargs = {
+            "widgets": OrderedDict(Metadata=meta, Order=order),
+            "title": "Sort by",
+            "func": plot.sort_by,
+            "ok_cancel_button": True,
+            "parent": widget,
+        }
     elif popup_name == "group_by":
         metadata = getattr(widget, "metadata", None)
         if metadata is None:
             return
         meta = _get_meta_combo(widget)
-        kwargs = dict(
-            widgets=OrderedDict(Metadata=meta),
-            title="Group by",
-            func=plot.group_by,
-            ok_cancel_button=False,
-            parent=widget,
-        )
+        kwargs = {
+            "widgets": OrderedDict(Metadata=meta),
+            "title": "Group by",
+            "func": plot.group_by,
+            "ok_cancel_button": False,
+            "parent": widget,
+        }
     elif popup_name == "add_interval_set":
         keys = [bytes(k).decode() for k in action.dynamicPropertyNames()]
         cols = {
@@ -178,11 +178,11 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
             "items": keys,
             "values": [action.property(k) for k in keys],
             "current_index": 0}
-        kwargs = dict(
-            widgets=OrderedDict(IntervalSet=cols),
-            title="Add interval_set",
-            func=plot.add_interval_sets,
-            ok_cancel_button=True,
-            parent=widget,
-        )
+        kwargs = {
+            "widgets": OrderedDict(IntervalSet=cols),
+            "title": "Add interval_set",
+            "func": plot.add_interval_sets,
+            "ok_cancel_button": True,
+            "parent": widget,
+        }
     return kwargs

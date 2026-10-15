@@ -136,19 +136,19 @@ def apply_action(
 @pytest.mark.parametrize(
     "group_by_kwargs", [
         None,
-        dict(metadata_name="group")
+        {"metadata_name": "group"}
     ]
 )
 @pytest.mark.parametrize(
     "sort_by_kwargs", [
         None,
-        dict(metadata_name="channel")
+        {"metadata_name": "channel"}
     ]
 )
 @pytest.mark.parametrize(
     "color_by_kwargs", [
         None,
-        dict(metadata_name="channel", cmap_name="rainbow", vmin=0, vmax=100)
+        {"metadata_name": "channel", "cmap_name": "rainbow", "vmin": 0, "vmax": 100}
     ]
 )
 @pytest.mark.parametrize(
@@ -170,7 +170,7 @@ def test_save_load_layout_tsdframe(apply_to, main_window__dock, color_by_kwargs,
     # add widgets
     widget = None
 
-    for varname in variables.keys():
+    for varname in variables:
         dock_widget = main_window.add_dock_widget(variables[varname], [varname])
         if varname in apply_to:
             widget = dock_widget.widget()
@@ -254,13 +254,13 @@ def verify_layout_geometry(original_window, restored_window):
 
 
 @pytest.mark.parametrize(
-    "group_by_kwargs", [None, dict(metadata_name="group")]
+    "group_by_kwargs", [None, {"metadata_name": "group"}]
 )
 @pytest.mark.parametrize(
-    "sort_by_kwargs", [None, dict(metadata_name="channel")]
+    "sort_by_kwargs", [None, {"metadata_name": "channel"}]
 )
 @pytest.mark.parametrize(
-    "color_by_kwargs", [None, dict(metadata_name="channel", cmap_name="rainbow", vmin=5, vmax=80)]
+    "color_by_kwargs", [None, {"metadata_name": "channel", "cmap_name": "rainbow", "vmin": 5, "vmax": 80}]
 )
 @pytest.mark.parametrize("apply_to", [("tsgroup",), ("tsdframe",), ("tsgroup", "tsdframe")])
 def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, color_by_kwargs, group_by_kwargs,
@@ -269,7 +269,7 @@ def test_save_load_layout_tsdframe_screenshots(apply_to, main_window__dock, colo
     # add widgets
     widget = None
 
-    for varname in variables.keys():
+    for varname in variables:
         dock_widget = main_window.add_dock_widget(variables[varname], [varname])
         if varname in apply_to:
             widget = dock_widget.widget()

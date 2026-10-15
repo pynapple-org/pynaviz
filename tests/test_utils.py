@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 from pygfx import renderers
 from rendercanvas.offscreen import RenderCanvas

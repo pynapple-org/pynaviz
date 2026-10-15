@@ -76,7 +76,7 @@ def event_pan_update(camera_state):
         "sync",
         controller_id=0,
         update_type="pan",
-        sync_extra_args=dict(args=None,  kwargs=dict(cam_state=camera_state))
+        sync_extra_args={'args': None,  'kwargs': {'cam_state': camera_state}}
     )
     return event
 
@@ -87,7 +87,7 @@ def event_zoom_update(camera_state):
         "sync",
         controller_id=0,
         update_type="zoom",
-        sync_extra_args=dict(args=None,  kwargs=dict(cam_state=camera_state))
+        sync_extra_args={'args': None,  'kwargs': {'cam_state': camera_state}}
     )
     return event
 
@@ -98,7 +98,7 @@ def event_zoom_to_point_update(camera_state):
         "sync",
         controller_id=0,
         update_type="zoom_to_point",
-        sync_extra_args=dict(args=None,  kwargs=dict(cam_state=camera_state))
+        sync_extra_args={'args': None,  'kwargs': {'cam_state': camera_state}}
     )
     return event
 

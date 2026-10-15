@@ -1,8 +1,8 @@
-import pynaviz.events as events
+from pynaviz import events
 
 
 def test_sync_event_initialization():
-    ev = events.SyncEvent("mytype", update_type="up", controller_id=1, sync_extra_args={"args": (1, 2, 3), "kwargs": dict(one=1, two=2)})
+    ev = events.SyncEvent("mytype", update_type="up", controller_id=1, sync_extra_args={"args": (1, 2, 3), "kwargs": {"one": 1, "two": 2}})
     assert ev.type == "mytype"
     assert ev.update_type == "up"
     assert ev.controller_id == 1

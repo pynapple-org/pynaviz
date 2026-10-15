@@ -45,20 +45,14 @@ def snapshot_ts(path=DEFAULT_SCREENSHOT_PATH):
     conf_class.run_all()
 
 def snapshot_tsdframe(path=DEFAULT_SCREENSHOT_PATH):
-    """
-    """
     conf_class = config.TsdFrameConfig(path)
     conf_class.run_all()
 
 def snapshot_tsdtensor(path=DEFAULT_SCREENSHOT_PATH):
-    """
-    """
     conf_class = config.TsdTensorConfig(path)
     conf_class.run_all()
 
 def snapshot_tsgroup(path=DEFAULT_SCREENSHOT_PATH):
-    """
-    """
     conf_class = config.TsGroupConfig(path)
     conf_class.run_all()
 
