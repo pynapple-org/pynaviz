@@ -919,12 +919,20 @@ class PlotTsdFrame(_BasePlot):
                 self._mode._request_draw = lambda: self.canvas.request_draw(self.animate)
             if state is not None:
                 self._mode.update_parameters(
-                    state["x_col"],
-                    state["y_col"],
-                    state.get("color", self._default_line_color()),
-                    state.get("thickness", 1.0),
-                    state.get("markersize", 10.0),
+                    x_col=state["x_col"],
+                    y_col=state["y_col"],
+                    color=state.get(
+                        "color",
+                        self._default_line_color(),
+                    ),
+                    style=state.get("style", "lines"),
+                    range_mode=state.get("range_mode", "full"),
+                    window_before=state.get("window_before", 1.0),
+                    window_after=state.get("window_after", 1.0),
+                    thickness=state.get("thickness", 1.0),
+                    markersize=state.get("markersize", 10.0),
                 )
+
             if switching:
                 self._mode.initialize_graphic()
                 self.scene.remove(self.ruler_ref_time)
@@ -1082,26 +1090,27 @@ class PlotTsdFrame(_BasePlot):
         x_col: str | float,
         y_col: str | float,
         color: str | tuple | None = None,
+        style: str = "lines",
+        range_mode: str = "full",
+        window_before: float = 1.0,
+        window_after: float = 1.0,
         thickness: float = 1.0,
         markersize: float = 10.0,
     ) -> None:
-        """Plot one column versus another with a time-point marker.
+        """Plot one column against another."""
+        if x_col not in self.data.columns:
+            raise ValueError(f"Column {x_col!r} is not in data columns.")
+        if y_col not in self.data.columns:
+            raise ValueError(f"Column {y_col!r} is not in data columns.")
+        if style not in XvsYMode.VALID_STYLES:
+            raise ValueError(f"style must be one of {XvsYMode.VALID_STYLES}, got {style!r}.")
+        if range_mode not in XvsYMode.VALID_RANGES:
+            raise ValueError(
+                f"range_mode must be one of {XvsYMode.VALID_RANGES}, got {range_mode!r}."
+            )
+        if window_before < 0 or window_after < 0:
+            raise ValueError("Window durations must be non-negative.")
 
-        Parameters
-        ----------
-        x_col : str or int or float
-            Column name for the x-axis.
-        y_col : str or int or float
-            Column name for the y-axis.
-        color : str or tuple, optional
-            Line color. Defaults to a color that contrasts with the background.
-        thickness : float, default 1.0
-            Line thickness.
-        markersize : float, default 10.0
-            Size of the time marker.
-        """
-        if x_col not in self.data.columns or y_col not in self.data.columns:
-            raise ValueError(f"Columns {x_col} and {y_col} must be in data columns.")
         if color is None:
             color = self._default_line_color()
         self._set_mode(
@@ -1110,8 +1119,12 @@ class PlotTsdFrame(_BasePlot):
                 "x_col": x_col,
                 "y_col": y_col,
                 "color": color,
-                "thickness": thickness,
-                "markersize": markersize,
+                "style": style,
+                "range_mode": range_mode,
+                "window_before": float(window_before),
+                "window_after": float(window_after),
+                "thickness": float(thickness),
+                "markersize": float(markersize),
             },
         )
 
