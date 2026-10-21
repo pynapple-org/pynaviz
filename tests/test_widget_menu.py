@@ -6,9 +6,14 @@ from types import SimpleNamespace
 import pytest
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QComboBox, QDoubleSpinBox
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QGroupBox, QWidget
 
-from pynaviz.qt.drop_down_dict_builder import _CMAP_GROUPS, _cmap_icon, _color_icon
+from pynaviz.qt.drop_down_dict_builder import (
+    _CMAP_GROUPS,
+    _cmap_icon,
+    _color_icon,
+    get_popup_kwargs,
+)
 from pynaviz.qt.widget_menu import DropdownDialog, MenuWidget, widget_factory
 
 # ---------------------------------------------------------------------------
@@ -358,6 +363,84 @@ def test_dropdown_dialog_multiple_widgets(qtbot):
     dialog.accept()
     assert out == {"a": "y", "b": 3.0}
 
+def test_dropdown_dialog_dependency(qtbot):
+    dialog = DropdownDialog(
+        "Test",
+        OrderedDict(
+            Mode={
+                "type": QComboBox,
+                "name": "mode",
+                "items": ["Full", "Custom"],
+                "values": ["full", "custom"],
+                "current_index": 0,
+            },
+            Window={
+                "type": QDoubleSpinBox,
+                "name": "window",
+                "value": 1.0,
+                "enabled_when": ("mode", "custom"),
+            },
+        ),
+        func=lambda *_: None,
+        ok_cancel_button=True,
+    )
+    qtbot.addWidget(dialog)
+
+    mode = dialog.named_widgets["mode"]
+    window = dialog.named_widgets["window"]
+
+    assert not window.isEnabled()
+
+    mode.setCurrentIndex(1)
+
+    assert window.isEnabled()
+
+
+def test_dropdown_dialog_sections(qtbot):
+    dialog = DropdownDialog(
+        "Test",
+        OrderedDict(
+            X={
+                "type": QComboBox,
+                "name": "x",
+                "items": ["a"],
+            },
+            Y={
+                "type": QComboBox,
+                "name": "y",
+                "items": ["b"],
+            },
+        ),
+        sections=OrderedDict(
+            Axes=["X", "Y"],
+        ),
+        func=lambda *_: None,
+    )
+    qtbot.addWidget(dialog)
+
+    groups = dialog.findChildren(QGroupBox)
+
+    assert len(groups) == 1
+    assert groups[0].title() == "Axes"
+
+
+def test_dropdown_dialog_minimum_size(qtbot):
+    dialog = DropdownDialog(
+        "Test",
+        OrderedDict(
+            Value={
+                "type": QDoubleSpinBox,
+                "name": "value",
+                "value": 1.0,
+            }
+        ),
+        minimum_size=QSize(700, 300),
+        func=lambda *_: None,
+    )
+    qtbot.addWidget(dialog)
+
+    assert dialog.minimumWidth() == 700
+    assert dialog.minimumHeight() == 300
 
 @pytest.mark.parametrize(
     ("action_name", "expected"),
@@ -403,3 +486,66 @@ def test_action_support_defaults_to_true():
 
     assert MenuWidget._supports_action(menu, "sort_by")
     assert MenuWidget._supports_action(menu, "group_by")
+
+@pytest.mark.parametrize(
+    ("action_name", "expected"),
+    [
+        ("sort_by", False),
+        ("group_by", False),
+        ("x_vs_y", True),
+        ("color_by", True),
+    ],
+)
+def test_plot_action_support(action_name, expected):
+    menu = SimpleNamespace(
+        plot=SimpleNamespace(
+            supports_sorting=False,
+            supports_grouping=False,
+            supports_x_vs_y=True,
+        )
+    )
+
+    assert MenuWidget._supports_action(menu, action_name) is expected
+
+def test_x_vs_y_action_not_supported():
+    menu = SimpleNamespace(
+        plot=SimpleNamespace(supports_x_vs_y=False)
+    )
+
+    assert not MenuWidget._supports_action(menu, "x_vs_y")
+
+def test_multi_x_vs_y_popup_uses_shared_columns(qtbot):
+    parent = QWidget()
+    qtbot.addWidget(parent)
+
+    parent.plot = SimpleNamespace(
+        x_vs_y_columns=["x", "y"],
+        supports_assigned_x_vs_y_colors=True,
+        plot_x_vs_y=lambda *args: None,
+    )
+
+    kwargs = get_popup_kwargs("x_vs_y", parent, None)
+    controls = kwargs["widgets"]
+
+    assert controls["X data"]["values"] == ["x", "y"]
+    assert controls["Y data"]["values"] == ["x", "y"]
+    assert "Color mode" in controls
+    assert controls["Color mode"]["values"] == [
+        "single",
+        "assigned",
+    ]
+
+def test_single_x_vs_y_popup_has_no_color_mode(qtbot):
+    parent = QWidget()
+    qtbot.addWidget(parent)
+
+    parent.plot = SimpleNamespace(
+        x_vs_y_columns=["x", "y"],
+        supports_assigned_x_vs_y_colors=False,
+        plot_x_vs_y=lambda *args: None,
+    )
+
+    kwargs = get_popup_kwargs("x_vs_y", parent, None)
+
+    assert "Color mode" not in kwargs["widgets"]
+

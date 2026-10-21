@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDoubleSpinBox,
     QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMenu,
@@ -54,8 +55,12 @@ WIDGET_PARAMS = {
         "current_index": "setCurrentIndex",
     },
     QDoubleSpinBox: {
-        "name": "setObjectNAme",  # Note: typo here in key name
+        "name": "setObjectName",
         "value": "setValue",
+        "minimum": "setMinimum",
+        "maximum": "setMaximum",
+        "step": "setSingleStep",
+        "decimals": "setDecimals",
     },
 }
 
@@ -172,38 +177,50 @@ class DropdownDialog(QDialog):
         func: Callable,
         ok_cancel_button: bool = False,
         parent: QWidget | None = None,
+        sections: OrderedDict[str, list[str]] | None = None,
+        minimum_size: QSize | None = None,
     ):
         super().__init__(parent=parent)
         self.setWindowTitle(title)
         self.setWindowModality(Qt.WindowModality.NonModal)
 
-        num_cols = min(len(widgets), 3)
+        if minimum_size is not None:
+            self.setMinimumSize(minimum_size)
 
         self._func = func
         self.widgets: dict[int, QWidget] = {}
+        self.named_widgets: dict[str, QWidget] = {}
+        self._dependencies = []
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(12, 12, 12, 12)
         main_layout.setSpacing(8)
 
-        # Scrollable area (useful when there are many widgets)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(scroll.Shape.NoFrame)
         scroll_content = QWidget()
-
-        grid_layout = QGridLayout(scroll_content)
-        grid_layout.setContentsMargins(4, 4, 4, 4)
-        grid_layout.setSpacing(8)
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(4, 4, 4, 4)
+        scroll_layout.setSpacing(10)
 
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
-        # Add widgets with labels
-        def make_labeled_widget(label_text: str, widget: QWidget) -> QWidget:
+        def make_labeled_widget(
+            label_text: str,
+            widget: QWidget,
+        ) -> QWidget:
             label = QLabel(label_text)
-            label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-            widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            label.setSizePolicy(
+                QSizePolicy.Policy.Minimum,
+                QSizePolicy.Policy.Fixed,
+            )
+            widget.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Fixed,
+            )
+
             wrapper = QWidget()
             layout = QHBoxLayout(wrapper)
             layout.setContentsMargins(0, 0, 0, 0)
@@ -212,20 +229,90 @@ class DropdownDialog(QDialog):
             layout.addWidget(widget)
             return wrapper
 
-        for i, (label, params) in enumerate(widgets.items()):
+        wrappers = {}
+
+        for index, (label, original_params) in enumerate(widgets.items()):
+            params = original_params.copy()
+            dependency = params.pop("enabled_when", None)
             widget = widget_factory(params)
+
             if hasattr(widget, "activated"):
                 widget.activated.connect(self.item_changed)
             if hasattr(widget, "valueChanged"):
                 widget.valueChanged.connect(self.item_changed)
 
-            row, col = divmod(i, num_cols)
-            grid_layout.addWidget(make_labeled_widget(label, widget), row, col)
-            self.widgets[i] = widget
+            self.widgets[index] = widget
+            self.named_widgets[widget.objectName()] = widget
+            wrappers[label] = make_labeled_widget(label, widget)
 
-        # Optional buttons
+            if dependency is not None:
+                self._dependencies.append((widget, dependency))
+
+        if sections is None:
+            grid = QGridLayout()
+            grid.setSpacing(8)
+
+            for index, wrapper in enumerate(wrappers.values()):
+                row, column = divmod(index, min(len(wrappers), 3))
+                grid.addWidget(wrapper, row, column)
+
+            scroll_layout.addLayout(grid)
+        else:
+            used_labels = set()
+
+            for section_name, labels in sections.items():
+                group = QGroupBox(section_name)
+                group_layout = QGridLayout(group)
+                group_layout.setSpacing(8)
+
+                for index, label in enumerate(labels):
+                    if label not in wrappers:
+                        continue
+
+                    row, column = divmod(index, 2)
+                    group_layout.addWidget(
+                        wrappers[label],
+                        row,
+                        column,
+                    )
+                    used_labels.add(label)
+
+                scroll_layout.addWidget(group)
+
+            remaining = [
+                wrapper for label, wrapper in wrappers.items() if label not in used_labels
+            ]
+
+            if remaining:
+                grid = QGridLayout()
+                for index, wrapper in enumerate(remaining):
+                    row, column = divmod(index, 2)
+                    grid.addWidget(wrapper, row, column)
+                scroll_layout.addLayout(grid)
+
+        scroll_layout.addStretch()
+
+        for target, (source_name, expected_value) in self._dependencies:
+            source = self.named_widgets[source_name]
+
+            def update_enabled(
+                _=None,
+                *,
+                source=source,
+                target=target,
+                expected_value=expected_value,
+            ) -> None:
+                value = source.currentData()
+                if value is None:
+                    value = source.currentText()
+                target.setEnabled(value == expected_value)
+
+            source.currentIndexChanged.connect(update_enabled)
+            update_enabled()
+
         if ok_cancel_button:
             self._update_on_selection = False
+
             button_layout = QHBoxLayout()
             self.ok_button = QPushButton("OK")
             self.ok_button.setDefault(True)
@@ -328,12 +415,18 @@ class MenuWidget(QWidget):
 
         # Action menu for plot operations
         self.action_funcs = {}
+
         if metadata is not None and hasattr(metadata, "shape") and np.prod(metadata.shape):
-            self.action_funcs = {
-                "color_by": "Color by",
-                "group_by": "Group by",
-                "sort_by": "Sort by",
-            }
+            self.action_funcs["color_by"] = "Color by"
+
+            if getattr(plot, "supports_grouping", True):
+                self.action_funcs["group_by"] = "Group by"
+
+            if getattr(plot, "supports_sorting", True):
+                self.action_funcs["sort_by"] = "Sort by"
+
+        if getattr(plot, "supports_x_vs_y", False):
+            self.action_funcs["x_vs_y"] = "X vs Y"
 
         # IntervalSet selection available
         if interval_sets is not None and isinstance(interval_sets, dict) and len(interval_sets):
@@ -439,6 +532,7 @@ class MenuWidget(QWidget):
         capability = {
             "sort_by": "supports_sorting",
             "group_by": "supports_grouping",
+            "x_vs_y": "supports_x_vs_y",
         }.get(action_name)
 
         if capability is None:
