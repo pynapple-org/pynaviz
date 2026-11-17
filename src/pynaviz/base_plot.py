@@ -934,10 +934,15 @@ class PlotTsdFrame(_BasePlot):
                 )
 
             if switching:
-                self._mode.initialize_graphic()
                 self.scene.remove(self.ruler_ref_time)
-                self.scene.add(self._mode.graphic)
-                self.scene.add(self._mode.time_point)
+            else:
+                # Already in x_vs_y with new parameters: the style, color or
+                # columns may have changed, so the graphic must be rebuilt.
+                self.scene.remove(self._mode.graphic)
+                self.scene.remove(self._mode.time_point)
+            self._mode.initialize_graphic()
+            self.scene.add(self._mode.graphic)
+            self.scene.add(self._mode.time_point)
             current_time = self.ruler_ref_time.geometry.positions.data[0][0]
             self.controller.frame_index = self.data.get_slice(current_time).start
             self.controller._current_time = current_time

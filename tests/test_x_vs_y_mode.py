@@ -136,3 +136,26 @@ def test_x_vs_y_state_contains_customization(xy_data):
     assert state["window_before"] == 2.0
     assert state["window_after"] == 3.0
 
+
+
+def test_x_vs_y_custom_alpha_restored_when_window_moves():
+    data = nap.TsdFrame(
+        t=np.arange(20, dtype=float),
+        d=np.column_stack((np.arange(20.0), np.arange(20.0))),
+        columns=["x", "y"],
+    )
+    mode = make_mode(data, range_mode="custom", window_before=2.0, window_after=2.0)
+    alpha = mode.graphic.geometry.colors.data[:, 3]
+
+    mode._update_buffer(3)
+    assert alpha[1] < 1.0
+
+    mode._update_buffer(15)
+    # Samples faded by the previous window are opaque again.
+    np.testing.assert_array_equal(alpha[:13], 1.0)
+    assert alpha[13] < 1.0 and alpha[15] == 1.0
+
+    # Leaving custom mode clears the fade.
+    mode.range_mode = "full"
+    mode._update_buffer(15)
+    np.testing.assert_array_equal(alpha, 1.0)

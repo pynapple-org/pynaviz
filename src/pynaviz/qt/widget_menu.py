@@ -54,13 +54,15 @@ WIDGET_PARAMS = {
         "values": "setItemData",
         "current_index": "setCurrentIndex",
     },
+    # Order matters: decimals and range must be set before the value,
+    # otherwise Qt clamps/rounds the value to its defaults (0-99.99, 2 dp).
     QDoubleSpinBox: {
         "name": "setObjectName",
-        "value": "setValue",
+        "decimals": "setDecimals",
         "minimum": "setMinimum",
         "maximum": "setMaximum",
         "step": "setSingleStep",
-        "decimals": "setDecimals",
+        "value": "setValue",
     },
 }
 
@@ -291,24 +293,6 @@ class DropdownDialog(QDialog):
                 scroll_layout.addLayout(grid)
 
         scroll_layout.addStretch()
-
-        for target, (source_name, expected_value) in self._dependencies:
-            source = self.named_widgets[source_name]
-
-            def update_enabled(
-                _=None,
-                *,
-                source=source,
-                target=target,
-                expected_value=expected_value,
-            ) -> None:
-                value = source.currentData()
-                if value is None:
-                    value = source.currentText()
-                target.setEnabled(value == expected_value)
-
-            source.currentIndexChanged.connect(update_enabled)
-            update_enabled()
 
         for target, (source_name, expected_value) in self._dependencies:
             source = self.named_widgets[source_name]

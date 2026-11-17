@@ -402,6 +402,28 @@ def test_xvsy_mode_update_parameters(dummy_tsdframe):
     v.close()
 
 
+def test_xvsy_replot_while_in_xvsy_rebuilds_graphic(dummy_tsdframe):
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    v.plot_x_vs_y(x_col=0, y_col=1, style="lines")
+    mode = v._modes["x_vs_y"]
+    old_graphic = mode.graphic
+    old_time_point = mode.time_point
+
+    v.plot_x_vs_y(x_col=2, y_col=3, style="scatter")
+
+    assert isinstance(mode.graphic, gfx.Points)
+    assert old_graphic not in v.scene.children
+    assert old_time_point not in v.scene.children
+    assert mode.graphic in v.scene.children
+    assert mode.time_point in v.scene.children
+    np.testing.assert_almost_equal(
+        mode.buffer[:, 0], dummy_tsdframe.d[:, 2].astype("float32")
+    )
+    assert v.get_plot_state()["mode_state"]["style"] == "scatter"
+
+    v.close()
+
+
 def test_xvsy_mode_update_buffer(dummy_tsdframe):
     v = viz.PlotTsdFrame(dummy_tsdframe)
     v.plot_x_vs_y(x_col=0, y_col=1)

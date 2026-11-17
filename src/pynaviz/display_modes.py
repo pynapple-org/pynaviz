@@ -446,6 +446,7 @@ class XvsYMode:
             ),
             (len(self.buffer), 1),
         )
+        self._faded_range = None
 
         geometry = gfx.Geometry(
             positions=self.buffer,
@@ -543,16 +544,24 @@ class XvsYMode:
             max(0, end - start),
         )
 
-        colors = self.graphic.geometry.colors.data
-        colors[:, 3] = 1.0
+        # Only the custom window fades. Restore alpha over the previously
+        # faded range and write the new one, uploading just those ranges
+        # instead of the whole N x 4 color buffer on every frame.
+        colors_buffer = self.graphic.geometry.colors
+        colors = colors_buffer.data
+        prev = self._faded_range
+        if prev is not None:
+            colors[prev[0] : prev[1], 3] = 1.0
+            colors_buffer.update_range(prev[0], prev[1] - prev[0])
+            self._faded_range = None
 
         if self.range_mode == "custom" and end > start:
             colors[start:end, 3] = self._get_custom_alpha(
                 timestamps[start:end],
                 current_time,
             )
-
-        self.graphic.geometry.colors.update_full()
+            colors_buffer.update_range(start, end - start)
+            self._faded_range = (start, end)
 
         self.time_point.geometry.positions.data[0, :2] = self.buffer[
             frame_index,
