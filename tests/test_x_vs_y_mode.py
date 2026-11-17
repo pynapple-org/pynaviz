@@ -159,3 +159,10 @@ def test_x_vs_y_custom_alpha_restored_when_window_moves():
     mode.range_mode = "full"
     mode._update_buffer(15)
     np.testing.assert_array_equal(alpha, 1.0)
+
+
+@pytest.mark.parametrize("style", ["lines", "scatter"])
+@pytest.mark.parametrize(("range_mode", "alpha_mode"), [("custom", "blend"), ("full", "auto")])
+def test_x_vs_y_alpha_mode(xy_data, style, range_mode, alpha_mode):
+    mode = make_mode(xy_data, style=style, range_mode=range_mode)
+    assert mode.graphic.material.alpha_mode == alpha_mode

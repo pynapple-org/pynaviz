@@ -453,12 +453,18 @@ class XvsYMode:
             colors=colors,
         )
 
+        # The custom window fades vertices with per-vertex alpha. With the
+        # default alpha mode, faded segments still write depth and can hide
+        # opaque ones where the trajectory crosses itself, so blend instead.
+        alpha_mode = "blend" if self.range_mode == "custom" else "auto"
+
         if self.style == "lines":
             self.graphic = gfx.Line(
                 geometry,
                 gfx.LineMaterial(
                     thickness=self.thickness,
                     color_mode="vertex",
+                    alpha_mode=alpha_mode,
                 ),
             )
         else:
@@ -467,6 +473,7 @@ class XvsYMode:
                 gfx.PointsMaterial(
                     size=self.markersize,
                     color_mode="vertex",
+                    alpha_mode=alpha_mode,
                 ),
             )
 
@@ -484,6 +491,16 @@ class XvsYMode:
             ),
         )
 
+    @classmethod
+    def validate_parameters(cls, style, range_mode, window_before, window_after) -> None:
+        """Raise ValueError if the display parameters are invalid."""
+        if style not in cls.VALID_STYLES:
+            raise ValueError(f"style must be one of {cls.VALID_STYLES}, got {style!r}.")
+        if range_mode not in cls.VALID_RANGES:
+            raise ValueError(f"range_mode must be one of {cls.VALID_RANGES}, got {range_mode!r}.")
+        if window_before < 0 or window_after < 0:
+            raise ValueError("Window durations must be non-negative.")
+
     def update_parameters(
         self,
         x_col,
@@ -497,12 +514,7 @@ class XvsYMode:
         markersize=10.0,
     ) -> None:
         """Set the x-vs-y display parameters."""
-        if style not in self.VALID_STYLES:
-            raise ValueError(f"style must be one of {self.VALID_STYLES}, got {style!r}.")
-        if range_mode not in self.VALID_RANGES:
-            raise ValueError(f"range_mode must be one of {self.VALID_RANGES}, got {range_mode!r}.")
-        if window_before < 0 or window_after < 0:
-            raise ValueError("Window durations must be non-negative.")
+        self.validate_parameters(style, range_mode, window_before, window_after)
 
         self.x_col = x_col
         self.y_col = y_col

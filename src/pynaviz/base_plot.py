@@ -1107,14 +1107,8 @@ class PlotTsdFrame(_BasePlot):
             raise ValueError(f"Column {x_col!r} is not in data columns.")
         if y_col not in self.data.columns:
             raise ValueError(f"Column {y_col!r} is not in data columns.")
-        if style not in XvsYMode.VALID_STYLES:
-            raise ValueError(f"style must be one of {XvsYMode.VALID_STYLES}, got {style!r}.")
-        if range_mode not in XvsYMode.VALID_RANGES:
-            raise ValueError(
-                f"range_mode must be one of {XvsYMode.VALID_RANGES}, got {range_mode!r}."
-            )
-        if window_before < 0 or window_after < 0:
-            raise ValueError("Window durations must be non-negative.")
+        # Validate before _set_mode tears down the current graphic.
+        XvsYMode.validate_parameters(style, range_mode, window_before, window_after)
 
         if color is None:
             color = self._default_line_color()
