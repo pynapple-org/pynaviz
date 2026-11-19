@@ -949,10 +949,15 @@ class PlotTsdFrame(_BasePlot):
                 )
 
             if switching:
-                self._mode.initialize_graphic()
                 self.scene.remove(self.ruler_ref_time)
-                self.scene.add(self._mode.graphic)
-                self.scene.add(self._mode.time_point)
+            else:
+                # Already in x_vs_y with new parameters: the style, color or
+                # columns may have changed, so the graphic must be rebuilt.
+                self.scene.remove(self._mode.graphic)
+                self.scene.remove(self._mode.time_point)
+            self._mode.initialize_graphic()
+            self.scene.add(self._mode.graphic)
+            self.scene.add(self._mode.time_point)
             current_time = self.ruler_ref_time.geometry.positions.data[0][0]
             self.controller.frame_index = self.data.get_slice(current_time).start
             self.controller._current_time = current_time
@@ -1117,14 +1122,8 @@ class PlotTsdFrame(_BasePlot):
             raise ValueError(f"Column {x_col!r} is not in data columns.")
         if y_col not in self.data.columns:
             raise ValueError(f"Column {y_col!r} is not in data columns.")
-        if style not in XvsYMode.VALID_STYLES:
-            raise ValueError(f"style must be one of {XvsYMode.VALID_STYLES}, got {style!r}.")
-        if range_mode not in XvsYMode.VALID_RANGES:
-            raise ValueError(
-                f"range_mode must be one of {XvsYMode.VALID_RANGES}, got {range_mode!r}."
-            )
-        if window_before < 0 or window_after < 0:
-            raise ValueError("Window durations must be non-negative.")
+        # Validate before _set_mode tears down the current graphic.
+        XvsYMode.validate_parameters(style, range_mode, window_before, window_after)
 
         if color is None:
             color = self._default_line_color()
@@ -1182,7 +1181,11 @@ class PlotTsdFrame(_BasePlot):
 
 
 class PlotTsGroup(_BasePlot):
-    """Visualize a homogeneous group of Ts, Tsd, or TsdFrame entries."""
+    """Visualize a group of Ts, Tsd, or TsdFrame entries.
+
+    Ts entries are drawn as a spike raster, Tsd and TsdFrame entries as lines.
+    Groups mixing entry types, or holding other types, are drawn as a raster.
+    """
 
     def __init__(
         self,
@@ -1313,8 +1316,8 @@ class PlotTsGroup(_BasePlot):
         return self.supports_x_vs_y
 
     @staticmethod
-    def _get_entry_kind(entry: Any) -> str:
-        """Return the supported entry type."""
+    def _get_entry_kind(entry: Any) -> str | None:
+        """Return the supported entry type, or None if unsupported."""
         if isinstance(entry, nap.TsdFrame):
             return "tsd_frame"
         if isinstance(entry, nap.Tsd):
@@ -1322,19 +1325,30 @@ class PlotTsGroup(_BasePlot):
         if isinstance(entry, nap.Ts):
             return "ts"
 
-        raise TypeError("TsGroup entries must be Ts, Tsd, or TsdFrame objects.")
+        return None
+
+    @classmethod
+    def _get_group_kind(cls, data: nap.TsGroup) -> tuple[str, bool]:
+        """Return the plotting kind of the group and whether entries are homogeneous.
+
+        Mixed or unsupported groups fall back to a spike raster of the timestamps.
+        """
+        kinds = {cls._get_entry_kind(data[key]) for key in data.keys()}
+        if len(kinds) == 1 and None not in kinds:
+            return kinds.pop(), True
+
+        return "ts", not kinds
 
     def _validate_entries(self) -> str:
-        """Ensure all entries have the same supported type."""
-        keys = list(self.data.keys())
-        if not keys:
-            return "ts"
-
-        kind = self._get_entry_kind(self.data[keys[0]])
-
-        for key in keys[1:]:
-            if self._get_entry_kind(self.data[key]) != kind:
-                raise TypeError("All TsGroup entries must have the same type.")
+        """Return the plotting kind, warning when falling back to a raster."""
+        kind, homogeneous = self._get_group_kind(self.data)
+        if not homogeneous:
+            warnings.warn(
+                "TsGroup entries are not all Ts, all Tsd, or all TsdFrame. "
+                "Plotting the timestamps as a spike raster.",
+                UserWarning,
+                stacklevel=3,
+            )
 
         return kind
 
@@ -1693,11 +1707,7 @@ class PlotTsGroup(_BasePlot):
 
     def _initialize_offset(self, index: list) -> np.ndarray:
         """Return raster offsets or zero continuous offsets."""
-        keys = list(self.data.keys())
-        if not keys:
-            return np.zeros(0, dtype="float32")
-
-        kind = self._get_entry_kind(self.data[keys[0]])
+        kind, _ = self._get_group_kind(self.data)
         if kind == "ts":
             return np.arange(len(index), dtype="float32")
 

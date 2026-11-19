@@ -201,6 +201,36 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
         if len(columns) < 2:
             return
 
+        # Prefill from the current x-vs-y state so reopening the dialog to
+        # tweak one setting does not reset the others.
+        xvy_mode = getattr(plot, "_modes", {}).get("x_vs_y")
+        state = xvy_mode.get_state() if xvy_mode is not None else {}
+
+        def _index_of(options, value, default=0):
+            try:
+                return options.index(value)
+            except ValueError:
+                return default
+
+        styles = ["lines", "scatter"]
+        ranges = ["full", "history", "future", "custom"]
+        color_items = list(GRADED_COLOR_LIST)
+        current_color = state.get("color")
+        if (
+            state.get("x_col") is not None
+            and isinstance(current_color, str)
+            and current_color not in color_items
+        ):
+            color_items.insert(0, current_color)
+        x_index = (
+            _index_of(columns, state["x_col"]) if state.get("x_col") is not None else 0
+        )
+        y_index = (
+            _index_of(columns, state["y_col"], min(1, len(columns) - 1))
+            if state.get("y_col") is not None
+            else min(1, len(columns) - 1)
+        )
+
         controls = OrderedDict(
             {
                 "X data": {
@@ -208,20 +238,20 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
                     "name": "x_col",
                     "items": [str(column) for column in columns],
                     "values": columns,
-                    "current_index": 0,
+                    "current_index": x_index,
                 },
                 "Y data": {
                     "type": QComboBox,
                     "name": "y_col",
                     "items": [str(column) for column in columns],
                     "values": columns,
-                    "current_index": min(1, len(columns) - 1),
+                    "current_index": y_index,
                 },
                 "Color": {
                     "type": QComboBox,
                     "name": "color",
-                    "items": GRADED_COLOR_LIST,
-                    "current_index": 0,
+                    "items": color_items,
+                    "current_index": _index_of(color_items, current_color),
                     "icon_factory": _color_icon,
                     "icon_size": QSize(32, 16),
                     "clear_text": True,
@@ -230,8 +260,8 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
                     "type": QComboBox,
                     "name": "style",
                     "items": ["Lines", "Scatter"],
-                    "values": ["lines", "scatter"],
-                    "current_index": 0,
+                    "values": styles,
+                    "current_index": _index_of(styles, state.get("style", "lines")),
                 },
                 "Trajectory range": {
                     "type": QComboBox,
@@ -242,18 +272,13 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
                         "Current time to end",
                         "Custom window",
                     ],
-                    "values": [
-                        "full",
-                        "history",
-                        "future",
-                        "custom",
-                    ],
-                    "current_index": 0,
+                    "values": ranges,
+                    "current_index": _index_of(ranges, state.get("range_mode", "full")),
                 },
                 "Window before (s)": {
                     "type": QDoubleSpinBox,
                     "name": "window_before",
-                    "value": 1.0,
+                    "value": float(state.get("window_before", 1.0)),
                     "minimum": 0.0,
                     "maximum": 1e9,
                     "step": 0.1,
@@ -263,7 +288,7 @@ def get_popup_kwargs(popup_name: str, widget: QWidget, action: QAction | None) -
                 "Window after (s)": {
                     "type": QDoubleSpinBox,
                     "name": "window_after",
-                    "value": 1.0,
+                    "value": float(state.get("window_after", 1.0)),
                     "minimum": 0.0,
                     "maximum": 1e9,
                     "step": 0.1,

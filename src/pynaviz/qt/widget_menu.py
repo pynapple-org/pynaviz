@@ -54,13 +54,15 @@ WIDGET_PARAMS = {
         "values": "setItemData",
         "current_index": "setCurrentIndex",
     },
+    # Order matters: decimals and range must be set before the value,
+    # otherwise Qt clamps/rounds the value to its defaults (0-99.99, 2 dp).
     QDoubleSpinBox: {
         "name": "setObjectName",
-        "value": "setValue",
+        "decimals": "setDecimals",
         "minimum": "setMinimum",
         "maximum": "setMaximum",
         "step": "setSingleStep",
-        "decimals": "setDecimals",
+        "value": "setValue",
     },
 }
 

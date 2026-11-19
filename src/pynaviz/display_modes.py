@@ -447,11 +447,17 @@ class XvsYMode:
             ),
             (len(self.buffer), 1),
         )
+        self._faded_range = None
 
         geometry = gfx.Geometry(
             positions=self.buffer,
             colors=colors,
         )
+
+        # The custom window fades vertices with per-vertex alpha. With the
+        # default alpha mode, faded segments still write depth and can hide
+        # opaque ones where the trajectory crosses itself, so blend instead.
+        alpha_mode = "blend" if self.range_mode == "custom" else "auto"
 
         if self.style == "lines":
             self.graphic = gfx.Line(
@@ -459,6 +465,7 @@ class XvsYMode:
                 gfx.LineMaterial(
                     thickness=self.thickness,
                     color_mode="vertex",
+                    alpha_mode=alpha_mode,
                 ),
             )
         else:
@@ -467,6 +474,7 @@ class XvsYMode:
                 gfx.PointsMaterial(
                     size=self.markersize,
                     color_mode="vertex",
+                    alpha_mode=alpha_mode,
                 ),
             )
 
@@ -484,6 +492,16 @@ class XvsYMode:
             ),
         )
 
+    @classmethod
+    def validate_parameters(cls, style, range_mode, window_before, window_after) -> None:
+        """Raise ValueError if the display parameters are invalid."""
+        if style not in cls.VALID_STYLES:
+            raise ValueError(f"style must be one of {cls.VALID_STYLES}, got {style!r}.")
+        if range_mode not in cls.VALID_RANGES:
+            raise ValueError(f"range_mode must be one of {cls.VALID_RANGES}, got {range_mode!r}.")
+        if window_before < 0 or window_after < 0:
+            raise ValueError("Window durations must be non-negative.")
+
     def update_parameters(
         self,
         x_col,
@@ -497,12 +515,7 @@ class XvsYMode:
         markersize=10.0,
     ) -> None:
         """Set the x-vs-y display parameters."""
-        if style not in self.VALID_STYLES:
-            raise ValueError(f"style must be one of {self.VALID_STYLES}, got {style!r}.")
-        if range_mode not in self.VALID_RANGES:
-            raise ValueError(f"range_mode must be one of {self.VALID_RANGES}, got {range_mode!r}.")
-        if window_before < 0 or window_after < 0:
-            raise ValueError("Window durations must be non-negative.")
+        self.validate_parameters(style, range_mode, window_before, window_after)
 
         self.x_col = x_col
         self.y_col = y_col
@@ -544,16 +557,24 @@ class XvsYMode:
             max(0, end - start),
         )
 
-        colors = self.graphic.geometry.colors.data
-        colors[:, 3] = 1.0
+        # Only the custom window fades. Restore alpha over the previously
+        # faded range and write the new one, uploading just those ranges
+        # instead of the whole N x 4 color buffer on every frame.
+        colors_buffer = self.graphic.geometry.colors
+        colors = colors_buffer.data
+        prev = self._faded_range
+        if prev is not None:
+            colors[prev[0] : prev[1], 3] = 1.0
+            colors_buffer.update_range(prev[0], prev[1] - prev[0])
+            self._faded_range = None
 
         if self.range_mode == "custom" and end > start:
             colors[start:end, 3] = self._get_custom_alpha(
                 timestamps[start:end],
                 current_time,
             )
-
-        self.graphic.geometry.colors.update_full()
+            colors_buffer.update_range(start, end - start)
+            self._faded_range = (start, end)
 
         self.time_point.geometry.positions.data[0, :2] = self.buffer[
             frame_index,
