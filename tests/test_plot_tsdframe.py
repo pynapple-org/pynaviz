@@ -626,3 +626,21 @@ def test_toggle_display_mode(dummy_tsdframe):
     assert isinstance(v.controller, viz.controller.SpanController)
 
     v.close()
+
+
+def test_xvsy_epoch_jump_moves_playhead(dummy_tsdframe):
+    v = viz.PlotTsdFrame(dummy_tsdframe)
+    t = np.asarray(dummy_tsdframe.t)
+    starts = [t[len(t) // 4], t[len(t) // 2]]
+    v.add_interval_sets(nap.IntervalSet(start=starts, end=[s + 1e-3 for s in starts]))
+    v.plot_x_vs_y(x_col=0, y_col=1)
+    v.controller.set_frame(float(t[0]))
+
+    v.jump_to_next_epoch()
+    assert v.controller._current_time == pytest.approx(starts[0])
+    v.jump_to_next_epoch()
+    assert v.controller._current_time == pytest.approx(starts[1])
+    v.jump_to_previous_epoch()
+    assert v.controller._current_time == pytest.approx(starts[0])
+
+    v.close()
