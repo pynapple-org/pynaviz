@@ -315,6 +315,35 @@ def test_tsgroup_x_vs_y_rejects_non_shared_column(
     finally:
         plot.close()
 
+def test_tsgroup_x_vs_y_playhead_covers_all_entries():
+    # Entry 1 runs well past the end of entry 0.
+    group = nap.TsGroup(
+        {
+            0: nap.TsdFrame(
+                t=np.linspace(0.0, 10.0, 11),
+                d=np.random.randn(11, 2),
+                columns=["x", "y"],
+            ),
+            1: nap.TsdFrame(
+                t=np.linspace(5.0, 20.0, 16),
+                d=np.random.randn(16, 2),
+                columns=["x", "y"],
+            ),
+        }
+    )
+    plot = PlotTsGroup(group)
+
+    try:
+        plot.plot_x_vs_y("x", "y")
+        plot.controller.set_frame(15.0)
+        assert plot.controller._current_time == pytest.approx(15.0)
+
+        plot.controller.set_frame(100.0)
+        assert plot.controller._current_time == pytest.approx(20.0)
+    finally:
+        plot.close()
+
+
 def test_tsgroup_can_return_from_x_vs_y(
     tsgroup_tsdframes,
 ):
@@ -437,3 +466,141 @@ def test_tsgroup_x_vs_y_state_roundtrip(
         restored.close()
 
 
+
+
+def test_tsgroup_x_vs_y_epoch_jump_moves_playhead(tsgroup_tsdframes):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        plot.add_interval_sets(nap.IntervalSet(start=[0.6, 1.4], end=[0.9, 1.8]))
+        plot.plot_x_vs_y("x", "y")
+        plot.controller.set_frame(0.0)
+
+        plot.jump_to_next_epoch()
+        assert plot.controller._current_time == pytest.approx(0.6)
+        plot.jump_to_next_epoch()
+        assert plot.controller._current_time == pytest.approx(1.4)
+        plot.jump_to_previous_epoch()
+        assert plot.controller._current_time == pytest.approx(0.6)
+    finally:
+        plot.close()
+
+
+@pytest.mark.parametrize(
+    ("keys", "expected"),
+    [((), "span"), (("y",), "span_ylock"), (("x",), "span_xlock"), (("x", "y"), "span_xylock")],
+)
+def test_tsgroup_x_vs_y_restores_axis_lock(tsgroup_tsdframes, keys, expected):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        for key in keys:
+            event = SimpleNamespace(type="key_down", key=key, modifiers=())
+            plot._toggle_y_lock(event)
+            plot._toggle_x_lock(event)
+        assert plot._active_controller_key == expected
+
+        plot.plot_x_vs_y("x", "y")
+        assert plot._active_controller_key == "get"
+        plot._set_time_mode()
+        assert plot._active_controller_key == expected
+
+        # One more 'y' press toggles the lock (no extra press needed).
+        y_locked = plot._y_locked
+        plot._toggle_y_lock(SimpleNamespace(type="key_down", key="y", modifiers=()))
+        assert plot._y_locked is (not y_locked)
+        assert plot._active_controller_key == plot._get_span_lock_key()
+    finally:
+        plot.close()
+
+
+def test_tsgroup_x_vs_y_same_column(tsgroup_tsdframes):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        plot.plot_x_vs_y("x", "x")
+        assert plot._display_mode == "x_vs_y"
+        for key in tsgroup_tsdframes.keys():
+            positions = plot._xy_mode.graphics[key].geometry.positions.data
+            np.testing.assert_array_equal(positions[:, 0], positions[:, 1])
+    finally:
+        plot.close()
+
+
+def _xvy_group_with_metadata():
+    t = np.linspace(0.0, 10.0, 101)
+    return nap.TsGroup(
+        {
+            i: nap.TsdFrame(
+                t=t,
+                d=np.column_stack([np.cos(t + i), np.sin(t + i)]),
+                columns=["x", "y"],
+            )
+            for i in range(2)
+        },
+        metadata={"label": [1.0, 2.0]},
+    )
+
+
+def test_tsgroup_x_vs_y_color_by_keeps_custom_fade():
+    plot = PlotTsGroup(_xvy_group_with_metadata())
+
+    try:
+        plot.plot_x_vs_y(
+            "x",
+            "y",
+            color="white",
+            color_mode="assigned",
+            range_mode="custom",
+            window_before=2.0,
+            window_after=2.0,
+        )
+        plot.controller.set_frame(5.0)
+        before = {
+            key: graphic.geometry.colors.data.copy()
+            for key, graphic in plot._xy_mode.graphics.items()
+        }
+        assert any((c[:, 3] < 1.0).any() for c in before.values())
+
+        plot.color_mapping_thread.wait_until_done(timeout=5)
+        plot.color_by("label", cmap_name="viridis", vmin=0.0, vmax=100.0)
+
+        for key, graphic in plot._xy_mode.graphics.items():
+            after = graphic.geometry.colors.data
+            np.testing.assert_array_equal(after[:, 3], before[key][:, 3])
+            assert not np.allclose(after[:, :3], before[key][:, :3])
+    finally:
+        plot.close()
+
+
+@pytest.mark.parametrize(("style", "attr"), [("lines", "thickness"), ("scatter", "markersize")])
+def test_tsgroup_x_vs_y_rescale_updates_state(tsgroup_tsdframes, style, attr):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        plot.plot_x_vs_y("x", "y", style=style)
+        initial = getattr(plot._xy_mode, attr)
+
+        plot._rescale(SimpleNamespace(type="key_down", key="i", modifiers=()))
+
+        assert getattr(plot._xy_mode, attr) == pytest.approx(initial * 1.2)
+        assert plot.get_plot_state()["x_vs_y"][attr] == pytest.approx(initial * 1.2)
+    finally:
+        plot.close()
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"style": "bad"}, {"range_mode": "bad"}, {"color_mode": "bad"}, {"window_before": -1.0}],
+)
+def test_tsgroup_x_vs_y_invalid_parameters_leave_plot_untouched(tsgroup_tsdframes, kwargs):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        with pytest.raises(ValueError):
+            plot.plot_x_vs_y("x", "y", **kwargs)
+        assert plot._display_mode != "x_vs_y"
+        assert plot._active_controller_key == "span"
+        assert plot.graphic is plot._time_graphic
+    finally:
+        plot.close()

@@ -296,3 +296,46 @@ def test_x_vs_y_custom_alpha_restored_when_window_moves():
 def test_x_vs_y_alpha_mode(xy_data, style, range_mode, alpha_mode):
     mode = make_mode(xy_data, style=style, range_mode=range_mode)
     assert mode.graphic.material.alpha_mode == alpha_mode
+
+
+@pytest.mark.parametrize("style", ["lines", "scatter"])
+@pytest.mark.parametrize(("range_mode", "alpha_mode"), [("custom", "blend"), ("full", "auto")])
+def test_multi_x_vs_y_alpha_mode(tsgroup_tsdframes, style, range_mode, alpha_mode):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        mode = MultiXvsYMode(tsgroup_tsdframes, plot._manager)
+        mode.update_parameters("x", "y", style=style, range_mode=range_mode)
+        mode.initialize_graphics()
+
+        for graphic in mode.graphics.values():
+            assert graphic.material.alpha_mode == alpha_mode
+    finally:
+        plot.close()
+
+
+def test_multi_x_vs_y_update_time_uses_cached_visibility(tsgroup_tsdframes):
+    plot = PlotTsGroup(tsgroup_tsdframes)
+
+    try:
+        mode = MultiXvsYMode(tsgroup_tsdframes, plot._manager)
+        mode.update_parameters("x", "y", range_mode="custom")
+        mode.initialize_graphics()
+
+        keys = list(tsgroup_tsdframes.keys())
+        hidden_key = keys[0]
+        plot._manager.visible = [key != hidden_key for key in keys]
+        mode.update_visibility()
+
+        # update_time must not touch the manager (pandas) on the hot path.
+        real_manager = mode.manager
+        mode.manager = None
+        try:
+            mode.update_time(1.0)
+        finally:
+            mode.manager = real_manager
+
+        for key, graphic in mode.graphics.items():
+            assert graphic.visible is (key != hidden_key)
+    finally:
+        plot.close()

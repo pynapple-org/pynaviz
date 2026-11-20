@@ -586,24 +586,50 @@ class _BasePlot(IntervalSetInterface):
         if not self._epochs:
             return
         all_starts = np.sort(np.concatenate([ep.start for ep in self._epochs.values()]))
-        current_t = self.controller._get_camera_state()["position"][0]
+        current_t = self._get_jump_reference_time()
+        if current_t is None:
+            return
         index = np.searchsorted(all_starts, current_t, side="right")
         index = np.clip(index, 0, len(all_starts) - 1)
         new_t = all_starts[index]
         if new_t > current_t:
-            self.controller.go_to(new_t)
+            self._jump_to_time(new_t)
 
     def jump_to_previous_epoch(self) -> None:
         """Jump to the start of the previous superposed epoch (across all added interval sets)."""
         if not self._epochs:
             return
         all_starts = np.sort(np.concatenate([ep.start for ep in self._epochs.values()]))
-        current_t = self.controller._get_camera_state()["position"][0]
+        current_t = self._get_jump_reference_time()
+        if current_t is None:
+            return
         index = np.searchsorted(all_starts, current_t, side="left") - 1
         index = np.clip(index, 0, len(all_starts) - 1)
         new_t = all_starts[index]
         if new_t < current_t:
-            self.controller.go_to(new_t)
+            self._jump_to_time(new_t)
+
+    def _get_jump_reference_time(self) -> float | None:
+        """Return the current time used for epoch jumps.
+
+        In X-vs-Y mode the camera x-axis is a spatial coordinate, so the
+        playhead time of the GetController is used instead.
+        """
+        if isinstance(self.controller, GetController):
+            if self.controller._current_time is not None:
+                return float(self.controller._current_time)
+            if self.controller.data is None or not len(self.controller.data):
+                return None
+            return self.controller._get_frame_time()
+        return float(self.controller._get_camera_state()["position"][0])
+
+    def _jump_to_time(self, target_time: float) -> None:
+        """Move the view (or the X-vs-Y playhead) to a time."""
+        if isinstance(self.controller, GetController):
+            # GetController has no go_to; move the playhead instead.
+            self.controller.set_frame(float(target_time))
+        else:
+            self.controller.go_to(target_time)
 
     def _jump_epoch(self, event):
         """Jump to next/previous superposed epoch on Ctrl+Arrow (when epochs are present)."""
@@ -1232,11 +1258,16 @@ class PlotTsGroup(_BasePlot):
         self.controller = self._controllers["span"]
 
         if self.supports_x_vs_y:
-            reference_key = next(iter(self.data.keys()))
+            # The playhead must cover every entry, not just the first one,
+            # so build the controller's timeline from the union of all
+            # entries' timestamps (it only reads `.t` from its data).
+            timeline = nap.Ts(
+                t=np.unique(np.concatenate([np.asarray(entry.t) for entry in self.data.values()]))
+            )
             self._controllers["get"] = GetController(
                 camera=self.camera,
                 renderer=self.renderer,
-                data=self.data[reference_key],
+                data=timeline,
                 buffer=None,
                 plot_callbacks=[self._update_x_vs_y],
                 continuous_time=True,
@@ -1493,6 +1524,16 @@ class PlotTsGroup(_BasePlot):
                         graphic.material.size * factor,
                     )
 
+        # Keep the X-vs-Y state in sync so saved layouts and re-plots keep
+        # the rescaled thickness / marker size.
+        if self._display_mode == "x_vs_y":
+            for graphic in self._xy_mode.graphics.values():
+                if isinstance(graphic, gfx.Line):
+                    self._xy_mode.thickness = float(graphic.material.thickness)
+                else:
+                    self._xy_mode.markersize = float(graphic.material.size)
+                break
+
         self.canvas.request_draw(self.animate)
 
     def _reset(self, event: Any) -> None:
@@ -1629,11 +1670,12 @@ class PlotTsGroup(_BasePlot):
                 for key, graphic in self._xy_mode.graphics.items():
                     color = mapped_colors[values[key]]
                     rgba = gfx.Color(color)
-                    graphic.geometry.colors.data[:, :] = (
+                    # Only replace RGB: the alpha channel holds the
+                    # per-vertex fade of the custom range mode.
+                    graphic.geometry.colors.data[:, :3] = (
                         rgba.r,
                         rgba.g,
                         rgba.b,
-                        rgba.a,
                     )
                     graphic.geometry.colors.update_full()
 
@@ -1733,18 +1775,9 @@ class PlotTsGroup(_BasePlot):
         columns = self.x_vs_y_columns
         if x_col not in columns or y_col not in columns:
             raise ValueError(f"Columns {x_col!r} and {y_col!r} must exist in every entry.")
-        if x_col == y_col:
-            raise ValueError("X and Y columns must be different.")
-        if style not in MultiXvsYMode.VALID_STYLES:
-            raise ValueError(f"style must be one of {MultiXvsYMode.VALID_STYLES}, got {style!r}.")
-        if range_mode not in MultiXvsYMode.VALID_RANGES:
-            raise ValueError(
-                f"range_mode must be one of {MultiXvsYMode.VALID_RANGES}, got {range_mode!r}."
-            )
-        if color_mode not in ("single", "assigned"):
-            raise ValueError(f"color_mode must be 'single' or 'assigned', got {color_mode!r}.")
-        if window_before < 0 or window_after < 0:
-            raise ValueError("Window durations must be non-negative.")
+        # x_col == y_col is allowed (a diagonal), matching PlotTsdFrame.plot_x_vs_y.
+        # Style, range, color-mode and window checks run in
+        # MultiXvsYMode.update_parameters, before any graphic is touched.
 
         if color is None:
             color = self._default_line_color()
@@ -1815,7 +1848,9 @@ class PlotTsGroup(_BasePlot):
         self.scene.add(*self.graphic.values())
         self.scene.add(self.ruler_ref_time)
 
-        self._switch_controller("get", "span")
+        # Restore the span controller matching the x/y lock flags, which are
+        # left untouched while in X-vs-Y mode, so the lock state survives.
+        self._switch_controller("get", self._get_span_lock_key())
         self._display_mode = "time"
 
         if self._time_view is not None:
